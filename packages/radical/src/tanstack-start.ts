@@ -1,19 +1,25 @@
+import type { AnyRouter } from "@tanstack/react-router";
 import { createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 import { Effect, Layer } from "effect";
 import type { PluginOption } from "vite";
 
 import { AdapterUnavailable } from "./adapter-error.ts";
 import { RadicalAdapter } from "./adapter.ts";
+import type { Transition } from "./client.ts";
 import type { RadicalConfig } from "./config.ts";
 import type { NativeContext } from "./native-context.ts";
 import { offlineBuild } from "./offline-build.ts";
 import { getNativeContext } from "./server.ts";
+import { tanstackNavigation } from "./tanstack-navigation.ts";
 import { radical as corePlugin } from "./vite.ts";
 
 declare module "@tanstack/react-router" {
   interface StaticDataRouteOption {
     /** Route options radical reads from the route tree. */
-    radical?: { readonly offline?: boolean };
+    radical?: {
+      readonly offline?: boolean;
+      readonly transition?: Transition["kind"];
+    };
   }
 }
 
@@ -64,3 +70,19 @@ export const radical = (config: RadicalConfig): PluginOption[] => [
   corePlugin(config),
   offlineBuild(config),
 ];
+
+export { browserTransitions } from "./tanstack-navigation.ts";
+export type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
+
+/** Supply the host framework router for client navigation. */
+export const tanstackStartAdapterLayer = (router: AnyRouter) =>
+  Layer.suspend(() =>
+    Layer.succeed(RadicalAdapter, {
+      name: "tanstack-start",
+      routes: Effect.succeed([]),
+      provideRequestContext: (get) =>
+        Effect.sync(() => createRadicalMiddleware(get)),
+      navigation: Effect.succeed(tanstackNavigation(router)),
+      outputs: Effect.succeed({ clientDir: "dist/client" }),
+    })
+  );

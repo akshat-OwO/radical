@@ -8,6 +8,7 @@
   ],
   "type": "module",
   "exports": {
+    "./transitions.css": "./dist/transitions.css",
     "./client": "./dist/client.mjs",
     "./native-context": "./dist/native-context.mjs",
     "./offline-entry": "./dist/offline-entry.mjs",

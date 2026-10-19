@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
@@ -12,6 +12,8 @@ const Home = () => {
       <h1>Radical example</h1>
       <a href="/offline-route">Offline route</a>{" "}
       <a href="/online-route">Network required</a>
+      <Link to="/details">Slide to details</Link>{" "}
+      <Link to="/about">Fade to about</Link>
       <h2>Native context</h2>
       <pre>{JSON.stringify(nativeContext, null, 2)}</pre>
     </main>
@@ -19,6 +21,7 @@ const Home = () => {
 };
 
 export const Route = createFileRoute("/")({
+  staticData: { radical: { transition: "slide" } },
   loader: async () => await readNativeContext(),
   component: Home,
 });
