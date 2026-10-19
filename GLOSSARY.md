@@ -1,0 +1,63 @@
+# radical
+
+A Vite plugin and runtime that runs a server-rendered web app inside native Android and iOS apps, which host its UI in a WebView.
+
+## Language
+
+### Apps and frameworks
+
+**Host framework**:\
+The meta-framework that owns routing, rendering, data loading, and the server, such as TanStack Start.\
+_Avoid_: Base framework, underlying framework
+
+**Adapter**:\
+The framework-specific entry point, such as `radical/tanstack-start`, that connects the core to one host framework.\
+_Avoid_: Integration, binding, driver
+
+**Core**:\
+The framework-agnostic part of radical, built only on web standards and the Vite build.\
+_Avoid_: Engine, runtime (when meaning the whole core)
+
+### Native
+
+**Shell**:\
+The native Android or iOS app that hosts the web app in a WebView.\
+_Avoid_: Wrapper, container, native app (when meaning the host)
+
+**Bridge**:\
+The channel through which web code calls native capabilities in the shell.\
+_Avoid_: Interface, JSI, IPC
+
+**Native plugin**:\
+A unit of native capability, declared by a manifest, that exposes commands over the bridge.\
+_Avoid_: Extension, module
+
+**Native context**:\
+Request-time facts about the shell, such as platform and safe-area insets, read from a header the shell injects.\
+_Avoid_: Device context, client hints
+
+### Loading and offline
+
+**Remote mode**:\
+The shell loads the web app from a live server origin, with server rendering.\
+_Avoid_: Server URL mode, online mode
+
+**Bundled mode**:\
+The shell loads a prebuilt SPA shell from assets packaged in the app.\
+_Avoid_: Static mode, local mode, export mode
+
+**Manifest**:\
+The build output `radical-manifest.json` that the service worker and shells read: build id, offline routes, transitions, cache patterns, and allowlist.\
+_Avoid_: Config (the input), route manifest
+
+**Offline route**:\
+A route marked `offline: true`, whose visited URLs are kept as snapshots.\
+_Avoid_: Cached route, PWA route
+
+**Snapshot**:\
+The stored HTML of one offline-route URL, keyed by its exact URL including the query string.\
+_Avoid_: Cache entry, page cache
+
+**Transition**:\
+An animated navigation between routes (slide or fade), shown as a native snapshot overlay in shells and as a view transition in browsers.\
+_Avoid_: Animation, page animation
