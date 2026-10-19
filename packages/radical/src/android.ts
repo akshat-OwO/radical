@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Schema } from "effect";
 
 import { HttpOriginSchema, RadicalConfigSchema } from "./config.ts";
-import { NATIVE_CONTEXT_HEADER, ShellContextSchema } from "./native-context.ts";
+import {
+  encodeNativeContextCookie,
+  NATIVE_CONTEXT_COOKIE,
+} from "./native-context.ts";
 import { execute, replaceProject } from "./shell.ts";
 
 const require = createRequire(import.meta.url);
@@ -34,35 +37,6 @@ export const nativeConfigSchema = Schema.Struct({
   url: HttpOriginSchema,
 });
 
-/** Fetch and XHR retain Chromium networking, including POST bodies and cookies. */
-export const requestContextScript = (
-  header: string,
-  context: string,
-  origins: readonly string[]
-) => `(() => {
-  const allowed = new Set(${JSON.stringify(origins)});
-  const accepts = url => allowed.has(new URL(url, location.href).origin);
-  const fetch = window.fetch;
-  window.fetch = function(input, init) {
-    const request = new Request(input, init);
-    if (!accepts(request.url)) return fetch.call(this, request);
-    const headers = new Headers(request.headers);
-    headers.set(${JSON.stringify(header)}, ${JSON.stringify(context)});
-    return fetch.call(this, new Request(request, { headers }));
-  };
-  const open = XMLHttpRequest.prototype.open;
-  const send = XMLHttpRequest.prototype.send;
-  const destinations = new WeakMap();
-  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-    destinations.set(this, accepts(url));
-    return open.call(this, method, url, ...rest);
-  };
-  XMLHttpRequest.prototype.send = function(body) {
-    if (destinations.get(this)) this.setRequestHeader(${JSON.stringify(header)}, ${JSON.stringify(context)});
-    return send.call(this, body);
-  };
-})();`;
-
 export const generateAndroid = (
   root: string,
   packageRoot = fileURLToPath(new URL("../", import.meta.url))
@@ -77,28 +51,29 @@ export const generateAndroid = (
     )(native);
     const { origin } = new URL(url);
     const origins = [...new Set([origin, ...(config.allowlist ?? [])])];
-    const context = yield* Schema.encodeEffect(
-      Schema.fromJsonString(ShellContextSchema)
-    )({
+    const { version } = yield* fs
+      .readFileString(path.join(packageRoot, "package.json"))
+      .pipe(
+        Effect.flatMap(
+          Schema.decodeEffect(
+            Schema.fromJsonString(Schema.Struct({ version: Schema.String }))
+          )
+        )
+      );
+    // Real insets arrive with safe-area support (#7); the shell pads the WebView until then.
+    const cookie = yield* encodeNativeContextCookie({
       platform: "android",
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
-      shellVersion: "0.0.0",
+      shellVersion: version,
     });
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/MainActivity.java")
     );
-    const gradleTemplate = yield* fs.readFileString(
-      path.join(packageRoot, "templates/android/radical.gradle")
-    );
     const replacements: Record<string, string> = {
       __APP_ID__: config.appId,
       __URL__: JSON.stringify(url),
-      __HEADER__: JSON.stringify(NATIVE_CONTEXT_HEADER),
-      __CONTEXT__: JSON.stringify(context),
+      __COOKIE__: JSON.stringify(`${NATIVE_CONTEXT_COOKIE}=${cookie}`),
       __ORIGINS__: origins.map((value) => JSON.stringify(value)).join(", "),
-      __SCRIPT__: JSON.stringify(
-        requestContextScript(NATIVE_CONTEXT_HEADER, context, origins)
-      ),
     };
     const activity = template.replaceAll(
       /__[A-Z_]+__/gu,
@@ -133,16 +108,6 @@ export const generateAndroid = (
             })
           );
           yield* execute(process.execPath, [cli, "add", "android"], staging);
-          const appGradle = path.join(staging, "android/app/build.gradle");
-          const gradle = yield* fs.readFileString(appGradle);
-          yield* fs.writeFileString(
-            path.join(staging, "android/app/radical.gradle"),
-            gradleTemplate
-          );
-          yield* fs.writeFileString(
-            appGradle,
-            `${gradle}\napply from: 'radical.gradle'\n`
-          );
           yield* fs.writeFileString(
             path.join(
               staging,

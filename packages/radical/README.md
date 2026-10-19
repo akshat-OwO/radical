@@ -8,9 +8,9 @@ The config accepts `appId`, a dot-separated identifier whose segments start with
 
 ## Native context
 
-`getNativeContext(request)` from `radical/server` returns an Effect containing the platform, safe-area insets, and shell version. Requests with missing or malformed shell headers receive browser context.
+`getNativeContext(request)` from `radical/server` returns an Effect containing the platform, safe-area insets, and shell version. Requests without a valid shell cookie receive browser context.
 
-The [header contract](src/native-context.ts) is documented alongside its schemas in one module, exported as `radical/native-context`. The server and shell generators share that module.
+The [cookie contract](src/native-context.ts) is documented alongside its schemas in one module, exported as `radical/native-context`. The server and shell generators share that module.
 
 For TanStack Start, register `radicalRequestMiddleware` in `src/start.ts`:
 
@@ -69,8 +69,8 @@ Install Android SDK platform 36, build tools, an emulator system image, and Java
 
 Install the optional native peers with `pnpm add @capacitor/core@8 @capacitor/android@8` and `pnpm add -D @capacitor/cli@8`.
 
-Start your host framework's dev server, then run `pnpm exec radical android` from the app directory in another terminal. The Vite plugin binds to the LAN and writes `.radical/native.json` with the selected port. Use `devHost` in the radical config to select a reachable LAN address, or `10.0.2.2` for the Android emulator's host alias. The CLI reads that file, regenerates `.radical/android`, and builds and runs the shell. Start an existing AVD first, or select one in Capacitor's target prompt. Use `--target emulator-5554` to select a running emulator, or `--generate-only` to skip building and running.
+Start your host framework's dev server, then run `pnpm exec radical android` from the app directory in another terminal. The Vite plugin binds the dev server to the LAN (`0.0.0.0`) so devices can reach it, unless you set `server.host` yourself, and writes `.radical/native.json` with the selected port. Use `devHost` in the radical config to select a reachable LAN address, or `10.0.2.2` for the Android emulator's host alias. The CLI reads that file, regenerates `.radical/android`, and builds and runs the shell. Start an existing AVD first, or select one in Capacitor's target prompt. Use `--target emulator-5554` to select a running emulator, or `--generate-only` to skip building and running.
 
-The server origin is always allowed. Add exact HTTP or HTTPS origins to `allowlist` to permit additional navigation. Origins include their port and have no trailing slash. Other navigation is blocked. Context headers apply to document GET navigation and fetch/XHR requests to allowed origins. HTML form POST navigation and service-worker-originated requests do not receive additional headers. The example uses a GET server function.
+The server origin is always allowed. Add exact HTTP or HTTPS origins to `allowlist` to permit additional navigation. Origins include their port and have no trailing slash. Other navigation is blocked. Before the first load, the shell sets the native context cookie on every allowed origin with `CookieManager`, so the WebView sends it with every request: navigations, fetch and XHR, form posts, and service-worker requests.
 
-The shell requires a WebView with document-start script support. It applies system-bar and cutout insets outside the WebView, so the native context reports zero CSS safe-area insets. Native projects and local edits in them are disposable. Templates ship with the package; regeneration replaces the previous project after successful generation. No iOS shell is generated.
+The shell applies system-bar and cutout insets outside the WebView, so the native context reports zero CSS safe-area insets. Native projects and local edits in them are disposable. Templates ship with the package; regeneration replaces the previous project after successful generation. No iOS shell is generated.

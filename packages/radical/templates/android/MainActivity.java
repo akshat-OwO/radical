@@ -1,28 +1,26 @@
 package __APP_ID__;
 
 import android.net.Uri;
+import android.util.Log;
+import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
-import android.util.Log;
-import java.io.ByteArrayInputStream;
 import android.webkit.WebView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.webkit.WebViewCompat;
-import androidx.webkit.WebViewFeature;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
-import java.util.Collections;
-import java.util.Set;
-import java.util.HashSet;
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /** Remote mode keeps Chromium's networking, streaming, cookies and origin. */
 public class MainActivity extends BridgeActivity {
     private static final String URL = __URL__;
-    private static final String HEADER = __HEADER__;
-    private static final String CONTEXT = __CONTEXT__;
+    private static final String COOKIE = __COOKIE__;
     private static final Set<String> ORIGINS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(__ORIGINS__)));
 
     private static boolean allowed(Uri uri) {
@@ -37,18 +35,21 @@ public class MainActivity extends BridgeActivity {
         view.getSettings().setBlockNetworkLoads(true);
         super.load();
         view.stopLoading();
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            finish();
-            return;
+        // The WebView sends the native context cookie with every request to an allowed origin.
+        CookieManager cookies = CookieManager.getInstance();
+        for (String origin : ORIGINS) {
+            String secure = origin.startsWith("https:") ? "; Secure" : "";
+            cookies.setCookie(origin, COOKIE + "; Path=/; HttpOnly; SameSite=Lax" + secure);
         }
+        cookies.flush();
         // Insets are applied outside the WebView, so its CSS safe area is zero.
+        // Safe-area support (#7) replaces this with real insets in native context.
         ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
             Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return windowInsets;
         });
         ViewCompat.requestApplyInsets(view);
-        WebViewCompat.addDocumentStartJavaScript(view, __SCRIPT__, ORIGINS);
         bridge.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView webView, WebResourceRequest request) {
@@ -65,14 +66,10 @@ public class MainActivity extends BridgeActivity {
                     Log.i("RadicalNavigation", "Blocked " + request.getUrl());
                     return true;
                 }
-                if (request.isForMainFrame() && "GET".equals(request.getMethod())) {
-                    webView.loadUrl(request.getUrl().toString(), Collections.singletonMap(HEADER, CONTEXT));
-                    return true;
-                }
                 return false;
             }
         });
         view.getSettings().setBlockNetworkLoads(false);
-        view.loadUrl(URL, Collections.singletonMap(HEADER, CONTEXT));
+        view.loadUrl(URL);
     }
 }

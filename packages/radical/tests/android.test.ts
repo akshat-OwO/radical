@@ -4,11 +4,10 @@ import { ChildProcessSpawner } from "effect/process";
 
 import { generateAndroid } from "../src/android.ts";
 import {
-  NATIVE_CONTEXT_HEADER,
+  NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
 import activity from "../templates/android/MainActivity.java?raw";
-import gradle from "../templates/android/radical.gradle?raw";
 
 const destination = "/app/.radical/android";
 const mainActivity = `${destination}/android/app/src/main/java/dev/radical/example/MainActivity.java`;
@@ -22,7 +21,7 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
       JSON.stringify({ config, url: "http://192.168.1.2:3000" }),
     ],
     ["/package/templates/android/MainActivity.java", activity],
-    ["/package/templates/android/radical.gradle", gradle],
+    ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
   ]);
   const commands: string[][] = [];
   const fs = FileSystem.layerNoop({
@@ -101,26 +100,22 @@ describe("Android shell generation", () => {
         assert.strictEqual(state.commands.length, 1);
         assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "android"]);
         const source = state.files.get(mainActivity) ?? "";
-        assert.include(source, `HEADER = "${NATIVE_CONTEXT_HEADER}"`);
-        const encoded =
-          /CONTEXT = (?<encoded>.+);/u.exec(source)?.groups?.encoded ?? '""';
+        const cookie = yield* Schema.decodeUnknownEffect(
+          Schema.fromJsonString(Schema.String)
+        )(/COOKIE = (?<cookie>.+);/u.exec(source)?.groups?.cookie);
+        const [name, value] = cookie.split("=");
+        assert.strictEqual(name, NATIVE_CONTEXT_COOKIE);
         const context = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(ShellContextSchema)
-        )(JSON.parse(encoded));
+        )(decodeURIComponent(value ?? ""));
         assert.deepStrictEqual(context, {
           platform: "android",
-          shellVersion: "0.0.0",
+          shellVersion: "1.2.3",
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
+        assert.include(source, "CookieManager");
         assert.notInclude(source, "__APP_ID__");
-        assert.include(
-          state.files.get(`${destination}/android/app/radical.gradle`) ?? "",
-          "androidx.webkit:webkit"
-        );
-        assert.include(
-          state.files.get(`${destination}/android/app/build.gradle`) ?? "",
-          "apply from: 'radical.gradle'"
-        );
+        assert.notInclude(source, "__COOKIE__");
         assert.include(source, 'Arrays.asList("http://192.168.1.2:3000")');
         assert.include(
           state.files.get(`${destination}/capacitor.config.json`) ?? "",

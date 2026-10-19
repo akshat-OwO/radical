@@ -1,18 +1,25 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 /**
- * Shell header contract, shared by the server and shell generators.
+ * Shell cookie contract, shared by the server and shell generators.
  *
- * `x-radical-context` contains one JSON object, without base64 or URI encoding:
+ * Shells set the `radical-context` cookie natively (Android `CookieManager`,
+ * iOS `WKHTTPCookieStore`) on every allowed origin before the first load. The
+ * WebView then sends it with every request: navigations, fetch and XHR, form
+ * posts, and service-worker requests. A WebView cannot add a request header to
+ * all of those.
+ *
+ * The value is one URI-encoded JSON object, `encodeURIComponent(JSON.stringify(context))`:
  * {"platform":"ios","safeArea":{"top":47,"right":0,"bottom":34,"left":0},"shellVersion":"1.0.0"}
+ * Shells set it with `Path=/; HttpOnly; SameSite=Lax`, plus `Secure` on HTTPS origins.
  *
  * All fields are required. Platform is `android` or `ios`; safe-area insets are
  * finite, nonnegative numbers in CSS pixels; shellVersion is a nonempty string.
- * Unknown fields are ignored for forward compatibility. Missing or invalid
- * headers produce browser context with zero insets and a null shellVersion.
- * This header is untrusted presentation data, never proof of identity.
+ * Unknown fields are ignored for forward compatibility. A missing or invalid
+ * cookie produces browser context with zero insets and a null shellVersion.
+ * The cookie is untrusted presentation data, never proof of identity.
  */
-export const NATIVE_CONTEXT_HEADER = "x-radical-context";
+export const NATIVE_CONTEXT_COOKIE = "radical-context";
 
 const Inset = Schema.Number.check(
   Schema.isFinite(),
@@ -32,6 +39,8 @@ export const ShellContextSchema = Schema.Struct({
   shellVersion: Schema.NonEmptyString,
 });
 
+export type ShellContext = typeof ShellContextSchema.Type;
+
 export const NativeContextSchema = Schema.Union([
   ShellContextSchema,
   Schema.Struct({
@@ -42,3 +51,9 @@ export const NativeContextSchema = Schema.Union([
 ]);
 
 export type NativeContext = typeof NativeContextSchema.Type;
+
+/** Encode shell context as the cookie value shells set. */
+export const encodeNativeContextCookie = (context: ShellContext) =>
+  Schema.encodeEffect(Schema.fromJsonString(ShellContextSchema))(context).pipe(
+    Effect.map(encodeURIComponent)
+  );

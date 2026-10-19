@@ -1,4 +1,0 @@
-// The shell directly uses AndroidX WebKit's document-start API.
-dependencies {
-    implementation "androidx.webkit:webkit:$androidxWebkitVersion"
-}

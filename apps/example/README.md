@@ -22,11 +22,11 @@ The home page renders native context from the request middleware through a typed
 
 ```sh
 curl -fsS http://localhost:5173/
-curl -fsS -H 'x-radical-context: {"platform":"ios","safeArea":{"top":47,"right":0,"bottom":34,"left":0},"shellVersion":"1.0.0"}' http://localhost:5173/
-curl -fsS -H 'x-radical-context: malformed' http://localhost:5173/
+curl -fsS -b 'radical-context=%7B%22platform%22%3A%22ios%22%2C%22safeArea%22%3A%7B%22top%22%3A47%2C%22right%22%3A0%2C%22bottom%22%3A34%2C%22left%22%3A0%7D%2C%22shellVersion%22%3A%221.0.0%22%7D' http://localhost:5173/
+curl -fsS -b 'radical-context=malformed' http://localhost:5173/
 ```
 
-The first and third responses show browser context with zero insets. The second shows iOS with the supplied insets and shell version. The [shared header contract](../../packages/radical/src/native-context.ts) defines the format.
+The first and third responses show browser context with zero insets. The second shows iOS with the supplied insets and shell version. The [shared cookie contract](../../packages/radical/src/native-context.ts) defines the format.
 
 To verify browser offline behavior, build and preview the production app:
 

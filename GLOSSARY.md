@@ -33,7 +33,7 @@ A unit of native capability, declared by a manifest, that exposes commands over 
 _Avoid_: Extension, module
 
 **Native context**:\
-Request-time facts about the shell, such as platform and safe-area insets, read from a header the shell injects.\
+Request-time facts about the shell, such as platform and safe-area insets, read from a cookie the shell sets natively on its allowed origins.\
 _Avoid_: Device context, client hints
 
 ### Loading and offline

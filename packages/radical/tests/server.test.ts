@@ -1,16 +1,22 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
 import {
-  NATIVE_CONTEXT_HEADER,
-  ShellContextSchema,
+  encodeNativeContextCookie,
+  NATIVE_CONTEXT_COOKIE,
 } from "../src/native-context.ts";
 import { getNativeContext } from "../src/server.ts";
 
-const requestWith = (header: string) =>
+/** Surround the context cookie with unrelated cookies, as a WebView sends them. */
+const requestWithCookie = (value: string) =>
   new Request("https://example.test/", {
-    headers: { [NATIVE_CONTEXT_HEADER]: header },
+    headers: {
+      cookie: `session=abc; ${NATIVE_CONTEXT_COOKIE}=${value}; theme=dark`,
+    },
   });
+
+const requestWith = (json: string) =>
+  requestWithCookie(encodeURIComponent(json));
 
 const browser = {
   platform: "browser" as const,
@@ -29,21 +35,36 @@ describe("native context", () => {
             safeArea: { top: 47.5, right: 1, bottom: 34, left: 2 },
             shellVersion: "1.0.0",
           };
-          const header = yield* Schema.encodeEffect(
-            Schema.fromJsonString(ShellContextSchema)
-          )(context);
+          const cookie = yield* encodeNativeContextCookie(context);
           assert.deepStrictEqual(
-            yield* getNativeContext(requestWith(header)),
+            yield* getNativeContext(requestWithCookie(cookie)),
             context
           );
         }
       })
   );
 
-  it.effect("returns browser context when the shell header is absent", () =>
+  it.effect("returns browser context when the shell cookie is absent", () =>
     Effect.gen(function* () {
       assert.deepStrictEqual(
         yield* getNativeContext(new Request("https://example.test/")),
+        browser
+      );
+      assert.deepStrictEqual(
+        yield* getNativeContext(
+          new Request("https://example.test/", {
+            headers: { cookie: "session=abc; radical-context-old=1" },
+          })
+        ),
+        browser
+      );
+    })
+  );
+
+  it.effect("returns browser context for a malformed URI encoding", () =>
+    Effect.gen(function* () {
+      assert.deepStrictEqual(
+        yield* getNativeContext(requestWithCookie("%E0%A4%A")),
         browser
       );
     })
@@ -79,11 +100,11 @@ describe("native context", () => {
           JSON.stringify({ ...valid, safeArea: { top: 0 } }),
           '{"platform":"ios","safeArea":{"top":1e400,"right":0,"bottom":0,"left":0},"shellVersion":"1"}',
         ];
-        for (const header of invalid) {
+        for (const json of invalid) {
           assert.deepStrictEqual(
-            yield* getNativeContext(requestWith(header)),
+            yield* getNativeContext(requestWith(json)),
             browser,
-            header
+            json
           );
         }
       })

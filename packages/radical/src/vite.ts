@@ -33,11 +33,15 @@ export const radical = (config: RadicalConfig): Plugin => ({
         Effect.asVoid
       )
     ),
-  config: () =>
+  // Shells reach the dev server over the LAN, unless the app chose its own host.
+  config: (user) =>
     Effect.runPromise(
       validateConfig(config).pipe(
         Effect.as({
-          server: { host: "0.0.0.0", watch: { ignored: ["**/.radical/**"] } },
+          server: {
+            host: user.server?.host ?? "0.0.0.0",
+            watch: { ignored: ["**/.radical/**"] },
+          },
         })
       )
     ),
