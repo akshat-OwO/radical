@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OfflineRouteRouteImport } from './routes/offline-route'
+import { Route as OnlineRouteRouteImport } from './routes/online-route'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OfflineRouteRoute = OfflineRouteRouteImport.update({
+  id: '/offline-route',
+  path: '/offline-route',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnlineRouteRoute = OnlineRouteRouteImport.update({
+  id: '/online-route',
+  path: '/online-route',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/offline-route': typeof OfflineRouteRoute
+  '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/offline-route': typeof OfflineRouteRoute
+  '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/offline-route': typeof OfflineRouteRoute
+  '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/offline-route' | '/online-route'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/offline-route' | '/online-route'
+  id: '__root__' | '/' | '/offline-route' | '/online-route'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OfflineRouteRoute: typeof OfflineRouteRoute
+  OnlineRouteRoute: typeof OnlineRouteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/offline-route': {
+      id: '/offline-route'
+      path: '/offline-route'
+      fullPath: '/offline-route'
+      preLoaderRoute: typeof OfflineRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/online-route': {
+      id: '/online-route'
+      path: '/online-route'
+      fullPath: '/online-route'
+      preLoaderRoute: typeof OnlineRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OfflineRouteRoute: OfflineRouteRoute,
+  OnlineRouteRoute: OnlineRouteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

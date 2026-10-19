@@ -6,6 +6,7 @@ export default defineConfig({
       "src/vite.ts",
       "src/tanstack-start.ts",
       "src/server.ts",
+      "src/client.ts",
       "src/native-context.ts",
     ],
     deps: {

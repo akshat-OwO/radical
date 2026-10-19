@@ -8,6 +8,7 @@
   ],
   "type": "module",
   "exports": {
+    "./client": "./dist/client.mjs",
     "./native-context": "./dist/native-context.mjs",
     "./server": "./dist/server.mjs",
     "./tanstack-start": "./dist/tanstack-start.mjs",
