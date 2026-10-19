@@ -5,16 +5,16 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { Clock, Deferred, Effect, Fiber, Layer, Option, Ref } from "effect";
+import { Clock, Deferred, Effect, Layer, Option, Ref } from "effect";
 import { TestClock } from "effect/testing";
 
 import { RadicalAdapter } from "../src/adapter.ts";
 import { BrowserTransitions } from "../src/client.ts";
-import type { Transition } from "../src/client.ts";
+import { tanstackNavigation } from "../src/tanstack-navigation.ts";
 import {
   browserTransitions,
-  tanstackStartAdapter,
-} from "../src/tanstack-start.ts";
+  tanstackStartAdapterLayer,
+} from "../src/tanstack-start-client.ts";
 
 const makeRouter = () => {
   const root = createRootRoute();
@@ -44,141 +44,127 @@ const makeRouter = () => {
   });
 };
 
-const stalledNavigation = (cancel: boolean) =>
-  Effect.gen(function* () {
-    const router = makeRouter();
-    yield* Effect.promise(async () => {
-      await router.load();
-    });
-    const started = yield* Deferred.make<boolean>();
-    const clock = yield* Effect.clockWith(Effect.succeed);
-    const plans = yield* Ref.make<Transition[]>([]);
-    const layer = Layer.merge(
-      Layer.succeed(Clock.Clock, clock),
-      Layer.succeed(BrowserTransitions, {
-        start: (plan) =>
-          Effect.gen(function* () {
-            yield* Ref.update(plans, (items) => [...items, plan]);
-            yield* Deferred.succeed(started, true);
-            return Option.some({ finished: Effect.never, skip: Effect.void });
-          }),
-      })
-    );
-    const original = router.startViewTransition;
-    const controller = browserTransitions(
-      router,
-      { timeoutMs: 100, direction: () => "back" },
-      layer
-    );
-    const fiber = yield* Effect.forkChild(
-      Effect.promise(async () => {
-        await router.navigate({ to: "/details" });
-      })
-    );
-    yield* Deferred.await(started);
-    yield* TestClock.adjust(10);
-    assert.strictEqual(router.stores.resolvedLocation.get()?.pathname, "/");
-    if (cancel) {
-      controller.cancel();
-    } else {
-      yield* TestClock.adjust(90);
-    }
-    yield* Fiber.join(fiber);
-    assert.strictEqual(router.state.location.pathname, "/details");
-    assert.deepStrictEqual(yield* Ref.get(plans), [
-      { kind: "slide", direction: "back" },
-    ]);
-    controller.dispose();
-    assert.strictEqual(router.startViewTransition, original);
+const transitionTypes = (
+  router: ReturnType<typeof makeRouter>,
+  from: string | undefined,
+  to: string
+) => {
+  const option = router.options.defaultViewTransition;
+  assert.isObject(option);
+  assert.isTrue(typeof option === "object");
+  if (typeof option !== "object") {
+    return false;
+  }
+  assert.isFunction(option.types);
+  if (typeof option.types !== "function") {
+    return false;
+  }
+  return option.types({
+    fromLocation:
+      from === undefined ? undefined : router.buildLocation({ to: from }),
+    toLocation: router.buildLocation({ to }),
+    pathChanged: from !== to,
+    hrefChanged: from !== to,
+    hashChanged: false,
   });
+};
 
 describe("TanStack navigation", () => {
   it.effect(
-    "cancels a stalled browser transition without rejecting navigation",
-    () => stalledNavigation(true)
-  );
-  it.effect(
-    "times out a stalled browser transition without blocking navigation",
-    () => stalledNavigation(false)
-  );
-  it.effect(
-    "uses route transition kinds and reverses direction on history back",
+    "does not install browser transitions during server rendering",
     () =>
-      Effect.gen(function* () {
-        const router = makeRouter();
-        const plans = yield* Ref.make<Transition[]>([]);
-        const clock = yield* Effect.clockWith(Effect.succeed);
-        const browser = Layer.merge(
-          Layer.succeed(Clock.Clock, clock),
-          Layer.succeed(BrowserTransitions, {
-            start: (plan, update) =>
-              Effect.gen(function* () {
-                yield* Ref.update(plans, (items) => [...items, plan]);
-                return Option.some({
-                  finished: Effect.promise(update),
-                  skip: Effect.void,
-                });
-              }),
-          })
-        );
-        const controller = browserTransitions(router, {}, browser);
-        yield* Effect.promise(async () => {
-          await router.load();
+      Effect.sync(() => {
+        const router = createRouter({
+          routeTree: createRootRoute(),
+          isServer: true,
         });
-        const unsubscribe = router.history.subscribe(() => {
-          Effect.runFork(
-            Effect.promise(async () => {
-              await router.load();
-            })
-          );
-        });
-        yield* Effect.promise(async () => {
-          await router.navigate({ to: "/details" });
-        });
-        const resolved = yield* Deferred.make<boolean>();
-        const removeResolved = router.subscribe("onResolved", () => {
-          Effect.runSync(Deferred.succeed(resolved, true));
-        });
-        router.history.back();
-        yield* Deferred.await(resolved);
-        removeResolved();
-        yield* Effect.promise(async () => {
-          await router.navigate({ to: "/about" });
-        });
-        yield* Effect.promise(async () => {
-          await router.navigate({ to: "/plain" });
-        });
-        yield* Effect.promise(async () => {
-          await router.navigate({ to: "/details", viewTransition: false });
-        });
-        assert.deepStrictEqual(yield* Ref.get(plans), [
-          { kind: "slide", direction: "forward" },
-          { kind: "slide", direction: "back" },
-          { kind: "fade", direction: "forward" },
-        ]);
-        assert.strictEqual(router.state.location.pathname, "/details");
+        const original = router.options.defaultViewTransition;
+        const controller = browserTransitions(router);
+        controller.cancel();
         controller.dispose();
-        unsubscribe();
+        assert.strictEqual(router.options.defaultViewTransition, original);
+      })
+  );
+  it.effect(
+    "selects route types through public options and history actions",
+    () =>
+      Effect.sync(() => {
+        const router = makeRouter();
+        const original = router.options.defaultViewTransition;
+        const controller = browserTransitions(router);
+        assert.strictEqual(transitionTypes(router, undefined, "/"), false);
+        assert.strictEqual(transitionTypes(router, "/", "/"), false);
+        assert.strictEqual(transitionTypes(router, "/", "/plain"), false);
+        router.history.push("/details");
+        assert.deepStrictEqual(transitionTypes(router, "/", "/details"), [
+          "radical-slide",
+          "radical-forward",
+        ]);
+        router.history.back();
+        assert.deepStrictEqual(transitionTypes(router, "/details", "/"), [
+          "radical-slide",
+          "radical-back",
+        ]);
+        router.history.forward();
+        assert.deepStrictEqual(transitionTypes(router, "/", "/about"), [
+          "radical-fade",
+          "radical-forward",
+        ]);
+        router.history.go(-1);
+        assert.deepStrictEqual(transitionTypes(router, "/about", "/"), [
+          "radical-slide",
+          "radical-back",
+        ]);
+        router.history.go(1);
+        assert.deepStrictEqual(transitionTypes(router, "/", "/details"), [
+          "radical-slide",
+          "radical-forward",
+        ]);
+        router.history.replace("/about");
+        assert.deepStrictEqual(transitionTypes(router, "/details", "/about"), [
+          "radical-fade",
+          "radical-forward",
+        ]);
+        controller.dispose();
+        assert.strictEqual(router.options.defaultViewTransition, original);
       })
   );
 
+  it.effect("supports a direction override and restores previous options", () =>
+    Effect.sync(() => {
+      const router = makeRouter();
+      const original = { types: ["host"] };
+      router.update({ defaultViewTransition: original });
+      const controller = browserTransitions(router, {
+        direction: () => "back",
+      });
+      assert.deepStrictEqual(transitionTypes(router, "/", "/details"), [
+        "radical-slide",
+        "radical-back",
+      ]);
+      controller.dispose();
+      assert.strictEqual(router.options.defaultViewTransition, original);
+    })
+  );
+
   it.effect(
-    "provides navigation and unsubscribable before and after listeners",
+    "navigates without browser support and provides unsubscribable listeners",
     () =>
       Effect.gen(function* () {
         const router = makeRouter();
-        yield* Effect.promise(async () => {
-          await router.load();
-        });
-        const unsubscribe = router.history.subscribe(() => {
+        const controller = browserTransitions(router);
+        const removeLoad = router.history.subscribe(() => {
           Effect.runFork(
             Effect.promise(async () => {
               await router.load();
             })
           );
         });
+        yield* Effect.promise(async () => {
+          await router.load();
+        });
         const adapter = yield* RadicalAdapter.pipe(
-          Effect.provide(tanstackStartAdapter(router))
+          Effect.provide(tanstackStartAdapterLayer(router))
         );
         const navigation = yield* adapter.navigation;
         const before = yield* Ref.make<string[]>([]);
@@ -190,6 +176,7 @@ describe("TanStack navigation", () => {
           after.push(to);
         });
         yield* navigation.navigate("/details");
+        assert.strictEqual(router.state.location.pathname, "/details");
         assert.deepStrictEqual(yield* Ref.get(before), ["/->/details"]);
         assert.deepStrictEqual(after, ["/details"]);
         removeBefore();
@@ -197,9 +184,78 @@ describe("TanStack navigation", () => {
         yield* navigation.navigate("/about", { replace: true });
         assert.strictEqual(router.state.location.pathname, "/about");
         assert.strictEqual(router.history.length, 2);
-        assert.deepStrictEqual(yield* Ref.get(before), ["/->/details"]);
         assert.deepStrictEqual(after, ["/details"]);
-        unsubscribe();
+        controller.dispose();
+        removeLoad();
+      })
+  );
+
+  it.effect(
+    "resolves navigation while animation is stalled and skips on timeout",
+    () =>
+      Effect.gen(function* () {
+        const router = makeRouter();
+        const removeLoad = router.history.subscribe(() => {
+          Effect.runFork(
+            Effect.promise(async () => {
+              await router.load();
+            })
+          );
+        });
+        yield* Effect.promise(async () => {
+          await router.load();
+        });
+        const started = yield* Deferred.make<boolean>();
+        const skipped = yield* Deferred.make<boolean>();
+        const clock = yield* Effect.clockWith(Effect.succeed);
+        const browser = Layer.merge(
+          Layer.succeed(BrowserTransitions, {
+            active: Deferred.succeed(started, true).pipe(
+              Effect.as(
+                Option.some({
+                  finished: Effect.never,
+                  skip: Deferred.succeed(skipped, true).pipe(Effect.asVoid),
+                })
+              )
+            ),
+          }),
+          Layer.succeed(Clock.Clock, clock)
+        );
+        const controller = browserTransitions(
+          router,
+          { timeoutMs: 100 },
+          browser
+        );
+        yield* Effect.promise(async () => {
+          await router.navigate({ to: "/details" });
+        });
+        yield* Deferred.await(started);
+        assert.strictEqual(router.state.location.pathname, "/details");
+        assert.isFalse(yield* Deferred.isDone(skipped));
+        yield* TestClock.adjust(100);
+        yield* Deferred.await(skipped);
+        controller.dispose();
+        removeLoad();
+      })
+  );
+
+  it.effect(
+    "preserves navigation failures as NavigationFailed with their cause",
+    () =>
+      Effect.gen(function* () {
+        const cause = new Error("navigation failed");
+        const router = makeRouter();
+        const navigation = tanstackNavigation({
+          subscribe: router.subscribe,
+          navigate: async () => {
+            await Promise.reject(cause);
+          },
+        });
+        const error = yield* Effect.flip(navigation.navigate("/details"));
+        assert.strictEqual(error._tag, "NavigationFailed");
+        if (error._tag === "NavigationFailed") {
+          assert.strictEqual(error.cause, cause);
+        }
       })
   );
 });

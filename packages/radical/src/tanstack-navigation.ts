@@ -1,20 +1,15 @@
-import type { AnyRouter } from "@tanstack/react-router";
+import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import type { Layer } from "effect";
-import { Cause, Effect, Fiber } from "effect";
+import { Effect, Fiber } from "effect";
 
-import { AdapterUnavailable } from "./adapter-error.ts";
 import type { RadicalNavigation } from "./adapter.ts";
-import { BrowserTransitionsLive, runBrowserTransition } from "./client.ts";
-import type { Transition, BrowserTransitions } from "./client.ts";
-
-declare module "@tanstack/react-router" {
-  interface StaticDataRouteOption {
-    radical?: {
-      readonly transition?: Transition["kind"];
-      readonly offline?: boolean;
-    };
-  }
-}
+import {
+  BrowserTransitionsLive,
+  cancelBrowserTransition,
+  watchBrowserTransition,
+} from "./browser-transitions.ts";
+import type { Transition, BrowserTransitions } from "./browser-transitions.ts";
+import { NavigationFailed } from "./navigation-error.ts";
 
 export interface BrowserTransitionOptions {
   readonly timeoutMs?: number;
@@ -24,61 +19,89 @@ export interface BrowserTransitionOptions {
   ) => Transition["direction"];
 }
 
-/** Install once on each router. Import radical/transitions.css once in the app. */
+/** Install once per router. Router owns capture, fallback, and DOM updates. */
 export const browserTransitions = (
-  router: AnyRouter,
+  router: Omit<AnyRouter, "history"> & { readonly history: RouterHistory },
   options: BrowserTransitionOptions = {},
   browser: Layer.Layer<BrowserTransitions> = BrowserTransitionsLive
 ) => {
-  const original = router.startViewTransition;
-  let cancel = Effect.void;
-  router.startViewTransition = (update) => {
-    Effect.runFork(cancel);
-    const from = router.stores.resolvedLocation.get();
-    const to = router.latestLocation;
-    const enabled = router.shouldViewTransition !== false;
-    router.shouldViewTransition = undefined;
-    const matches = router.matchRoutes(to.pathname);
-    const kind = matches.findLast(
-      (match) => match.staticData.radical?.transition
-    )?.staticData.radical?.transition;
-    if (!enabled || !kind || from === undefined || from.href === to.href) {
-      return update();
-    }
-    const direction =
-      (to.state.__TSR_index ?? 0) < (from?.state.__TSR_index ?? 0)
+  if (router.isServer) {
+    return {
+      cancel: () => {
+        // No browser transition during SSR.
+      },
+      dispose: () => {
+        // No subscriptions during SSR.
+      },
+    };
+  }
+  const original = router.options.defaultViewTransition;
+  let direction: Transition["direction"] = "forward";
+  let stop = Effect.void;
+  const removeHistory = router.history.subscribe(({ action }) => {
+    direction =
+      action.type === "BACK" || (action.type === "GO" && action.index < 0)
         ? "back"
         : "forward";
+  });
+  router.update({
+    defaultViewTransition: {
+      types: ({ fromLocation, toLocation }) => {
+        if (
+          fromLocation === undefined ||
+          fromLocation.href === toLocation.href
+        ) {
+          return false;
+        }
+        const kind = router
+          .matchRoutes(toLocation.pathname)
+          .findLast((match) => match.staticData.radical?.transition)?.staticData
+          .radical?.transition;
+        if (!kind) {
+          return false;
+        }
+        const transition: Transition = {
+          kind,
+          direction: options.direction?.(direction) ?? direction,
+        };
+        return [
+          `radical-${transition.kind}`,
+          `radical-${transition.direction}`,
+        ];
+      },
+    },
+  });
+  const removeResolved = router.subscribe("onResolved", () => {
+    Effect.runFork(stop);
     const fiber = Effect.runFork(
-      runBrowserTransition(
-        { kind, direction: options.direction?.(direction) ?? direction },
-        Effect.promise(update),
-        options.timeoutMs
-      ).pipe(Effect.provide(browser))
-    );
-    cancel = Fiber.interrupt(fiber).pipe(Effect.asVoid);
-    return Effect.runPromise(
-      Fiber.join(fiber).pipe(
-        Effect.catchCauseIf(Cause.hasInterruptsOnly, () => Effect.void)
+      watchBrowserTransition(options.timeoutMs ?? 1000).pipe(
+        Effect.provide(browser)
       )
     );
+    stop = Fiber.interrupt(fiber).pipe(Effect.asVoid);
+  });
+  const cancel = () => {
+    Effect.runFork(cancelBrowserTransition.pipe(Effect.provide(browser)));
   };
   return {
-    cancel: () => {
-      Effect.runFork(cancel);
-    },
+    cancel,
     dispose: () => {
-      Effect.runFork(cancel);
-      router.startViewTransition = original;
+      Effect.runFork(stop);
+      cancel();
+      removeHistory();
+      removeResolved();
+      router.update({ defaultViewTransition: original });
     },
   };
 };
 
-export const tanstackNavigation = (router: AnyRouter): RadicalNavigation => ({
+export const tanstackNavigation = (
+  router: Pick<AnyRouter, "navigate" | "subscribe">
+): RadicalNavigation => ({
   navigate: (to, options) =>
     Effect.tryPromise({
       try: () => router.navigate({ to, ...options }),
-      catch: () => new AdapterUnavailable({ operation: "navigate" }),
+      catch: (cause) => new NavigationFailed({ cause }),
     }),
   onBeforeNavigate: (listener) =>
     Effect.sync(() =>

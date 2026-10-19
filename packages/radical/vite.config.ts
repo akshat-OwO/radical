@@ -5,6 +5,7 @@ export default defineConfig({
     entry: [
       "src/vite.ts",
       "src/tanstack-start.ts",
+      "src/tanstack-start-client.ts",
       "src/server.ts",
       "src/client.ts",
       "src/offline-entry.ts",
@@ -20,6 +21,7 @@ export default defineConfig({
     dts: {
       generator: "tsgo",
     },
-    exports: true,
+    exports: false,
+    copy: ["src/transitions.css"],
   },
 });

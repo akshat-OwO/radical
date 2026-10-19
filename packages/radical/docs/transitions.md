@@ -3,7 +3,7 @@
 Import the stylesheet once, then install transitions on each TanStack Router in `getRouter`:
 
 ```ts
-import { browserTransitions } from "radical/tanstack-start";
+import { browserTransitions } from "radical/tanstack-start-client";
 import "radical/transitions.css";
 
 const router = createRouter({ routeTree });
@@ -13,18 +13,16 @@ const transitions = browserTransitions(router, { timeoutMs: 1000 });
 Declare the destination route's transition in its static data:
 
 ```ts
-staticData: {
-  radical: {
-    transition: "slide";
-  }
-}
+export const Route = createFileRoute("/details")({
+  staticData: { radical: { transition: "slide" } },
+});
 ```
 
-`slide` and `fade` use View Transition types and CSS pseudo-elements. The deepest declared transition wins. An unmarked route navigates normally unless an ancestor declares a transition. The initial load and same-URL navigations do not transition. Links, `router.navigate`, and history navigation all use the same controller. Pass `viewTransition: false` to Router navigation to bypass it.
+`slide` and `fade` use Router's `defaultViewTransition.types` option and CSS pseudo-elements. The deepest declared transition wins. An unmarked route navigates normally unless an ancestor declares a transition. Initial loads and same-URL navigations do not transition. Links, `router.navigate`, and history navigation use Router's own transition implementation. Pass `viewTransition: false` to Router navigation to bypass transitions.
 
-History entries with a lower index use `back`. Other navigations use `forward`. Override direction with `browserTransitions(router, { direction: (direction) => direction === "back" ? "forward" : "back" })`.
+Direction comes from the public history subscription. `BACK` and negative `GO` actions use `back`; other actions use `forward`. Override direction with `browserTransitions(router, { direction: (direction) => direction === "back" ? "forward" : "back" })`.
 
-Set duration through CSS, without measuring or rewriting the DOM on navigation:
+Set duration through CSS:
 
 ```css
 :root {
@@ -32,10 +30,10 @@ Set duration through CSS, without measuring or rewriting the DOM on navigation:
 }
 ```
 
-The default duration is 250ms. Reduced-motion preferences disable movement. Keep `timeoutMs` longer than the configured duration. Its default is 1000ms. On timeout, cancellation, capture failure, or missing browser support, the route still commits once. `transitions.cancel()` skips the current transition. `transitions.dispose()` also restores Router's original hook. A newer navigation cancels the previous transition automatically.
+The default duration is 250ms. Reduced-motion preferences disable movement. `timeoutMs` defaults to 1000ms and limits the animation after Router resolves navigation. It does not delay navigation. Browsers own capture and its timeout. Router waits for the DOM update callback, independently of animation completion. Unsupported browsers apply the update directly. A skipped transition still runs its update callback, including when capture fails.
 
-Router owns route loading and DOM commits. Its built-in `viewTransition` path exposes no handle for cancellation or timeout and does not recover from a throwing browser API. The adapter therefore replaces only `router.startViewTransition`, using the browser's typed View Transitions API directly. It does not intercept links or history and does not nest transitions.
+`transitions.cancel()` calls `document.activeViewTransition?.skipTransition()`. The timeout also skips the active transition, using its public `finished` promise. These controls require browser support for `document.activeViewTransition`; Router's transition and fallback behavior still work without it. `transitions.dispose()` stops the watcher, cancels the animation, removes subscriptions, and restores the previous `defaultViewTransition` option. The browser skips an older transition when another starts.
 
-`tanstackStartAdapter(router)` supplies `RadicalAdapter` navigation through a Layer. The no-router `TanStackStartAdapter` still reports unavailable navigation. Before listeners observe navigation and run their Effects as fibers. They do not block Router. Both before and after subscriptions return unsubscribe functions.
+`tanstackStartAdapterLayer(router)` supplies `RadicalAdapter` navigation through a lazy Layer. Import it from `radical/tanstack-start-client` to keep build and server dependencies out of the browser module graph. The no-router `TanStackStartAdapter` wires server request context and reports unavailable navigation; the client Layer reports unavailable request context. Router navigation failures produce `NavigationFailed` with the original cause. Before listeners run their Effects as fibers and do not block Router. Both before and after subscriptions return unsubscribe functions.
 
-`radical/client` exports `TransitionSchema`, with `kind` and `direction`, and the Effect controller. `BrowserTransitions` is the replaceable browser boundary for in-memory tests and future shell work. No shell transition is implemented here.
+`radical/client` exports `TransitionSchema`, with `kind` and `direction`, alongside the offline registration API. `BrowserTransitions` supplies replaceable active-transition handles for in-memory tests. The transition description remains independent of Router for the native snapshot implementation in #12.

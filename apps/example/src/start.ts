@@ -1,5 +1,5 @@
 import { createStart } from "@tanstack/react-start";
-import { radicalRequestMiddleware } from "radical/tanstack-start";
+import { radicalRequestMiddleware } from "radical/tanstack-start-server";
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [...radicalRequestMiddleware],

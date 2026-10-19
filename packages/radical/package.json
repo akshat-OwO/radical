@@ -13,6 +13,7 @@
     "./native-context": "./dist/native-context.mjs",
     "./offline-entry": "./dist/offline-entry.mjs",
     "./server": "./dist/server.mjs",
+    "./tanstack-start-client": "./dist/tanstack-start-client.mjs",
     "./tanstack-start": "./dist/tanstack-start.mjs",
     "./tanstack-start-server": "./dist/tanstack-start-server.mjs",
     "./vite": "./dist/vite.mjs",

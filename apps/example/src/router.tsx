@@ -1,5 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
-import { browserTransitions } from "radical/tanstack-start";
+import { browserTransitions } from "radical/tanstack-start-client";
 
 import "radical/transitions.css";
 

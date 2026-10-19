@@ -37,3 +37,9 @@ export const offlineHandler =
     context.responseHeaders.set("x-radical-offline", eligible ? "1" : "0");
     return handler(context);
   };
+
+export {
+  createRadicalMiddleware,
+  radicalMiddleware,
+  radicalRequestMiddleware,
+} from "./tanstack-middleware.ts";

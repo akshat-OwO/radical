@@ -1,52 +1,23 @@
-import type { AnyRouter } from "@tanstack/react-router";
-import { createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 import { Effect, Layer } from "effect";
 import type { PluginOption } from "vite";
 
 import { AdapterUnavailable } from "./adapter-error.ts";
 import { RadicalAdapter } from "./adapter.ts";
-import type { Transition } from "./client.ts";
 import type { RadicalConfig } from "./config.ts";
-import type { NativeContext } from "./native-context.ts";
 import { offlineBuild } from "./offline-build.ts";
-import { getNativeContext } from "./server.ts";
-import { tanstackNavigation } from "./tanstack-navigation.ts";
+import { createRadicalMiddleware } from "./tanstack-middleware.ts";
 import { radical as corePlugin } from "./vite.ts";
 
-declare module "@tanstack/react-router" {
-  interface StaticDataRouteOption {
-    /** Route options radical reads from the route tree. */
-    radical?: {
-      readonly offline?: boolean;
-      readonly transition?: Transition["kind"];
-    };
-  }
-}
+export type { RadicalRouteOptions } from "./tanstack-route-data.ts";
 
 const unavailable = (operation: string) =>
   Effect.fail(new AdapterUnavailable({ operation }));
 
-/** Connect a native-context reader to Start's request-scoped context. */
-export const createRadicalMiddleware = (
-  get?: (request: Request) => Effect.Effect<NativeContext>
-) =>
-  createMiddleware().server(({ request, next }) =>
-    // Keep Start's continuation outside the Effect runner so redirects retain identity.
-    // oxlint-disable-next-line promise/prefer-await-to-then -- Promise boundary without async library code.
-    Effect.runPromise((get ?? getNativeContext)(request)).then(
-      (nativeContext) =>
-        // oxlint-disable-next-line promise/no-callback-in-promise -- Start owns the continuation.
-        next({ context: { nativeContext } })
-    )
-  );
-
-export const radicalMiddleware = createRadicalMiddleware();
-
-/** Preserve Start's server-function CSRF guard when supplying request middleware. */
-export const radicalRequestMiddleware = [
-  createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === "serverFn" }),
+export {
+  createRadicalMiddleware,
   radicalMiddleware,
-] as const;
+  radicalRequestMiddleware,
+} from "./tanstack-middleware.ts";
 
 /** Request context is wired; navigation remains unavailable. */
 // oxlint-disable-next-line eslint/no-inline-comments -- Bundlers require the purity annotation immediately before the call.
@@ -71,18 +42,9 @@ export const radical = (config: RadicalConfig): PluginOption[] => [
   offlineBuild(config),
 ];
 
+export { NavigationFailed } from "./navigation-error.ts";
+
 export { browserTransitions } from "./tanstack-navigation.ts";
 export type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
 
-/** Supply the host framework router for client navigation. */
-export const tanstackStartAdapterLayer = (router: AnyRouter) =>
-  Layer.suspend(() =>
-    Layer.succeed(RadicalAdapter, {
-      name: "tanstack-start",
-      routes: Effect.succeed([]),
-      provideRequestContext: (get) =>
-        Effect.sync(() => createRadicalMiddleware(get)),
-      navigation: Effect.succeed(tanstackNavigation(router)),
-      outputs: Effect.succeed({ clientDir: "dist/client" }),
-    })
-  );
+export { tanstackStartAdapterLayer } from "./tanstack-start-client.ts";
