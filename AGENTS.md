@@ -15,11 +15,11 @@ Vite+ (`vp`) runs dev, check, test, and pack; docs are in `node_modules/vite-plu
 
 ### Issue tracker
 
-Local markdown under `.scratch/`. See `docs/agents/issue-tracker.md`.
+GitHub Issues on `akshat-OwO/radical`, via `gh`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five default roles, as a `Status:` line per issue. See `docs/agents/triage-labels.md`.
+The five default roles as GitHub labels. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
