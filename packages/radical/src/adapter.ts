@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import { Context } from "effect";
-import type { PluginOption } from "vite-plus";
+import type { PluginOption } from "vite";
 
 import type { AdapterUnavailable } from "./adapter-error.ts";
 import type { RadicalConfig } from "./config.ts";

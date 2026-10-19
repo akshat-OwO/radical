@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { Plugin } from "vite-plus";
+import type { Plugin } from "vite";
 
 import type { RadicalConfig } from "./config.ts";
 import { validateConfig } from "./config.ts";

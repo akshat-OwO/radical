@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import type { PluginOption } from "vite-plus";
+import type { PluginOption } from "vite";
 
 import { AdapterUnavailable } from "./adapter-error.ts";
 import { RadicalAdapter } from "./adapter.ts";
