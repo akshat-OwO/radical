@@ -4,11 +4,12 @@ import { Effect, Fiber } from "effect";
 
 import type { RadicalNavigation } from "./adapter.ts";
 import {
+  BrowserTransitions,
   BrowserTransitionsLive,
   cancelBrowserTransition,
   watchBrowserTransition,
 } from "./browser-transitions.ts";
-import type { Transition, BrowserTransitions } from "./browser-transitions.ts";
+import type { Transition } from "./browser-transitions.ts";
 import { NavigationFailed } from "./navigation-error.ts";
 
 export interface BrowserTransitionOptions {
@@ -32,6 +33,24 @@ export const browserTransitions = (
       },
       dispose: () => {
         // No subscriptions during SSR.
+      },
+    };
+  }
+  // Without typed selectors Router would start an untyped transition for every
+  // navigation, so those browsers keep plain navigation.
+  const supportsTypes = Effect.runSync(
+    Effect.gen(function* () {
+      const transitions = yield* BrowserTransitions;
+      return yield* transitions.supportsTypes;
+    }).pipe(Effect.provide(browser))
+  );
+  if (!supportsTypes) {
+    return {
+      cancel: () => {
+        // No radical transition starts without typed selector support.
+      },
+      dispose: () => {
+        // Nothing was installed.
       },
     };
   }

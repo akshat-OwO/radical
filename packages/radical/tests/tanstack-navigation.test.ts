@@ -16,6 +16,13 @@ import {
   tanstackStartAdapterLayer,
 } from "../src/tanstack-start-client.ts";
 
+/** A browser with typed view-transition selectors and no active transition. */
+const typedBrowser = (supportsTypes = true) =>
+  Layer.succeed(BrowserTransitions, {
+    supportsTypes: Effect.succeed(supportsTypes),
+    active: Effect.succeed(Option.none()),
+  });
+
 const makeRouter = () => {
   const root = createRootRoute();
   const home = createRoute({
@@ -91,7 +98,7 @@ describe("TanStack navigation", () => {
       Effect.sync(() => {
         const router = makeRouter();
         const original = router.options.defaultViewTransition;
-        const controller = browserTransitions(router);
+        const controller = browserTransitions(router, {}, typedBrowser());
         assert.strictEqual(transitionTypes(router, undefined, "/"), false);
         assert.strictEqual(transitionTypes(router, "/", "/"), false);
         assert.strictEqual(transitionTypes(router, "/", "/plain"), false);
@@ -135,9 +142,11 @@ describe("TanStack navigation", () => {
       const router = makeRouter();
       const original = { types: ["host"] };
       router.update({ defaultViewTransition: original });
-      const controller = browserTransitions(router, {
-        direction: () => "back",
-      });
+      const controller = browserTransitions(
+        router,
+        { direction: () => "back" },
+        typedBrowser()
+      );
       assert.deepStrictEqual(transitionTypes(router, "/", "/details"), [
         "radical-slide",
         "radical-back",
@@ -145,6 +154,19 @@ describe("TanStack navigation", () => {
       controller.dispose();
       assert.strictEqual(router.options.defaultViewTransition, original);
     })
+  );
+
+  it.effect(
+    "keeps plain navigation where transition types are unsupported",
+    () =>
+      Effect.sync(() => {
+        const router = makeRouter();
+        const original = router.options.defaultViewTransition;
+        const controller = browserTransitions(router, {}, typedBrowser(false));
+        assert.strictEqual(router.options.defaultViewTransition, original);
+        controller.dispose();
+        assert.strictEqual(router.options.defaultViewTransition, original);
+      })
   );
 
   it.effect(
@@ -210,6 +232,7 @@ describe("TanStack navigation", () => {
         const clock = yield* Effect.clockWith(Effect.succeed);
         const browser = Layer.merge(
           Layer.succeed(BrowserTransitions, {
+            supportsTypes: Effect.succeed(true),
             active: Deferred.succeed(started, true).pipe(
               Effect.as(
                 Option.some({

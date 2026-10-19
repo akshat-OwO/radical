@@ -20,10 +20,17 @@ export interface BrowserTransition {
 /** Router owns capture and DOM updates; this boundary only controls animation. */
 export class BrowserTransitions extends Context.Service<
   BrowserTransitions,
-  { readonly active: Effect.Effect<Option.Option<BrowserTransition>> }
+  {
+    /** Router only honours transition types where typed selectors are supported. */
+    readonly supportsTypes: Effect.Effect<boolean>;
+    readonly active: Effect.Effect<Option.Option<BrowserTransition>>;
+  }
 >()("radical/BrowserTransitions") {}
 
 export const BrowserTransitionsLive = Layer.succeed(BrowserTransitions, {
+  supportsTypes: Effect.sync(() =>
+    globalThis.CSS?.supports?.("selector(:active-view-transition-type(a))")
+  ),
   active: Effect.sync(() => {
     const handle =
       typeof document === "undefined"

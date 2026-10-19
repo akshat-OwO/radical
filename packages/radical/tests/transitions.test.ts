@@ -15,6 +15,7 @@ const fixture = Effect.gen(function* () {
   const started = yield* Deferred.make<boolean>();
   const layer = (finished: BrowserTransition["finished"]) =>
     Layer.succeed(BrowserTransitions, {
+      supportsTypes: Effect.succeed(true),
       active: Deferred.succeed(started, true).pipe(
         Effect.as(
           Option.some({ finished, skip: Ref.update(skips, (n) => n + 1) })
@@ -32,6 +33,7 @@ describe("browser transition controls", () => {
     }).pipe(
       Effect.provide(
         Layer.succeed(BrowserTransitions, {
+          supportsTypes: Effect.succeed(true),
           active: Effect.succeed(Option.none()),
         })
       )
