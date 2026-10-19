@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { Effect, Schema } from "effect";
-import { build } from "vite";
+import type * as Vite from "vite";
 import type { Plugin } from "vite";
 
 import type { RadicalConfig } from "./config.ts";
@@ -41,6 +42,14 @@ export const offlineBuild = (config: RadicalConfig): Plugin => {
         }
         return Effect.runPromise(
           Effect.gen(function* () {
+            // Load Vite only in the Node build hook. Runtime middleware shares
+            // this entry, so a static import would pull Vite into client builds.
+            const { build } = yield* Effect.try({
+              try: () =>
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node loads the installed Vite module with its declared types.
+                createRequire(import.meta.url)("vite") as typeof Vite,
+              catch: (cause) => new OfflineBuildError({ cause }),
+            });
             const entries = Object.values(bundle).toSorted((a, b) =>
               a.fileName.localeCompare(b.fileName)
             );

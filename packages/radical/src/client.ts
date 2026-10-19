@@ -1,10 +1,5 @@
 import { Effect, Schema } from "effect";
 
-/** Isolated until the native-context implementation supplies shell detection. */
-export const isShell = (scope: {
-  readonly Capacitor?: { readonly isNativePlatform?: () => boolean };
-}) => scope.Capacitor?.isNativePlatform?.() === true;
-
 export const shouldRegister = (context: {
   readonly production: boolean;
   readonly browser: boolean;
@@ -18,6 +13,8 @@ export class ServiceWorkerRegistrationError extends Schema.TaggedError<
 
 export const registerOfflineEffect = (options: {
   readonly production: boolean;
+  /** Serialize this flag from the server native context. */
+  readonly shell: boolean;
   readonly base?: string;
 }) =>
   Effect.suspend(() => {
@@ -27,8 +24,7 @@ export const registerOfflineEffect = (options: {
       !shouldRegister({
         production: options.production,
         browser,
-        shell:
-          browser && isShell(window as Window & Parameters<typeof isShell>[0]),
+        shell: options.shell,
       }) ||
       !("serviceWorker" in navigator)
     ) {

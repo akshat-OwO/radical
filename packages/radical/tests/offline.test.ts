@@ -8,11 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { Context, Effect, Layer } from "effect";
 
-import {
-  isShell,
-  shouldRegister,
-  registerOfflineEffect,
-} from "../src/client.ts";
+import { shouldRegister, registerOfflineEffect } from "../src/client.ts";
 import { createOfflineWorker } from "../src/offline-worker.ts";
 import type { OfflineManifest, WorkerServices } from "../src/offline-worker.ts";
 import { offlineHandler } from "../src/tanstack-start-server.ts";
@@ -180,6 +176,50 @@ describe("offline worker", () => {
           );
         }
       }).pipe(Effect.provide(memoryLayer))
+  );
+
+  it.effect("never marks or snapshots shell documents", () =>
+    Effect.gen(function* () {
+      const { worker, responses, state } = yield* Memory;
+      yield* Effect.promise(worker.install);
+      for (const platform of ["ios", "android"] as const) {
+        const request = navigation(`/notes/${platform}`);
+        request.headers.set(
+          "x-radical-context",
+          JSON.stringify({
+            platform,
+            safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+            shellVersion: "1.0",
+          })
+        );
+        const response = offlineHandler(
+          ({ responseHeaders }) =>
+            new Response("shell document", { headers: responseHeaders })
+        )({
+          request,
+          router: {
+            stores: {
+              matches: { get: () => [{ staticData: { offline: true } }] },
+            },
+          },
+          responseHeaders: new Headers({ "content-type": "text/html" }),
+        });
+        assert.strictEqual(response.headers.get("x-radical-offline"), "0");
+        responses.set(request.url, response);
+        yield* Effect.promise(() => worker.respond(request));
+      }
+      state.online = false;
+      for (const platform of ["ios", "android"] as const) {
+        assert.strictEqual(
+          yield* responseText(
+            yield* Effect.promise(() =>
+              worker.respond(navigation(`/notes/${platform}`))
+            )
+          ),
+          "offline fallback"
+        );
+      }
+    }).pipe(Effect.provide(memoryLayer))
   );
 
   it.effect(
@@ -438,7 +478,7 @@ describe("offline worker", () => {
 
 describe("offline registration", () => {
   it.effect(
-    "registers only in production browsers and skips dev, shells, and SSR",
+    "permits registration only in production browsers and skips dev, shells, and SSR",
     () =>
       Effect.gen(function* () {
         for (const production of [true, false]) {
@@ -451,13 +491,8 @@ describe("offline registration", () => {
             }
           }
         }
-        assert.isTrue(isShell({ Capacitor: { isNativePlatform: () => true } }));
-        assert.isFalse(
-          isShell({ Capacitor: { isNativePlatform: () => false } })
-        );
-        assert.isFalse(isShell({}));
-        yield* registerOfflineEffect({ production: true });
-        yield* registerOfflineEffect({ production: false });
+        yield* registerOfflineEffect({ production: true, shell: false });
+        yield* registerOfflineEffect({ production: false, shell: false });
       })
   );
 });
