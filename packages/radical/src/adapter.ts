@@ -4,6 +4,7 @@ import type { PluginOption } from "vite";
 
 import type { AdapterUnavailable } from "./adapter-error.ts";
 import type { RadicalConfig } from "./config.ts";
+import type { NativeContext } from "./native-context.ts";
 
 export interface RadicalCore {
   readonly config: RadicalConfig;
@@ -36,8 +37,8 @@ export class RadicalAdapter extends Context.Service<
     readonly vite?: (core: RadicalCore) => PluginOption[];
     readonly routes: Effect.Effect<readonly RadicalRoute[], AdapterUnavailable>;
     readonly provideRequestContext: (
-      get: (request: Request) => Effect.Effect<unknown>
-    ) => Effect.Effect<unknown, AdapterUnavailable>;
+      get: (request: Request) => Effect.Effect<NativeContext>
+    ) => Effect.Effect<unknown>;
     readonly navigation: Effect.Effect<RadicalNavigation>;
     readonly outputs: Effect.Effect<{
       readonly clientDir: string;

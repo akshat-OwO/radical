@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 
-const Home = () => (
-  <main>
-    <h1>Radical example</h1>
-    <p>TanStack Start renders this app with the radical adapter registered.</p>
-  </main>
+const readNativeContext = createServerFn({ method: "GET" }).handler(
+  ({ context }) => context.nativeContext
 );
 
-export const Route = createFileRoute("/")({ component: Home });
+const Home = () => {
+  const nativeContext = Route.useLoaderData();
+  return (
+    <main>
+      <h1>Radical example</h1>
+      <h2>Native context</h2>
+      <pre>{JSON.stringify(nativeContext, null, 2)}</pre>
+    </main>
+  );
+};
+
+export const Route = createFileRoute("/")({
+  loader: async () => await readNativeContext(),
+  component: Home,
+});
