@@ -127,9 +127,7 @@ Custom native plugins: live video stream with viewfinder cut-out, data protectio
 
 ## Open questions
 
-- **iOS offline caching.** WKWebView cannot intercept `https` requests; `WKURLSchemeHandler` only handles custom schemes. Two options:
-  - Service workers in WKWebView via App-Bound Domains (`WKAppBoundDomains`, iOS 14+). If this works, one service worker covers browser, Android, and iOS. Not verified; needs a spike.
-  - Load the app through a custom `radical://` scheme that proxies to the origin. Changes cookies and the page origin.
+- **iOS offline caching.** Resolved in [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md): use a service worker via App-Bound Domains for remote mode. The simulator spike verified offline HTML and the required WebView APIs; physical-device validation remains open.
 - **App Store guideline 4.2.** Apps that only wrap a website risk rejection. Bundled mode (Start `spa.enabled`) reduces the risk.
 - Whether `serverFns.base` can point at an absolute remote origin in bundled mode.
 
