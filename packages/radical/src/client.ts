@@ -44,3 +44,13 @@ export const registerOfflineEffect = (options: {
 export const registerOffline = (
   options: Parameters<typeof registerOfflineEffect>[0]
 ) => Effect.runPromise(registerOfflineEffect(options));
+
+export {
+  BrowserTransitions,
+  BrowserTransitionsLive,
+  cancelBrowserTransition,
+  watchBrowserTransition,
+  TransitionSchema,
+  TransitionFailed,
+} from "./browser-transitions.ts";
+export type { BrowserTransition, Transition } from "./browser-transitions.ts";

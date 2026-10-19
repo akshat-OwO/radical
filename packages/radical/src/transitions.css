@@ -1,0 +1,55 @@
+:root:active-view-transition-type(radical-slide)::view-transition-old(root),
+:root:active-view-transition-type(radical-slide)::view-transition-new(root),
+:root:active-view-transition-type(radical-fade)::view-transition-old(root),
+:root:active-view-transition-type(radical-fade)::view-transition-new(root) {
+  animation-duration: var(--radical-transition-duration, 250ms);
+  animation-timing-function: ease-out;
+  mix-blend-mode: normal;
+}
+:root:active-view-transition-type(radical-slide) {
+  --radical-transition-offset: 100%;
+}
+:root:active-view-transition-type(radical-back) {
+  --radical-transition-offset: -100%;
+}
+:root:active-view-transition-type(radical-slide)::view-transition-old(root) {
+  animation-name: radical-slide-out;
+}
+:root:active-view-transition-type(radical-slide)::view-transition-new(root) {
+  animation-name: radical-slide-in;
+}
+:root:active-view-transition-type(radical-fade)::view-transition-old(root) {
+  animation-name: radical-fade-out;
+}
+:root:active-view-transition-type(radical-fade)::view-transition-new(root) {
+  animation-name: radical-fade-in;
+}
+@keyframes radical-slide-out {
+  to {
+    transform: translateX(calc(-1 * var(--radical-transition-offset)));
+  }
+}
+@keyframes radical-slide-in {
+  from {
+    transform: translateX(var(--radical-transition-offset));
+  }
+}
+@keyframes radical-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes radical-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root) {
+    animation-duration: 0s;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0s !important;
+  }
+}

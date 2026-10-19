@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as DetailsRouteImport } from './routes/details'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DetailsRoute = DetailsRouteImport.update({
+  id: '/details',
+  path: '/details',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfflineRouteRoute = OfflineRouteRouteImport.update({
@@ -31,30 +43,44 @@ const OnlineRouteRoute = OnlineRouteRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/details': typeof DetailsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/details': typeof DetailsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/details': typeof DetailsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/offline-route' | '/online-route'
+  fullPaths: '/' | '/about' | '/details' | '/offline-route' | '/online-route'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/offline-route' | '/online-route'
-  id: '__root__' | '/' | '/offline-route' | '/online-route'
+  to: '/' | '/about' | '/details' | '/offline-route' | '/online-route'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/details'
+    | '/offline-route'
+    | '/online-route'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  DetailsRoute: typeof DetailsRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
 }
@@ -66,6 +92,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/details': {
+      id: '/details'
+      path: '/details'
+      fullPath: '/details'
+      preLoaderRoute: typeof DetailsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offline-route': {
@@ -87,6 +127,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  DetailsRoute: DetailsRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
 }

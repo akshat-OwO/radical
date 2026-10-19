@@ -166,7 +166,10 @@ describe("TanStack Start adapter", () => {
       const adapter = yield* RadicalAdapter;
       const navigation = yield* adapter.navigation;
       const navigateError = yield* Effect.flip(navigation.navigate("/"));
-      assert.strictEqual(navigateError.operation, "navigate");
+      assert.strictEqual(navigateError._tag, "AdapterUnavailable");
+      if (navigateError._tag === "AdapterUnavailable") {
+        assert.strictEqual(navigateError.operation, "navigate");
+      }
       const beforeError = yield* Effect.flip(
         navigation.onBeforeNavigate(() => Effect.void)
       );
