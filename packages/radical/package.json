@@ -8,6 +8,8 @@
   ],
   "type": "module",
   "exports": {
+    "./tanstack-start": "./dist/tanstack-start.mjs",
+    "./vite": "./dist/vite.mjs",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -16,7 +18,8 @@
   "scripts": {
     "test": "vp test",
     "typecheck": "tsc --noEmit",
-    "prepare": "effect-tsgo patch --typescript --oxlint"
+    "prepare": "effect-tsgo patch --typescript --oxlint",
+    "build": "vp pack"
   },
   "dependencies": {
     "effect": "catalog:"

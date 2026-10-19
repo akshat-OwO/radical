@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "ultracite check && vp check && vp run -r typecheck && vp run -r test",
+    "ready": "vp run radical#build && ultracite check && vp check && vp run -r typecheck && vp run -r test",
     "prepare": "vp config",
     "check": "ultracite check",
     "fix": "ultracite fix"
