@@ -22,5 +22,27 @@ export type { RadicalConfig } from "./config.ts";
 /** Validate at Vite's config hook, before either dev or build starts. */
 export const radical = (config: RadicalConfig): Plugin => ({
   name: "radical:config",
-  config: () => Effect.runPromise(validateConfig(config).pipe(Effect.asVoid)),
+  configureServer: (server) =>
+    Effect.runPromise(
+      Effect.promise(() => import("./dev-server.ts")).pipe(
+        Effect.tap(({ configureServer }) =>
+          Effect.sync(() => {
+            configureServer(config, server);
+          })
+        ),
+        Effect.asVoid
+      )
+    ),
+  // Shells reach the dev server over the LAN, unless the app chose its own host.
+  config: (user) =>
+    Effect.runPromise(
+      validateConfig(config).pipe(
+        Effect.as({
+          server: {
+            host: user.server?.host ?? "0.0.0.0",
+            watch: { ignored: ["**/.radical/**"] },
+          },
+        })
+      )
+    ),
 });

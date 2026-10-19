@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 
 import type { NativeContext } from "./native-context.ts";
-import { NATIVE_CONTEXT_HEADER, ShellContextSchema } from "./native-context.ts";
+import { NATIVE_CONTEXT_COOKIE, ShellContextSchema } from "./native-context.ts";
 
-const decodeHeader = Schema.decodeUnknownEffect(
+const decodeContext = Schema.decodeUnknownEffect(
   Schema.fromJsonString(ShellContextSchema)
 );
 
@@ -13,15 +13,26 @@ const browserContext = (): NativeContext => ({
   shellVersion: null,
 });
 
-/** Read shell facts without allowing a malformed header to fail the request. */
+const readCookie = (request: Request) => {
+  const prefix = `${NATIVE_CONTEXT_COOKIE}=`;
+  return request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix))
+    ?.slice(prefix.length);
+};
+
+/** Read shell facts without allowing a malformed cookie to fail the request. */
 export const getNativeContext = (
   request: Request
 ): Effect.Effect<NativeContext> =>
   Effect.suspend(() => {
-    const header = request.headers.get(NATIVE_CONTEXT_HEADER);
-    return header === null
+    const value = readCookie(request);
+    return value === undefined
       ? Effect.succeed(browserContext())
-      : decodeHeader(header).pipe(
-          Effect.catchTag("SchemaError", () => Effect.succeed(browserContext()))
+      : Effect.try(() => decodeURIComponent(value)).pipe(
+          Effect.flatMap(decodeContext),
+          Effect.orElseSucceed(browserContext)
         );
   });

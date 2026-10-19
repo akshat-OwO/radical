@@ -44,4 +44,30 @@ describe("radical config", () => {
       assert.include(name.message, "appName");
     })
   );
+  it.effect(
+    "accepts exact HTTP origins and rejects unsafe allowlist values",
+    () =>
+      Effect.gen(function* () {
+        const config = {
+          appId: "dev.radical.example",
+          allowlist: ["https://app.example", "http://192.168.1.2:3000"],
+          devHost: "192.168.1.2",
+        };
+        assert.deepStrictEqual(yield* validateConfig(config), config);
+        for (const origin of [
+          "*",
+          "https://*.example",
+          // oxlint-disable-next-line eslint/no-script-url -- Validation fixture for an unsafe scheme.
+          "javascript:alert(1)",
+          "https://example/path",
+          "https://user:password@example",
+          "https://example/",
+        ]) {
+          const result = yield* Effect.flip(
+            validateConfig({ appId: config.appId, allowlist: [origin] })
+          );
+          assert.strictEqual(result._tag, "InvalidConfig");
+        }
+      })
+  );
 });

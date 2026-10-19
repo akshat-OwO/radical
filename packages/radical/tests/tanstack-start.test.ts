@@ -111,11 +111,13 @@ describe("TanStack Start adapter", () => {
               platform === "browser"
                 ? {}
                 : {
-                    "x-radical-context": JSON.stringify({
-                      platform,
-                      safeArea: { top: 12, right: 0, bottom: 4, left: 0 },
-                      shellVersion: "2.0",
-                    }),
+                    cookie: `radical-context=${encodeURIComponent(
+                      JSON.stringify({
+                        platform,
+                        safeArea: { top: 12, right: 0, bottom: 4, left: 0 },
+                        shellVersion: "2.0",
+                      })
+                    )}`,
                   },
           });
           const expected = yield* getNativeContext(request);

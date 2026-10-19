@@ -19,7 +19,7 @@ Ship one npm package, `radical`, with subpath entry points. The core depends onl
 | --- | --- | --- |
 | `radical/vite` | No | Core Vite plugin: config, manifests, service worker, dev server |
 | `radical/client` | No | JS-to-native bridge, runtime detection, transitions engine, service worker registration, safe-area CSS variables |
-| `radical/server` | No | `getNativeContext(request: Request)`: native detection, platform, and safe-area from a shell-injected header |
+| `radical/server` | No | `getNativeContext(request: Request)`: native detection, platform, and safe-area from a shell-set cookie |
 | `radical/react` | React only, no router | Hooks: `useCamera`, `useSafeArea`, `useDeviceInfo`, `useNetworkStatus`, `useHapticFeedback`, and so on |
 | `radical/tanstack-start` | Yes | TanStack Start adapter: Vite plugin wrapper, request middleware, router integration |
 | `radical` (bin) | No | CLI that generates, builds, and runs the native projects |
@@ -98,6 +98,8 @@ Capacitor does not fit two of our needs, so we replace them:
 - It treats `server.url` as a live-reload feature, not a production mode. Remote-origin loading needs our own native code.
 - It expects committed `ios/` and `android/` directories. We generate them into `.radical/`.
 
+Shells deliver native context as a cookie, set natively on each allowed origin before the first load (Android `CookieManager`, iOS `WKHTTPCookieStore`). A WebView cannot add a request header to every request: fetch, XHR, form posts, and service-worker requests bypass native header injection. The WebView sends its cookies with all of them. [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md) verified that `WKHTTPCookieStore.setCookie` works in the iOS shell.
+
 Custom native plugins: live video stream with viewfinder cut-out, data protection, `clearWebData`, offline cache control, and the snapshot transition overlay.
 
 ## Feature coverage
@@ -111,7 +113,7 @@ Custom native plugins: live video stream with viewfinder cut-out, data protectio
 | Middleware, startup hooks, telemetry | Start request middleware and custom `server.ts` |
 | Slide and fade transitions | Router `viewTransition` plus native snapshot overlay (radical) |
 | Offline routes, snapshots, service worker | Route `staticData`, generated manifest, service worker (radical) |
-| Native request context, safe-area | Start middleware reading a shell-injected header (radical) |
+| Native request context, safe-area | Start middleware reading a shell-set cookie (radical) |
 | Camera, haptics, push, network, device, files | Capacitor plugins wrapped in hooks (`radical/react`) |
 | Video stream, data protection, web data clearing | Custom Capacitor plugins (radical native) |
 | Native project generation, icons, splash, allowlist | `radical` CLI and `@capacitor/assets` |

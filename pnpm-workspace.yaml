@@ -6,6 +6,10 @@ packages:
 catalogMode: prefer
 
 catalog:
+  "@capacitor/android": ^8.5.3
+  "@capacitor/cli": ^8.5.3
+  "@capacitor/core": ^8.5.3
+  "@effect/platform-node": ^4.0.5
   "@effect/tsgo": ^0.53.4
   "@effect/vitest": ^4.0.5
   "@tanstack/react-router": 1.170.45

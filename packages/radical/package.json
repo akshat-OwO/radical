@@ -3,8 +3,12 @@
   "version": "0.0.0",
   "description": "Run server-rendered web apps inside native Android and iOS WebView shells.",
   "license": "MIT",
+  "bin": {
+    "radical": "./dist/cli.mjs"
+  },
   "files": [
-    "dist"
+    "dist",
+    "templates"
   ],
   "type": "module",
   "exports": {
@@ -29,9 +33,13 @@
     "build": "vp pack"
   },
   "dependencies": {
+    "@effect/platform-node": "catalog:",
     "effect": "catalog:"
   },
   "devDependencies": {
+    "@capacitor/android": "catalog:",
+    "@capacitor/cli": "catalog:",
+    "@capacitor/core": "catalog:",
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
     "@tanstack/react-router": "catalog:",
@@ -43,11 +51,23 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
     "vite": ">=8.0.0"
   },
   "peerDependenciesMeta": {
+    "@capacitor/android": {
+      "optional": true
+    },
+    "@capacitor/cli": {
+      "optional": true
+    },
+    "@capacitor/core": {
+      "optional": true
+    },
     "@tanstack/react-router": {
       "optional": true
     },
