@@ -10,6 +10,8 @@ import android.webkit.WebView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import java.io.ByteArrayInputStream;
@@ -22,6 +24,7 @@ import java.util.Set;
 public class MainActivity extends BridgeActivity {
     private static final String URL = __URL__;
     private static final String COOKIE = __COOKIE__;
+    private static final String GUARD = __GUARD__;
     private static final Set<String> ORIGINS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(__ORIGINS__)));
 
     private static boolean allowed(Uri uri) {
@@ -36,6 +39,14 @@ public class MainActivity extends BridgeActivity {
         view.getSettings().setBlockNetworkLoads(true);
         super.load();
         view.stopLoading();
+        // Without document-start scripts the allowlist cannot stop a redirected
+        // document before its scripts run, so the shell refuses to start.
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            Log.e("RadicalNavigation", "WebView lacks document-start script support");
+            finish();
+            return;
+        }
+        WebViewCompat.addDocumentStartJavaScript(view, GUARD, Collections.singleton("*"));
         // The WebView sends the native context cookie with every request to an allowed origin.
         CookieManager cookies = CookieManager.getInstance();
         for (String origin : ORIGINS) {
@@ -65,7 +76,8 @@ public class MainActivity extends BridgeActivity {
             public void onPageStarted(WebView webView, String url, Bitmap favicon) {
                 // WebView skips shouldOverrideUrlLoading for non-GET navigations, and
                 // shouldInterceptRequest sees only the first URL. A POST redirected by
-                // 307 or 308 to another origin therefore first surfaces here.
+                // 307 or 308 to another origin first surfaces here, after commit; the
+                // document-start guard has already stopped its scripts.
                 if (!allowed(Uri.parse(url))) {
                     Log.i("RadicalNavigation", "Blocked " + url);
                     webView.stopLoading();

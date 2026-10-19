@@ -8,6 +8,7 @@ import {
   ShellContextSchema,
 } from "../src/native-context.ts";
 import activity from "../templates/android/MainActivity.java?raw";
+import gradle from "../templates/android/radical.gradle?raw";
 
 const destination = "/app/.radical/android";
 const mainActivity = `${destination}/android/app/src/main/java/dev/radical/example/MainActivity.java`;
@@ -22,6 +23,7 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
     ],
     ["/package/templates/android/MainActivity.java", activity],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
+    ["/package/templates/android/radical.gradle", gradle],
   ]);
   const commands: string[][] = [];
   const fs = FileSystem.layerNoop({
@@ -114,6 +116,11 @@ describe("Android shell generation", () => {
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
         assert.include(source, "CookieManager");
+        assert.include(source, "addDocumentStartJavaScript(view, GUARD");
+        assert.include(
+          state.files.get(`${destination}/android/app/build.gradle`) ?? "",
+          "apply from: 'radical.gradle'"
+        );
         assert.notInclude(source, "__APP_ID__");
         assert.notInclude(source, "__COOKIE__");
         assert.include(source, 'Arrays.asList("http://192.168.1.2:3000")');

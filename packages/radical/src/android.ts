@@ -37,6 +37,19 @@ export const nativeConfigSchema = Schema.Struct({
   url: HttpOriginSchema,
 });
 
+/**
+ * Runs at document start, before any page script, in every frame. A top-level
+ * document outside the allowlist stops parsing, so none of its scripts run,
+ * even when it arrives through a redirect that native callbacks see too late.
+ */
+export const navigationGuardScript = (origins: readonly string[]) =>
+  `(() => {
+  if (window.top !== window) return;
+  if (new Set(${JSON.stringify(origins)}).has(location.origin)) return;
+  window.stop();
+  document.documentElement.replaceChildren();
+})();`;
+
 export const generateAndroid = (
   root: string,
   packageRoot = fileURLToPath(new URL("../", import.meta.url))
@@ -69,11 +82,15 @@ export const generateAndroid = (
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/MainActivity.java")
     );
+    const gradleTemplate = yield* fs.readFileString(
+      path.join(packageRoot, "templates/android/radical.gradle")
+    );
     const replacements: Record<string, string> = {
       __APP_ID__: config.appId,
       __URL__: JSON.stringify(url),
       __COOKIE__: JSON.stringify(`${NATIVE_CONTEXT_COOKIE}=${cookie}`),
       __ORIGINS__: origins.map((value) => JSON.stringify(value)).join(", "),
+      __GUARD__: JSON.stringify(navigationGuardScript(origins)),
     };
     const activity = template.replaceAll(
       /__[A-Z_]+__/gu,
@@ -108,6 +125,16 @@ export const generateAndroid = (
             })
           );
           yield* execute(process.execPath, [cli, "add", "android"], staging);
+          const appGradle = path.join(staging, "android/app/build.gradle");
+          const gradle = yield* fs.readFileString(appGradle);
+          yield* fs.writeFileString(
+            path.join(staging, "android/app/radical.gradle"),
+            gradleTemplate
+          );
+          yield* fs.writeFileString(
+            appGradle,
+            `${gradle}\napply from: 'radical.gradle'\n`
+          );
           yield* fs.writeFileString(
             path.join(
               staging,
