@@ -6,6 +6,7 @@ import { getNativeContext } from "../src/server.ts";
 import {
   createRadicalMiddleware,
   radical,
+  radicalRequestMiddleware,
   TanStackStartAdapter,
 } from "../src/tanstack-start.ts";
 
@@ -25,6 +26,69 @@ const readAdapter = Effect.gen(function* () {
 });
 
 describe("TanStack Start adapter", () => {
+  it.effect("rejects cross-site server functions while allowing SSR", () =>
+    Effect.gen(function* () {
+      const [csrf, nativeContext] = radicalRequestMiddleware;
+      const guard = csrf.options.server;
+      const provideContext = nativeContext.options.server;
+      assert.isDefined(guard);
+      assert.isDefined(provideContext);
+      for (const scenario of [
+        { handlerType: "serverFn", site: "cross-site", status: 403 },
+        { handlerType: "serverFn", site: "same-origin", status: 200 },
+        { handlerType: "router", site: "cross-site", status: 200 },
+      ] as const) {
+        const request = new Request("https://example.test/", {
+          headers: {
+            origin:
+              scenario.site === "same-origin"
+                ? "https://example.test"
+                : "https://attacker.test",
+            "sec-fetch-site": scenario.site,
+          },
+        });
+        const expected = yield* getNativeContext(request);
+        const options = {
+          request,
+          pathname: "/",
+          context: undefined,
+          handlerType: scenario.handlerType,
+        };
+        // Start composes heterogeneous middleware at runtime; its next() generic
+        // cannot express the context added by a subsequent middleware.
+        /* oxlint-disable typescript/no-unsafe-type-assertion -- Model Start's runtime middleware composition across context types. */
+        const next = (async () =>
+          await provideContext({
+            ...options,
+            next: ((provided) => {
+              assert.deepStrictEqual<unknown>(provided?.context, {
+                nativeContext: expected,
+              });
+              return {
+                ...options,
+                context: provided?.context,
+                response: new Response("SSR or server function"),
+              };
+            }) as Parameters<typeof provideContext>[0]["next"],
+          })) as Parameters<typeof guard>[0]["next"];
+        /* oxlint-enable typescript/no-unsafe-type-assertion */
+        const result = yield* Effect.tryPromise({
+          try: async () => await guard({ ...options, next }),
+          catch: (cause) => new MiddlewareFailure({ cause }),
+        });
+        const response = result instanceof Response ? result : result.response;
+        assert.strictEqual(response.status, scenario.status);
+        assert.strictEqual(
+          yield* Effect.tryPromise({
+            try: async () => await response.text(),
+            catch: (cause) => new MiddlewareFailure({ cause }),
+          }),
+          scenario.status === 403 ? "Forbidden" : "SSR or server function"
+        );
+      }
+    })
+  );
+
   it.effect("creates request middleware through the adapter layer", () =>
     Effect.gen(function* () {
       const adapter = yield* RadicalAdapter;

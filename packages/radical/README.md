@@ -12,14 +12,14 @@ The config accepts `appId`, a dot-separated identifier whose segments start with
 
 The [header contract](src/native-context.ts) is documented alongside its schemas in one module, exported as `radical/native-context`. The server and shell generators share that module.
 
-For TanStack Start, register `radicalMiddleware` in `src/start.ts`:
+For TanStack Start, register `radicalRequestMiddleware` in `src/start.ts`:
 
 ```ts
 import { createStart } from "@tanstack/react-start";
-import { radicalMiddleware } from "radical/tanstack-start";
+import { radicalRequestMiddleware } from "radical/tanstack-start";
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [radicalMiddleware],
+  requestMiddleware: [...radicalRequestMiddleware],
 }));
 
 declare module "@tanstack/react-start" {
@@ -28,6 +28,8 @@ declare module "@tanstack/react-start" {
   }
 }
 ```
+
+The middleware list preserves Start's same-origin CSRF checks for server functions and provides native context for both server functions and SSR.
 
 Server functions read the typed `context.nativeContext`. A route loader can call a server function and expose its result to components through `Route.useLoaderData()`, including during server rendering. See the [example route](../../apps/example/src/routes/index.tsx).
 

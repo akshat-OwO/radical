@@ -1,8 +1,8 @@
 import { createStart } from "@tanstack/react-start";
-import { radicalMiddleware } from "radical/tanstack-start";
+import { radicalRequestMiddleware } from "radical/tanstack-start";
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [radicalMiddleware],
+  requestMiddleware: [...radicalRequestMiddleware],
 }));
 
 declare module "@tanstack/react-start" {
