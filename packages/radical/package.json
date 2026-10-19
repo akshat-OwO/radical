@@ -8,6 +8,8 @@
   ],
   "type": "module",
   "exports": {
+    "./native-context": "./dist/native-context.mjs",
+    "./server": "./dist/server.mjs",
     "./tanstack-start": "./dist/tanstack-start.mjs",
     "./vite": "./dist/vite.mjs",
     "./package.json": "./package.json"
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
+    "@tanstack/react-start": "1.169.3",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
@@ -34,6 +37,12 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@tanstack/react-start": "1.169.3",
     "vite": ">=8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-start": {
+      "optional": true
+    }
   }
 }

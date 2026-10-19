@@ -1,19 +1,38 @@
+import { createMiddleware } from "@tanstack/react-start";
 import { Effect, Layer } from "effect";
 import type { PluginOption } from "vite";
 
 import { AdapterUnavailable } from "./adapter-error.ts";
 import { RadicalAdapter } from "./adapter.ts";
 import type { RadicalConfig } from "./config.ts";
+import type { NativeContext } from "./native-context.ts";
+import { getNativeContext } from "./server.ts";
 import { radical as corePlugin } from "./vite.ts";
 
 const unavailable = (operation: string) =>
   Effect.fail(new AdapterUnavailable({ operation }));
 
-/** Native context and navigation are deliberately unavailable in the skeleton. */
+/** Connect a native-context reader to Start's request-scoped context. */
+export const createRadicalMiddleware = (
+  get: (request: Request) => Effect.Effect<NativeContext> = getNativeContext
+) =>
+  createMiddleware().server(({ request, next }) =>
+    // Keep Start's continuation outside the Effect runner so redirects retain identity.
+    // oxlint-disable-next-line promise/prefer-await-to-then -- Promise boundary without async library code.
+    Effect.runPromise(get(request)).then((nativeContext) =>
+      // oxlint-disable-next-line promise/no-callback-in-promise -- Start owns the continuation.
+      next({ context: { nativeContext } })
+    )
+  );
+
+export const radicalMiddleware = createRadicalMiddleware();
+
+/** Request context is wired; navigation remains unavailable. */
 export const TanStackStartAdapter = Layer.succeed(RadicalAdapter, {
   name: "tanstack-start",
   routes: Effect.succeed([]),
-  provideRequestContext: () => unavailable("provideRequestContext"),
+  provideRequestContext: (get) =>
+    Effect.sync(() => createRadicalMiddleware(get)),
   navigation: Effect.succeed({
     navigate: () => unavailable("navigate"),
     onBeforeNavigate: () => unavailable("onBeforeNavigate"),
