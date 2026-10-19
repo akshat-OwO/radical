@@ -62,3 +62,15 @@ Call `registerOffline({ production: import.meta.env.PROD, shell, base: import.me
 The service worker loads documents network first and saves successful HTML carrying `x-radical-offline: 1`. Snapshots use exact URLs, including query strings. It captures an already open offline route on first activation, precaches client assets for hydration, and serves the fallback for offline URLs without a snapshot. A new worker waits for the old worker's clients to close before activation removes previous build caches for the same app and base path.
 
 The worker uses native Promises and Cache Storage without an Effect runtime. Build and registration operations use Effect with typed errors. The same worker policy runs against in-memory services in the unit tests.
+
+## Run an Android shell in remote mode
+
+Install Android SDK platform 36, build tools, an emulator system image, and Java 21. Set `ANDROID_HOME` and `JAVA_HOME` for your installation. The generated project uses its Gradle wrapper.
+
+Install the optional native peers with `pnpm add @capacitor/core@8 @capacitor/android@8` and `pnpm add -D @capacitor/cli@8`.
+
+Start your host framework's dev server, then run `pnpm exec radical android` from the app directory in another terminal. The Vite plugin binds to the LAN and writes `.radical/native.json` with the selected port. Use `devHost` in the radical config to select a reachable LAN address, or `10.0.2.2` for the Android emulator's host alias. The CLI reads that file, regenerates `.radical/android`, and builds and runs the shell. Start an existing AVD first, or select one in Capacitor's target prompt. Use `--target emulator-5554` to select a running emulator, or `--generate-only` to skip building and running.
+
+The server origin is always allowed. Add exact HTTP or HTTPS origins to `allowlist` to permit additional navigation. Origins include their port and have no trailing slash. Other navigation is blocked. Context headers apply to document GET navigation and fetch/XHR requests to allowed origins. HTML form POST navigation and service-worker-originated requests do not receive additional headers. The example uses a GET server function.
+
+The shell requires a WebView with document-start script support. It applies system-bar and cutout insets outside the WebView, so the native context reports zero CSS safe-area insets. Native projects and local edits in them are disposable. Templates ship with the package; regeneration replaces the previous project after successful generation. No iOS shell is generated.

@@ -20,7 +20,14 @@
     "plugins": [
       {
         "name": "@effect/language-service",
-        "allowedUnstableApis": ["@effect/vitest#it"]
+        "allowedUnstableApis": [
+          "@effect/vitest#it",
+          "effect/FileSystem",
+          "effect/PlatformError",
+          "effect/process",
+          "effect/cli",
+          "@effect/platform-node"
+        ]
       }
     ]
   },

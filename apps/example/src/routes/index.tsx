@@ -16,6 +16,12 @@ const Home = () => {
       <Link to="/about">Fade to about</Link>
       <h2>Native context</h2>
       <pre>{JSON.stringify(nativeContext, null, 2)}</pre>
+      <p>
+        <a href="/?navigation=allowed">Navigate within the shell</a>
+      </p>
+      <p>
+        <a href="https://example.com/">Navigate outside the allowlist</a>
+      </p>
     </main>
   );
 };
