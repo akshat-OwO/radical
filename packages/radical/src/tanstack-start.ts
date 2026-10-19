@@ -10,6 +10,13 @@ import { offlineBuild } from "./offline-build.ts";
 import { getNativeContext } from "./server.ts";
 import { radical as corePlugin } from "./vite.ts";
 
+declare module "@tanstack/react-router" {
+  interface StaticDataRouteOption {
+    /** Route options radical reads from the route tree. */
+    radical?: { readonly offline?: boolean };
+  }
+}
+
 const unavailable = (operation: string) =>
   Effect.fail(new AdapterUnavailable({ operation }));
 

@@ -37,7 +37,7 @@ The adapter's `provideRequestContext(get)` creates request middleware with a cus
 
 ## Browser offline routes
 
-Declare `staticData: { offline: true }` on offline routes. Augment TanStack Router's `StaticDataRouteOption` with `offline?: boolean`, as in the example's router.
+Declare `staticData: { radical: { offline: true } }` on offline routes. `radical/tanstack-start` augments TanStack Router's `StaticDataRouteOption`, so the option is typed.
 
 In `src/server.ts`, wrap Start's SSR callback so the selected route marks eligible HTML responses:
 
@@ -53,7 +53,7 @@ export default {
 };
 ```
 
-`offlineHandler` reads the final loaded match's `staticData.offline` and sets `x-radical-offline`. It decodes native context on the server and never marks shell documents as eligible. TanStack owns all route selection, including static precedence, optional parameters, and decorated parameters. Parent opt-in does not implicitly opt in a child. `TanStackStartAdapter` remains a Layer; routes remain empty and navigation reports `AdapterUnavailable`.
+`offlineHandler` reads the final loaded match's `staticData.radical.offline` and sets `x-radical-offline`. It decodes native context on the server and never marks shell documents as eligible. TanStack owns all route selection, including static precedence, optional parameters, and decorated parameters. Parent opt-in does not implicitly opt in a child. `TanStackStartAdapter` remains a Layer; routes remain empty and navigation reports `AdapterUnavailable`.
 
 The plugin writes `radical-manifest.json` and bundles a small standalone `radical-sw.js` into the client output. The manifest contains the client assets, fallback URL, cache prefix, and a build id derived from the worker, asset contents, and fallback contents. Identical builds preserve caches. Provide a standalone fallback document at `public/offline.html`.
 

@@ -35,7 +35,7 @@ pnpm exec vp build
 pnpm exec vp preview
 ```
 
-1. Open `/offline-route?view=one` and wait for the service worker to activate. This route declares `staticData.offline` and has a counter to check hydration.
+1. Open `/offline-route?view=one` and wait for the service worker to activate. This route declares `staticData.radical.offline` and has a counter to check hydration.
 2. Disable the network in browser developer tools, then reload that exact URL. The snapshot loads, and the counter still works with the precached scripts.
 3. Open `/offline-route?view=two` without visiting it online first. The app's `public/offline.html` fallback appears.
 4. Open `/online-route` while offline. This route has no offline snapshot and shows the same fallback.

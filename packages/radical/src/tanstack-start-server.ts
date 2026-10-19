@@ -9,7 +9,9 @@ export const offlineHandler =
       readonly stores: {
         readonly matches: {
           readonly get: () => readonly {
-            readonly staticData?: { readonly offline?: boolean };
+            readonly staticData?: {
+              readonly radical?: { readonly offline?: boolean };
+            };
           }[];
         };
       };
@@ -30,7 +32,8 @@ export const offlineHandler =
     const nativeContext = Effect.runSync(getNativeContext(context.request));
     const eligible =
       nativeContext.platform === "browser" &&
-      context.router.stores.matches.get().at(-1)?.staticData?.offline === true;
+      context.router.stores.matches.get().at(-1)?.staticData?.radical
+        ?.offline === true;
     context.responseHeaders.set("x-radical-offline", eligible ? "1" : "0");
     return handler(context);
   };

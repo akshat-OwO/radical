@@ -24,6 +24,6 @@ const OfflineRoute = () => {
 };
 
 export const Route = createFileRoute("/offline-route")({
-  staticData: { offline: true },
+  staticData: { radical: { offline: true } },
   component: OfflineRoute,
 });

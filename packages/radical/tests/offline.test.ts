@@ -122,22 +122,22 @@ describe("offline worker", () => {
           createRoute({
             getParentRoute: () => root,
             path: "/posts/$id",
-            staticData: { offline: true },
+            staticData: { radical: { offline: true } },
           }),
           createRoute({
             getParentRoute: () => root,
             path: "/posts/new",
-            staticData: { offline: false },
+            staticData: { radical: { offline: false } },
           }),
           createRoute({
             getParentRoute: () => root,
             path: "/categories/{-$category}",
-            staticData: { offline: true },
+            staticData: { radical: { offline: true } },
           }),
           createRoute({
             getParentRoute: () => root,
             path: "/decorated/post-{$postId}",
-            staticData: { offline: true },
+            staticData: { radical: { offline: true } },
           }),
         ]);
         const cases = [
@@ -199,7 +199,9 @@ describe("offline worker", () => {
           request,
           router: {
             stores: {
-              matches: { get: () => [{ staticData: { offline: true } }] },
+              matches: {
+                get: () => [{ staticData: { radical: { offline: true } } }],
+              },
             },
           },
           responseHeaders: new Headers({ "content-type": "text/html" }),
