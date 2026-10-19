@@ -1,24 +1,37 @@
 /* oxlint-disable typescript/promise-function-async -- In-memory Promise boundaries for the native worker under Effect tests. */
 import { assert, describe, it } from "@effect/vitest";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  createMemoryHistory,
+} from "@tanstack/react-router";
 import { Context, Effect, Layer } from "effect";
 
-import { isShell, shouldRegister, registerOffline } from "../src/client.ts";
 import {
-  createOfflineWorker,
-  renderServiceWorker,
-} from "../src/offline-worker.ts";
+  isShell,
+  shouldRegister,
+  registerOfflineEffect,
+} from "../src/client.ts";
+import { createOfflineWorker } from "../src/offline-worker.ts";
 import type { OfflineManifest, WorkerServices } from "../src/offline-worker.ts";
+import { offlineHandler } from "../src/tanstack-start-server.ts";
 
 const origin = "https://example.test";
 const manifest: OfflineManifest = {
   buildId: "one",
   cachePrefix: "radical:example:",
-  offlineRoutes: ["/notes/$id", "/files/$"],
   assets: ["/assets/app.js", "/assets/lazy.js", "/assets/app.css"],
   fallback: "/offline.html",
 };
-const html = (text: string, status = 200) =>
-  new Response(text, { status, headers: { "content-type": "text/html" } });
+const html = (text: string, status = 200, offline = true) =>
+  new Response(text, {
+    status,
+    headers: {
+      "content-type": "text/html",
+      "x-radical-offline": offline ? "1" : "0",
+    },
+  });
 const navigation = (path: string) => {
   const request = new Request(new URL(path, origin));
   Object.defineProperty(request, "mode", { value: "navigate" });
@@ -103,6 +116,73 @@ const responseText = (response: Response) =>
 // Every test receives fresh fetch and Cache Storage state through its layer.
 describe("offline worker", () => {
   it.effect(
+    "uses TanStack's selected route for overlapping, optional, and decorated params",
+    () =>
+      Effect.gen(function* () {
+        const { worker, responses, state } = yield* Memory;
+        yield* Effect.promise(worker.install);
+        const root = createRootRoute();
+        const routeTree = root.addChildren([
+          createRoute({
+            getParentRoute: () => root,
+            path: "/posts/$id",
+            staticData: { offline: true },
+          }),
+          createRoute({
+            getParentRoute: () => root,
+            path: "/posts/new",
+            staticData: { offline: false },
+          }),
+          createRoute({
+            getParentRoute: () => root,
+            path: "/categories/{-$category}",
+            staticData: { offline: true },
+          }),
+          createRoute({
+            getParentRoute: () => root,
+            path: "/decorated/post-{$postId}",
+            staticData: { offline: true },
+          }),
+        ]);
+        const cases = [
+          ["/posts/new", false],
+          ["/posts/123", true],
+          ["/categories", true],
+          ["/categories/tech", true],
+          ["/decorated/post-123", true],
+        ] as const;
+        for (const [path, eligible] of cases) {
+          const router = createRouter({
+            routeTree,
+            history: createMemoryHistory({ initialEntries: [path] }),
+            isServer: true,
+          });
+          yield* Effect.promise(() => router.load());
+          const request = navigation(path);
+          const responseHeaders = new Headers({ "content-type": "text/html" });
+          const response = offlineHandler(
+            ({ responseHeaders: headers }) => new Response(path, { headers })
+          )({ request, router, responseHeaders });
+          assert.strictEqual(
+            response.headers.get("x-radical-offline"),
+            eligible ? "1" : "0"
+          );
+          responses.set(request.url, response);
+          yield* Effect.promise(() => worker.respond(request));
+        }
+        state.online = false;
+        for (const [path, eligible] of cases) {
+          assert.strictEqual(
+            yield* responseText(
+              yield* Effect.promise(() => worker.respond(navigation(path)))
+            ),
+            eligible ? path : "offline fallback"
+          );
+        }
+      }).pipe(Effect.provide(memoryLayer))
+  );
+
+  it.effect(
     "keeps exact query snapshots and always refreshes them from the network",
     () =>
       Effect.gen(function* () {
@@ -149,7 +229,7 @@ describe("offline worker", () => {
         const { worker, responses, state } = yield* Memory;
         yield* Effect.promise(worker.install);
         const online = navigation("/online");
-        responses.set(online.url, html("online document"));
+        responses.set(online.url, html("online document", 200, false));
         yield* Effect.promise(() => worker.respond(online));
         state.online = false;
         for (const path of [
@@ -351,11 +431,7 @@ describe("offline worker", () => {
         yield* Effect.promise(() =>
           worker.capture("https://other.test/notes/1")
         );
-        yield* Effect.promise(() => worker.capture(`${origin}/online`));
         assert.isEmpty(requests);
-        const source = renderServiceWorker(manifest);
-        assert.notInclude(source, "Effect");
-        assert.include(source, 'self.addEventListener("fetch"');
       }).pipe(Effect.provide(memoryLayer))
   );
 });
@@ -380,8 +456,8 @@ describe("offline registration", () => {
           isShell({ Capacitor: { isNativePlatform: () => false } })
         );
         assert.isFalse(isShell({}));
-        yield* registerOffline({ production: true });
-        yield* registerOffline({ production: false });
+        yield* registerOfflineEffect({ production: true });
+        yield* registerOfflineEffect({ production: false });
       })
   );
 });

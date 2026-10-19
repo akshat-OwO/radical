@@ -16,7 +16,7 @@ export class ServiceWorkerRegistrationError extends Schema.TaggedError<
   { readonly brand: unique symbol }
 >()("ServiceWorkerRegistrationError", { cause: Schema.Unknown }) {}
 
-export const registerOffline = (options: {
+export const registerOfflineEffect = (options: {
   readonly production: boolean;
   readonly base?: string;
 }) =>
@@ -43,3 +43,8 @@ export const registerOffline = (options: {
       catch: (cause) => new ServiceWorkerRegistrationError({ cause }),
     }).pipe(Effect.asVoid);
   });
+
+/** Promise facade for app lifecycle hooks; Effect remains available separately. */
+export const registerOffline = (
+  options: Parameters<typeof registerOfflineEffect>[0]
+) => Effect.runPromise(registerOfflineEffect(options));

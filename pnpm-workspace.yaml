@@ -8,6 +8,7 @@ catalogMode: prefer
 catalog:
   "@effect/tsgo": ^0.53.4
   "@effect/vitest": ^4.0.5
+  "@tanstack/react-router": 1.170.45
   "@types/node": ^24
   effect: ^4.0.5
   oxfmt: ^0.71.0

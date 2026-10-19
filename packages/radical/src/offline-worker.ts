@@ -1,11 +1,8 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/no-nesting -- Native worker boundary deliberately excludes the Effect runtime. */
-/** Native Promise boundary shared by the generated worker and in-memory tests.
- * Keep this function self-contained: only its source ships to the worker.
- */
+/** Native Promise boundary shared by the bundled worker and in-memory tests. */
 export interface OfflineManifest {
   readonly buildId: string;
   readonly cachePrefix: string;
-  readonly offlineRoutes: readonly string[];
   readonly assets: readonly string[];
   readonly fallback: string;
 }
@@ -35,22 +32,6 @@ export const createOfflineWorker = (
   const snapshotsName = `${namespace}:snapshots`;
   const absolute = (path: string) => new URL(path, services.origin).href;
   const assetURLs = new Set(manifest.assets.map(absolute));
-  const patterns = manifest.offlineRoutes.map((pattern) =>
-    pattern.split("/").filter(Boolean)
-  );
-  const isOfflineRoute = (pathname: string) => {
-    const segments = pathname.split("/").filter(Boolean);
-    return patterns.some(
-      (parts) =>
-        parts.every(
-          (part, index) =>
-            part === "$" ||
-            (segments[index] !== undefined &&
-              (part.startsWith("$") || part === segments[index]))
-        ) &&
-        (parts.at(-1) === "$" || parts.length === segments.length)
-    );
-  };
   const cached = (name: string, request: Request) =>
     services.caches
       .open(name)
@@ -64,12 +45,11 @@ export const createOfflineWorker = (
       (response) => response ?? Response.error()
     );
 
-  const document = (request: Request) => {
-    const offline = isOfflineRoute(new URL(request.url).pathname);
-    return services.fetch(request).then(
+  const document = (request: Request) =>
+    services.fetch(request).then(
       (response) => {
         if (
-          offline &&
+          response.headers.get("x-radical-offline") === "1" &&
           response.ok &&
           !response.redirected &&
           response.headers.get("content-type")?.includes("text/html") === true
@@ -83,18 +63,14 @@ export const createOfflineWorker = (
         return response;
       },
       () =>
-        offline
-          ? cached(snapshotsName, request).then(
-              (response) => response ?? fallback()
-            )
-          : fallback()
+        cached(snapshotsName, request).then(
+          (response) => response ?? fallback()
+        )
     );
-  };
 
   return {
     capture: (url: string): Promise<unknown> =>
-      new URL(url).origin === services.origin &&
-      isOfflineRoute(new URL(url).pathname)
+      new URL(url).origin === services.origin
         ? document(new Request(url, { headers: { accept: "text/html" } }))
         : Promise.resolve(),
     install: () =>
@@ -139,14 +115,3 @@ export const createOfflineWorker = (
     },
   };
 };
-
-export const renderServiceWorker = (manifest: OfflineManifest) => `
-const worker = (${createOfflineWorker.toString()})(${JSON.stringify(manifest)}, {
-  caches, fetch: (request) => fetch(request), origin: self.location.origin
-});
-self.addEventListener("install", (event) => event.waitUntil(worker.install()));
-self.addEventListener("activate", (event) => event.waitUntil(worker.activate().then(() => self.clients.claim()).then(() => self.clients.matchAll({ type: "window" })).then((clients) => Promise.all(clients.map((client) => worker.capture(client.url))))));
-self.addEventListener("fetch", (event) => {
-  if (worker.handles(event.request)) event.respondWith(worker.respond(event.request));
-});
-`;

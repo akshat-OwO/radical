@@ -4,19 +4,16 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
-import { Effect } from "effect";
 import { registerOffline } from "radical/client";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
-    Effect.runFork(
-      registerOffline({
-        production: import.meta.env.PROD,
-        base: import.meta.env.BASE_URL,
-      }).pipe(Effect.ignore)
-    );
+    void registerOffline({
+      production: import.meta.env.PROD,
+      base: import.meta.env.BASE_URL,
+    });
   }, []);
   return (
     <html lang="en">

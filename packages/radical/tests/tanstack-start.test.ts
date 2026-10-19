@@ -16,15 +16,6 @@ class MiddlewareFailure extends Schema.TaggedError<
   { readonly brand: unique symbol }
 >()("MiddlewareFailure", { cause: Schema.Unknown }) {}
 
-const adapterLayer = TanStackStartAdapter;
-/*
-  fullPath: "/",
-  options: {},
-  children: [
-    { fullPath: "/notes/$id", options: { staticData: { offline: true } } },
-  ],
-}); */
-
 const readAdapter = Effect.gen(function* () {
   const adapter = yield* RadicalAdapter;
   return {
@@ -156,10 +147,12 @@ describe("TanStack Start adapter", () => {
       })
   );
   it.effect(
-    "reads staticData.offline routes and Start's client output through its layer",
+    "provides empty routes and Start's client output through its layer",
     () =>
       Effect.gen(function* () {
-        const adapter = yield* readAdapter.pipe(Effect.provide(adapterLayer));
+        const adapter = yield* readAdapter.pipe(
+          Effect.provide(TanStackStartAdapter)
+        );
         assert.deepStrictEqual(adapter, {
           name: "tanstack-start",
           routes: [],
@@ -199,7 +192,7 @@ describe("TanStack Start adapter", () => {
         routes: [{ pattern: "/example", offline: true }],
         outputs: { clientDir: "memory/client" },
       });
-    }).pipe(Effect.provide(adapterLayer))
+    }).pipe(Effect.provide(TanStackStartAdapter))
   );
 
   it.effect("registers the core config plugin", () =>

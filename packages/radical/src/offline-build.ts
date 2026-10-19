@@ -1,13 +1,13 @@
-import { randomUUID } from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { Effect, Schema } from "effect";
+import { build } from "vite";
 import type { Plugin } from "vite";
 
 import type { RadicalConfig } from "./config.ts";
-import { renderServiceWorker } from "./offline-worker.ts";
 
 class OfflineBuildError extends Schema.TaggedError<
   OfflineBuildError,
@@ -20,92 +20,88 @@ const attempt = <A>(operation: () => Promise<A>) =>
     catch: (cause) => new OfflineBuildError({ cause }),
   });
 
-/** The adapter supplies a server-only module that exports plain route records. */
-export const offlineBuild = (
-  config: RadicalConfig,
-  routesModule: (root: string) => string
-): Plugin => {
-  const virtualId = "\0radical:routes";
-  const buildId = randomUUID();
-  let root = "";
+export const offlineBuild = (config: RadicalConfig): Plugin => {
   let base = "/";
   let clientDir = "";
-  let assets: string[] = [];
   return {
     name: "radical:offline",
     apply: "build",
     configResolved: (resolved) => {
-      ({ root, base } = resolved);
+      ({ base } = resolved);
       clientDir = path.resolve(
-        root,
+        resolved.root,
         resolved.environments.client?.build.outDir ?? "dist/client"
       );
     },
-    resolveId: (id) => (id === virtualId ? virtualId : undefined),
-    load: (id) => (id === virtualId ? routesModule(root) : undefined),
-    buildStart() {
-      if (this.environment.name === "ssr") {
-        this.emitFile({ type: "chunk", id: virtualId, name: "radical-routes" });
-      }
-    },
     writeBundle: {
       order: "post",
-      handler(output, bundle) {
-        if (this.environment.name === "client") {
-          assets = Object.values(bundle).map(
-            (item) => `${base}${item.fileName}`
-          );
-          return Promise.resolve();
-        }
-        const entry = Object.values(bundle).find(
-          (item) => item.type === "chunk" && item.facadeModuleId === virtualId
-        );
-        if (!entry) {
+      handler(_output, bundle) {
+        if (this.environment.name !== "client") {
           return Promise.resolve();
         }
         return Effect.runPromise(
           Effect.gen(function* () {
-            const module: unknown = yield* attempt(
-              () =>
-                import(
-                  pathToFileURL(
-                    path.resolve(
-                      root,
-                      output.dir ?? "dist/server",
-                      entry.fileName
-                    )
-                  ).href
-                )
+            const entries = Object.values(bundle).toSorted((a, b) =>
+              a.fileName.localeCompare(b.fileName)
             );
-            const { routes } = yield* Schema.decodeUnknownEffect(
-              Schema.Struct({
-                routes: Schema.Array(
-                  Schema.Struct({
-                    pattern: Schema.String,
-                    offline: Schema.Boolean,
-                  })
-                ),
-              })
-            )(module);
             const manifest = {
-              buildId,
+              buildId: "RADICAL_BUILD_CONTENT_HASH",
               cachePrefix: `radical:${config.appId}:${base}:`,
-              offlineRoutes: routes
-                .filter((route) => route.offline)
-                .map((route) => `${base.replace(/\/$/u, "")}${route.pattern}`),
-              assets,
+              assets: entries.map((item) => `${base}${item.fileName}`),
               fallback: `${base}offline.html`,
             };
+            const result = yield* attempt(() =>
+              build({
+                configFile: false,
+                publicDir: false,
+                define: { __RADICAL_MANIFEST__: JSON.stringify(manifest) },
+                build: {
+                  write: false,
+                  minify: true,
+                  lib: {
+                    entry: fileURLToPath(
+                      new URL("offline-entry.mjs", import.meta.url)
+                    ),
+                    formats: ["iife"],
+                    name: "RadicalOfflineWorker",
+                  },
+                },
+              })
+            );
+            const outputs = Array.isArray(result) ? result : [result];
+            const source = outputs
+              .flatMap((output) => ("output" in output ? output.output : []))
+              .find((item) => item.type === "chunk");
+            if (!source || source.type !== "chunk") {
+              return yield* new OfflineBuildError({
+                cause: "Worker build produced no entry",
+              });
+            }
+            const hash = createHash("sha256").update(source.code);
+            for (const entry of entries) {
+              hash
+                .update(entry.fileName)
+                .update(entry.type === "chunk" ? entry.code : entry.source);
+            }
+            hash.update(
+              yield* attempt(() =>
+                readFile(path.resolve(clientDir, "offline.html"))
+              )
+            );
+            manifest.buildId = hash.digest("hex");
             yield* attempt(() =>
               writeFile(
                 path.resolve(clientDir, "radical-manifest.json"),
                 JSON.stringify(manifest)
               )
             );
-            yield* attempt(() =>
+            return yield* attempt(() =>
               writeFile(
                 path.resolve(clientDir, "radical-sw.js"),
-                renderServiceWorker(manifest)
+                source.code.replaceAll(
+                  "RADICAL_BUILD_CONTENT_HASH",
+                  manifest.buildId
+                )
               )
             );
           })

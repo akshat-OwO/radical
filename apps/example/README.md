@@ -18,7 +18,7 @@ Build the example with `pnpm exec vp build` in the same directory.
 
 `vite.config.ts` registers `radical/tanstack-start` next to `tanstackStart()`. Change `appId` to `invalid` to see config validation reject dev and build with an error naming `appId`. Restore `dev.radical.example` to run the app again.
 
-<<<<<<< HEAD The home page renders native context from the request middleware through a typed server function and route loader. To check server rendering, run these commands while the dev server is running:
+The home page renders native context from the request middleware through a typed server function and route loader. To check server rendering, run these commands while the dev server is running:
 
 ```sh
 curl -fsS http://localhost:5173/
@@ -27,7 +27,6 @@ curl -fsS -H 'x-radical-context: malformed' http://localhost:5173/
 ```
 
 The first and third responses show browser context with zero insets. The second shows iOS with the supplied insets and shell version. The [shared header contract](../../packages/radical/src/native-context.ts) defines the format.
-=======
 
 To verify browser offline behavior, build and preview the production app:
 
@@ -43,5 +42,3 @@ pnpm exec vp preview
 5. Re-enable the network. After another build, close all tabs for this origin and reopen the app to let the new worker activate and remove the old build's caches.
 
 Stop the preview server when finished. Dev mode does not register a service worker. Use a fresh browser profile or unregister an existing production worker before checking dev mode at the same origin.
-
-> > > > > > > d456c20 (Add browser offline routes)

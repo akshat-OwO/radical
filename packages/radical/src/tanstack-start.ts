@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import { createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 import { Effect, Layer } from "effect";
 import type { PluginOption } from "vite";
@@ -10,7 +8,6 @@ import type { RadicalConfig } from "./config.ts";
 import type { NativeContext } from "./native-context.ts";
 import { offlineBuild } from "./offline-build.ts";
 import { getNativeContext } from "./server.ts";
-import { readRoutes } from "./start-routes.ts";
 import { radical as corePlugin } from "./vite.ts";
 
 const unavailable = (operation: string) =>
@@ -56,14 +53,7 @@ export const TanStackStartAdapter = /* @__PURE__ */ Layer.suspend(() =>
 );
 
 /** Register next to tanstackStart(); the host framework still owns rendering. */
-export const radical = (
-  config: RadicalConfig,
-  options: { readonly router?: string } = {}
-): PluginOption[] => [
+export const radical = (config: RadicalConfig): PluginOption[] => [
   corePlugin(config),
-  offlineBuild(
-    config,
-    (root) =>
-      `import { getRouter } from ${JSON.stringify(path.resolve(root, options.router ?? "./src/router.tsx"))}; export const routes = (${readRoutes.toString()})(getRouter().routeTree);`
-  ),
+  offlineBuild(config),
 ];
