@@ -1,5 +1,6 @@
 package __APP_ID__;
 
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.Log;
 import android.webkit.CookieManager;
@@ -58,6 +59,21 @@ public class MainActivity extends BridgeActivity {
                     return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked by radical allowlist", Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
                 }
                 return super.shouldInterceptRequest(webView, request);
+            }
+
+            @Override
+            public void onPageStarted(WebView webView, String url, Bitmap favicon) {
+                // WebView skips shouldOverrideUrlLoading for non-GET navigations, and
+                // shouldInterceptRequest sees only the first URL. A POST redirected by
+                // 307 or 308 to another origin therefore first surfaces here.
+                if (!allowed(Uri.parse(url))) {
+                    Log.i("RadicalNavigation", "Blocked " + url);
+                    webView.stopLoading();
+                    if (webView.canGoBack()) webView.goBack();
+                    else webView.loadUrl(URL);
+                    return;
+                }
+                super.onPageStarted(webView, url, favicon);
             }
 
             @Override

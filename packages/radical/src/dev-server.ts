@@ -7,6 +7,13 @@ import type { ViteDevServer } from "vite";
 
 import type { RadicalConfig } from "./config.ts";
 
+/** The URL a shell loads; HTTPS dev servers keep their scheme. */
+export const devServerUrl = (options: {
+  readonly https: boolean;
+  readonly host: string;
+  readonly port: number;
+}) => `${options.https ? "https" : "http"}://${options.host}:${options.port}`;
+
 export const configureServer = (
   config: RadicalConfig,
   server: ViteDevServer
@@ -34,7 +41,14 @@ export const configureServer = (
         yield* fs.makeDirectory(directory, { recursive: true });
         yield* fs.writeFileString(
           path.join(directory, "native.json"),
-          JSON.stringify({ config, url: `http://${host}:${address.port}` })
+          JSON.stringify({
+            config,
+            url: devServerUrl({
+              https: Boolean(server.config.server.https),
+              host,
+              port: address.port,
+            }),
+          })
         );
       }).pipe(
         Effect.provide(NodeFileSystem.layer),
