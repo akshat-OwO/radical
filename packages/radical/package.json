@@ -8,9 +8,12 @@
   ],
   "type": "module",
   "exports": {
+    "./client": "./dist/client.mjs",
     "./native-context": "./dist/native-context.mjs",
+    "./offline-entry": "./dist/offline-entry.mjs",
     "./server": "./dist/server.mjs",
     "./tanstack-start": "./dist/tanstack-start.mjs",
+    "./tanstack-start-server": "./dist/tanstack-start-server.mjs",
     "./vite": "./dist/vite.mjs",
     "./package.json": "./package.json"
   },
@@ -29,6 +32,7 @@
   "devDependencies": {
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
+    "@tanstack/react-router": "catalog:",
     "@tanstack/react-start": "1.169.3",
     "@types/node": "catalog:",
     "typescript": "catalog:",
@@ -37,10 +41,14 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
     "vite": ">=8.0.0"
   },
   "peerDependenciesMeta": {
+    "@tanstack/react-router": {
+      "optional": true
+    },
     "@tanstack/react-start": {
       "optional": true
     }

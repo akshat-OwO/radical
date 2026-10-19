@@ -198,7 +198,7 @@ describe("TanStack Start adapter", () => {
   it.effect("registers the core config plugin", () =>
     Effect.sync(() => {
       const plugins = radical({ appId: "dev.radical.example" });
-      assert.lengthOf(plugins, 1);
+      assert.lengthOf(plugins, 2);
       assert.propertyVal(plugins[0], "name", "radical:config");
     })
   );

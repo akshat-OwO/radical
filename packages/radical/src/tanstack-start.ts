@@ -6,8 +6,16 @@ import { AdapterUnavailable } from "./adapter-error.ts";
 import { RadicalAdapter } from "./adapter.ts";
 import type { RadicalConfig } from "./config.ts";
 import type { NativeContext } from "./native-context.ts";
+import { offlineBuild } from "./offline-build.ts";
 import { getNativeContext } from "./server.ts";
 import { radical as corePlugin } from "./vite.ts";
+
+declare module "@tanstack/react-router" {
+  interface StaticDataRouteOption {
+    /** Route options radical reads from the route tree. */
+    radical?: { readonly offline?: boolean };
+  }
+}
 
 const unavailable = (operation: string) =>
   Effect.fail(new AdapterUnavailable({ operation }));
@@ -54,4 +62,5 @@ export const TanStackStartAdapter = /* @__PURE__ */ Layer.suspend(() =>
 /** Register next to tanstackStart(); the host framework still owns rendering. */
 export const radical = (config: RadicalConfig): PluginOption[] => [
   corePlugin(config),
+  offlineBuild(config),
 ];
