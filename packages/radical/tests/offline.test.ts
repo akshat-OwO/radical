@@ -9,6 +9,10 @@ import {
 import { Context, Effect, Layer } from "effect";
 
 import { shouldRegister, registerOfflineEffect } from "../src/client.ts";
+import {
+  encodeNativeContextCookie,
+  NATIVE_CONTEXT_COOKIE,
+} from "../src/native-context.ts";
 import { createOfflineWorker } from "../src/offline-worker.ts";
 import type { OfflineManifest, WorkerServices } from "../src/offline-worker.ts";
 import { offlineHandler } from "../src/tanstack-start-server.ts";
@@ -185,12 +189,12 @@ describe("offline worker", () => {
       for (const platform of ["ios", "android"] as const) {
         const request = navigation(`/notes/${platform}`);
         request.headers.set(
-          "x-radical-context",
-          JSON.stringify({
+          "cookie",
+          `${NATIVE_CONTEXT_COOKIE}=${yield* encodeNativeContextCookie({
             platform,
             safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
             shellVersion: "1.0",
-          })
+          })}`
         );
         const response = offlineHandler(
           ({ responseHeaders }) =>
