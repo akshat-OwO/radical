@@ -9,7 +9,9 @@ import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
+import launch from "../templates/android/launch.html?raw";
 import activity from "../templates/android/MainActivity.java?raw";
+import fallback from "../templates/android/offline.html?raw";
 import gradle from "../templates/android/radical.gradle?raw";
 
 const destination = "/app/.radical/android";
@@ -24,6 +26,8 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
       JSON.stringify({ config, url: "http://192.168.1.2:3000" }),
     ],
     ["/package/templates/android/MainActivity.java", activity],
+    ["/package/templates/android/offline.html", fallback],
+    ["/package/templates/android/launch.html", launch],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
     ["/package/templates/android/radical.gradle", gradle],
   ]);
@@ -89,6 +93,10 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
           files.set(
+            `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>'
+          );
+          files.set(
             `${command.options.cwd}/android/app/build.gradle`,
             "// Capacitor app"
           );
@@ -148,6 +156,11 @@ describe("Android shell generation", () => {
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
         assert.include(source, "CookieManager");
+        assert.include(
+          source,
+          `OFFLINE_FALLBACK = ${JSON.stringify(fallback)};`
+        );
+        assert.notInclude(source, "__OFFLINE_FALLBACK__");
         assert.include(source, "bars.top / density");
         assert.include(source, 'context.put("safeArea", area)');
         assert.include(
@@ -160,12 +173,16 @@ describe("Android shell generation", () => {
         const nativeConfig = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
+              android: Schema.Struct({
+                resolveServiceWorkerRequests: Schema.Boolean,
+              }),
               plugins: Schema.Struct({
                 SystemBars: Schema.Struct({ insetsHandling: Schema.String }),
               }),
             })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
+        assert.isFalse(nativeConfig.android.resolveServiceWorkerRequests);
         assert.deepStrictEqual(nativeConfig.plugins.SystemBars, {
           insetsHandling: "disable",
         });

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'"
+    />
+    <title>Loading</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        color: CanvasText;
+        background: Canvas;
+      }
+      body {
+        background: Canvas;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      (() => {
+        const url = %RADICAL_LAUNCH_URL%;
+        const launch = () => location.replace(url);
+        if (!("serviceWorker" in navigator)) { launch(); return; }
+        return navigator.serviceWorker.getRegistration(url).then(launch, launch);
+      })();
+    </script>
+  </body>
+</html>

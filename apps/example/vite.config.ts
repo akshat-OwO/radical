@@ -6,7 +6,11 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   plugins: [
     tanstackStart(),
-    radical({ appId: "dev.radical.example", appName: "Radical example" }),
+    radical({
+      appId: "dev.radical.example",
+      appName: "Radical example",
+      devHost: "localhost",
+    }),
     react(),
   ],
 });

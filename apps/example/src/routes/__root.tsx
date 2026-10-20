@@ -18,14 +18,13 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
   const nativeContext = Route.useLoaderData();
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
     safeAreaStyle(nativeContext);
-  const shell = nativeContext.platform !== "browser";
   useEffect(() => {
     void registerOffline({
       production: import.meta.env.PROD,
-      shell,
+      platform: nativeContext.platform,
       base: import.meta.env.BASE_URL,
     });
-  }, [shell]);
+  }, [nativeContext.platform]);
   return (
     <html lang="en" style={rootStyle}>
       <head>

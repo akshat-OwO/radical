@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'"
+    />
+    <title>You're offline</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        color: CanvasText;
+        background: Canvas;
+      }
+      body {
+        margin: 0;
+        padding: 64px 24px;
+        font:
+          18px system-ui,
+          sans-serif;
+        color: CanvasText;
+        background: Canvas;
+      }
+      a {
+        color: LinkText;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>You're offline</h1>
+    <p>Connect to the internet to open this page.</p>
+    <a href="%RADICAL_RETRY_URL%">Try again</a>
+  </body>
+</html>

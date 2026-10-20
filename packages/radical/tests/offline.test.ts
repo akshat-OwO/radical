@@ -182,7 +182,7 @@ describe("offline worker", () => {
       }).pipe(Effect.provide(memoryLayer))
   );
 
-  it.effect("never marks or snapshots shell documents", () =>
+  it.effect("snapshots eligible Android documents while excluding iOS", () =>
     Effect.gen(function* () {
       const { worker, responses, state } = yield* Memory;
       yield* Effect.promise(worker.install);
@@ -210,7 +210,10 @@ describe("offline worker", () => {
           },
           responseHeaders: new Headers({ "content-type": "text/html" }),
         });
-        assert.strictEqual(response.headers.get("x-radical-offline"), "0");
+        assert.strictEqual(
+          response.headers.get("x-radical-offline"),
+          platform === "android" ? "1" : "0"
+        );
         responses.set(request.url, response);
         yield* Effect.promise(() => worker.respond(request));
       }
@@ -222,7 +225,7 @@ describe("offline worker", () => {
               worker.respond(navigation(`/notes/${platform}`))
             )
           ),
-          "offline fallback"
+          platform === "android" ? "shell document" : "offline fallback"
         );
       }
     }).pipe(Effect.provide(memoryLayer))
@@ -484,21 +487,32 @@ describe("offline worker", () => {
 
 describe("offline registration", () => {
   it.effect(
-    "permits registration only in production browsers and skips dev, shells, and SSR",
+    "permits production browsers and Android while skipping dev, iOS, and SSR",
     () =>
       Effect.gen(function* () {
-        for (const production of [true, false]) {
-          for (const browser of [true, false]) {
-            for (const shell of [true, false]) {
+        for (const platform of ["browser", "android", "ios"] as const) {
+          for (const production of [true, false]) {
+            for (const browser of [true, false]) {
               assert.strictEqual(
-                shouldRegister({ production, browser, shell }),
-                production && browser && !shell
+                shouldRegister({
+                  production,
+                  browser,
+                  platform,
+                }),
+                production && browser && platform !== "ios"
               );
             }
           }
         }
-        yield* registerOfflineEffect({ production: true, shell: false });
-        yield* registerOfflineEffect({ production: false, shell: false });
+        yield* registerOfflineEffect({
+          production: true,
+          platform: "android",
+        });
+        yield* registerOfflineEffect({ production: true, platform: "browser" });
+        yield* registerOfflineEffect({
+          production: false,
+          platform: "browser",
+        });
       })
   );
 });
