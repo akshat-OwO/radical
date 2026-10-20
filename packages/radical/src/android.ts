@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, FileSystem, Schema } from "effect";
 
+import { resolveAndroidTarget } from "./android-target.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
 import {
   generateNativeProject,
@@ -83,38 +84,13 @@ export const generateAndroid = (
     );
   });
 
-export class AndroidDeviceUnavailable extends Schema.TaggedError<
-  AndroidDeviceUnavailable,
-  { readonly brand: unique symbol }
->()("AndroidDeviceUnavailable", { message: Schema.String }) {}
+export { AndroidBootTimeout } from "./android-boot-timeout.ts";
+export { AndroidDeviceUnavailable } from "./android-device-unavailable.ts";
 
 export const runAndroid = (project: string, target: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT;
-    const adb =
-      sdk === undefined || sdk.length === 0
-        ? "adb"
-        : path.join(sdk, "platform-tools", "adb");
-    let serial = target;
-    if (!serial) {
-      const output = yield* execute(adb, ["devices"], project, {
-        capture: true,
-      });
-      const connected = output.split("\n").flatMap((line) => {
-        const fields = line.trim().split(/\s+/u);
-        return fields[1] === "device" ? [fields[0]] : [];
-      });
-      const selected =
-        connected.find((id) => id.startsWith("emulator-")) ?? connected[0];
-      if (!selected) {
-        return yield* new AndroidDeviceUnavailable({
-          message:
-            "No connected Android device. Pass --target <serial> or connect a device.",
-        });
-      }
-      serial = selected;
-    }
+    const { adb, serial } = yield* resolveAndroidTarget(project, target);
     const { appId } = yield* fs
       .readFileString(path.join(project, "capacitor.config.json"))
       .pipe(
