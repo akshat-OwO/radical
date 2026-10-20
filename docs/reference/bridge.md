@@ -1,8 +1,9 @@
 # Bridge and device info
 
-`radical/client` exports `Bridge`, an Effect service with two operations:
+`radical/client` exports `Bridge`, an Effect service with these operations:
 
 - `runtime: Effect<"browser" | "android" | "ios">` detects the injected shell bridge when executed. Server execution reports `"browser"`.
+- `observe(event, receive): Effect<() => void>` subscribes to shell events after mount and returns a cleanup function. The live bridge replays the latest value for each event name.
 - `call(plugin, method, options): Effect<unknown, BridgeUnavailable | BridgeCallFailed>` calls Capacitor 8's injected `nativePromise`. It does not import `@capacitor/core`.
 
 `callBridge(plugin, method, schema, options?)` decodes a call's result with the supplied Schema. It requires `Bridge` and adds `BridgeDecodeError` to the error channel. `BridgeCallFailed` preserves the native rejection as `cause`. `BridgeDecodeError` preserves the Schema failure as `cause`. Each error includes `plugin` and `method`.
@@ -47,3 +48,5 @@ The browser fallback prefers `navigator.userAgentData.platform`, then parses kno
 ## Generated shells
 
 Shell generation includes `@capacitor/device` in the generated package's dependencies and links each required Capacitor package explicitly. Each dependency declares the exact version read from its resolved package.json. Capacitor discovers native plugins from those dependencies during `cap add` and sync. The inclusion list lives in `native-project.ts` until native plugin manifests are implemented in #13.
+
+Safe-area hooks also accept SSR context through the provider. See [Safe area](../safe-area.md) for CSS properties, first-request behavior, and scoped subscriptions.

@@ -26,7 +26,9 @@
           "effect/PlatformError",
           "effect/process",
           "effect/cli",
-          "@effect/platform-node"
+          "@effect/platform-node",
+          "effect/Terminal",
+          "effect/Path"
         ]
       }
     ]

@@ -1,15 +1,16 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Effect, FileSystem } from "effect";
+import { Effect, FileSystem, Schema } from "effect";
 
+import { resolveAndroidTarget } from "./android-target.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
 import {
-  capacitor,
   generateNativeProject,
   readNativeProject,
   renderTemplate,
 } from "./native-project.ts";
+import { safeAreaUpdateScript } from "./shell-events.ts";
 import { execute } from "./shell.ts";
 
 /**
@@ -41,6 +42,7 @@ export const generateAndroid = (
     );
     const replacements: Record<string, string> = {
       __APP_ID__: config.appId,
+      __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
       __URL__: JSON.stringify(url),
       __COOKIES__: native.cookies
         .map(
@@ -82,13 +84,28 @@ export const generateAndroid = (
     );
   });
 
+export { AndroidBootTimeout } from "./android-boot-timeout.ts";
+export { AndroidDeviceUnavailable } from "./android-device-unavailable.ts";
+
 export const runAndroid = (project: string, target: string) =>
   Effect.gen(function* () {
-    const { cli } = yield* capacitor("android");
+    const fs = yield* FileSystem.FileSystem;
+    const { adb, serial } = yield* resolveAndroidTarget(project, target);
+    const { appId } = yield* fs
+      .readFileString(path.join(project, "capacitor.config.json"))
+      .pipe(
+        Effect.flatMap(
+          Schema.decodeEffect(
+            Schema.fromJsonString(Schema.Struct({ appId: Schema.String }))
+          )
+        )
+      );
+    // native-run restarts the shared adb server after five seconds and can leave
+    // its retry promise pending. Own the launch and its lifetime instead.
     yield* execute(
-      process.execPath,
-      [cli, "run", "android", ...(target ? ["--target", target] : [])],
-      project
+      "./gradlew",
+      ["assembleDebug"],
+      path.join(project, "android")
     ).pipe(
       Effect.ensuring(
         execute("./gradlew", ["--stop"], path.join(project, "android")).pipe(
@@ -96,4 +113,29 @@ export const runAndroid = (project: string, target: string) =>
         )
       )
     );
+    yield* execute(
+      adb,
+      [
+        "-s",
+        serial,
+        "install",
+        "-r",
+        path.join(project, "android/app/build/outputs/apk/debug/app-debug.apk"),
+      ],
+      project
+    );
+    return yield* execute(
+      adb,
+      [
+        "-s",
+        serial,
+        "shell",
+        "am",
+        "start",
+        "-W",
+        "-n",
+        `${appId}/.MainActivity`,
+      ],
+      project
+    ).pipe(Effect.timeout("30 seconds"));
   });

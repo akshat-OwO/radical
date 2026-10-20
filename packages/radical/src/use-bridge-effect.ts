@@ -11,6 +11,8 @@ import type { ReactNode } from "react";
 
 import { BridgeLive } from "./bridge.ts";
 import type { Bridge } from "./bridge.ts";
+import type { NativeContext } from "./native-context.ts";
+import { zeroSafeArea } from "./safe-area-style.ts";
 
 export type BridgeState<A, E> =
   | {
@@ -35,16 +37,35 @@ const initialState: BridgeState<never, never> = {
   error: undefined,
 };
 
-const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
+export const NativeContextContext = createContext<NativeContext>({
+  platform: "browser",
+  safeArea: zeroSafeArea,
+  shellVersion: null,
+});
+
+export const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
 
 /** Supply one stable layer for every capability hook in this subtree. */
 export const RadicalProvider = ({
   layer = BridgeLive,
   children,
+  nativeContext,
 }: {
   readonly layer?: Layer.Layer<Bridge>;
   readonly children?: ReactNode;
-}) => createElement(BridgeContext.Provider, { value: layer }, children);
+  readonly nativeContext?: NativeContext;
+}) =>
+  createElement(
+    BridgeContext.Provider,
+    { value: layer },
+    nativeContext
+      ? createElement(
+          NativeContextContext.Provider,
+          { value: nativeContext },
+          children
+        )
+      : children
+  );
 
 /** Effects must have stable identity. Nothing executes until React commits. */
 export const useBridgeEffect = <A, E>(

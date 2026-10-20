@@ -57,3 +57,7 @@ export const encodeNativeContextCookie = (context: ShellContext) =>
   Schema.encodeEffect(Schema.fromJsonString(ShellContextSchema))(context).pipe(
     Effect.map(encodeURIComponent)
   );
+
+export type SafeArea = typeof SafeAreaSchema.Type;
+
+export { safeAreaStyle, zeroSafeArea } from "./safe-area-style.ts";

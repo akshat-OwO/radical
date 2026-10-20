@@ -148,7 +148,10 @@ describe("iOS shell generation", () => {
         const source = state.files.get(appDelegate) ?? "";
         const value = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(Schema.String)
-        )(/\.value: (?<cookie>[^\n]+),/u.exec(source)?.groups?.cookie);
+        )(
+          /let seed = (?<cookie>"[^"]+")\.removingPercentEncoding/u.exec(source)
+            ?.groups?.cookie
+        );
         assert.include(source, `.name: "${NATIVE_CONTEXT_COOKIE}"`);
         const context = yield* Schema.decodeEffect(
           Schema.fromJsonString(ShellContextSchema)
@@ -159,6 +162,12 @@ describe("iOS shell generation", () => {
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
         assert.include(source, "httpCookieStore.setCookie");
+        assert.include(source, "view.window != nil");
+        assert.include(source, "let insets = view.safeAreaInsets");
+        assert.include(source, "override func viewSafeAreaInsetsDidChange()");
+        assert.include(source, "self.view.safeAreaInsets != insets");
+        assert.include(source, "contentInsetAdjustmentBehavior = .automatic");
+        assert.include(source, "window.__radical");
         assert.include(source, 'HTTPCookiePropertyKey("HttpOnly"): "TRUE"');
         assert.include(
           source,
@@ -167,7 +176,7 @@ describe("iOS shell generation", () => {
         assert.include(source, "if secure");
         assert.include(
           source,
-          "group.notify(queue: .main) { super.viewDidLoad() }"
+          "private func startNavigation() { super.viewDidLoad() }"
         );
         assert.notInclude(source, "__COOKIE_VALUE__");
         assert.include(source, '["http://192.168.1.2:3000"]');

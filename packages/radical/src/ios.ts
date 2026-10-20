@@ -10,6 +10,7 @@ import {
   renderTemplate,
 } from "./native-project.ts";
 import { replaceAnchor } from "./native-template.ts";
+import { safeAreaUpdateScript } from "./shell-events.ts";
 import { execute } from "./shell.ts";
 
 export const generateIos = (
@@ -36,6 +37,7 @@ export const generateIos = (
           )
           .join(", "),
         __COOKIE_NAME__: JSON.stringify(NATIVE_CONTEXT_COOKIE),
+        __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
         __COOKIE_VALUE__: JSON.stringify(native.cookie),
       }
     );
@@ -180,5 +182,9 @@ export const runIos = (project: string, target: string) =>
       ],
       project
     );
-    return yield* execute("xcrun", ["simctl", "launch", udid, appId], project);
+    return yield* execute(
+      "xcrun",
+      ["simctl", "launch", udid, appId],
+      project
+    ).pipe(Effect.timeout("30 seconds"));
   });
