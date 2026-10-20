@@ -58,4 +58,4 @@ History `BACK` and negative `GO` reverse slide direction, including Android syst
 
 `cancel()` removes the current native overlay without interrupting the router commit. `dispose()` also restores the original router hook and removes history listeners. Concurrent commits serialize their overlays so an earlier cleanup cannot uncover a later capture. Browser cancellation and CSS duration behavior remain unchanged.
 
-See [native verification](../../../docs/verification/native-transitions.md) for Android device evidence and the pending iOS re-verification.
+See [native verification](../../../docs/verification/native-transitions.md) for Android and iOS device recordings, stills, and timeout recovery evidence.

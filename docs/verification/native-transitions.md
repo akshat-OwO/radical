@@ -1,6 +1,6 @@
 # Native snapshot transitions verification
 
-Android push, back, fade, and forced-timeout recovery were verified on 2026-10-20 on Pixel_9, Android 16, API 36, serial `emulator-5554`. The user supplied the already-booted emulator. The iOS simulator stayed shut down throughout this round. The revised iOS shell compiles for a generic simulator destination, but items 1 and 4 of the PR review require iOS device re-verification after a device swap.
+Verified on 2026-10-20 on Pixel_9, Android 16, API 36, serial `emulator-5554`, and iPhone Duo, iOS 27.1, UDID `88BEE7A3-757E-40C4-A789-5E3259B6B673`. The user supplied one booted device at a time. Android verification preceded the iOS re-verification at `0e4634b`. The iOS round found no runtime defect and updates only verification evidence. Android stayed shut down during that round.
 
 ## Android setup
 
@@ -57,24 +57,46 @@ Restored the original bridge method after the probe. Native process-death watchd
 
 Each shell acknowledges cover only after attachment. Android attaches only after PixelCopy succeeds and checks the id again in its callback. JavaScript waits for the framework commit and two animation frames before reveal. Android then waits for Chromium's visual-state callback; iOS waits for a WebKit snapshot of the committed content. Offset setup and layer reordering happen in one native callback before the next presented frame. Cleanup cancels motion and resets live content to zero before removing the snapshot.
 
-## iOS status after review
+## iOS re-verification at 0e4634b
 
-The original iPhone Duo evidence below was captured at `d69eb99`. Its slide moved only the outgoing snapshot. It does not verify the revised push, parallax, dimming, or transform cleanup.
-
-![Earlier iOS slide, superseded by the push implementation](native-transitions/ios-slide.png)
-
-![Earlier iOS back slide](native-transitions/ios-back.png)
-
-![Earlier iOS fade](native-transitions/ios-fade.png)
-
-The current shell removes the added `allowsBackForwardNavigationGestures = true` setting, preserving the previous disabled behavior. It uses forward push and reversed back motion with 30% parallax. The background page dims by 12% during iOS pushes. Both the animation changes in review item 1 and the gesture revert in item 4 require iOS device re-verification. The user must swap devices before that work; the simulator was not booted in this round.
-
-Compilation passed with the generated project and no simulator launch:
+Built radical, started the example at localhost port 4173, and generated, built, installed, and launched the clean head shell:
 
 ```sh
-xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build build
+pnpm --filter radical run build
+pnpm --filter @radical/example exec vp dev --host 0.0.0.0 --port 4173
+pnpm --filter @radical/example exec radical ios --target 88BEE7A3-757E-40C4-A789-5E3259B6B673
 ```
+
+All interactions used the supplied agent-device executable, iOS UDID, host config, and session flags. Recorded with `xcrun simctl io 88BEE7A3-757E-40C4-A789-5E3259B6B673 recordVideo --codec=h264`. Normal motion recordings are `/tmp/radical-ios-push-0e4634b.mov` and `/tmp/radical-ios-fade-0e4634b.mov`. These replace the earlier outgoing-only slide evidence.
+
+![iOS forward push, with dimmed Home shifting left behind incoming Details](native-transitions/ios-slide.png)
+
+![iOS reversed back slide, with Home returning from parallax under outgoing Details](native-transitions/ios-back.png)
+
+![iOS Home snapshot fading over About](native-transitions/ios-fade.png)
+
+Forward slide moves Details in from the right while Home shifts left by the configured 30% parallax and darkens. The mid-slide still shows a dimmed Home background beside the brighter incoming page. Button Back moves Details out to the right while Home returns from its negative parallax offset and undims. Fade smoothly replaces Home with About. All destinations settled with the live content at its normal position.
+
+Reviewed every encoded frame from 8.60 to 9.30 seconds for forward slide and 24.30 to 25.20 for Back in the push recording, plus 10.55 to 11.10 in the fade recording. These windows include capture, initial offsets and stacking, motion, and final cleanup. No blank, white, or black frame appeared. The old and new pages meet without an exposed window background, including the right-side system area. Recordings have variable frame timing; the review covers encoded frames rather than unrecorded sub-frame behavior.
+
+### iOS forced reveal timeout
+
+For this probe only, added a document-end user script and trace logging to the ignored generated AppDelegate.swift. The script wraps `Capacitor.nativePromise` and returns a never-settling promise for the first `RadicalTransitions.reveal`; cover and remove still call the real native plugin. The library and native transition implementation remain the head versions. Launched the probe with `simctl launch --console-pty` to capture its trace at `/tmp/radical-ios-probe-console.log`.
+
+The trace shows cover at 18589 ms, attachment acknowledgement at 18597 ms with the Home heading, stalled reveal at 18616 ms after the heading became Details, remove at 19603 ms, and removal acknowledgement at 19605 ms. Native logging reports `overlayAttached=false` after removal. Cleanup completed about one second after capture, before the three-second native watchdog. The route and heading remained Details.
+
+Recorded `/tmp/radical-ios-timeout-0e4634b-final.mov`. Source frame 11 at 10.750000 seconds shows the Home snapshot held over the already-committed destination; source frame 12 at 11.673333 seconds shows Details after removal. Extracted those exact source indices to avoid seeking across a held frame. Reviewed every encoded frame between 10.50 and 12.00 seconds, including both sides of removal. No blank frame appeared.
+
+![iOS Home snapshot remains while reveal is stalled and Details has committed underneath](native-transitions/ios-timeout-covered.png)
+
+![iOS Details remains visible after timeout removes the snapshot](native-transitions/ios-timeout-revealed.png)
+
+### iOS swipe-back is disabled
+
+The probe logs `swipeEnabled=false canGoBack=true` on the live WKWebView after the Details history entry exists. In the clean shell, an agent-device `gesture swipe left-edge` on Details leaves the route and screen unchanged; button Back then returns to Home. Repeated the edge swipe after removing the probe and reinstalling the clean head shell, with the same result. No competing WebKit history swipe was enabled.
+
+Regenerated the shell to remove all probe code, rebuilt, installed, and launched the clean version again. Confirmed no `RADICAL_VERIFY` code remains in the generated AppDelegate.swift. Repeated slide, disabled edge swipe, and button Back on that clean installation. Review items 1 and 4 now have iOS device verification. Native process-death watchdog recovery remains unexercised.
 
 ## Repository checks and cleanup
 
-`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. Ready includes 127 passing tests. The lockfile is unchanged and contains no `@pnpm/exe` entry. The example server and Gradle are stopped after verification. Pixel_9 remains booted.
+`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. Ready includes 127 passing tests. The lockfile is unchanged and contains no `@pnpm/exe` entry. The example server and Gradle are stopped after verification. Pixel_9 is shut down. The clean iOS shell is installed and iPhone Duo remains booted.
