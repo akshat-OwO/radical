@@ -2,9 +2,11 @@ package __APP_ID__;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -13,6 +15,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.ScriptHandler;
+import androidx.webkit.ServiceWorkerClientCompat;
+import androidx.webkit.ServiceWorkerControllerCompat;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import com.getcapacitor.BridgeActivity;
@@ -30,9 +34,33 @@ import org.json.JSONObject;
 /** Remote mode keeps Chromium's networking, streaming, cookies and origin. */
 public class MainActivity extends BridgeActivity {
     private static final String URL = __URL__;
+    private static final String OFFLINE_FALLBACK = __OFFLINE_FALLBACK__;
     private static final String COOKIE = __COOKIE__;
     private static final String GUARD = __GUARD__;
     private static final Set<String> ORIGINS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(__ORIGINS__)));
+
+    private static final String OFFLINE_URL = Uri.parse(URL).buildUpon().path("/.radical/offline").clearQuery().fragment(null).build().toString();
+
+    private static boolean offlinePage(Uri uri) {
+        return OFFLINE_URL.equals(uri.buildUpon().clearQuery().fragment(null).build().toString());
+    }
+
+    private String launchUrl() {
+        String saved = getPreferences(MODE_PRIVATE).getString("lastUrl", URL);
+        return allowed(Uri.parse(saved)) && !offlinePage(Uri.parse(saved)) ? saved : URL;
+    }
+
+    private static WebResourceResponse intercept(WebResourceRequest request) {
+        if (offlinePage(request.getUrl())) {
+            String retry = request.getUrl().getQueryParameter("retry");
+            if (retry == null || !allowed(Uri.parse(retry)) || offlinePage(Uri.parse(retry))) retry = URL;
+            String html = OFFLINE_FALLBACK.replace("%RADICAL_RETRY_URL%", TextUtils.htmlEncode(retry));
+            return new WebResourceResponse("text/html", "UTF-8", 200, "OK", Collections.singletonMap("Cache-Control", "no-store"), new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+        }
+        if (allowed(request.getUrl())) return null;
+        Log.i("RadicalNavigation", "Blocked " + request.getUrl());
+        return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked by radical allowlist", Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
+    }
 
     private boolean started = false;
     private String lastInsets = "";
@@ -69,7 +97,7 @@ public class MainActivity extends BridgeActivity {
             if (!started) {
                 started = true;
                 view.getSettings().setBlockNetworkLoads(false);
-                view.loadUrl(URL);
+                view.loadUrl(launchUrl());
             } else {
                 view.evaluateJavascript(script, null);
             }
@@ -89,6 +117,20 @@ public class MainActivity extends BridgeActivity {
         // Capacitor installs the bridge before radical starts remote navigation.
         WebView view = findViewById(com.getcapacitor.android.R.id.webview);
         view.getSettings().setBlockNetworkLoads(true);
+        // Install the process-wide policy before any remote navigation or worker.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
+            if (!WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
+                Log.e("RadicalNavigation", "WebView lacks service-worker request interception");
+                finish();
+                return;
+            }
+            ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
+                @Override
+                public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                    return intercept(request);
+                }
+            });
+        }
         super.load();
         view.stopLoading();
         // Without document-start scripts the allowlist cannot stop a redirected
@@ -108,11 +150,27 @@ public class MainActivity extends BridgeActivity {
         bridge.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView webView, WebResourceRequest request) {
-                if (request.isForMainFrame() && !allowed(request.getUrl())) {
-                    Log.i("RadicalNavigation", "Blocked " + request.getUrl());
-                    return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked by radical allowlist", Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
+                WebResourceResponse blocked = intercept(request);
+                return blocked != null ? blocked : super.shouldInterceptRequest(webView, request);
+            }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView webView, String url, boolean isReload) {
+                // Includes client-side history updates as well as full navigations.
+                if (allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url))) {
+                    getPreferences(MODE_PRIVATE).edit().putString("lastUrl", url).apply();
                 }
-                return super.shouldInterceptRequest(webView, request);
+                super.doUpdateVisitedHistory(webView, url, isReload);
+            }
+
+            @Override
+            public void onReceivedError(WebView webView, WebResourceRequest request, WebResourceError error) {
+                if (!request.isForMainFrame()) return;
+                if (!allowed(request.getUrl())) return;
+                // A controlling worker already tried snapshots and the app fallback.
+                // Without one, packaged HTML works even on the very first launch.
+                webView.stopLoading();
+                webView.loadUrl(Uri.parse(OFFLINE_URL).buildUpon().appendQueryParameter("retry", request.getUrl().toString()).build().toString());
             }
 
             @Override

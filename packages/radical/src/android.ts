@@ -41,6 +41,11 @@ export const generateAndroid = (
       path.join(packageRoot, "templates/android/radical.gradle")
     );
     const replacements: Record<string, string> = {
+      __OFFLINE_FALLBACK__: JSON.stringify(
+        yield* fs.readFileString(
+          path.join(packageRoot, "templates/android/offline.html")
+        )
+      ),
       __APP_ID__: config.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
       __URL__: JSON.stringify(url),

@@ -31,7 +31,8 @@ export const offlineHandler =
   }): Result => {
     const nativeContext = Effect.runSync(getNativeContext(context.request));
     const eligible =
-      nativeContext.platform === "browser" &&
+      (nativeContext.platform === "browser" ||
+        nativeContext.platform === "android") &&
       context.router.stores.matches.get().at(-1)?.staticData?.radical
         ?.offline === true;
     context.responseHeaders.set("x-radical-offline", eligible ? "1" : "0");

@@ -44,3 +44,31 @@ pnpm exec vp preview
 5. Re-enable the network. After another build, close all tabs for this origin and reopen the app to let the new worker activate and remove the old build's caches.
 
 Stop the preview server when finished. Dev mode does not register a service worker. Use a fresh browser profile or unregister an existing production worker before checking dev mode at the same origin.
+
+## Android offline routes
+
+The example sets `devHost: "localhost"` for a secure loopback origin. Forward the server port before opening the shell. For ordinary LAN development, change `devHost` to your computer's LAN address. Offline caching requires the production build.
+
+Run these commands from `apps/example` with the already booted Android emulator:
+
+```sh
+adb -s emulator-5554 reverse tcp:4173 tcp:4173
+pnpm exec vp dev --port 4173
+```
+
+Once dev starts, stop it. This creates `.radical/native.json` pointing at `http://localhost:4173`. Then build and preview:
+
+```sh
+pnpm exec vp build
+pnpm exec vp preview --host 0.0.0.0 --port 4173
+```
+
+In another terminal, run `pnpm exec radical android --target emulator-5554`. Open **Offline route**, and wait for the worker to activate. In WebView DevTools, confirm that `navigator.serviceWorker.controller` is present and Cache Storage contains a snapshot for `/offline-route`.
+
+1. Stop the preview server. This also disconnects localhost traffic, which Wi-Fi toggles alone cannot block through `adb reverse`.
+2. Follow **Home** to see the worker's offline fallback, then **Open the offline route** to open the stored snapshot. Tap **Hydration check** to verify that cached scripts work.
+3. Force-stop the app with `adb -s emulator-5554 shell am force-stop dev.radical.example`. Reopen it while the server remains stopped. The shell attempts the last route. It shows a snapshot or the packaged fallback if the worker is not controlling yet. In the latter case, tap **Try again** to retry the exact last URL.
+4. Run `adb -s emulator-5554 shell pm clear dev.radical.example`, then reopen the app offline. The packaged fallback appears because snapshots and worker registrations were removed. **Try again** retries the failed URL after connectivity returns.
+5. Restart preview and reopen the app to capture fresh snapshots. Restore any disabled network interfaces, stop preview, and run `./gradlew --stop` from `.radical/android/android` when finished. Leave the emulator booted.
+
+Screenshots and observed results are in [Android offline verification](../../docs/verification/android-offline.md).
