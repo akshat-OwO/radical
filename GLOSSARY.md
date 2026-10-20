@@ -29,7 +29,7 @@ The channel through which web code calls native capabilities in the shell.\
 _Avoid_: Interface, JSI, IPC
 
 **Native plugin**:\
-A unit of native capability, declared by a manifest, that exposes commands over the bridge.\
+A unit of native capability that exposes commands over the bridge.\
 _Avoid_: Extension, module
 
 **Native context**:\
@@ -65,3 +65,7 @@ _Avoid_: Error page, cached route
 **Transition**:\
 An animated navigation between routes (slide or fade), shown as a native snapshot overlay in shells and as a view transition in browsers.\
 _Avoid_: Animation, page animation
+
+**Transition overlay**:\
+The shell's captured image of the outgoing screen, retained while the destination appears during a transition.\
+_Avoid_: Snapshot, screen cache

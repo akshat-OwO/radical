@@ -10,6 +10,8 @@ import { TestClock } from "effect/testing";
 
 import { RadicalAdapter } from "../src/adapter.ts";
 import { BrowserTransitions } from "../src/client.ts";
+import { NativeTransitions } from "../src/native-transitions.ts";
+import { installNativeTransitions } from "../src/tanstack-native-transitions.ts";
 import { tanstackNavigation } from "../src/tanstack-navigation.ts";
 import {
   browserTransitions,
@@ -282,3 +284,150 @@ describe("TanStack navigation", () => {
       })
   );
 });
+
+it.effect(
+  "uses native capture for router navigation without browser support",
+  () =>
+    Effect.gen(function* () {
+      const router = makeRouter();
+      yield* Effect.promise(async () => {
+        await router.load();
+      });
+      const calls: string[] = [];
+      const original = router.startViewTransition;
+      const controller = installNativeTransitions(
+        router,
+        {},
+        Layer.succeed(NativeTransitions, {
+          cover: () =>
+            Effect.sync(() => {
+              calls.push(`cover:${router.state.resolvedLocation?.pathname}`);
+            }),
+          painted: Effect.sync(() => {
+            calls.push(`painted:${router.state.location.pathname}`);
+          }),
+          reveal: (_id, transition) =>
+            Effect.sync(() => {
+              calls.push(`${transition.kind}:${transition.direction}`);
+            }),
+          remove: () =>
+            Effect.sync(() => {
+              calls.push("remove");
+            }),
+        })
+      );
+      const navigate = (to: string) =>
+        Effect.promise(async () => {
+          const navigation = router.navigate({ to });
+          void router.load();
+          await navigation;
+        });
+      yield* navigate("/details");
+      assert.deepStrictEqual(calls, [
+        "cover:/",
+        "painted:/details",
+        "slide:forward",
+        "remove",
+      ]);
+      calls.length = 0;
+      yield* navigate("/about");
+      assert.deepStrictEqual(calls, [
+        "cover:/details",
+        "painted:/about",
+        "fade:forward",
+        "remove",
+      ]);
+      calls.length = 0;
+      router.history.back();
+      yield* Effect.promise(async () => {
+        await router.load();
+      });
+      assert.deepStrictEqual(calls, [
+        "cover:/about",
+        "painted:/details",
+        "slide:back",
+        "remove",
+      ]);
+      calls.length = 0;
+      yield* Effect.promise(async () => {
+        const navigation = router.navigate({
+          to: "/about",
+          viewTransition: false,
+        });
+        void router.load();
+        await navigation;
+      });
+      assert.deepStrictEqual(calls, []);
+      controller.dispose();
+      assert.strictEqual(router.startViewTransition, original);
+    })
+);
+
+it.effect("commits plain and native routes without crypto.randomUUID", () =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+      Object.defineProperty(globalThis, "crypto", {
+        configurable: true,
+        value: { randomUUID: undefined },
+      });
+      return descriptor;
+    }),
+    () =>
+      Effect.gen(function* () {
+        assert.isUndefined(Reflect.get(globalThis.crypto, "randomUUID"));
+        const router = makeRouter();
+        const ids: string[] = [];
+        const clock = yield* Effect.clockWith(Effect.succeed);
+        const controller = installNativeTransitions(
+          router,
+          {},
+          Layer.merge(
+            Layer.succeed(Clock.Clock, clock),
+            Layer.succeed(NativeTransitions, {
+              cover: (id) =>
+                Effect.sync(() => {
+                  ids.push(id);
+                }),
+              painted: Effect.void,
+              reveal: () => Effect.void,
+              remove: () => Effect.void,
+            })
+          )
+        );
+        yield* Effect.promise(async () => {
+          await router.load();
+        });
+        assert.deepStrictEqual(ids, []);
+        for (const to of ["/details", "/plain", "/about"] as const) {
+          yield* Effect.promise(async () => {
+            const navigation = router.navigate({ to });
+            await router.load();
+            await navigation;
+          });
+          assert.strictEqual(router.state.location.pathname, to);
+        }
+        assert.strictEqual(ids.length, 2);
+        assert.strictEqual(ids[1], String(Number(ids[0]) + 1));
+        yield* Effect.promise(async () => {
+          const navigation = router.navigate({
+            to: "/",
+            viewTransition: false,
+          });
+          await router.load();
+          await navigation;
+        });
+        assert.strictEqual(router.state.location.pathname, "/");
+        assert.strictEqual(ids.length, 2);
+        controller.dispose();
+      }),
+    (descriptor) =>
+      Effect.sync(() => {
+        if (descriptor) {
+          Object.defineProperty(globalThis, "crypto", descriptor);
+        } else {
+          Reflect.deleteProperty(globalThis, "crypto");
+        }
+      })
+  )
+);

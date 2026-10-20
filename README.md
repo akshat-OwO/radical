@@ -28,3 +28,9 @@ The generated iOS shell enables App-Bound Domains and persistent website data. T
 Online launch opens the configured server URL. If that load fails offline, iOS tries the last visited URL with a confirmed snapshot. Without a snapshot or worker, it shows a packaged offline fallback. Removing all website data removes snapshots and registrations. Uninstalling and reinstalling the app also clears the saved URL. The public `clearWebData` hook is tracked in #24.
 
 Service workers require HTTPS or a trustworthy localhost origin. The iOS simulator shares the host network, so run the production example at `http://localhost:4173` and stop its server to test offline. Plain HTTP LAN addresses do not provide a secure context. See the [iOS verification guide](docs/verification/ios-offline.md) for commands and evidence, and [ADR 0002](docs/adr/0002-ios-offline-caching-with-app-bound-domains.md) for the domain limits.
+
+## Route transitions
+
+Install `browserTransitions(router)` from `radical/tanstack-start-client` once per router and import `radical/transitions.css`. Mark destinations with `staticData.radical.transition: "slide"` or `"fade"`. The same installer selects native snapshot overlays in Android and iOS shells and typed view transitions in browsers. Unsupported browsers and capture failures use plain navigation.
+
+Native overlays cover the full window before the route commits, then reveal only after web and native paint signals. Slides push the new page over the outgoing snapshot with 30% background parallax. Back navigation reverses the push. Overlay timeouts never time out the router commit. Both shells honor reduced motion and expire stale overlays after three seconds. See the [transition reference](packages/radical/docs/transitions.md) and [device verification](docs/verification/native-transitions.md).

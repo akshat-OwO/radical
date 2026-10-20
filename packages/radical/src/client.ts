@@ -74,3 +74,13 @@ export type { DeviceInfo } from "./device-info.ts";
 export { safeAreaStyle } from "./safe-area-style.ts";
 export type { SafeArea } from "./native-context.ts";
 export { watchSafeArea } from "./safe-area.ts";
+
+export {
+  NativeTransitions,
+  NativeTransitionsLive,
+  nativeTransition,
+} from "./native-transitions.ts";
+
+export { TransitionTimeout } from "./transition-timeout.ts";
+
+export { transitionStrategy } from "./transition-strategy.ts";

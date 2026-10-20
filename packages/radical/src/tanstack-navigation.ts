@@ -1,16 +1,18 @@
 import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
-import type { Layer } from "effect";
-import { Effect, Fiber } from "effect";
+import { Effect, Fiber, Layer } from "effect";
 
 import type { RadicalNavigation } from "./adapter.ts";
+import { BridgeLive } from "./bridge.ts";
 import {
-  BrowserTransitions,
   BrowserTransitionsLive,
   cancelBrowserTransition,
   watchBrowserTransition,
 } from "./browser-transitions.ts";
-import type { Transition } from "./browser-transitions.ts";
+import type { BrowserTransitions, Transition } from "./browser-transitions.ts";
+import { NativeTransitionsLive } from "./native-transitions.ts";
 import { NavigationFailed } from "./navigation-error.ts";
+import { installNativeTransitions } from "./tanstack-native-transitions.ts";
+import { transitionStrategy } from "./transition-strategy.ts";
 
 export interface BrowserTransitionOptions {
   readonly timeoutMs?: number;
@@ -36,21 +38,23 @@ export const browserTransitions = (
       },
     };
   }
-  // Without typed selectors Router would start an untyped transition for every
-  // navigation, so those browsers keep plain navigation.
-  const supportsTypes = Effect.runSync(
-    Effect.gen(function* () {
-      const transitions = yield* BrowserTransitions;
-      return yield* transitions.supportsTypes;
-    }).pipe(Effect.provide(browser))
+  const strategy = Effect.runSync(
+    transitionStrategy.pipe(Effect.provide(Layer.merge(browser, BridgeLive)))
   );
-  if (!supportsTypes) {
+  if (strategy === "native") {
+    return installNativeTransitions(
+      router,
+      options,
+      NativeTransitionsLive.pipe(Layer.provide(BridgeLive))
+    );
+  }
+  if (strategy === "plain") {
     return {
       cancel: () => {
-        // No radical transition starts without typed selector support.
+        /* No transition was installed. */
       },
       dispose: () => {
-        // Nothing was installed.
+        /* No subscriptions were installed. */
       },
     };
   }
