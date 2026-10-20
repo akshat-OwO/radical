@@ -182,5 +182,9 @@ export const runIos = (project: string, target: string) =>
       ],
       project
     );
-    return yield* execute("xcrun", ["simctl", "launch", udid, appId], project);
+    return yield* execute(
+      "xcrun",
+      ["simctl", "launch", udid, appId],
+      project
+    ).pipe(Effect.timeout("30 seconds"));
   });

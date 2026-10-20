@@ -1,12 +1,14 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, FileSystem, Layer, Sink, Stream } from "effect";
+import { Effect, Fiber, FileSystem, Layer, Sink, Stream } from "effect";
 import { ChildProcessSpawner } from "effect/process";
+import { TestClock } from "effect/testing";
 
 import { runIos } from "../src/ios.ts";
 
 const project = "/app/.radical/ios";
 const memory = (
   options: {
+    stalledLaunch?: boolean;
     workspace?: boolean;
     bootError?: string;
     buildFailure?: boolean;
@@ -46,15 +48,18 @@ const memory = (
         const stderr = boot ? (options.bootError ?? "") : "";
         return ChildProcessSpawner.makeHandle({
           pid: ChildProcessSpawner.ProcessId(1),
-          exitCode: Effect.succeed(
-            ChildProcessSpawner.ExitCode(
-              stderr ||
-                (options.buildFailure === true &&
-                  command.command === "xcodebuild")
-                ? 1
-                : 0
-            )
-          ),
+          exitCode:
+            options.stalledLaunch === true && command.args.includes("launch")
+              ? Effect.never
+              : Effect.succeed(
+                  ChildProcessSpawner.ExitCode(
+                    stderr ||
+                      (options.buildFailure === true &&
+                        command.command === "xcodebuild")
+                      ? 1
+                      : 0
+                  )
+                ),
           isRunning: Effect.succeed(false),
           kill: () => Effect.void,
           stdin: Sink.drain,
@@ -164,6 +169,18 @@ describe("headless iOS runner", () => {
       const error = yield* Effect.flip(runIos(project, "target"));
       assert.strictEqual(error._tag, "ShellCommandError");
       assert.strictEqual(state.commands.length, 2);
+    }).pipe(Effect.provide(state.layer));
+  });
+  it.effect("times out a stalled simulator launch", () => {
+    const state = memory({ stalledLaunch: true });
+    return Effect.gen(function* () {
+      const fiber = yield* Effect.forkChild(
+        Effect.flip(runIos(project, "target"))
+      );
+      yield* TestClock.adjust("30 seconds");
+      const error = yield* Fiber.join(fiber);
+      assert.strictEqual(error._tag, "TimeoutError");
+      assert.deepStrictEqual(state.commands, expected("target"));
     }).pipe(Effect.provide(state.layer));
   });
   it.effect("stops before boot when the build fails", () => {
