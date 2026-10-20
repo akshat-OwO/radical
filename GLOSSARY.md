@@ -58,6 +58,10 @@ _Avoid_: Cached route, PWA route
 The stored HTML of one offline-route URL, keyed by its exact URL including the query string.\
 _Avoid_: Cache entry, page cache
 
+**Offline fallback**:\
+The page shown when a navigation cannot reach the server and has no stored snapshot.\
+_Avoid_: Error page, cached route
+
 **Transition**:\
 An animated navigation between routes (slide or fade), shown as a native snapshot overlay in shells and as a view transition in browsers.\
 _Avoid_: Animation, page animation

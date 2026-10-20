@@ -3,9 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, FileSystem, Schema } from "effect";
 
-import { offlineSnapshotCheckScript } from "./android-offline.ts";
 import { resolveAndroidTarget } from "./android-target.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
+import { offlineSnapshotCheckScript } from "./native-offline.ts";
 import {
   generateNativeProject,
   readNativeProject,

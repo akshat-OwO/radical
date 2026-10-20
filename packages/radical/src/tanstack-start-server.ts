@@ -1,7 +1,3 @@
-import { Effect } from "effect";
-
-import { getNativeContext } from "./server.ts";
-
 /** Wrap Start's SSR callback after the router has loaded the selected matches. */
 export const offlineHandler =
   <
@@ -29,10 +25,7 @@ export const offlineHandler =
     router: Router;
     responseHeaders: Headers;
   }): Result => {
-    const nativeContext = Effect.runSync(getNativeContext(context.request));
     const eligible =
-      (nativeContext.platform === "browser" ||
-        nativeContext.platform === "android") &&
       context.router.stores.matches.get().at(-1)?.staticData?.radical
         ?.offline === true;
     context.responseHeaders.set("x-radical-offline", eligible ? "1" : "0");

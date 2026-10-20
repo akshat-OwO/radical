@@ -182,7 +182,7 @@ describe("offline worker", () => {
       }).pipe(Effect.provide(memoryLayer))
   );
 
-  it.effect("snapshots eligible Android documents while excluding iOS", () =>
+  it.effect("snapshots eligible documents in both native shells", () =>
     Effect.gen(function* () {
       const { worker, responses, state } = yield* Memory;
       yield* Effect.promise(worker.install);
@@ -210,10 +210,7 @@ describe("offline worker", () => {
           },
           responseHeaders: new Headers({ "content-type": "text/html" }),
         });
-        assert.strictEqual(
-          response.headers.get("x-radical-offline"),
-          platform === "android" ? "1" : "0"
-        );
+        assert.strictEqual(response.headers.get("x-radical-offline"), "1");
         responses.set(request.url, response);
         yield* Effect.promise(() => worker.respond(request));
       }
@@ -225,9 +222,31 @@ describe("offline worker", () => {
               worker.respond(navigation(`/notes/${platform}`))
             )
           ),
-          platform === "android" ? "shell document" : "offline fallback"
+          "shell document"
         );
       }
+    }).pipe(Effect.provide(memoryLayer))
+  );
+
+  it.effect("marks only the worker fallback for native launch recovery", () =>
+    Effect.gen(function* () {
+      const { worker, responses, state } = yield* Memory;
+      yield* Effect.promise(worker.install);
+      const request = navigation("/notes/1");
+      responses.set(request.url, html("snapshot"));
+      const online = yield* Effect.promise(() => worker.respond(request));
+      assert.isNull(online.headers.get("x-radical-offline-fallback"));
+      state.online = false;
+      const snapshot = yield* Effect.promise(() => worker.respond(request));
+      assert.isNull(snapshot.headers.get("x-radical-offline-fallback"));
+      const fallback = yield* Effect.promise(() =>
+        worker.respond(navigation("/missing"))
+      );
+      assert.strictEqual(
+        fallback.headers.get("x-radical-offline-fallback"),
+        "1"
+      );
+      assert.strictEqual(yield* responseText(fallback), "offline fallback");
     }).pipe(Effect.provide(memoryLayer))
   );
 
@@ -486,33 +505,18 @@ describe("offline worker", () => {
 });
 
 describe("offline registration", () => {
-  it.effect(
-    "permits production browsers and Android while skipping dev, iOS, and SSR",
-    () =>
-      Effect.gen(function* () {
-        for (const platform of ["browser", "android", "ios"] as const) {
-          for (const production of [true, false]) {
-            for (const browser of [true, false]) {
-              assert.strictEqual(
-                shouldRegister({
-                  production,
-                  browser,
-                  platform,
-                }),
-                production && browser && platform !== "ios"
-              );
-            }
-          }
+  it.effect("permits production clients while skipping dev and SSR", () =>
+    Effect.gen(function* () {
+      for (const production of [true, false]) {
+        for (const browser of [true, false]) {
+          assert.strictEqual(
+            shouldRegister({ production, browser }),
+            production && browser
+          );
         }
-        yield* registerOfflineEffect({
-          production: true,
-          platform: "android",
-        });
-        yield* registerOfflineEffect({ production: true, platform: "browser" });
-        yield* registerOfflineEffect({
-          production: false,
-          platform: "browser",
-        });
-      })
+      }
+      yield* registerOfflineEffect({ production: true });
+      yield* registerOfflineEffect({ production: false });
+    })
   );
 });

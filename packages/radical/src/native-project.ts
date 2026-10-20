@@ -170,6 +170,9 @@ export const generateNativeProject = <E, R>(
               ...(platform === "android"
                 ? { android: { resolveServiceWorkerRequests: false } }
                 : {}),
+              ...(platform === "ios"
+                ? { ios: { limitsNavigationsToAppBoundDomains: true } }
+                : {}),
               plugins: { SystemBars: { insetsHandling: "disable" } },
               server: {
                 url,

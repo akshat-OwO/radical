@@ -4,7 +4,7 @@ import vm from "node:vm";
 import { assert, describe, it } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
 
-import { offlineSnapshotCheckScript } from "../src/android-offline.ts";
+import { offlineSnapshotCheckScript } from "../src/native-offline.ts";
 import launchPage from "../templates/android/launch.html?raw";
 
 const url = "https://app.test/notes/1?view=one";
@@ -68,7 +68,7 @@ class Memory extends Context.Service<Memory, ReturnType<typeof makeMemory>>()(
 ) {}
 const layer = Layer.sync(Memory, makeMemory);
 
-describe("Android offline URL signal", () => {
+describe("native offline URL signal", () => {
   it.effect("reports only the exact URL stored in this app's snapshots", () =>
     Effect.gen(function* () {
       const { entries, messages, state, run } = yield* Memory;
