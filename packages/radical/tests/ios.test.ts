@@ -166,7 +166,7 @@ describe("iOS shell generation", () => {
         assert.include(source, "let insets = view.safeAreaInsets");
         assert.include(source, "override func viewSafeAreaInsetsDidChange()");
         assert.include(source, "self.view.safeAreaInsets != insets");
-        assert.include(source, "contentInsetAdjustmentBehavior = .never");
+        assert.include(source, "contentInsetAdjustmentBehavior = .automatic");
         assert.include(source, "window.__radical");
         assert.include(source, 'HTTPCookiePropertyKey("HttpOnly"): "TRUE"');
         assert.include(

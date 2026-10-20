@@ -18,7 +18,8 @@ final class RadicalViewController: CAPBridgeViewController {
         let proxy = RadicalNavigationDelegate(delegate: delegate, origins: [__ORIGINS__])
         navigationProxy = proxy
         webView.navigationDelegate = proxy
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        // viewport-fit=cover keeps safe-area padding in CSS; UIKit still adjusts for the keyboard.
+        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
     }
 
     override func viewDidLayoutSubviews() {
