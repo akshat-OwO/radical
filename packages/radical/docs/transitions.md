@@ -1,4 +1,4 @@
-# Browser transitions
+# Route transitions
 
 Import the stylesheet once, then install transitions on each TanStack Router in `getRouter`:
 
@@ -18,11 +18,11 @@ export const Route = createFileRoute("/details")({
 });
 ```
 
-`slide` and `fade` use Router's `defaultViewTransition.types` option and CSS pseudo-elements. The deepest declared transition wins. An unmarked route navigates normally unless an ancestor declares a transition. Initial loads and same-URL navigations do not transition. Links, `router.navigate`, and history navigation use Router's own transition implementation. Pass `viewTransition: false` to Router navigation to bypass transitions.
+In browsers, `slide` and `fade` use Router's `defaultViewTransition.types` option and CSS pseudo-elements. The deepest declared transition wins. An unmarked route navigates normally unless an ancestor declares a transition. Initial loads and same-URL navigations do not transition. Links, `router.navigate`, and history navigation use Router's own transition implementation. Pass `viewTransition: false` to Router navigation to bypass transitions.
 
 Direction comes from the public history subscription. `BACK` and negative `GO` actions use `back`; other actions use `forward`. Override direction with `browserTransitions(router, { direction: (direction) => direction === "back" ? "forward" : "back" })`.
 
-Set duration through CSS:
+Set browser duration through CSS:
 
 ```css
 :root {
@@ -30,10 +30,32 @@ Set duration through CSS:
 }
 ```
 
-The default duration is 250ms. Reduced-motion preferences disable movement. `timeoutMs` defaults to 1000ms and limits the animation after Router resolves navigation. It does not delay navigation. Browsers own capture and its timeout. Router waits for the DOM update callback, independently of animation completion. Unsupported browsers apply the update directly. A skipped transition still runs its update callback, including when capture fails.
+The default browser duration is 250ms. Reduced-motion preferences disable movement. `timeoutMs` defaults to 1000ms and limits the animation after Router resolves navigation. It does not delay navigation. Browsers own capture and its timeout. Router waits for the DOM update callback, independently of animation completion. Unsupported browsers apply the update directly. A skipped transition still runs its update callback, including when capture fails.
 
 `transitions.cancel()` calls `document.activeViewTransition?.skipTransition()`. The timeout also skips the active transition, using its public `finished` promise. These controls require browser support for `document.activeViewTransition`; Router's transition and fallback behavior still work without it. `transitions.dispose()` stops the watcher, cancels the animation, removes subscriptions, and restores the previous `defaultViewTransition` option. The browser skips an older transition when another starts.
 
 `tanstackStartAdapterLayer(router)` supplies `RadicalAdapter` navigation through a lazy Layer. Import it from `radical/tanstack-start-client` to keep build and server dependencies out of the browser module graph. The no-router `TanStackStartAdapter` wires server request context and reports unavailable navigation; the client Layer reports unavailable request context. Router navigation failures produce `NavigationFailed` with the original cause. Before listeners run their Effects as fibers and do not block Router. Both before and after subscriptions return unsubscribe functions.
 
-`radical/client` exports `TransitionSchema`, with `kind` and `direction`, alongside the offline registration API. `BrowserTransitions` supplies replaceable active-transition handles for in-memory tests. The transition description remains independent of Router for the native snapshot implementation in #12.
+## Native snapshot overlays
+
+The existing `browserTransitions(router)` installer detects shells through the Bridge and selects native snapshots automatically. No app API changes are required. Shells do not call `document.startViewTransition`, including on WebViews that support it. The router-specific adapter wraps TanStack's `startViewTransition` commit boundary. This hook covers links, imperative navigation, and history without changing global browser APIs. Keep the pinned Router version and the commit-boundary tests when upgrading Router.
+
+`radical/client` owns `transitionStrategy`, which selects native overlays for both shells, browser view transitions when typed selectors exist, and plain navigation otherwise. It exports the router-independent `nativeTransition` Effect, `NativeTransitions` service, live Layer, and `TransitionTimeout`. `TransitionSchema` describes `kind` and `direction`. `BrowserTransitions` and `NativeTransitions` accept in-memory implementations for tests.
+
+The generated shell registers a radical-owned Capacitor plugin named `RadicalTransitions`. All commands return `{ id: string }`. The Bridge decodes that result with Schema and checks that the id matches the request.
+
+- `cover({ id })` replaces any older overlay, captures the full window, attaches the snapshot above the WebView, and acknowledges attachment.
+- `reveal({ id, kind, direction, reducedMotion })` waits for native paint readiness, then slides the old snapshot offscreen or fades its opacity to zero over 250ms. A forward slide moves left. A back slide moves right.
+- `remove({ id })` immediately removes that overlay. Repeated removals and commands for a stale id succeed without affecting a newer overlay.
+
+Capture acknowledgement gates the router's commit callback. The callback acknowledges the framework commit, then JavaScript waits for two animation frames. Android additionally uses `WebView.postVisualStateCallback`, whose next draw includes preceding DOM changes. iOS waits for `WKWebView.takeSnapshot` to complete with an image of the new content before animating the old snapshot. The paint probe image is discarded. Neither platform hides the live WebView or swaps its background. This keeps the old snapshot above the new content until the renderer has produced the destination.
+
+Android draws the window's decor view into a bitmap and attaches an ImageView to the same full-window parent. iOS snapshots the UIWindow and attaches that snapshot to the window's bounds. These coordinates include the shared edge-to-edge content under system bars, with no safe-area inset applied to the overlay. Both native implementations also check the system reduced-motion setting. Either that setting or the CSS media query disables animation.
+
+`timeoutMs` defaults to 1000ms for each capture, commit, reveal, and cleanup wait. Capture failure or timeout removes the overlay before running the commit once as plain navigation. Commit failure keeps its typed error and runs cleanup. A commit timeout produces `TransitionTimeout`; the underlying router promise can still finish. Reveal failure or timeout preserves the committed route and runs cleanup. Interruption also removes the overlay. Cleanup failure is bounded and ignored because each shell independently expires its overlay three seconds after capture, even if JavaScript dies. Native commands carry an id so late paint, animation, and watchdog callbacks cannot remove a newer overlay.
+
+History `BACK` and negative `GO` reverse slide direction, including Android system back when Capacitor calls WebView history. iOS enables WebKit's interactive document-history swipe. WebKit owns that document transition; the newly loaded router skips its initial transition. SPA history changes that reach the mounted router use the reversed native slide. Cross-document links use platform navigation rather than a second radical overlay.
+
+`cancel()` removes the current native overlay without interrupting the router commit. `dispose()` also restores the original router hook and removes history listeners. Concurrent commits serialize their overlays so an earlier cleanup cannot uncover a later capture. Browser cancellation and CSS duration behavior remain unchanged.
+
+See [native verification](../../../docs/verification/native-transitions.md) for device evidence and the Android verification status.

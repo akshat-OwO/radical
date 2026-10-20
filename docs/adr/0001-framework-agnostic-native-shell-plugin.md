@@ -37,7 +37,7 @@ Build and dev time (`radical/vite`):
 5. In dev, binds to the LAN address and prints a URL and QR code for a device or emulator.
 6. Writes `.radical/native.json` for the CLI.
 
-Runtime (`radical/client`, `radical/server`): bridge calls with browser fallbacks, the transitions engine (native snapshot overlay in shells, View Transitions or a CSS overlay in browsers, plain navigation on failure), a network-first service worker with an offline fallback page, and request-time native context.
+Runtime (`radical/client`, `radical/server`): bridge calls with browser fallbacks, the transitions engine (native snapshot overlay in shells, typed View Transitions in browsers, plain navigation on failure), a network-first service worker with an offline fallback page, and request-time native context.
 
 CLI (`radical ios|android`): generates the native projects into a gitignored `.radical/` from templates (as in Expo's continuous native generation), applies plugin manifests, icons, and splash, then builds or runs.
 
@@ -99,6 +99,8 @@ Capacitor does not fit two of our needs, so we replace them:
 - It expects committed `ios/` and `android/` directories. We generate them into `.radical/`.
 
 Shells deliver native context as a cookie, set natively on each allowed origin before the first load (Android `CookieManager`, iOS `WKHTTPCookieStore`). A WebView cannot add a request header to every request: fetch, XHR, form posts, and service-worker requests bypass native header injection. The WebView sends its cookies with all of them. [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md) verified that `WKHTTPCookieStore.setCookie` works in the iOS shell.
+
+The transition implementation uses one strategy selection in the client installer. Browsers keep Router's typed view transitions. Shells wrap Router's commit boundary and use the radical-owned `RadicalTransitions` Capacitor plugin, registered directly by each generated shell until plugin manifests arrive in #13. `cover` acknowledges full-window snapshot attachment before commit. Double animation frames and native paint completion gate `reveal`; `remove`, typed Effect timeouts, and an independent three-second native watchdog bound overlay lifetime. History back reverses the slide. iOS document-history swipes stay with WebKit and skip the new router's initial transition. See the [transition reference](../../packages/radical/docs/transitions.md) for the protocol and [verification](../verification/native-transitions.md) for evidence.
 
 Custom native plugins: live video stream with viewfinder cut-out, data protection, `clearWebData`, offline cache control, and the snapshot transition overlay.
 

@@ -10,6 +10,8 @@ import { TestClock } from "effect/testing";
 
 import { RadicalAdapter } from "../src/adapter.ts";
 import { BrowserTransitions } from "../src/client.ts";
+import { NativeTransitions } from "../src/native-transitions.ts";
+import { installNativeTransitions } from "../src/tanstack-native-transitions.ts";
 import { tanstackNavigation } from "../src/tanstack-navigation.ts";
 import {
   browserTransitions,
@@ -282,3 +284,81 @@ describe("TanStack navigation", () => {
       })
   );
 });
+
+it.effect(
+  "uses native capture for router navigation without browser support",
+  () =>
+    Effect.gen(function* () {
+      const router = makeRouter();
+      yield* Effect.promise(async () => {
+        await router.load();
+      });
+      const calls: string[] = [];
+      const original = router.startViewTransition;
+      const controller = installNativeTransitions(
+        router,
+        {},
+        Layer.succeed(NativeTransitions, {
+          cover: () =>
+            Effect.sync(() => {
+              calls.push(`cover:${router.state.resolvedLocation?.pathname}`);
+            }),
+          painted: Effect.sync(() => {
+            calls.push(`painted:${router.state.location.pathname}`);
+          }),
+          reveal: (_id, transition) =>
+            Effect.sync(() => {
+              calls.push(`${transition.kind}:${transition.direction}`);
+            }),
+          remove: () =>
+            Effect.sync(() => {
+              calls.push("remove");
+            }),
+        })
+      );
+      const navigate = (to: string) =>
+        Effect.promise(async () => {
+          const navigation = router.navigate({ to });
+          void router.load();
+          await navigation;
+        });
+      yield* navigate("/details");
+      assert.deepStrictEqual(calls, [
+        "cover:/",
+        "painted:/details",
+        "slide:forward",
+        "remove",
+      ]);
+      calls.length = 0;
+      yield* navigate("/about");
+      assert.deepStrictEqual(calls, [
+        "cover:/details",
+        "painted:/about",
+        "fade:forward",
+        "remove",
+      ]);
+      calls.length = 0;
+      router.history.back();
+      yield* Effect.promise(async () => {
+        await router.load();
+      });
+      assert.deepStrictEqual(calls, [
+        "cover:/about",
+        "painted:/details",
+        "slide:back",
+        "remove",
+      ]);
+      calls.length = 0;
+      yield* Effect.promise(async () => {
+        const navigation = router.navigate({
+          to: "/about",
+          viewTransition: false,
+        });
+        void router.load();
+        await navigation;
+      });
+      assert.deepStrictEqual(calls, []);
+      controller.dispose();
+      assert.strictEqual(router.startViewTransition, original);
+    })
+);

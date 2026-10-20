@@ -19,6 +19,10 @@ final class RadicalViewController: CAPBridgeViewController {
         return configuration
     }
 
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(RadicalTransitionsPlugin())
+    }
+
     override func viewDidLoad() {
         // Delay Capacitor's initial navigation until window layout and cookies are ready.
         guard let webView = webView, let delegate = webView.navigationDelegate else { fatalError("Radical requires Capacitor WebView") }
@@ -34,6 +38,8 @@ final class RadicalViewController: CAPBridgeViewController {
         }
         // viewport-fit=cover keeps safe-area padding in CSS; UIKit still adjusts for the keyboard.
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // WebKit owns interactive document-history swipes; SPA history uses Router.
+        webView.allowsBackForwardNavigationGestures = true
     }
 
     override func viewDidLayoutSubviews() {
@@ -249,5 +255,88 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
 
     override func forwardingTarget(for selector: Selector!) -> Any? {
         delegate.responds(to: selector) ? delegate : super.forwardingTarget(for: selector)
+    }
+}
+
+@objc(RadicalTransitionsPlugin)
+public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "RadicalTransitionsPlugin"
+    public let jsName = "RadicalTransitions"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "cover", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "reveal", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise)
+    ]
+    private var overlay: UIView?
+    private var overlayID: String?
+    private var expiry: DispatchWorkItem?
+
+    private func clear(_ id: String) {
+        guard overlayID == id else { return }
+        expiry?.cancel()
+        expiry = nil
+        overlay?.layer.removeAllAnimations()
+        overlay?.removeFromSuperview()
+        overlay = nil
+        overlayID = nil
+    }
+
+    @objc public func cover(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let id = call.getString("id"),
+                  let webView = self.bridge?.webView, let window = webView.window else {
+                call.reject("No visible WebView"); return
+            }
+            if let current = self.overlayID { self.clear(current) }
+            // Window capture includes edge-to-edge content, safe areas and system bars.
+            guard let snapshot = window.snapshotView(afterScreenUpdates: false) else {
+                call.reject("Cannot snapshot window"); return
+            }
+            snapshot.frame = window.bounds
+            snapshot.isUserInteractionEnabled = false
+            window.addSubview(snapshot)
+            self.overlay = snapshot
+            self.overlayID = id
+            let expiry = DispatchWorkItem { [weak self] in self?.clear(id) }
+            self.expiry = expiry
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: expiry)
+            // The overlay is attached before JavaScript can commit the new route.
+            call.resolve(["id": id])
+        }
+    }
+
+    @objc public func reveal(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let id = call.getString("id") else { call.reject("Missing id"); return }
+            guard self.overlayID == id, let webView = self.bridge?.webView else { call.resolve(["id": id]); return }
+            // After JS's paint frames, wait for WebKit to produce the new contents.
+            webView.takeSnapshot(with: nil) { [weak self] image, error in
+                guard let self = self, self.overlayID == id, let overlay = self.overlay else { call.resolve(["id": id]); return }
+                guard error == nil, image != nil else { self.clear(id); call.reject("Paint snapshot failed"); return }
+                let reduced = UIAccessibility.isReduceMotionEnabled || call.getBool("reducedMotion") == true
+                UIView.animate(withDuration: reduced ? 0 : 0.25, delay: 0, options: [.curveEaseOut], animations: {
+                    if call.getString("kind") == "slide" {
+                        overlay.transform = CGAffineTransform(translationX: overlay.bounds.width * (call.getString("direction") == "back" ? 1 : -1), y: 0)
+                    } else { overlay.alpha = 0 }
+                }, completion: { [weak self] _ in
+                    self?.clear(id)
+                    call.resolve(["id": id])
+                })
+            }
+        }
+    }
+
+    @objc public func remove(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let id = call.getString("id") else { call.reject("Missing id"); return }
+            self?.clear(id)
+            call.resolve(["id": id])
+        }
+    }
+
+    deinit {
+        expiry?.cancel()
+        let captured = overlay
+        DispatchQueue.main.async { captured?.removeFromSuperview() }
     }
 }

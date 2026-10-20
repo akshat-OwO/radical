@@ -1,6 +1,20 @@
 package __APP_ID__;
 
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.view.animation.DecelerateInterpolator;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.annotation.CapacitorPlugin;
 import android.net.Uri;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
@@ -155,6 +169,7 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+        registerPlugin(RadicalTransitionsPlugin.class);
         super.load();
         view.stopLoading();
         // Without document-start scripts the allowlist cannot stop a redirected
@@ -249,5 +264,104 @@ public class MainActivity extends BridgeActivity {
         WindowInsetsCompat initial = ViewCompat.getRootWindowInsets(view);
         if (initial != null) updateSafeArea(view, initial);
         ViewCompat.requestApplyInsets(view);
+    }
+
+    @CapacitorPlugin(name = "RadicalTransitions")
+    public static class RadicalTransitionsPlugin extends Plugin {
+        private final Handler handler = new Handler(Looper.getMainLooper());
+        private ImageView overlay;
+        private Bitmap bitmap;
+        private String overlayId;
+        private Runnable expiry;
+
+        private void clear(String id) {
+            if (!id.equals(overlayId)) return;
+            if (expiry != null) handler.removeCallbacks(expiry);
+            expiry = null;
+            ImageView old = overlay;
+            overlay = null;
+            overlayId = null;
+            if (old != null) {
+                old.animate().cancel();
+                if (old.getParent() instanceof ViewGroup) ((ViewGroup) old.getParent()).removeView(old);
+                old.setImageDrawable(null);
+            }
+            // Do not recycle a bitmap still referenced by RenderThread's display list.
+            bitmap = null;
+        }
+
+        private void resolve(PluginCall call, String id) {
+            JSObject result = new JSObject();
+            result.put("id", id);
+            call.resolve(result);
+        }
+
+        @PluginMethod
+        public void cover(PluginCall call) {
+            getActivity().runOnUiThread(() -> {
+                String id = call.getString("id");
+                if (id == null) { call.reject("Missing id"); return; }
+                if (overlayId != null) clear(overlayId);
+                ViewGroup root = (ViewGroup) getActivity().getWindow().getDecorView();
+                if (root.getWidth() == 0 || root.getHeight() == 0) { call.reject("No visible window"); return; }
+                overlayId = id;
+                try {
+                    bitmap = Bitmap.createBitmap(root.getWidth(), root.getHeight(), Bitmap.Config.ARGB_8888);
+                    root.draw(new Canvas(bitmap));
+                    overlay = new ImageView(getContext());
+                    overlay.setImageBitmap(bitmap);
+                    overlay.setScaleType(ImageView.ScaleType.FIT_XY);
+                    root.addView(overlay, new ViewGroup.LayoutParams(root.getWidth(), root.getHeight()));
+                    expiry = () -> clear(id);
+                    handler.postDelayed(expiry, 3000);
+                    // UI-thread attachment happens before the bridge acknowledges capture.
+                    resolve(call, id);
+                } catch (RuntimeException | OutOfMemoryError error) {
+                    clear(id);
+                    call.reject("Cannot snapshot window", error instanceof Exception ? (Exception) error : null);
+                }
+            });
+        }
+
+        @PluginMethod
+        public void reveal(PluginCall call) {
+            getActivity().runOnUiThread(() -> {
+                String id = call.getString("id");
+                if (id == null) { call.reject("Missing id"); return; }
+                if (!id.equals(overlayId)) { resolve(call, id); return; }
+                // Chromium guarantees the next draw contains all prior DOM updates.
+                getBridge().getWebView().postVisualStateCallback(0, new WebView.VisualStateCallback() {
+                    @Override public void onComplete(long requestId) {
+                        if (!id.equals(overlayId)) { resolve(call, id); return; }
+                        ImageView captured = overlay;
+                        boolean reduced = (android.os.Build.VERSION.SDK_INT >= 26 && !ValueAnimator.areAnimatorsEnabled()) || Boolean.TRUE.equals(call.getBoolean("reducedMotion", false));
+                        captured.animate().setDuration(reduced ? 0 : 250).setInterpolator(new DecelerateInterpolator());
+                        if ("slide".equals(call.getString("kind"))) {
+                            captured.animate().translationX(captured.getWidth() * ("back".equals(call.getString("direction")) ? 1 : -1));
+                        } else { captured.animate().alpha(0); }
+                        captured.animate().setListener(new AnimatorListenerAdapter() {
+                            @Override public void onAnimationEnd(Animator animation) {
+                                clear(id);
+                                resolve(call, id);
+                            }
+                        }).start();
+                    }
+                });
+            });
+        }
+
+        @PluginMethod
+        public void remove(PluginCall call) {
+            getActivity().runOnUiThread(() -> {
+                String id = call.getString("id");
+                if (id == null) { call.reject("Missing id"); return; }
+                clear(id);
+                resolve(call, id);
+            });
+        }
+
+        @Override protected void handleOnDestroy() {
+            if (overlayId != null) clear(overlayId);
+        }
     }
 }
