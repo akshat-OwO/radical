@@ -10,6 +10,7 @@ import {
   ShellContextSchema,
 } from "../src/native-context.ts";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
+import offlinePage from "../templates/offline.html?raw";
 
 const destination = "/app/.radical/ios";
 const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
@@ -25,6 +26,7 @@ const memory = (
   const files = new Map<string, string>([
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
+    ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
   ]);
   const require = createRequire(import.meta.url);
@@ -192,14 +194,35 @@ describe("iOS shell generation", () => {
         );
         assert.strictEqual(
           state.files.get(`${destination}/ios/App/App/Info.plist`),
-          "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict><key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>\n</dict>\n</plist>"
+          "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict><key>WKAppBoundDomains</key><array><string>192.168.1.2</string></array><key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>\n</dict>\n</plist>"
         );
         assert.include(source, "decisionHandler(.cancel)");
         assert.include(
           source,
           'origins.contains("\\(scheme)://\\(host)\\(suffix)")'
         );
-        assert.notInclude(source, "WKAppBoundDomains");
+        assert.include(source, "configuration.websiteDataStore = .default()");
+        assert.include(source, "loadHTMLString(");
+        assert.include(source, "x-radical-offline-fallback");
+        assert.include(source, "radical.lastOfflineURL");
+        assert.include(source, "errorPathURL: bridge?.config.errorPathURL");
+        assert.include(source, "guard allowed(url) || url == errorPathURL");
+        assert.include(source, "recoveryCancellations.insert(navigation)");
+        assert.include(source, "recoveryCancellations.remove($0) != nil");
+        assert.include(
+          source,
+          "handleFailure(webView, navigation: navigation, error: error)"
+        );
+        const config = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({
+              ios: Schema.Struct({
+                limitsNavigationsToAppBoundDomains: Schema.Boolean,
+              }),
+            })
+          )
+        )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
+        assert.isTrue(config.ios.limitsNavigationsToAppBoundDomains);
       }).pipe(Effect.provide(state.layer));
     }
   );
@@ -223,12 +246,47 @@ describe("iOS shell generation", () => {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
         assert.include(source, '["https://app.test", "https://app.test:8443"]');
-        assert.notInclude(
-          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "",
-          "NSAppTransportSecurity"
+        const plist =
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+        assert.include(
+          plist,
+          "<key>WKAppBoundDomains</key><array><string>app.test</string></array>"
         );
+        assert.notInclude(plist, "NSAppTransportSecurity");
       }).pipe(Effect.provide(state.layer));
     }
+  );
+
+  it.effect(
+    "accepts ten app-bound hosts and rejects an eleventh before spawning",
+    () =>
+      Effect.gen(function* () {
+        const allowlist = Array.from(
+          { length: 9 },
+          (_, index) => `https://host${index}.test`
+        );
+        const accepted = memory(
+          false,
+          { ...defaultConfig, allowlist },
+          "https://app.test"
+        );
+        yield* generate.pipe(Effect.provide(accepted.layer));
+        assert.strictEqual(accepted.commands.length, 1);
+        const rejected = memory(
+          false,
+          {
+            ...defaultConfig,
+            allowlist: [...allowlist, "https://eleven.test"],
+          },
+          "https://app.test"
+        );
+        const error = yield* Effect.flip(
+          generate.pipe(Effect.provide(rejected.layer))
+        );
+        assert.strictEqual(error._tag, "InvalidConfig");
+        assert.isEmpty(rejected.commands);
+        assert.isFalse(rejected.files.has(appDelegate));
+      })
   );
 
   it.effect("renders one cookie per host with the shared Secure policy", () => {

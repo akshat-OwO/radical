@@ -21,10 +21,9 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     void registerOffline({
       production: import.meta.env.PROD,
-      platform: nativeContext.platform,
       base: import.meta.env.BASE_URL,
     });
-  }, [nativeContext.platform]);
+  }, []);
   return (
     <html lang="en" style={rootStyle}>
       <head>

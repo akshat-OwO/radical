@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, FileSystem, Schema } from "effect";
 
+import { InvalidConfig } from "./config.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
+import { offlineSnapshotCheckScript } from "./native-offline.ts";
 import {
   generateNativeProject,
   readNativeProject,
@@ -20,6 +22,17 @@ export const generateIos = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const native = yield* readNativeProject(root, packageRoot, "ios");
+    const domains = [
+      ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
+    ];
+    if (domains.length > 10) {
+      return yield* Effect.fail(
+        new InvalidConfig({
+          message:
+            "iOS WKAppBoundDomains supports at most 10 domains, including the server hostname.",
+        })
+      );
+    }
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/ios/RadicalViewController.swift")
     );
@@ -27,6 +40,15 @@ export const generateIos = (
       "RadicalViewController.swift",
       template,
       {
+        __URL__: JSON.stringify(native.url),
+        __SNAPSHOT_CHECK__: JSON.stringify(
+          `(() => { const radicalOffline = window.webkit.messageHandlers.radicalOffline; return (${offlineSnapshotCheckScript(native.config.appId)})(location.href); })()`
+        ),
+        __OFFLINE_HTML__: JSON.stringify(
+          yield* fs.readFileString(
+            path.join(packageRoot, "templates/offline.html")
+          )
+        ),
         __ORIGINS__: native.origins
           .map((value) => JSON.stringify(value))
           .join(", "),
@@ -72,17 +94,19 @@ export const generateIos = (
         );
         const plist = path.join(app, "Info.plist");
         const contents = yield* fs.readFileString(plist);
-        // Web-content-only ATS exception permits HTTP LAN IPs. Keep native URLSession secure.
+        // Exact origin validation remains in the navigation delegate.
+        const bound = `<key>WKAppBoundDomains</key><array>${domains.map((domain) => `<string>${domain.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</string>`).join("")}</array>`;
+        const ats = native.origins.some((origin) => origin.startsWith("http:"))
+          ? "<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>"
+          : "";
         yield* fs.writeFileString(
           plist,
-          native.origins.some((origin) => origin.startsWith("http:"))
-            ? yield* replaceAnchor(
-                plist,
-                contents,
-                /<\/dict>\s*<\/plist>/u,
-                "<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>\n</dict>\n</plist>"
-              )
-            : contents
+          yield* replaceAnchor(
+            plist,
+            contents,
+            /<\/dict>\s*<\/plist>/u,
+            `${bound}${ats}\n</dict>\n</plist>`
+          )
         );
       })
     );

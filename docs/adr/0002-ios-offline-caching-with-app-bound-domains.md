@@ -1,6 +1,6 @@
 # 0002: iOS offline caching with App-Bound Domains
 
-- Status: accepted
+- Status: accepted and implemented for remote mode
 - Date: 2026-10-19
 
 ## Context
@@ -13,9 +13,23 @@
 
 Use a service worker via App-Bound Domains for iOS remote mode. Generate `WKAppBoundDomains` in Info.plist and set `WKWebViewConfiguration.limitsNavigationsToAppBoundDomains = true` before creating the shell's WebView. Use the persistent `WKWebsiteDataStore.default()`.
 
-Keep one worker at a stable URL and scope per app origin. Version its caches by manifest build id instead of creating a worker registration for each build. Share the service-worker implementation with browsers and Android. This spike establishes the iOS mechanism; it does not implement radical's generated worker or validate the full cache policy.
+Keep one worker at a stable URL and scope per app origin. Version its caches by manifest build id instead of creating a worker registration for each build. Share the service-worker implementation with browsers and Android. The spike established the iOS mechanism. Issue #10 implements it in the generated Capacitor shell and shares offline eligibility and registration across all platforms.
 
 Do not introduce a custom-scheme proxy for remote mode. It would change the page origin and require separate cookie, request, and caching behavior. Bundled mode remains a separate asset-loading path and was not tested here.
+
+## Shell implementation
+
+The generated Capacitor configuration enables `ios.limitsNavigationsToAppBoundDomains` before WebView construction. Info.plist contains the distinct server and allowlist hostnames; generation fails with `InvalidConfig` above ten. The navigation proxy continues checking exact origins, including ports, for main-frame actions and responses. It does not filter ordinary subresources or worker fetches.
+
+Online startup loads the configured server URL. The shared snapshot-check script reports only the current URL after finding its exact stored snapshot. iOS retains that URL in app preferences. On an initial network failure, or a worker response marked `x-radical-offline-fallback: 1`, the shell tries the saved snapshot once. The marker distinguishes the worker's successful fallback response from an online page without probing connectivity.
+
+No Android-style startup gate is needed on the tested iOS WebKit. Capacitor's `loadWebView` uses `WKWebView.load(URLRequest)` directly, without an HTTPS document proxy. Instrumentation confirmed that the first cold navigation restored the persistent worker and returned its fallback before the snapshot retry. The Android cold-navigation worker bypass did not reproduce.
+
+If WebKit cannot load a main frame, the proxy uses `loadHTMLString(_:baseURL:)` with packaged neutral, dark-mode-aware HTML and the failed allowed URL as its base. This avoids an HTTPS scheme handler and keeps the exact-origin guard. The fallback can run without any prior web data; its retry link targets the failed URL. The proxy records the exact `WKNavigation` replaced by recovery and consumes only its cancellation callback. Unrelated failures still reach Capacitor. Its configured packaged error-page URL is permitted by exact URL through the response guard; remote origins still require the allowlist. Worker-controlled navigations still use the app's cached fallback page.
+
+Snapshots and registrations belong to `WKWebsiteDataStore.default()`. Removing all website data, as tested in the spike, removes both. The shell verification uses uninstall and reinstall, which also removes the saved URL preference. Website-data removal alone can leave that preference, but it cannot restore a deleted snapshot and falls back safely. No verification-only native command or public `clearWebData` hook ships.
+
+The [iOS shell verification](../verification/ios-offline.md) records localhost secure-context checks, cold launch, offline hydration and bridge calls, and clearing storage on iPhone Duo with iOS 27.1. The simulator shares the host network; stopping the production preview server provides the offline condition. Physical-device and older-iOS checks remain open.
 
 ## Evidence
 
@@ -58,7 +72,7 @@ The app was compiled with `xcrun --sdk iphonesimulator swiftc -parse-as-library`
 - App-bound navigation checks accepted subdomains of the listed test host. They rejected an unrelated top-level host. This is a WebKit boundary, not a replacement for radical's URL allowlist or bridge authorization.
 - External links and authentication redirects outside the bound set cannot navigate in the shell's bound WebView. Route them through an appropriate system browser or authentication session. Adding the plist key also restricts APIs in other WebViews in the same app, so configure those deliberately. [WebKit documents these restrictions and authentication options](https://webkit.org/blog/10882/app-bound-domains/).
 - First-party cookie behavior passed. Third-party cookies, identity-provider flows, cross-site tracking policy, and session restoration after process termination were not validated. Preserving the HTTPS origin avoids the origin change of a custom scheme; it does not override WebKit cookie policy.
-- The tested WebView APIs support the bridge, snapshot transitions, persistent storage, and web data clearing. This was a minimal shell, not a Capacitor integration test. Individual native plugins, permission prompts, media, push notifications, and bundled-mode scheme handlers remain unverified. [Capacitor exposes the same navigation flag](https://capacitorjs.com/docs/config), but its configuration alone is not evidence that every plugin works.
+- The tested WebView APIs support the bridge, snapshot transitions, persistent storage, and web data clearing. The original spike was a minimal shell. Issue #10 also verifies the generated Capacitor shell, including the Device bridge, as recorded above. Individual native plugins, permission prompts, media, push notifications, and bundled-mode scheme handlers remain unverified. [Capacitor exposes the same navigation flag](https://capacitorjs.com/docs/config), but its configuration alone is not evidence that every plugin works.
 - Offline service-worker caching requires a successful online visit and worker activation first. It cannot guarantee a first launch without network access. Bundled assets must cover that requirement. Cache eviction, storage pressure, OS termination of WebKit processes, background execution, and long-term retention on a physical device remain unverified.
 - Before release, repeat the offline reload, process-restart, authentication, and plugin checks on physical devices and the oldest supported iOS version. Simulator success establishes feasibility, not durability guarantees or App Store acceptance.
 

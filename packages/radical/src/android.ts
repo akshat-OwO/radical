@@ -3,9 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, FileSystem, Schema } from "effect";
 
-import { offlineSnapshotCheckScript } from "./android-offline.ts";
 import { resolveAndroidTarget } from "./android-target.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
+import { offlineSnapshotCheckScript } from "./native-offline.ts";
 import {
   generateNativeProject,
   readNativeProject,
@@ -50,7 +50,7 @@ export const generateAndroid = (
       ),
       __OFFLINE_FALLBACK__: JSON.stringify(
         yield* fs.readFileString(
-          path.join(packageRoot, "templates/android/offline.html")
+          path.join(packageRoot, "templates/offline.html")
         )
       ),
       __OFFLINE_SNAPSHOT_CHECK__: JSON.stringify(

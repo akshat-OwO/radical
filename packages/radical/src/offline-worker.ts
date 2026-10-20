@@ -42,7 +42,17 @@ export const createOfflineWorker = (
       .then((cache) => cache.put(request, response.clone()));
   const fallback = () =>
     cached(assetsName, new Request(absolute(manifest.fallback))).then(
-      (response) => response ?? Response.error()
+      (response) => {
+        if (!response) {
+          return Response.error();
+        }
+        const headers = new Headers(response.headers);
+        headers.set("x-radical-offline-fallback", "1");
+        return new Response(response.body, {
+          status: response.status,
+          headers,
+        });
+      }
     );
 
   const document = (request: Request) =>
