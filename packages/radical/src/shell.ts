@@ -1,4 +1,4 @@
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem, Schema, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 export class ShellCommandError extends Schema.TaggedError<
@@ -14,10 +14,44 @@ export class ShellCommandError extends Schema.TaggedError<
 export const execute = (
   command: string,
   args: readonly string[],
-  cwd: string
+  cwd: string,
+  options: { capture?: boolean; allowAlreadyBooted?: boolean } = {}
 ) =>
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    if (options.capture === true) {
+      return yield* Effect.scoped(
+        Effect.gen(function* () {
+          const process = yield* spawner.spawn(
+            ChildProcess.make(command, args, {
+              cwd,
+              stdout: "pipe",
+              stderr: "pipe",
+            })
+          );
+          const [stdout, stderr, exitCode] = yield* Effect.all(
+            [
+              Stream.mkString(Stream.decodeText(process.stdout)),
+              Stream.mkString(Stream.decodeText(process.stderr)),
+              process.exitCode,
+            ],
+            { concurrency: "unbounded" }
+          );
+          if (
+            exitCode !== 0 &&
+            !(
+              options.allowAlreadyBooted === true &&
+              stderr.includes("current state: Booted")
+            )
+          ) {
+            return yield* Effect.fail(
+              new ShellCommandError({ command, exitCode })
+            );
+          }
+          return stdout;
+        })
+      );
+    }
     const exitCode = yield* spawner.exitCode(
       ChildProcess.make(command, args, {
         cwd,
@@ -29,6 +63,7 @@ export const execute = (
     yield* exitCode === 0
       ? Effect.void
       : Effect.fail(new ShellCommandError({ command, exitCode }));
+    return "";
   });
 
 /** Publish only a fully generated project. Failed generation keeps the previous shell usable. */

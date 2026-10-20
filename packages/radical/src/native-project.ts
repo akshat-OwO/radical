@@ -5,6 +5,7 @@ import { Effect, FileSystem, Schema } from "effect";
 
 import { HttpOriginSchema, RadicalConfigSchema } from "./config.ts";
 import { encodeNativeContextCookie } from "./native-context.ts";
+import { replaceAnchor } from "./native-template.ts";
 import { execute, replaceProject } from "./shell.ts";
 
 const require = createRequire(import.meta.url);
@@ -12,6 +13,28 @@ export class NativeToolchainUnavailable extends Schema.TaggedError<
   NativeToolchainUnavailable,
   { readonly brand: unique symbol }
 >()("NativeToolchainUnavailable", { message: Schema.String }) {}
+/** Cookies share identity across schemes and ports. Plan once per hostname. */
+export const nativeCookiePlan = (origins: readonly string[]) => {
+  const hosts = new Map<
+    string,
+    { hostname: string; origin: string; secure: boolean }
+  >();
+  for (const origin of [...origins].toSorted()) {
+    const url = new URL(origin);
+    const previous = hosts.get(url.hostname);
+    if (!previous || url.protocol === "http:") {
+      hosts.set(url.hostname, {
+        hostname: url.hostname,
+        origin,
+        secure: url.protocol === "https:",
+      });
+    }
+  }
+  return [...hosts.values()].toSorted((a, b) =>
+    a.hostname.localeCompare(b.hostname)
+  );
+};
+
 export const capacitor = (platform: "android" | "ios") =>
   Effect.try({
     try: () => ({
@@ -60,12 +83,20 @@ export const readNativeProject = (
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
       shellVersion: version,
     });
-    return { config, url, origins, cookie };
+    return { config, url, origins, cookie, cookies: nativeCookiePlan(origins) };
   });
 export const renderTemplate = (
+  file: string,
   template: string,
   replacements: Readonly<Record<string, string>>
-) => template.replaceAll(/__[A-Z_]+__/gu, (key) => replacements[key] ?? key);
+) =>
+  Effect.gen(function* () {
+    let source = template;
+    for (const [anchor, replacement] of Object.entries(replacements)) {
+      source = yield* replaceAnchor(file, source, anchor, replacement);
+    }
+    return source;
+  });
 
 export const generateNativeProject = <E, R>(
   root: string,

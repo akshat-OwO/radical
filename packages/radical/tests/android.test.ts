@@ -133,6 +133,46 @@ describe("Android shell generation", () => {
   );
 
   it.effect(
+    "renders one mixed-scheme cookie and keeps HTTPS-only hosts Secure",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        allowlist: [
+          "https://192.168.1.2",
+          "https://secure.test",
+          "https://secure.test:8443",
+        ],
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(mainActivity) ?? "";
+        assert.include(
+          source,
+          'cookies.setCookie("http://192.168.1.2:3000", COOKIE + "; Path=/; HttpOnly; SameSite=Lax");'
+        );
+        assert.include(
+          source,
+          'cookies.setCookie("https://secure.test", COOKIE + "; Path=/; HttpOnly; SameSite=Lax; Secure");'
+        );
+        assert.strictEqual(source.match(/cookies.setCookie/gu)?.length, 2);
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("rejects an Android template missing the cookie anchor", () => {
+    const state = memory();
+    state.files.set(
+      "/package/templates/android/MainActivity.java",
+      activity.replace("__COOKIES__", "")
+    );
+    return Effect.gen(function* () {
+      const error = yield* Effect.flip(generate);
+      assert.strictEqual(error._tag, "NativeTemplateMismatch");
+      assert.deepStrictEqual(state.commands, []);
+    }).pipe(Effect.provide(state.layer));
+  });
+
+  it.effect(
     "replaces stale files and produces identical project content on rerun",
     () => {
       const state = memory();

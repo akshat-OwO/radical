@@ -42,11 +42,21 @@ export const generateAndroid = (
     const replacements: Record<string, string> = {
       __APP_ID__: config.appId,
       __URL__: JSON.stringify(url),
+      __COOKIES__: native.cookies
+        .map(
+          ({ origin, secure }) =>
+            `cookies.setCookie(${JSON.stringify(origin)}, COOKIE + ${JSON.stringify(`; Path=/; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`)});`
+        )
+        .join("\n        "),
       __COOKIE__: JSON.stringify(`${NATIVE_CONTEXT_COOKIE}=${cookie}`),
       __ORIGINS__: origins.map((value) => JSON.stringify(value)).join(", "),
       __GUARD__: JSON.stringify(navigationGuardScript(origins)),
     };
-    const activity = renderTemplate(template, replacements);
+    const activity = yield* renderTemplate(
+      "MainActivity.java",
+      template,
+      replacements
+    );
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
         const appGradle = path.join(staging, "android/app/build.gradle");

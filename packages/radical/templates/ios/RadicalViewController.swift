@@ -7,25 +7,25 @@ final class RadicalViewController: CAPBridgeViewController {
     private var navigationProxy: RadicalNavigationDelegate?
 
     override func viewDidLoad() {
-        guard let webView = webView, let delegate = webView.navigationDelegate else { return }
+        guard let webView = webView, let delegate = webView.navigationDelegate else { fatalError("Radical requires Capacitor WebView and navigation delegate before viewDidLoad") }
         let origins: Set<String> = [__ORIGINS__]
         let proxy = RadicalNavigationDelegate(delegate: delegate, origins: origins)
         navigationProxy = proxy
         webView.navigationDelegate = proxy
         let group = DispatchGroup()
-        for origin in origins {
-            guard let url = URL(string: origin) else { return }
+        for (hostname, origin, secure) in [__COOKIES__] {
+            guard let url = URL(string: origin) else { fatalError("Radical generated an invalid cookie origin") }
             var properties: [HTTPCookiePropertyKey: Any] = [
                 .originURL: url,
-                .domain: url.host!,
+                .domain: hostname,
                 .path: "/",
                 .name: __COOKIE_NAME__,
                 .value: __COOKIE_VALUE__,
                 HTTPCookiePropertyKey("HttpOnly"): "TRUE",
                 .sameSitePolicy: HTTPCookieStringPolicy.sameSiteLax
             ]
-            if url.scheme == "https" { properties[.secure] = "TRUE" }
-            guard let cookie = HTTPCookie(properties: properties) else { return }
+            if secure { properties[.secure] = "TRUE" }
+            guard let cookie = HTTPCookie(properties: properties) else { fatalError("Radical could not construct the native context cookie") }
             group.enter()
             webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) { group.leave() }
         }
@@ -61,7 +61,9 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
-        delegate.webView?(webView, decidePolicyFor: action, decisionHandler: decisionHandler)
+        if delegate.webView?(webView, decidePolicyFor: action, decisionHandler: decisionHandler) == nil {
+            decisionHandler(.allow)
+        }
     }
 
     // Capacitor 8.5.3 implements only the action-policy variant above.

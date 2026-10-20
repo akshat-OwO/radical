@@ -17,7 +17,8 @@ const defaultConfig = { appId: "dev.radical.example" };
 const memory = (
   fail = false,
   config: unknown = defaultConfig,
-  url = "http://192.168.1.2:3000"
+  url = "http://192.168.1.2:3000",
+  mismatch = ""
 ) => {
   const files = new Map<string, string>([
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
@@ -91,6 +92,9 @@ const memory = (
             `${app}/Info.plist`,
             "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict></dict></plist>"
           );
+          if (mismatch) {
+            files.set(`${app}/${mismatch}`, "upstream template changed");
+          }
         }
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
@@ -128,7 +132,7 @@ describe("iOS shell generation", () => {
           source,
           ".sameSitePolicy: HTTPCookieStringPolicy.sameSiteLax"
         );
-        assert.include(source, 'if url.scheme == "https"');
+        assert.include(source, "if secure");
         assert.include(
           source,
           "group.notify(queue: .main) { super.viewDidLoad() }"
@@ -184,6 +188,63 @@ describe("iOS shell generation", () => {
         );
       }).pipe(Effect.provide(state.layer));
     }
+  );
+
+  it.effect("renders one cookie per host with the shared Secure policy", () => {
+    const state = memory(
+      false,
+      {
+        ...defaultConfig,
+        allowlist: [
+          "https://app.test",
+          "https://secure.test",
+          "https://secure.test:8443",
+        ],
+      },
+      "http://app.test:3000"
+    );
+    return Effect.gen(function* () {
+      yield* generate;
+      const source = state.files.get(appDelegate) ?? "";
+      assert.include(
+        source,
+        'for (hostname, origin, secure) in [("app.test", "http://app.test:3000", false), ("secure.test", "https://secure.test", true)]'
+      );
+      assert.include(source, 'if secure { properties[.secure] = "TRUE" }');
+      assert.include(source, "decisionHandler(.allow)");
+      assert.include(source, 'fatalError("Radical requires Capacitor WebView');
+    }).pipe(Effect.provide(state.layer));
+  });
+
+  it.effect(
+    "keeps the previous shell when Capacitor controller or ATS anchors change",
+    () =>
+      Effect.gen(function* () {
+        for (const file of [
+          "SceneDelegate.swift",
+          "Base.lproj/Main.storyboard",
+          "Info.plist",
+        ]) {
+          const state = memory(false, defaultConfig, "http://app.test", file);
+          state.files.set(`${destination}/previous.txt`, "usable shell");
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "NativeTemplateMismatch");
+          if (error._tag === "NativeTemplateMismatch") {
+            assert.isTrue(error.file.endsWith(file));
+          }
+          assert.strictEqual(
+            state.files.get(`${destination}/previous.txt`),
+            "usable shell"
+          );
+          assert.isFalse(
+            [...state.files.keys()].some((key) =>
+              key.startsWith(`${destination}.next/`)
+            )
+          );
+        }
+      })
   );
 
   it.effect(
