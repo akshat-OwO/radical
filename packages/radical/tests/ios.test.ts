@@ -9,8 +9,8 @@ import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
-import offlinePage from "../templates/android/offline.html?raw";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
+import offlinePage from "../templates/offline.html?raw";
 
 const destination = "/app/.radical/ios";
 const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
@@ -26,7 +26,7 @@ const memory = (
   const files = new Map<string, string>([
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
-    ["/package/templates/android/offline.html", offlinePage],
+    ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
   ]);
   const require = createRequire(import.meta.url);
@@ -203,6 +203,8 @@ describe("iOS shell generation", () => {
         );
         assert.include(source, "configuration.websiteDataStore = .default()");
         assert.include(source, "loadHTMLString(");
+        assert.include(source, "x-radical-offline-fallback");
+        assert.include(source, "radical.lastOfflineURL");
         const config = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({

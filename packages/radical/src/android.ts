@@ -50,7 +50,7 @@ export const generateAndroid = (
       ),
       __OFFLINE_FALLBACK__: JSON.stringify(
         yield* fs.readFileString(
-          path.join(packageRoot, "templates/android/offline.html")
+          path.join(packageRoot, "templates/offline.html")
         )
       ),
       __OFFLINE_SNAPSHOT_CHECK__: JSON.stringify(

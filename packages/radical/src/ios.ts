@@ -46,7 +46,7 @@ export const generateIos = (
         ),
         __OFFLINE_HTML__: JSON.stringify(
           yield* fs.readFileString(
-            path.join(packageRoot, "templates/android/offline.html")
+            path.join(packageRoot, "templates/offline.html")
           )
         ),
         __ORIGINS__: native.origins

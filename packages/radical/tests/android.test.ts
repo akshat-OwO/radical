@@ -11,8 +11,8 @@ import {
 } from "../src/native-context.ts";
 import launch from "../templates/android/launch.html?raw";
 import activity from "../templates/android/MainActivity.java?raw";
-import fallback from "../templates/android/offline.html?raw";
 import gradle from "../templates/android/radical.gradle?raw";
+import fallback from "../templates/offline.html?raw";
 
 const destination = "/app/.radical/android";
 const mainActivity = `${destination}/android/app/src/main/java/dev/radical/example/MainActivity.java`;
@@ -26,7 +26,7 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
       JSON.stringify({ config, url: "http://192.168.1.2:3000" }),
     ],
     ["/package/templates/android/MainActivity.java", activity],
-    ["/package/templates/android/offline.html", fallback],
+    ["/package/templates/offline.html", fallback],
     ["/package/templates/android/launch.html", launch],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
     ["/package/templates/android/radical.gradle", gradle],

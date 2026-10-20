@@ -180,15 +180,16 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         delegate.webView?(webView, didFinish: navigation)
     }
 
-    private func failed(_ webView: WKWebView, error: Error) {
+    // Return true only when radical starts a recovery navigation. In that case,
+    // skip Capacitor: its errorPath navigation would replace the snapshot or fallback.
+    private func handleFailure(_ webView: WKWebView, error: Error) -> Bool {
         let error = error as NSError
         // Policy cancellations, including our snapshot retry, are not load failures.
         guard !(error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled),
-              !(error.domain == "WebKitErrorDomain" && error.code == 102) else { return }
+              !(error.domain == "WebKitErrorDomain" && error.code == 102) else { return false }
         let url = (error.userInfo[NSURLErrorFailingURLErrorKey] as? URL) ?? webView.url ?? serverURL
-        guard allowed(url) else { return }
-        if restoreSnapshot(webView, failed: url) { return }
-        guard !showingFallback else { return }
+        guard allowed(url), !showingFallback else { return false }
+        if restoreSnapshot(webView, failed: url) { return true }
         showingFallback = true
         launching = false
         let retry = url.absoluteString.replacingOccurrences(of: "&", with: "&amp;")
@@ -198,14 +199,19 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         // WKURLSchemeHandler cannot serve HTTPS. This packaged document retains
         // the allowed base origin and requires neither a worker nor any network.
         webView.loadHTMLString(__OFFLINE_HTML__.replacingOccurrences(of: "%RADICAL_RETRY_URL%", with: retry), baseURL: url)
+        return true
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        failed(webView, error: error)
+        if !handleFailure(webView, error: error) {
+            delegate.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        failed(webView, error: error)
+        if !handleFailure(webView, error: error) {
+            delegate.webView?(webView, didFail: navigation, withError: error)
+        }
     }
 
     // Forward every remaining optional callback to Capacitor.

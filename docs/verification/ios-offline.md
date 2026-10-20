@@ -55,7 +55,7 @@ The app opens `/offline-route`, without a WebView error page or a user retry.
 
 Inspected Capacitor's `CAPBridgeViewController.loadWebView` and `webViewConfiguration`. The navigation calls `WKWebView.load(URLRequest)` directly. The configuration applies the App-Bound Domains flag before constructing the WebView. There is no remote HTTPS document proxy on this path.
 
-Added disposable logging and JS evaluation only to the ignored generated project to examine the cold launch. The first main-frame response was the worker's cached fallback for `/`, with `x-radical-offline-fallback: 1`. The proxy cancelled that response and tried the saved snapshot. WebKit reported policy interruption code 102 for the cancelled navigation, which the proxy correctly ignored. The next response carried `x-radical-offline: 1` for `/offline-route`.
+Added disposable logging and JS evaluation only to the ignored generated project to examine the cold launch. The first main-frame response was the worker's cached fallback for `/`, with `x-radical-offline-fallback: 1`. The proxy cancelled that response and tried the saved snapshot. WebKit reported policy interruption code 102 for the cancelled navigation. Radical does not start another recovery for that cancellation; it forwards the failure to Capacitor. The next response carried `x-radical-offline: 1` for `/offline-route`.
 
 This establishes that WebKit restored the worker before the first cold navigation response. The Android first-navigation worker bypass did not reproduce, so iOS has no packaged startup gate, registration wait page, or connectivity probe. Startup remains network-first. On either a native load failure or a marked worker fallback, it tries the saved snapshot once.
 
@@ -128,3 +128,13 @@ Passed:
 The lockfile has no `@pnpm/exe` entries. Tests cover both shells' offline eligibility, exact snapshot URL reporting, first-activation notification, stale documents, unavailable storage, worker fallback markers, and iOS domain/config generation using in-memory layers.
 
 Stopped all preview servers started for this task, restored light appearance, and left iPhone Duo booted. Physical devices, earlier iOS versions, and storage eviction remain unverified.
+
+## PR revision 1
+
+Rebuilt and reverified the shell on the same iPhone Duo with preview stopped. The cold launch reopened `/offline-route`, and uninstall/reinstall followed by an offline launch displayed the packaged fallback. Refreshed the cold-launch and cleared-storage screenshots above. No server was started for these checks.
+
+Checked `WebViewDelegationHandler` at Capacitor tag `8.5.3`. Both failure callbacks load the configured `errorPath` and log the error. The committed-navigation callback also restores opacity after an initial load. The proxy now forwards cancellations, failures at disallowed URLs, and failures while its fallback is already shown. It skips Capacitor only when it starts a snapshot or packaged fallback navigation, avoiding a second navigation for that failure. `didFinish` still forwards.
+
+The rebuilt shell's cold-launch console contains Capacitor's `WebView failed provisional navigation` and `Error: Frame load interrupted`, followed by `WebView loaded`. This confirms the snapshot-retry cancellation reaches Capacitor and still completes the snapshot navigation. The fallback check uses the generated shell without diagnostic instrumentation.
+
+The packaged fallback now lives at `templates/offline.html`, shared by both generators. Verified the packed package includes that file and both platform template directories. `pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready` with 115 tests, and `pnpm install --frozen-lockfile` passed. No `@pnpm/exe` entries are present. The simulator remains booted.
