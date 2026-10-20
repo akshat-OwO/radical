@@ -100,27 +100,32 @@ describe("native snapshot transitions", () => {
     })
   );
 
-  it.effect("returns a typed commit timeout and removes the overlay", () =>
+  it.effect("allows a slow commit to finish and removes the overlay", () =>
     Effect.gen(function* () {
       const state = yield* fixture;
       const started = yield* Deferred.make<boolean>();
+      const committed = yield* Deferred.make<string>();
       const fiber = yield* Effect.forkChild(
-        Effect.flip(
-          nativeTransition(
-            "one",
-            transition,
-            Deferred.succeed(started, true).pipe(Effect.andThen(Effect.never)),
-            100
-          ).pipe(
-            Effect.provide(Layer.succeed(NativeTransitions, state.service))
-          )
-        )
+        nativeTransition(
+          "one",
+          transition,
+          Deferred.succeed(started, true).pipe(
+            Effect.andThen(Deferred.await(committed))
+          ),
+          100
+        ).pipe(Effect.provideService(NativeTransitions, state.service))
       );
       yield* Deferred.await(started);
-      yield* TestClock.adjust(100);
-      const error = yield* Fiber.join(fiber);
-      assert.strictEqual(error._tag, "TransitionTimeout");
-      assert.deepStrictEqual(yield* Ref.get(state.calls), ["cover", "remove"]);
+      yield* TestClock.adjust(5000);
+      assert.deepStrictEqual(yield* Ref.get(state.calls), ["cover"]);
+      yield* Deferred.succeed(committed, "destination");
+      assert.strictEqual(yield* Fiber.join(fiber), "destination");
+      assert.deepStrictEqual(yield* Ref.get(state.calls), [
+        "cover",
+        "painted",
+        "slide:back",
+        "remove",
+      ]);
     })
   );
 

@@ -7,6 +7,8 @@ import { NativeTransitions, nativeTransition } from "./native-transitions.ts";
 import { NavigationFailed } from "./navigation-error.ts";
 import type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
 
+let overlaySequence = 0;
+
 /** Router's commit boundary covers links, imperative navigation, and history. */
 export const installNativeTransitions = (
   router: Omit<AnyRouter, "history"> & { readonly history: RouterHistory },
@@ -39,7 +41,6 @@ export const installNativeTransitions = (
     });
     const selectedDirection = options.direction?.(direction) ?? direction;
     const previousStop = stop;
-    const id = crypto.randomUUID();
     const effect = Effect.gen(function* () {
       yield* previousStop;
       if (
@@ -51,6 +52,8 @@ export const installNativeTransitions = (
       ) {
         return yield* update;
       }
+      overlaySequence += 1;
+      const id = String(overlaySequence);
       cancelOverlay = Effect.gen(function* () {
         const transitions = yield* NativeTransitions;
         yield* transitions.remove(id);

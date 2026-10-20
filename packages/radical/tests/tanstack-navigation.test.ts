@@ -362,3 +362,72 @@ it.effect(
       assert.strictEqual(router.startViewTransition, original);
     })
 );
+
+it.effect("commits plain and native routes without crypto.randomUUID", () =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+      Object.defineProperty(globalThis, "crypto", {
+        configurable: true,
+        value: { randomUUID: undefined },
+      });
+      return descriptor;
+    }),
+    () =>
+      Effect.gen(function* () {
+        assert.isUndefined(Reflect.get(globalThis.crypto, "randomUUID"));
+        const router = makeRouter();
+        const ids: string[] = [];
+        const clock = yield* Effect.clockWith(Effect.succeed);
+        const controller = installNativeTransitions(
+          router,
+          {},
+          Layer.merge(
+            Layer.succeed(Clock.Clock, clock),
+            Layer.succeed(NativeTransitions, {
+              cover: (id) =>
+                Effect.sync(() => {
+                  ids.push(id);
+                }),
+              painted: Effect.void,
+              reveal: () => Effect.void,
+              remove: () => Effect.void,
+            })
+          )
+        );
+        yield* Effect.promise(async () => {
+          await router.load();
+        });
+        assert.deepStrictEqual(ids, []);
+        for (const to of ["/details", "/plain", "/about"] as const) {
+          yield* Effect.promise(async () => {
+            const navigation = router.navigate({ to });
+            await router.load();
+            await navigation;
+          });
+          assert.strictEqual(router.state.location.pathname, to);
+        }
+        assert.strictEqual(ids.length, 2);
+        assert.strictEqual(ids[1], String(Number(ids[0]) + 1));
+        yield* Effect.promise(async () => {
+          const navigation = router.navigate({
+            to: "/",
+            viewTransition: false,
+          });
+          await router.load();
+          await navigation;
+        });
+        assert.strictEqual(router.state.location.pathname, "/");
+        assert.strictEqual(ids.length, 2);
+        controller.dispose();
+      }),
+    (descriptor) =>
+      Effect.sync(() => {
+        if (descriptor) {
+          Object.defineProperty(globalThis, "crypto", descriptor);
+        } else {
+          Reflect.deleteProperty(globalThis, "crypto");
+        }
+      })
+  )
+);

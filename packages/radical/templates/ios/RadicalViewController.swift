@@ -38,8 +38,6 @@ final class RadicalViewController: CAPBridgeViewController {
         }
         // viewport-fit=cover keeps safe-area padding in CSS; UIKit still adjusts for the keyboard.
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
-        // WebKit owns interactive document-history swipes; SPA history uses Router.
-        webView.allowsBackForwardNavigationGestures = true
     }
 
     override func viewDidLayoutSubviews() {
@@ -268,17 +266,25 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise)
     ]
     private var overlay: UIView?
+    private weak var movingContent: UIView?
+    private var shade: UIView?
     private var overlayID: String?
     private var expiry: DispatchWorkItem?
 
     private func clear(_ id: String) {
         guard overlayID == id else { return }
+        // Invalidate before cancelling animations, whose completion can re-enter cleanup.
+        overlayID = nil
         expiry?.cancel()
         expiry = nil
+        movingContent?.layer.removeAllAnimations()
+        movingContent?.transform = .identity
+        movingContent = nil
+        shade?.removeFromSuperview()
+        shade = nil
         overlay?.layer.removeAllAnimations()
         overlay?.removeFromSuperview()
         overlay = nil
-        overlayID = nil
     }
 
     @objc public func cover(_ call: CAPPluginCall) {
@@ -314,9 +320,35 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin {
                 guard let self = self, self.overlayID == id, let overlay = self.overlay else { call.resolve(["id": id]); return }
                 guard error == nil, image != nil else { self.clear(id); call.reject("Paint snapshot failed"); return }
                 let reduced = UIAccessibility.isReduceMotionEnabled || call.getBool("reducedMotion") == true
-                UIView.animate(withDuration: reduced ? 0 : 0.25, delay: 0, options: [.curveEaseOut], animations: {
-                    if call.getString("kind") == "slide" {
-                        overlay.transform = CGAffineTransform(translationX: overlay.bounds.width * (call.getString("direction") == "back" ? 1 : -1), y: 0)
+                if reduced { self.clear(id); call.resolve(["id": id]); return }
+                let slide = call.getString("kind") == "slide"
+                let back = call.getString("direction") == "back"
+                let width = overlay.bounds.width
+                var content: UIView = webView
+                if slide {
+                    guard let window = overlay.superview else { self.clear(id); call.reject("No transition window"); return }
+                    while let parent = content.superview, parent !== window { content = parent }
+                    guard content.superview === window else { self.clear(id); call.reject("No common transition parent"); return }
+                    self.movingContent = content
+                    let shade = UIView(frame: back ? content.bounds : overlay.bounds)
+                    shade.backgroundColor = .black
+                    shade.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                    shade.alpha = back ? 0.12 : 0
+                    shade.isUserInteractionEnabled = false
+                    if back { content.addSubview(shade) }
+                    else { overlay.addSubview(shade) }
+                    self.shade = shade
+                    // Set offsets and stacking together before Core Animation presents a frame.
+                    UIView.performWithoutAnimation {
+                        content.transform = CGAffineTransform(translationX: back ? -0.3 * width : width, y: 0)
+                        if !back { window.insertSubview(overlay, belowSubview: content) }
+                    }
+                }
+                UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut], animations: {
+                    if slide {
+                        content.transform = .identity
+                        overlay.transform = CGAffineTransform(translationX: back ? width : -0.3 * width, y: 0)
+                        self.shade?.alpha = back ? 0 : 0.12
                     } else { overlay.alpha = 0 }
                 }, completion: { [weak self] _ in
                     self?.clear(id)
@@ -337,6 +369,13 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin {
     deinit {
         expiry?.cancel()
         let captured = overlay
-        DispatchQueue.main.async { captured?.removeFromSuperview() }
+        let content = movingContent
+        let dimming = shade
+        DispatchQueue.main.async {
+            content?.layer.removeAllAnimations()
+            content?.transform = .identity
+            dimming?.removeFromSuperview()
+            captured?.removeFromSuperview()
+        }
     }
 }

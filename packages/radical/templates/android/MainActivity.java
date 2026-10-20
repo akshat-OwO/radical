@@ -1,7 +1,7 @@
 package __APP_ID__;
 
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
+import android.view.PixelCopy;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -26,6 +26,7 @@ import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -172,6 +173,15 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(RadicalTransitionsPlugin.class);
         super.load();
         view.stopLoading();
+        // Radical owns WebView history without requiring Capacitor's optional App plugin.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                if (view.canGoBack()) { view.goBack(); return; }
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+            }
+        });
         // Without document-start scripts the allowlist cannot stop a redirected
         // document before its scripts run, so the shell refuses to start.
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
@@ -270,7 +280,7 @@ public class MainActivity extends BridgeActivity {
     public static class RadicalTransitionsPlugin extends Plugin {
         private final Handler handler = new Handler(Looper.getMainLooper());
         private ImageView overlay;
-        private Bitmap bitmap;
+        private View movingContent;
         private String overlayId;
         private Runnable expiry;
 
@@ -281,13 +291,18 @@ public class MainActivity extends BridgeActivity {
             ImageView old = overlay;
             overlay = null;
             overlayId = null;
+            View content = movingContent;
+            movingContent = null;
+            if (content != null) {
+                content.animate().cancel();
+                content.setTranslationX(0);
+            }
             if (old != null) {
                 old.animate().cancel();
                 if (old.getParent() instanceof ViewGroup) ((ViewGroup) old.getParent()).removeView(old);
+                // RenderThread may still reference this bitmap; let GC reclaim it.
                 old.setImageDrawable(null);
             }
-            // Do not recycle a bitmap still referenced by RenderThread's display list.
-            bitmap = null;
         }
 
         private void resolve(PluginCall call, String id) {
@@ -304,18 +319,27 @@ public class MainActivity extends BridgeActivity {
                 if (overlayId != null) clear(overlayId);
                 ViewGroup root = (ViewGroup) getActivity().getWindow().getDecorView();
                 if (root.getWidth() == 0 || root.getHeight() == 0) { call.reject("No visible window"); return; }
+                if (android.os.Build.VERSION.SDK_INT < 26) { call.reject("Window capture requires API 26"); return; }
                 overlayId = id;
+                // Bound pending copies too. A late callback may never attach a stale image.
+                expiry = () -> clear(id);
+                handler.postDelayed(expiry, 3000);
                 try {
-                    bitmap = Bitmap.createBitmap(root.getWidth(), root.getHeight(), Bitmap.Config.ARGB_8888);
-                    root.draw(new Canvas(bitmap));
-                    overlay = new ImageView(getContext());
-                    overlay.setImageBitmap(bitmap);
-                    overlay.setScaleType(ImageView.ScaleType.FIT_XY);
-                    root.addView(overlay, new ViewGroup.LayoutParams(root.getWidth(), root.getHeight()));
-                    expiry = () -> clear(id);
-                    handler.postDelayed(expiry, 3000);
-                    // UI-thread attachment happens before the bridge acknowledges capture.
-                    resolve(call, id);
+                    Bitmap captured = Bitmap.createBitmap(root.getWidth(), root.getHeight(), Bitmap.Config.ARGB_8888);
+                    PixelCopy.request(getActivity().getWindow(), captured, result -> {
+                        if (!id.equals(overlayId)) { call.reject("Snapshot cancelled"); return; }
+                        if (result != PixelCopy.SUCCESS) {
+                            clear(id);
+                            call.reject("Window capture failed: " + result);
+                            return;
+                        }
+                        overlay = new ImageView(getContext());
+                        overlay.setImageBitmap(captured);
+                        overlay.setScaleType(ImageView.ScaleType.FIT_XY);
+                        root.addView(overlay, new ViewGroup.LayoutParams(root.getWidth(), root.getHeight()));
+                        // PixelCopy completed and attachment precedes the JS commit.
+                        resolve(call, id);
+                    }, handler);
                 } catch (RuntimeException | OutOfMemoryError error) {
                     clear(id);
                     call.reject("Cannot snapshot window", error instanceof Exception ? (Exception) error : null);
@@ -335,11 +359,27 @@ public class MainActivity extends BridgeActivity {
                         if (!id.equals(overlayId)) { resolve(call, id); return; }
                         ImageView captured = overlay;
                         boolean reduced = (android.os.Build.VERSION.SDK_INT >= 26 && !ValueAnimator.areAnimatorsEnabled()) || Boolean.TRUE.equals(call.getBoolean("reducedMotion", false));
-                        captured.animate().setDuration(reduced ? 0 : 250).setInterpolator(new DecelerateInterpolator());
+                        if (reduced) { clear(id); resolve(call, id); return; }
                         if ("slide".equals(call.getString("kind"))) {
-                            captured.animate().translationX(captured.getWidth() * ("back".equals(call.getString("direction")) ? 1 : -1));
+                            ViewGroup root = (ViewGroup) captured.getParent();
+                            // Move the whole WebView branch, including its full-window background.
+                            View content = getBridge().getWebView();
+                            while (content.getParent() instanceof View && content.getParent() != root) content = (View) content.getParent();
+                            if (content.getParent() != root) { clear(id); call.reject("No common transition parent"); return; }
+                            movingContent = content;
+                            float width = root.getWidth();
+                            boolean back = "back".equals(call.getString("direction"));
+                            // Reordering and initial translation happen in one UI callback, before drawing.
+                            content.setTranslationX(back ? -0.3f * width : width);
+                            if (!back) {
+                                ViewGroup.LayoutParams layout = captured.getLayoutParams();
+                                root.removeView(captured);
+                                root.addView(captured, root.indexOfChild(content), layout);
+                            }
+                            content.animate().translationX(0).setDuration(250).setInterpolator(new DecelerateInterpolator()).start();
+                            captured.animate().translationX(back ? width : -0.3f * width);
                         } else { captured.animate().alpha(0); }
-                        captured.animate().setListener(new AnimatorListenerAdapter() {
+                        captured.animate().setDuration(250).setInterpolator(new DecelerateInterpolator()).setListener(new AnimatorListenerAdapter() {
                             @Override public void onAnimationEnd(Animator animation) {
                                 clear(id);
                                 resolve(call, id);

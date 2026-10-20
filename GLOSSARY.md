@@ -67,5 +67,5 @@ An animated navigation between routes (slide or fade), shown as a native snapsho
 _Avoid_: Animation, page animation
 
 **Transition overlay**:\
-The shell's captured image of the outgoing screen, displayed above the destination during a transition.\
+The shell's captured image of the outgoing screen, retained while the destination appears during a transition.\
 _Avoid_: Snapshot, screen cache

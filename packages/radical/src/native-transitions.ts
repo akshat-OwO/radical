@@ -91,7 +91,7 @@ export const nativeTransition = <A, E>(
       yield* remove;
       return yield* commit;
     }
-    return yield* bounded(commit).pipe(
+    return yield* commit.pipe(
       Effect.tap(() =>
         bounded(
           native.painted.pipe(Effect.andThen(native.reveal(id, transition)))
