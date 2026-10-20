@@ -3,7 +3,7 @@
 `radical/client` exports `Bridge`, an Effect service with these operations:
 
 - `runtime: Effect<"browser" | "android" | "ios">` detects the injected shell bridge when executed. Server execution reports `"browser"`.
-- `observe?(event, receive): Effect<() => void>` subscribes to shell events after mount and returns a cleanup function. The live bridge replays the latest safe-area value.
+- `observe(event, receive): Effect<() => void>` subscribes to shell events after mount and returns a cleanup function. The live bridge replays the latest value for each event name.
 - `call(plugin, method, options): Effect<unknown, BridgeUnavailable | BridgeCallFailed>` calls Capacitor 8's injected `nativePromise`. It does not import `@capacitor/core`.
 
 `callBridge(plugin, method, schema, options?)` decodes a call's result with the supplied Schema. It requires `Bridge` and adds `BridgeDecodeError` to the error channel. `BridgeCallFailed` preserves the native rejection as `cause`. `BridgeDecodeError` preserves the Schema failure as `cause`. Each error includes `plugin` and `method`.

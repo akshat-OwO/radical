@@ -1,19 +1,18 @@
 import { Effect, Fiber } from "effect";
-import type { Layer, Scope } from "effect";
+import type { Layer } from "effect";
 import {
   createContext,
   createElement,
   useContext,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import type { ReactNode } from "react";
 
 import { BridgeLive } from "./bridge.ts";
 import type { Bridge } from "./bridge.ts";
-import { zeroSafeArea } from "./native-context.ts";
 import type { NativeContext } from "./native-context.ts";
+import { zeroSafeArea } from "./safe-area-style.ts";
 
 export type BridgeState<A, E> =
   | {
@@ -44,7 +43,7 @@ export const NativeContextContext = createContext<NativeContext>({
   shellVersion: null,
 });
 
-const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
+export const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
 
 /** Supply one stable layer for every capability hook in this subtree. */
 export const RadicalProvider = ({
@@ -68,41 +67,36 @@ export const RadicalProvider = ({
       : children
   );
 
-type BridgeRun<A, E> = (
-  receive: (value: A) => void
-) => Effect.Effect<unknown, E, Bridge | Scope.Scope>;
-
-/** Both hook kinds share layer replacement, scoped release, and interruption. */
-const useBridgeRun = <A, E>(
-  run: BridgeRun<A, E>,
-  initial: BridgeState<A, E>
+/** Effects must have stable identity. Nothing executes until React commits. */
+export const useBridgeEffect = <A, E>(
+  effect: Effect.Effect<A, E, Bridge>
 ): BridgeState<A, E> => {
   const layer = useContext(BridgeContext);
   const [snapshot, setSnapshot] = useState<{
     layer: Layer.Layer<Bridge>;
-    run: BridgeRun<A, E>;
+    effect: Effect.Effect<A, E, Bridge>;
     state: BridgeState<A, E>;
-  }>(() => ({ layer, run, state: initial }));
+  }>(() => ({
+    layer,
+    effect,
+    state: initialState,
+  }));
   useEffect(() => {
     const fiber = Effect.runFork(
-      Effect.scoped(
-        run((value) => {
-          setSnapshot({
-            layer,
-            run,
-            state: { loading: false, value, error: undefined },
-          });
-        })
-      ).pipe(
+      effect.pipe(
         Effect.provide(layer),
         Effect.match({
-          onSuccess: () => {
-            // Values are delivered through receive before completion.
+          onSuccess: (value) => {
+            setSnapshot({
+              layer,
+              effect,
+              state: { loading: false, value, error: undefined },
+            });
           },
           onFailure: (error) => {
             setSnapshot({
               layer,
-              run,
+              effect,
               state: { loading: false, value: undefined, error },
             });
           },
@@ -112,36 +106,8 @@ const useBridgeRun = <A, E>(
     return () => {
       Effect.runFork(Fiber.interrupt(fiber));
     };
-  }, [layer, run]);
-  return snapshot.layer === layer && snapshot.run === run
+  }, [layer, effect]);
+  return snapshot.layer === layer && snapshot.effect === effect
     ? snapshot.state
-    : initial;
-};
-
-/** Effects must have stable identity. Nothing executes until React commits. */
-export const useBridgeEffect = <A, E>(
-  effect: Effect.Effect<A, E, Bridge>
-): BridgeState<A, E> => {
-  const run = useMemo(
-    () => (receive: (value: A) => void) => effect.pipe(Effect.map(receive)),
-    [effect]
-  );
-  return useBridgeRun(run, initialState);
-};
-
-/** Subscriptions stay scoped until unmount or provider replacement. */
-export const useBridgeSubscription = <A, E>(
-  subscribe: BridgeRun<A, E>,
-  initial: A
-): BridgeState<A, E> => {
-  const run = useMemo(
-    () => (receive: (value: A) => void) =>
-      subscribe(receive).pipe(Effect.andThen(Effect.never)),
-    [subscribe]
-  );
-  return useBridgeRun<A, E>(run, {
-    loading: false,
-    value: initial,
-    error: undefined,
-  });
+    : initialState;
 };
