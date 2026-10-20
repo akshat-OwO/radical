@@ -5,6 +5,7 @@ import { Effect } from "effect";
 import { Command, Flag } from "effect/cli";
 
 import { generateAndroid, runAndroid } from "./android.ts";
+import { generateIos, runIos } from "./ios.ts";
 
 const android = Command.make(
   "android",
@@ -19,7 +20,22 @@ const android = Command.make(
       )
     )
 );
-const cli = Command.make("radical").pipe(Command.withSubcommands([android]));
+const ios = Command.make(
+  "ios",
+  {
+    generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
+    target: Flag.String("target").pipe(Flag.withDefault("")),
+  },
+  ({ generateOnly, target }) =>
+    generateIos(process.cwd()).pipe(
+      Effect.flatMap((project) =>
+        generateOnly ? Effect.void : runIos(project, target)
+      )
+    )
+);
+const cli = Command.make("radical").pipe(
+  Command.withSubcommands([android, ios])
+);
 Command.run(cli, { version: "0.0.0" }).pipe(
   Effect.provide(NodeServices.layer),
   (program) => {
