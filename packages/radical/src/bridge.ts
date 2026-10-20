@@ -42,7 +42,7 @@ export class Bridge extends Context.Service<
   {
     readonly runtime: Effect.Effect<Runtime>;
     /** Native events retain their latest value across page startup. */
-    readonly observe?: (
+    readonly observe: (
       event: string,
       receive: (value: unknown) => void
     ) => Effect.Effect<() => void>;
@@ -61,21 +61,28 @@ const bridgeEventListener =
     }
   };
 
+interface ShellEvents extends EventTarget {
+  readonly __radical?: { readonly latest: Record<string, unknown> };
+}
+
 /** Acquisition is lazy so importing or constructing a layer is SSR-safe. */
-export const bridgeLayer = (read: () => InjectedBridge | undefined) =>
+export const bridgeLayer = (
+  read: () => InjectedBridge | undefined,
+  readEvents: () => ShellEvents = () => window
+) =>
   Layer.succeed(Bridge, {
     runtime: Effect.sync(() => runtimeOf(read())),
     observe: (event: string, receive: (value: unknown) => void) =>
       Effect.sync(() => {
+        const events = readEvents();
         const listener = bridgeEventListener(receive);
-        window.addEventListener(event, listener);
-        const latest = (window as Window & { radicalSafeArea?: unknown })
-          .radicalSafeArea;
-        if (event === "radicalSafeArea" && latest !== undefined) {
-          receive(latest);
+        events.addEventListener(event, listener);
+        const latest = events.__radical?.latest;
+        if (latest && Object.hasOwn(latest, event)) {
+          receive(latest[event]);
         }
         return () => {
-          window.removeEventListener(event, listener);
+          events.removeEventListener(event, listener);
         };
       }),
     call: (plugin, method, options) =>
@@ -101,8 +108,12 @@ export const BridgeLive = bridgeLayer(injectedBridge);
 /** Each test supplies its own handler and state; decoding stays on the caller side. */
 export const bridgeTestLayer = (
   runtime: Runtime,
-  call: Bridge["Service"]["call"]
-) => Layer.succeed(Bridge, { runtime: Effect.succeed(runtime), call });
+  call: Bridge["Service"]["call"],
+  observe: Bridge["Service"]["observe"] = () =>
+    Effect.succeed(() => {
+      // Test bridges without events have nothing to release.
+    })
+) => Layer.succeed(Bridge, { runtime: Effect.succeed(runtime), call, observe });
 
 /** Every capability decodes at this boundary, including with an in-memory bridge. */
 export const callBridge = <A, I>(

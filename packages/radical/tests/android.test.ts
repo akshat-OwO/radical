@@ -156,7 +156,7 @@ describe("Android shell generation", () => {
         );
         assert.notInclude(source, "v.setPadding(");
         assert.include(source, "if (!started)");
-        assert.include(source, "window.radicalSafeArea=");
+        assert.include(source, "window.__radical");
         const nativeConfig = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({

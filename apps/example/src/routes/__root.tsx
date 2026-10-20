@@ -6,19 +6,13 @@ import {
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { registerOffline, safeAreaStyle } from "radical/client";
-import { RadicalProvider, useSafeArea } from "radical/react";
+import { RadicalProvider } from "radical/react";
 import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
 );
-
-/** Keep CSS current on routes that do not display the hook's value. */
-const SafeAreaContent = ({ children }: { children: ReactNode }): ReactNode => {
-  useSafeArea();
-  return children;
-};
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
   const nativeContext = Route.useLoaderData();
@@ -36,11 +30,11 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
     <html lang="en" style={rootStyle}>
       <head>
         <HeadContent />
-        <style>{`body { margin: 0; background: #dae9f5; } main { min-height: 100dvh; box-sizing: border-box; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 16px) calc(var(--radical-safe-area-left) + 16px); } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
+        <style>{`body { margin: 0; background: #dae9f5; } main { display: flex; flex-direction: column; align-items: stretch; min-height: 100dvh; box-sizing: border-box; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 16px) calc(var(--radical-safe-area-left) + 16px); } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
       </head>
       <body>
         <RadicalProvider nativeContext={nativeContext}>
-          <SafeAreaContent>{children}</SafeAreaContent>
+          {children}
         </RadicalProvider>
         <Scripts />
       </body>

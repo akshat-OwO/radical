@@ -16,16 +16,14 @@ export const watchSafeArea = (receive: (insets: SafeArea) => void) =>
   Effect.gen(function* () {
     const bridge = yield* Bridge;
     if ((yield* bridge.runtime) !== "browser") {
-      if (bridge.observe) {
-        yield* Effect.acquireRelease(
-          bridge.observe("radicalSafeArea", (value) => {
-            Effect.runSync(
-              decodeSafeArea(value).pipe(Effect.map(receive), Effect.ignore)
-            );
-          }),
-          (remove) => Effect.sync(remove)
-        );
-      }
+      yield* Effect.acquireRelease(
+        bridge.observe("radicalSafeArea", (value) => {
+          Effect.runSync(
+            decodeSafeArea(value).pipe(Effect.map(receive), Effect.ignore)
+          );
+        }),
+        (remove) => Effect.sync(remove)
+      );
       return;
     }
     yield* Effect.acquireRelease(
@@ -55,24 +53,4 @@ export const watchSafeArea = (receive: (insets: SafeArea) => void) =>
       }),
       (remove) => Effect.sync(remove)
     );
-  });
-
-/** Keep shell CSS current after mount. Browser CSS continues to use env(). */
-export const syncSafeArea = (receive: (value: SafeArea) => void) =>
-  Effect.gen(function* () {
-    const bridge = yield* Bridge;
-    const native = (yield* bridge.runtime) !== "browser";
-    yield* watchSafeArea((value) => {
-      if (native) {
-        for (const [edge, inset] of Object.entries(value)) {
-          const name = `--radical-safe-area-${edge}`;
-          const css = `${inset}px`;
-          const { style } = document.documentElement;
-          if (style.getPropertyValue(name) !== css) {
-            style.setProperty(name, css);
-          }
-        }
-      }
-      receive(value);
-    });
   });

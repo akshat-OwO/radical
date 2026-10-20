@@ -10,6 +10,7 @@ import {
   readNativeProject,
   renderTemplate,
 } from "./native-project.ts";
+import { safeAreaUpdateScript } from "./shell-events.ts";
 import { execute } from "./shell.ts";
 
 /**
@@ -41,6 +42,7 @@ export const generateAndroid = (
     );
     const replacements: Record<string, string> = {
       __APP_ID__: config.appId,
+      __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
       __URL__: JSON.stringify(url),
       __COOKIES__: native.cookies
         .map(

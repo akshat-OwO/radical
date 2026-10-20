@@ -3,6 +3,7 @@ package __APP_ID__;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.Log;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -39,12 +40,20 @@ public class MainActivity extends BridgeActivity {
 
     private void updateSafeArea(WebView view, WindowInsetsCompat windowInsets) {
         Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+        // System bars remain edge to edge. Only the IME shrinks web content.
+        boolean keyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
+        int keyboardBottom = keyboardVisible ? windowInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom : 0;
+        View content = getWindow().getDecorView();
+        if (content.getPaddingBottom() != keyboardBottom) {
+            content.setPadding(0, 0, 0, keyboardBottom);
+        }
         float density = getResources().getDisplayMetrics().density;
         try {
             JSONObject area = new JSONObject();
             area.put("top", bars.top / density);
             area.put("right", bars.right / density);
-            area.put("bottom", bars.bottom / density);
+            // The keyboard already excludes the navigation bar from usable content.
+            area.put("bottom", keyboardVisible ? 0 : bars.bottom / density);
             area.put("left", bars.left / density);
             if (area.toString().equals(lastInsets)) return;
             lastInsets = area.toString();
@@ -54,7 +63,7 @@ public class MainActivity extends BridgeActivity {
             CookieManager cookies = CookieManager.getInstance();
             __COOKIES__
             cookies.flush();
-            String script = "window.radicalSafeArea=" + area + ";window.dispatchEvent(new CustomEvent('radicalSafeArea',{detail:window.radicalSafeArea}));";
+            String script = __SAFE_AREA_SCRIPT__ + area + ");";
             if (safeAreaScript != null) safeAreaScript.remove();
             safeAreaScript = WebViewCompat.addDocumentStartJavaScript(view, script, ORIGINS);
             if (!started) {
