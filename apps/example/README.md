@@ -18,6 +18,8 @@ Build the example with `pnpm exec vp build` in the same directory.
 
 `vite.config.ts` registers `radical/tanstack-start` next to `tanstackStart()`. Change `appId` to `invalid` to see config validation reject dev and build with an error naming `appId`. Restore `dev.radical.example` to run the app again.
 
+The home page displays `useDeviceInfo` from `radical/react` after mount. Browsers show browser-derived info. Generated shells call the official Device native plugin and show its model and OS version. See the [bridge reference](../../docs/reference/bridge.md) for the Effect service, typed errors, and hook state.
+
 The home page renders native context from the request middleware through a typed server function and route loader. To check server rendering, run these commands while the dev server is running:
 
 ```sh

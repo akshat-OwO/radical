@@ -1,0 +1,39 @@
+# Bridge and device info
+
+`radical/client` exports `Bridge`, an Effect service with two operations:
+
+- `runtime: Effect<"browser" | "android" | "ios">` detects the injected shell bridge when executed. Server execution reports `"browser"`.
+- `call(plugin, method, options): Effect<unknown, BridgeUnavailable | BridgeCallFailed>` calls Capacitor 8's injected `nativePromise`. It does not import `@capacitor/core`.
+
+`callBridge(plugin, method, schema, options?)` decodes a call's result with the supplied Schema. It requires `Bridge` and adds `BridgeDecodeError` to the error channel. `BridgeCallFailed` preserves the native rejection as `cause`. `BridgeDecodeError` preserves the Schema failure as `cause`. Each error includes `plugin` and `method`.
+
+Provide `BridgeLive` for the shell transport or `bridgeTestLayer(runtime, handler)` for an in-memory transport. Both use the same decoding boundary. `bridgeLayer(readInjectedBridge)` supplies a custom bridge acquisition function without reading globals at construction time.
+
+```ts
+import { Effect } from "effect";
+import { BridgeLive, callBridge, DeviceInfoSchema } from "radical/client";
+
+const device = callBridge("Device", "getInfo", DeviceInfoSchema).pipe(
+  Effect.provide(BridgeLive)
+);
+```
+
+`detectRuntime()` is a synchronous, SSR-safe detector. `getDeviceInfo` is an Effect that requires `Bridge`. It calls the official Device native plugin on Android and iOS, and reads browser APIs otherwise.
+
+## React state
+
+`useDeviceInfo(layer = BridgeLive)` in `radical/react` returns one of these states:
+
+- `{ loading: true, value: undefined, error: undefined }`
+- `{ loading: false, value: DeviceInfo, error: undefined }`
+- `{ loading: false, value: undefined, error: BridgeError }`
+
+Rendering, including server rendering, returns the initial loading state without reading browser APIs or executing the bridge. After mount, an effect loads the device info. Unmount interrupts the Effect and ignores late results. A stable custom layer can replace `BridgeLive` in tests. Changing the layer starts another load.
+
+`DeviceInfoSchema` defines the shared result with `platform`, `model`, `operatingSystem`, `osVersion`, `manufacturer`, and `isVirtual`. The native plugin reports `platform` as `"android"` or `"ios"`; browsers report `"web"`. Operating systems are `"android"`, `"ios"`, `"windows"`, `"mac"`, `"linux"`, or `"unknown"`.
+
+The browser fallback prefers `navigator.userAgentData.platform`, then parses known OS tokens from `navigator.userAgent`. Browser model and manufacturer remain `"unknown"`. With client hints, the OS version remains `"unknown"` because a reduced UA can report a frozen version. Without client hints, the version is a UA observation, not a verified OS version. Browser `isVirtual` defaults to `false`; browsers cannot reliably detect emulators.
+
+## Generated shells
+
+Shell generation includes `@capacitor/device` in the generated package's dependencies and links each required Capacitor package explicitly. Capacitor discovers native plugins from those dependencies during `cap add` and sync. The inclusion list lives in `native-project.ts` until native plugin manifests are implemented in #13.

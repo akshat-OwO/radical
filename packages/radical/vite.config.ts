@@ -9,6 +9,7 @@ export default defineConfig({
       "src/tanstack-start-client.ts",
       "src/server.ts",
       "src/client.ts",
+      "src/react.ts",
       "src/offline-entry.ts",
       "src/tanstack-start-server.ts",
       "src/native-context.ts",

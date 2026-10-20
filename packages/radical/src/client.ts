@@ -54,3 +54,23 @@ export {
   TransitionFailed,
 } from "./browser-transitions.ts";
 export type { BrowserTransition, Transition } from "./browser-transitions.ts";
+
+export {
+  Bridge,
+  BridgeLive,
+  bridgeLayer,
+  bridgeTestLayer,
+  callBridge,
+  detectRuntime,
+  RuntimeSchema,
+  BridgeUnavailable,
+  BridgeCallFailed,
+  BridgeDecodeError,
+} from "./bridge.ts";
+export type { BridgeError, InjectedBridge, Runtime } from "./bridge.ts";
+export {
+  DeviceInfoSchema,
+  browserDeviceInfo,
+  getDeviceInfo,
+} from "./device-info.ts";
+export type { DeviceInfo } from "./device-info.ts";

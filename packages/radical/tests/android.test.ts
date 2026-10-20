@@ -100,6 +100,14 @@ describe("Android shell generation", () => {
       return Effect.gen(function* () {
         assert.strictEqual(yield* generate, destination);
         assert.strictEqual(state.commands.length, 1);
+        const generatedPackage =
+          state.files.get(`${destination}/package.json`) ?? "";
+        assert.include(generatedPackage, '"@capacitor/device":"^8.0.0"');
+        assert.isTrue(
+          state.files
+            .get(`${destination}/node_modules/@capacitor/device`)
+            ?.endsWith("node_modules/@capacitor/device")
+        );
         assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "android"]);
         const source = state.files.get(mainActivity) ?? "";
         const cookie = yield* Schema.decodeUnknownEffect(
