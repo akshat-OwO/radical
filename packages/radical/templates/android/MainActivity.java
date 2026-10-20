@@ -2,6 +2,8 @@ package __APP_ID__;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -34,32 +36,55 @@ import org.json.JSONObject;
 /** Remote mode keeps Chromium's networking, streaming, cookies and origin. */
 public class MainActivity extends BridgeActivity {
     private static final String URL = __URL__;
+    private static final String OFFLINE_LAUNCH = __OFFLINE_LAUNCH__;
     private static final String OFFLINE_FALLBACK = __OFFLINE_FALLBACK__;
+    private static final String SNAPSHOT_CHECK = __OFFLINE_SNAPSHOT_CHECK__;
     private static final String COOKIE = __COOKIE__;
     private static final String GUARD = __GUARD__;
     private static final Set<String> ORIGINS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(__ORIGINS__)));
 
     private static final String OFFLINE_URL = Uri.parse(URL).buildUpon().path("/.radical/offline").clearQuery().fragment(null).build().toString();
 
+    private static final String LAUNCH_URL = Uri.parse(URL).buildUpon().path("/.radical/launch").clearQuery().fragment(null).build().toString();
+
+    private static boolean launchPage(Uri uri) {
+        return LAUNCH_URL.equals(uri.buildUpon().clearQuery().fragment(null).build().toString());
+    }
+
     private static boolean offlinePage(Uri uri) {
         return OFFLINE_URL.equals(uri.buildUpon().clearQuery().fragment(null).build().toString());
     }
 
-    private String launchUrl() {
-        String saved = getPreferences(MODE_PRIVATE).getString("lastUrl", URL);
-        return allowed(Uri.parse(saved)) && !offlinePage(Uri.parse(saved)) ? saved : URL;
+    private String savedOfflineUrl() {
+        String saved = getPreferences(MODE_PRIVATE).getString("lastOfflineUrl", URL);
+        return allowed(Uri.parse(saved)) && !offlinePage(Uri.parse(saved)) && !launchPage(Uri.parse(saved)) ? saved : URL;
     }
 
-    private static WebResourceResponse intercept(WebResourceRequest request) {
-        if (offlinePage(request.getUrl())) {
-            String retry = request.getUrl().getQueryParameter("retry");
-            if (retry == null || !allowed(Uri.parse(retry)) || offlinePage(Uri.parse(retry))) retry = URL;
-            String html = OFFLINE_FALLBACK.replace("%RADICAL_RETRY_URL%", TextUtils.htmlEncode(retry));
+    private String launchUrl() {
+        ConnectivityManager manager = getSystemService(ConnectivityManager.class);
+        NetworkCapabilities network = manager.getNetworkCapabilities(manager.getActiveNetwork());
+        return network != null && network.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ? URL : savedOfflineUrl();
+    }
+
+    private static WebResourceResponse packagedPage(WebResourceRequest request) {
+        if (launchPage(request.getUrl())) {
+            String target = request.getUrl().getQueryParameter("url");
+            if (target == null || !allowed(Uri.parse(target)) || offlinePage(Uri.parse(target)) || launchPage(Uri.parse(target))) target = URL;
+            String html = OFFLINE_LAUNCH.replace("%RADICAL_LAUNCH_URL%", JSONObject.quote(target).replace("<", "\\u003c"));
             return new WebResourceResponse("text/html", "UTF-8", 200, "OK", Collections.singletonMap("Cache-Control", "no-store"), new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
         }
-        if (allowed(request.getUrl())) return null;
-        Log.i("RadicalNavigation", "Blocked " + request.getUrl());
-        return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked by radical allowlist", Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
+        if (!offlinePage(request.getUrl())) return null;
+        String retry = request.getUrl().getQueryParameter("retry");
+        if (retry == null || !allowed(Uri.parse(retry)) || offlinePage(Uri.parse(retry))) retry = URL;
+        String html = OFFLINE_FALLBACK.replace("%RADICAL_RETRY_URL%", TextUtils.htmlEncode(retry));
+        return new WebResourceResponse("text/html", "UTF-8", 200, "OK", Collections.singletonMap("Cache-Control", "no-store"), new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private void rememberOfflineUrl(WebView view, String url) {
+        if (allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url)) && !launchPage(Uri.parse(url))
+                && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            view.evaluateJavascript(SNAPSHOT_CHECK + "(" + JSONObject.quote(url) + ");", null);
+        }
     }
 
     private boolean started = false;
@@ -97,7 +122,9 @@ public class MainActivity extends BridgeActivity {
             if (!started) {
                 started = true;
                 view.getSettings().setBlockNetworkLoads(false);
-                view.loadUrl(launchUrl());
+                // Establish the origin and finish registration lookup before the
+                // renderer navigates to the app, including on a cold offline start.
+                view.loadUrl(Uri.parse(LAUNCH_URL).buildUpon().appendQueryParameter("url", launchUrl()).build().toString());
             } else {
                 view.evaluateJavascript(script, null);
             }
@@ -117,17 +144,14 @@ public class MainActivity extends BridgeActivity {
         // Capacitor installs the bridge before radical starts remote navigation.
         WebView view = findViewById(com.getcapacitor.android.R.id.webview);
         view.getSettings().setBlockNetworkLoads(true);
-        // Install the process-wide policy before any remote navigation or worker.
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
-            if (!WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
-                Log.e("RadicalNavigation", "WebView lacks service-worker request interception");
-                finish();
-                return;
-            }
+        // Only packaged startup and fallback pages need native worker interception. Ordinary
+        // worker fetches, including cross-origin requests, use Chromium networking.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
+                && WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
             ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
                 @Override
                 public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
-                    return intercept(request);
+                    return packagedPage(request);
                 }
             });
         }
@@ -141,6 +165,15 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         WebViewCompat.addDocumentStartJavaScript(view, GUARD, Collections.singleton("*"));
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            WebViewCompat.addWebMessageListener(view, "radicalOffline", ORIGINS, (webView, message, sourceOrigin, isMainFrame, reply) -> {
+                String url = message.getData();
+                if (isMainFrame && url != null && url.equals(webView.getUrl())
+                        && allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url)) && !launchPage(Uri.parse(url))) {
+                    getPreferences(MODE_PRIVATE).edit().putString("lastOfflineUrl", url).apply();
+                }
+            });
+        }
         // Radical owns edge-to-edge layout; SystemBars inset handling is disabled.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
@@ -150,23 +183,38 @@ public class MainActivity extends BridgeActivity {
         bridge.setWebViewClient(new BridgeWebViewClient(bridge) {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView webView, WebResourceRequest request) {
-                WebResourceResponse blocked = intercept(request);
-                return blocked != null ? blocked : super.shouldInterceptRequest(webView, request);
+                WebResourceResponse fallback = packagedPage(request);
+                if (fallback != null) return fallback;
+                if (request.isForMainFrame()) {
+                    if (!allowed(request.getUrl())) {
+                        Log.i("RadicalNavigation", "Blocked " + request.getUrl());
+                        return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked by radical allowlist", Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
+                    }
+                    // Capacitor's remote-document proxy uses HttpURLConnection and
+                    // bypasses the worker. Document-start injection supplies the bridge.
+                    return null;
+                }
+                return super.shouldInterceptRequest(webView, request);
+            }
+
+            @Override
+            public void onPageFinished(WebView webView, String url) {
+                super.onPageFinished(webView, url);
+                rememberOfflineUrl(webView, url);
             }
 
             @Override
             public void doUpdateVisitedHistory(WebView webView, String url, boolean isReload) {
-                // Includes client-side history updates as well as full navigations.
-                if (allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url))) {
-                    getPreferences(MODE_PRIVATE).edit().putString("lastUrl", url).apply();
-                }
                 super.doUpdateVisitedHistory(webView, url, isReload);
+                // Client-side history updates also count, but only if a snapshot exists.
+                rememberOfflineUrl(webView, url);
             }
 
             @Override
             public void onReceivedError(WebView webView, WebResourceRequest request, WebResourceError error) {
                 if (!request.isForMainFrame()) return;
                 if (!allowed(request.getUrl())) return;
+                Log.i("RadicalOffline", "Main-frame load failed: " + error.getErrorCode() + " " + request.getUrl());
                 // A controlling worker already tried snapshots and the app fallback.
                 // Without one, packaged HTML works even on the very first launch.
                 webView.stopLoading();

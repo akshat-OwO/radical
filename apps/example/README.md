@@ -67,7 +67,7 @@ In another terminal, run `pnpm exec radical android --target emulator-5554`. Ope
 
 1. Stop the preview server. This also disconnects localhost traffic, which Wi-Fi toggles alone cannot block through `adb reverse`.
 2. Follow **Home** to see the worker's offline fallback, then **Open the offline route** to open the stored snapshot. Tap **Hydration check** to verify that cached scripts work.
-3. Force-stop the app with `adb -s emulator-5554 shell am force-stop dev.radical.example`. Reopen it while the server remains stopped. The shell attempts the last route. It shows a snapshot or the packaged fallback if the worker is not controlling yet. In the latter case, tap **Try again** to retry the exact last URL.
+3. Force-stop the app with `adb -s emulator-5554 shell am force-stop dev.radical.example`. Reopen it while the server remains stopped. Disable Wi-Fi and mobile data with `adb -s emulator-5554 shell svc wifi disable` and `adb -s emulator-5554 shell svc data disable`. The last visited offline route opens directly from its snapshot. Android connectivity selects this route; an online launch opens the configured server URL. Visiting an online-only route does not replace the saved offline URL.
 4. Run `adb -s emulator-5554 shell pm clear dev.radical.example`, then reopen the app offline. The packaged fallback appears because snapshots and worker registrations were removed. **Try again** retries the failed URL after connectivity returns.
 5. Restart preview and reopen the app to capture fresh snapshots. Restore any disabled network interfaces, stop preview, and run `./gradlew --stop` from `.radical/android/android` when finished. Leave the emulator booted.
 

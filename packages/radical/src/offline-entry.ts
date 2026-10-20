@@ -21,7 +21,13 @@ scope.addEventListener("activate", (event) => {
       .then(() => scope.clients.claim())
       .then(() => scope.clients.matchAll({ type: "window" }))
       .then((clients) =>
-        Promise.all(clients.map((client) => worker.capture(client.url)))
+        Promise.all(
+          clients.map((client) =>
+            worker.capture(client.url).then(() => {
+              client.postMessage("radical-snapshot-ready", []);
+            })
+          )
+        )
       )
   );
 });

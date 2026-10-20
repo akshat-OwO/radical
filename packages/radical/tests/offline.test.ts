@@ -490,16 +490,6 @@ describe("offline registration", () => {
     "permits production browsers and Android while skipping dev, iOS, and SSR",
     () =>
       Effect.gen(function* () {
-        for (const production of [true, false]) {
-          for (const browser of [true, false]) {
-            for (const shell of [true, false]) {
-              assert.strictEqual(
-                shouldRegister({ production, browser, shell }),
-                production && browser && !shell
-              );
-            }
-          }
-        }
         for (const platform of ["browser", "android", "ios"] as const) {
           for (const production of [true, false]) {
             for (const browser of [true, false]) {
@@ -507,7 +497,6 @@ describe("offline registration", () => {
                 shouldRegister({
                   production,
                   browser,
-                  shell: platform !== "browser",
                   platform,
                 }),
                 production && browser && platform !== "ios"
@@ -517,11 +506,13 @@ describe("offline registration", () => {
         }
         yield* registerOfflineEffect({
           production: true,
-          shell: true,
           platform: "android",
         });
-        yield* registerOfflineEffect({ production: true, shell: false });
-        yield* registerOfflineEffect({ production: false, shell: false });
+        yield* registerOfflineEffect({ production: true, platform: "browser" });
+        yield* registerOfflineEffect({
+          production: false,
+          platform: "browser",
+        });
       })
   );
 });

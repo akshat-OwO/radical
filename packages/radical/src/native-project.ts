@@ -165,7 +165,7 @@ export const generateNativeProject = <E, R>(
               appId: config.appId,
               appName: config.appName ?? config.appId,
               webDir: "www",
-              // Radical installs the process-wide worker allowlist before load.
+              // Radical serves packaged startup/fallback pages to worker fetches.
               // Capacitor's default client would replace it during bridge setup.
               ...(platform === "android"
                 ? { android: { resolveServiceWorkerRequests: false } }

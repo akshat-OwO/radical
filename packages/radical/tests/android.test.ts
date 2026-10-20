@@ -9,6 +9,7 @@ import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
+import launch from "../templates/android/launch.html?raw";
 import activity from "../templates/android/MainActivity.java?raw";
 import fallback from "../templates/android/offline.html?raw";
 import gradle from "../templates/android/radical.gradle?raw";
@@ -26,6 +27,7 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
     ],
     ["/package/templates/android/MainActivity.java", activity],
     ["/package/templates/android/offline.html", fallback],
+    ["/package/templates/android/launch.html", launch],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
     ["/package/templates/android/radical.gradle", gradle],
   ]);
@@ -90,6 +92,10 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
         assert.strictEqual(command._tag, "StandardCommand");
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
+          files.set(
+            `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>'
+          );
           files.set(
             `${command.options.cwd}/android/app/build.gradle`,
             "// Capacitor app"

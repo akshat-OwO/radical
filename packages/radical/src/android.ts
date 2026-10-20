@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, FileSystem, Schema } from "effect";
 
+import { offlineSnapshotCheckScript } from "./android-offline.ts";
 import { resolveAndroidTarget } from "./android-target.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
 import {
@@ -10,6 +11,7 @@ import {
   readNativeProject,
   renderTemplate,
 } from "./native-project.ts";
+import { replaceAnchor } from "./native-template.ts";
 import { safeAreaUpdateScript } from "./shell-events.ts";
 import { execute } from "./shell.ts";
 
@@ -41,10 +43,18 @@ export const generateAndroid = (
       path.join(packageRoot, "templates/android/radical.gradle")
     );
     const replacements: Record<string, string> = {
+      __OFFLINE_LAUNCH__: JSON.stringify(
+        yield* fs.readFileString(
+          path.join(packageRoot, "templates/android/launch.html")
+        )
+      ),
       __OFFLINE_FALLBACK__: JSON.stringify(
         yield* fs.readFileString(
           path.join(packageRoot, "templates/android/offline.html")
         )
+      ),
+      __OFFLINE_SNAPSHOT_CHECK__: JSON.stringify(
+        offlineSnapshotCheckScript(config.appId)
       ),
       __APP_ID__: config.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
@@ -66,6 +76,20 @@ export const generateAndroid = (
     );
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
+        const manifestPath = path.join(
+          staging,
+          "android/app/src/main/AndroidManifest.xml"
+        );
+        const manifest = yield* fs.readFileString(manifestPath);
+        yield* fs.writeFileString(
+          manifestPath,
+          yield* replaceAnchor(
+            "AndroidManifest.xml",
+            manifest,
+            "</manifest>",
+            '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /></manifest>'
+          )
+        );
         const appGradle = path.join(staging, "android/app/build.gradle");
         const gradle = yield* fs.readFileString(appGradle);
         yield* fs.writeFileString(

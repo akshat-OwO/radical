@@ -3,12 +3,8 @@ import { Effect, Schema } from "effect";
 export const shouldRegister = (context: {
   readonly production: boolean;
   readonly browser: boolean;
-  readonly shell: boolean;
-  readonly platform?: "browser" | "android" | "ios";
-}) =>
-  context.production &&
-  context.browser &&
-  (!context.shell || context.platform === "android");
+  readonly platform: "browser" | "android" | "ios";
+}) => context.production && context.browser && context.platform !== "ios";
 
 export class ServiceWorkerRegistrationError extends Schema.TaggedError<
   ServiceWorkerRegistrationError,
@@ -17,10 +13,8 @@ export class ServiceWorkerRegistrationError extends Schema.TaggedError<
 
 export const registerOfflineEffect = (options: {
   readonly production: boolean;
-  /** Serialize this flag from the server native context. */
-  readonly shell: boolean;
   /** Serialize the native platform to opt Android shells into offline support. */
-  readonly platform?: "browser" | "android" | "ios";
+  readonly platform: "browser" | "android" | "ios";
   readonly base?: string;
 }) =>
   Effect.suspend(() => {
@@ -30,7 +24,6 @@ export const registerOfflineEffect = (options: {
       !shouldRegister({
         production: options.production,
         browser,
-        shell: options.shell,
         platform: options.platform,
       }) ||
       !("serviceWorker" in navigator)
