@@ -49,10 +49,7 @@ public class MainActivity extends BridgeActivity {
         WebViewCompat.addDocumentStartJavaScript(view, GUARD, Collections.singleton("*"));
         // The WebView sends the native context cookie with every request to an allowed origin.
         CookieManager cookies = CookieManager.getInstance();
-        for (String origin : ORIGINS) {
-            String secure = origin.startsWith("https:") ? "; Secure" : "";
-            cookies.setCookie(origin, COOKIE + "; Path=/; HttpOnly; SameSite=Lax" + secure);
-        }
+        __COOKIES__
         cookies.flush();
         // Insets are applied outside the WebView, so its CSS safe area is zero.
         // Safe-area support (#7) replaces this with real insets in native context.

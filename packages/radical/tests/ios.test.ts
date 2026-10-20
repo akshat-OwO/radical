@@ -1,0 +1,307 @@
+import { assert, describe, it } from "@effect/vitest";
+import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
+import { ChildProcessSpawner } from "effect/process";
+
+import { generateIos } from "../src/ios.ts";
+import {
+  NATIVE_CONTEXT_COOKIE,
+  ShellContextSchema,
+} from "../src/native-context.ts";
+import activity from "../templates/ios/RadicalViewController.swift?raw";
+
+const destination = "/app/.radical/ios";
+const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
+
+/** Per-test files and command results, with no SDK, processes or real disk. */
+const defaultConfig = { appId: "dev.radical.example" };
+const memory = (
+  fail = false,
+  config: unknown = defaultConfig,
+  url = "http://192.168.1.2:3000",
+  mismatch = ""
+) => {
+  const files = new Map<string, string>([
+    ["/app/.radical/native.json", JSON.stringify({ config, url })],
+    ["/package/templates/ios/RadicalViewController.swift", activity],
+    ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
+  ]);
+  const commands: string[][] = [];
+  const fs = FileSystem.layerNoop({
+    readFileString: (name) =>
+      Effect.suspend(() => {
+        const content = files.get(name);
+        return content === undefined
+          ? Effect.fail(
+              PlatformError.systemError({
+                _tag: "NotFound",
+                module: "FileSystem",
+                method: "readFileString",
+                pathOrDescriptor: name,
+              })
+            )
+          : Effect.succeed(content);
+      }),
+    writeFileString: (name, content) =>
+      Effect.sync(() => {
+        files.set(name, content);
+      }),
+    makeDirectory: () => Effect.void,
+    symlink: (from, to) =>
+      Effect.sync(() => {
+        files.set(to, from);
+      }),
+    remove: (name) =>
+      Effect.sync(() => {
+        for (const key of files.keys()) {
+          if (key === name || key.startsWith(`${name}/`)) {
+            files.delete(key);
+          }
+        }
+      }),
+    rename: (from, to) =>
+      Effect.sync(() => {
+        for (const [key, value] of files) {
+          if (key === from || key.startsWith(`${from}/`)) {
+            files.set(to + key.slice(from.length), value);
+            files.delete(key);
+          }
+        }
+      }),
+  });
+  const spawner = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {
+    ...ChildProcessSpawner.make(() => Effect.die("Unexpected spawn")),
+    exitCode: (command) =>
+      Effect.sync(() => {
+        assert.strictEqual(command._tag, "StandardCommand");
+        if (command._tag === "StandardCommand") {
+          commands.push([...command.args]);
+          const app = `${command.options.cwd}/ios/App/App`;
+          files.set(
+            `${app}/AppDelegate.swift`,
+            "import UIKit\n// Capacitor app"
+          );
+          files.set(
+            `${app}/SceneDelegate.swift`,
+            "window?.rootViewController = CAPBridgeViewController()"
+          );
+          files.set(
+            `${app}/Base.lproj/Main.storyboard`,
+            '<viewController customClass="CAPBridgeViewController" customModule="Capacitor"/>'
+          );
+          files.set(
+            `${app}/Info.plist`,
+            "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict></dict></plist>"
+          );
+          if (mismatch) {
+            files.set(`${app}/${mismatch}`, "upstream template changed");
+          }
+        }
+        return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
+      }),
+  });
+  return { files, commands, layer: Layer.merge(fs, spawner) };
+};
+
+const generate = generateIos("/app", "/package");
+
+describe("iOS shell generation", () => {
+  it.effect(
+    "generates a Capacitor project with the encoded shared native context",
+    () => {
+      const state = memory();
+      return Effect.gen(function* () {
+        assert.strictEqual(yield* generate, destination);
+        assert.strictEqual(state.commands.length, 1);
+        assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "ios"]);
+        const source = state.files.get(appDelegate) ?? "";
+        const value = yield* Schema.decodeUnknownEffect(
+          Schema.fromJsonString(Schema.String)
+        )(/\.value: (?<cookie>[^\n]+),/u.exec(source)?.groups?.cookie);
+        assert.include(source, `.name: "${NATIVE_CONTEXT_COOKIE}"`);
+        const context = yield* Schema.decodeEffect(
+          Schema.fromJsonString(ShellContextSchema)
+        )(decodeURIComponent(value ?? ""));
+        assert.deepStrictEqual(context, {
+          platform: "ios",
+          shellVersion: "1.2.3",
+          safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+        });
+        assert.include(source, "httpCookieStore.setCookie");
+        assert.include(source, 'HTTPCookiePropertyKey("HttpOnly"): "TRUE"');
+        assert.include(
+          source,
+          ".sameSitePolicy: HTTPCookieStringPolicy.sameSiteLax"
+        );
+        assert.include(source, "if secure");
+        assert.include(
+          source,
+          "group.notify(queue: .main) { super.viewDidLoad() }"
+        );
+        assert.notInclude(source, "__COOKIE_VALUE__");
+        assert.include(source, '["http://192.168.1.2:3000"]');
+        assert.include(
+          state.files.get(
+            `${destination}/ios/App/App/Base.lproj/Main.storyboard`
+          ) ?? "",
+          'customClass="RadicalViewController" customModule="App" customModuleProvider="target"'
+        );
+        assert.strictEqual(
+          state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`),
+          "window?.rootViewController = RadicalViewController()"
+        );
+        assert.strictEqual(
+          state.files.get(`${destination}/ios/App/App/Info.plist`),
+          "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict><key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>\n</dict>\n</plist>"
+        );
+        assert.include(source, "decisionHandler(.cancel)");
+        assert.include(
+          source,
+          'origins.contains("\\(scheme)://\\(host)\\(suffix)")'
+        );
+        assert.notInclude(source, "WKAppBoundDomains");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "deduplicates exact origins and omits ATS exceptions for HTTPS",
+    () => {
+      const state = memory(
+        false,
+        {
+          ...defaultConfig,
+          allowlist: [
+            "https://app.test",
+            "https://app.test:8443",
+            "https://app.test:8443",
+          ],
+        },
+        "https://app.test"
+      );
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(source, '["https://app.test", "https://app.test:8443"]');
+        assert.notInclude(
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "",
+          "NSAppTransportSecurity"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("renders one cookie per host with the shared Secure policy", () => {
+    const state = memory(
+      false,
+      {
+        ...defaultConfig,
+        allowlist: [
+          "https://app.test",
+          "https://secure.test",
+          "https://secure.test:8443",
+        ],
+      },
+      "http://app.test:3000"
+    );
+    return Effect.gen(function* () {
+      yield* generate;
+      const source = state.files.get(appDelegate) ?? "";
+      assert.include(
+        source,
+        'for (hostname, origin, secure) in [("app.test", "http://app.test:3000", false), ("secure.test", "https://secure.test", true)]'
+      );
+      assert.include(source, 'if secure { properties[.secure] = "TRUE" }');
+      assert.include(source, "decisionHandler(.allow)");
+      assert.include(source, 'fatalError("Radical requires Capacitor WebView');
+    }).pipe(Effect.provide(state.layer));
+  });
+
+  it.effect(
+    "keeps the previous shell when Capacitor controller or ATS anchors change",
+    () =>
+      Effect.gen(function* () {
+        for (const file of [
+          "SceneDelegate.swift",
+          "Base.lproj/Main.storyboard",
+          "Info.plist",
+        ]) {
+          const state = memory(false, defaultConfig, "http://app.test", file);
+          state.files.set(`${destination}/previous.txt`, "usable shell");
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "NativeTemplateMismatch");
+          if (error._tag === "NativeTemplateMismatch") {
+            assert.isTrue(error.file.endsWith(file));
+          }
+          assert.strictEqual(
+            state.files.get(`${destination}/previous.txt`),
+            "usable shell"
+          );
+          assert.isFalse(
+            [...state.files.keys()].some((key) =>
+              key.startsWith(`${destination}.next/`)
+            )
+          );
+        }
+      })
+  );
+
+  it.effect(
+    "replaces stale files and produces identical project content on rerun",
+    () => {
+      const state = memory();
+      return Effect.gen(function* () {
+        yield* generate;
+        const first = [...state.files].toSorted(([a], [b]) =>
+          a.localeCompare(b)
+        );
+        state.files.set(`${destination}/stale.txt`, "old shell");
+        state.files.set(
+          `${destination}.next/abandoned.txt`,
+          "interrupted generation"
+        );
+        yield* generate;
+        assert.deepStrictEqual(
+          [...state.files].toSorted(([a], [b]) => a.localeCompare(b)),
+          first
+        );
+        assert.strictEqual(state.commands.length, 2);
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "keeps the previous project and removes staging when Capacitor fails",
+    () => {
+      const state = memory(true);
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.strictEqual(error._tag, "ShellCommandError");
+        assert.strictEqual(
+          state.files.get(`${destination}/previous.txt`),
+          "usable shell"
+        );
+        assert.isFalse(
+          [...state.files.keys()].some((key) =>
+            key.startsWith(`${destination}.next/`)
+          )
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "rejects invalid configuration before generating or executing commands",
+    () => {
+      const state = memory(false, { appId: "../outside" });
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.strictEqual(error._tag, "SchemaError");
+        assert.deepStrictEqual(state.commands, []);
+        assert.isFalse(state.files.has(appDelegate));
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+});

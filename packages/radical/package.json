@@ -40,6 +40,7 @@
     "@capacitor/android": "catalog:",
     "@capacitor/cli": "catalog:",
     "@capacitor/core": "catalog:",
+    "@capacitor/ios": "catalog:",
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
     "@tanstack/react-router": "catalog:",
@@ -54,6 +55,7 @@
     "@capacitor/android": "^8.5.3",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
     "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
     "vite": ">=8.0.0"
@@ -72,6 +74,9 @@
       "optional": true
     },
     "@tanstack/react-start": {
+      "optional": true
+    },
+    "@capacitor/ios": {
       "optional": true
     }
   }

@@ -1,0 +1,145 @@
+import { createRequire } from "node:module";
+import path from "node:path";
+
+import { Effect, FileSystem, Schema } from "effect";
+
+import { HttpOriginSchema, RadicalConfigSchema } from "./config.ts";
+import { encodeNativeContextCookie } from "./native-context.ts";
+import { replaceAnchor } from "./native-template.ts";
+import { execute, replaceProject } from "./shell.ts";
+
+const require = createRequire(import.meta.url);
+export class NativeToolchainUnavailable extends Schema.TaggedError<
+  NativeToolchainUnavailable,
+  { readonly brand: unique symbol }
+>()("NativeToolchainUnavailable", { message: Schema.String }) {}
+/** Cookies share identity across schemes and ports. Plan once per hostname. */
+export const nativeCookiePlan = (origins: readonly string[]) => {
+  const hosts = new Map<
+    string,
+    { hostname: string; origin: string; secure: boolean }
+  >();
+  for (const origin of [...origins].toSorted()) {
+    const url = new URL(origin);
+    const previous = hosts.get(url.hostname);
+    if (!previous || url.protocol === "http:") {
+      hosts.set(url.hostname, {
+        hostname: url.hostname,
+        origin,
+        secure: url.protocol === "https:",
+      });
+    }
+  }
+  return [...hosts.values()].toSorted((a, b) =>
+    a.hostname.localeCompare(b.hostname)
+  );
+};
+
+export const capacitor = (platform: "android" | "ios") =>
+  Effect.try({
+    try: () => ({
+      cli: require.resolve("@capacitor/cli/bin/capacitor"),
+      modules: path.join(
+        path.dirname(require.resolve(`@capacitor/${platform}/package.json`)),
+        "../.."
+      ),
+    }),
+    catch: () =>
+      new NativeToolchainUnavailable({
+        message: `Install @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8 to generate a ${platform} shell.`,
+      }),
+  });
+export const nativeConfigSchema = Schema.Struct({
+  config: RadicalConfigSchema,
+  url: HttpOriginSchema,
+});
+export const readNativeProject = (
+  root: string,
+  packageRoot: string,
+  platform: "android" | "ios"
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const native = yield* fs.readFileString(
+      path.join(root, ".radical/native.json")
+    );
+    const { config, url } = yield* Schema.decodeEffect(
+      Schema.fromJsonString(nativeConfigSchema)
+    )(native);
+    const { origin } = new URL(url);
+    const origins = [...new Set([origin, ...(config.allowlist ?? [])])];
+    const { version } = yield* fs
+      .readFileString(path.join(packageRoot, "package.json"))
+      .pipe(
+        Effect.flatMap(
+          Schema.decodeEffect(
+            Schema.fromJsonString(Schema.Struct({ version: Schema.String }))
+          )
+        )
+      );
+    // Real insets arrive with safe-area support (#7); the shell pads the WebView until then.
+    const cookie = yield* encodeNativeContextCookie({
+      platform,
+      safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+      shellVersion: version,
+    });
+    return { config, url, origins, cookie, cookies: nativeCookiePlan(origins) };
+  });
+export const renderTemplate = (
+  file: string,
+  template: string,
+  replacements: Readonly<Record<string, string>>
+) =>
+  Effect.gen(function* () {
+    let source = template;
+    for (const [anchor, replacement] of Object.entries(replacements)) {
+      source = yield* replaceAnchor(file, source, anchor, replacement);
+    }
+    return source;
+  });
+
+export const generateNativeProject = <E, R>(
+  root: string,
+  platform: "android" | "ios",
+  native: Effect.Success<ReturnType<typeof readNativeProject>>,
+  customize: (staging: string) => Effect.Effect<void, E, R>
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const { cli, modules } = yield* capacitor(platform);
+    const { config, url } = native;
+    return yield* replaceProject(
+      path.join(root, `.radical/${platform}`),
+      (staging) =>
+        Effect.gen(function* () {
+          yield* fs.symlink(modules, path.join(staging, "node_modules"));
+          yield* fs.makeDirectory(path.join(staging, "www"));
+          yield* fs.writeFileString(
+            path.join(staging, "www/index.html"),
+            "<!doctype html><title>Radical shell</title>"
+          );
+          yield* fs.writeFileString(
+            path.join(staging, "package.json"),
+            JSON.stringify({ name: config.appId, version: "0.0.0" })
+          );
+          yield* fs.writeFileString(
+            path.join(staging, "capacitor.config.json"),
+            JSON.stringify({
+              appId: config.appId,
+              appName: config.appName ?? config.appId,
+              webDir: "www",
+              server: {
+                url,
+                cleartext: url.startsWith("http:"),
+                allowNavigation:
+                  platform === "android"
+                    ? []
+                    : native.origins.map((origin) => new URL(origin).hostname),
+              },
+            })
+          );
+          yield* execute(process.execPath, [cli, "add", platform], staging);
+          yield* customize(staging);
+        })
+    );
+  });
