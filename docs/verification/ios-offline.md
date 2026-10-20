@@ -55,7 +55,7 @@ The app opens `/offline-route`, without a WebView error page or a user retry.
 
 Inspected Capacitor's `CAPBridgeViewController.loadWebView` and `webViewConfiguration`. The navigation calls `WKWebView.load(URLRequest)` directly. The configuration applies the App-Bound Domains flag before constructing the WebView. There is no remote HTTPS document proxy on this path.
 
-Added disposable logging and JS evaluation only to the ignored generated project to examine the cold launch. The first main-frame response was the worker's cached fallback for `/`, with `x-radical-offline-fallback: 1`. The proxy cancelled that response and tried the saved snapshot. WebKit reported policy interruption code 102 for the cancelled navigation. Radical does not start another recovery for that cancellation; it forwards the failure to Capacitor. The next response carried `x-radical-offline: 1` for `/offline-route`.
+Added disposable logging and JS evaluation only to the ignored generated project to examine the cold launch. The first main-frame response was the worker's cached fallback for `/`, with `x-radical-offline-fallback: 1`. The proxy cancelled that response and tried the saved snapshot. WebKit reported policy interruption code 102 for the cancelled navigation. Radical consumes that recovery-owned cancellation without invoking Capacitor; unrelated cancellations still forward. The next response carried `x-radical-offline: 1` for `/offline-route`.
 
 This establishes that WebKit restored the worker before the first cold navigation response. The Android first-navigation worker bypass did not reproduce, so iOS has no packaged startup gate, registration wait page, or connectivity probe. Startup remains network-first. On either a native load failure or a marked worker fallback, it tries the saved snapshot once.
 
@@ -135,6 +135,22 @@ Rebuilt and reverified the shell on the same iPhone Duo with preview stopped. Th
 
 Checked `WebViewDelegationHandler` at Capacitor tag `8.5.3`. Both failure callbacks load the configured `errorPath` and log the error. The committed-navigation callback also restores opacity after an initial load. The proxy now forwards cancellations, failures at disallowed URLs, and failures while its fallback is already shown. It skips Capacitor only when it starts a snapshot or packaged fallback navigation, avoiding a second navigation for that failure. `didFinish` still forwards.
 
-The rebuilt shell's cold-launch console contains Capacitor's `WebView failed provisional navigation` and `Error: Frame load interrupted`, followed by `WebView loaded`. This confirms the snapshot-retry cancellation reaches Capacitor and still completes the snapshot navigation. The fallback check uses the generated shell without diagnostic instrumentation.
+The revision 1 cold-launch console contained Capacitor's `WebView failed provisional navigation` and `Error: Frame load interrupted`, followed by `WebView loaded`. That check used a nil `errorPath` and missed the recovery overwrite fixed in revision 2 below. The fallback check uses the generated shell without diagnostic instrumentation.
 
 The packaged fallback now lives at `templates/offline.html`, shared by both generators. Verified the packed package includes that file and both platform template directories. `pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready` with 115 tests, and `pnpm install --frozen-lockfile` passed. No `@pnpm/exe` entries are present. The simulator remains booted.
+
+## PR revision 2
+
+Rebuilt a disposable generated project with `server.errorPath: "recovery-error.html"` and a packaged page headed **CAPACITOR ERROR PATH**. No test page or diagnostic code was added to the example source. With preview stopped, the first cold response for `/` carried `x-radical-offline-fallback: 1`. Its `WebKitErrorDomain` 102 callback matched the replaced `WKNavigation`, was consumed once, and the final URL was `http://localhost:4173/offline-route`. Capacitor never navigated to its error page.
+
+![Cold snapshot recovery with errorPath configured](ios-offline/error-path-snapshot.png)
+
+For the opposite case, a disposable native probe started `/unrelated-cancel` after the snapshot finished, then called `stopLoading` from its navigation-start callback. WebKit emitted a real `NSURLErrorDomain` -999 cancellation for this different navigation. It did not match recovery state, reached Capacitor's failure callback, and finished at `capacitor://localhost/recovery-error.html`. The response guard permits exactly the configured packaged error URL, without adding another allowed remote origin.
+
+![Unrelated cancellation reaches Capacitor's configured error page](ios-offline/unrelated-error-path.png)
+
+Uninstalled and reinstalled with the same errorPath config and preview still stopped. The first connection failure displayed radical's packaged offline fallback, without a competing Capacitor error-page navigation. The same navigation-identity tracking applies when `loadHTMLString` replaces an active load.
+
+![Packaged offline fallback with errorPath configured](ios-offline/error-path-fallback.png)
+
+Removed the temporary config, page, trace logging, and native probe by regenerating and rebuilding the shell. The production example contains no errorPath fixture. Ultracite fix/check, `pnpm run ready` with 115 tests, and frozen-lockfile install passed, with no `@pnpm/exe` entries. Preview is stopped and iPhone Duo remains booted.

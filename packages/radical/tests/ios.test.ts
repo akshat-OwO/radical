@@ -205,6 +205,14 @@ describe("iOS shell generation", () => {
         assert.include(source, "loadHTMLString(");
         assert.include(source, "x-radical-offline-fallback");
         assert.include(source, "radical.lastOfflineURL");
+        assert.include(source, "errorPathURL: bridge?.config.errorPathURL");
+        assert.include(source, "guard allowed(url) || url == errorPathURL");
+        assert.include(source, "recoveryCancellations.insert(navigation)");
+        assert.include(source, "recoveryCancellations.remove($0) != nil");
+        assert.include(
+          source,
+          "handleFailure(webView, navigation: navigation, error: error)"
+        );
         const config = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
