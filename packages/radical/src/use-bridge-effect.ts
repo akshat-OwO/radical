@@ -1,5 +1,5 @@
 import { Effect, Fiber } from "effect";
-import type { Layer } from "effect";
+import type { Layer, Scope } from "effect";
 import {
   createContext,
   createElement,
@@ -11,6 +11,8 @@ import type { ReactNode } from "react";
 
 import { BridgeLive } from "./bridge.ts";
 import type { Bridge } from "./bridge.ts";
+import { zeroSafeArea } from "./native-context.ts";
+import type { NativeContext } from "./native-context.ts";
 
 export type BridgeState<A, E> =
   | {
@@ -35,20 +37,42 @@ const initialState: BridgeState<never, never> = {
   error: undefined,
 };
 
+export const NativeContextContext = createContext<NativeContext>({
+  platform: "browser",
+  safeArea: zeroSafeArea,
+  shellVersion: null,
+});
+
 const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
 
 /** Supply one stable layer for every capability hook in this subtree. */
 export const RadicalProvider = ({
   layer = BridgeLive,
   children,
+  nativeContext,
 }: {
   readonly layer?: Layer.Layer<Bridge>;
   readonly children?: ReactNode;
-}) => createElement(BridgeContext.Provider, { value: layer }, children);
+  readonly nativeContext?: NativeContext;
+}) =>
+  createElement(
+    BridgeContext.Provider,
+    { value: layer },
+    nativeContext
+      ? createElement(
+          NativeContextContext.Provider,
+          { value: nativeContext },
+          children
+        )
+      : children
+  );
 
 /** Effects must have stable identity. Nothing executes until React commits. */
 export const useBridgeEffect = <A, E>(
-  effect: Effect.Effect<A, E, Bridge>
+  effect: Effect.Effect<A, E, Bridge>,
+  subscription?: (
+    receive: (value: A) => void
+  ) => Effect.Effect<unknown, E, Bridge | Scope.Scope>
 ): BridgeState<A, E> => {
   const layer = useContext(BridgeContext);
   const [snapshot, setSnapshot] = useState<{
@@ -62,7 +86,17 @@ export const useBridgeEffect = <A, E>(
   }));
   useEffect(() => {
     const fiber = Effect.runFork(
-      effect.pipe(
+      Effect.scoped(
+        subscription
+          ? subscription((value) => {
+              setSnapshot({
+                layer,
+                effect,
+                state: { loading: false, value, error: undefined },
+              });
+            }).pipe(Effect.andThen(Effect.never))
+          : effect
+      ).pipe(
         Effect.provide(layer),
         Effect.match({
           onSuccess: (value) => {
@@ -85,7 +119,7 @@ export const useBridgeEffect = <A, E>(
     return () => {
       Effect.runFork(Fiber.interrupt(fiber));
     };
-  }, [layer, effect]);
+  }, [layer, effect, subscription]);
   return snapshot.layer === layer && snapshot.effect === effect
     ? snapshot.state
     : initialState;

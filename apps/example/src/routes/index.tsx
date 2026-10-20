@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useDeviceInfo } from "radical/react";
+import { useDeviceInfo, useSafeArea } from "radical/react";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
@@ -8,6 +8,7 @@ const readNativeContext = createServerFn({ method: "GET" }).handler(
 
 const Home = () => {
   const device = useDeviceInfo();
+  const safeArea = useSafeArea();
   const nativeContext = Route.useLoaderData();
   return (
     <main>
@@ -16,6 +17,8 @@ const Home = () => {
       <a href="/online-route">Network required</a>
       <Link to="/details">Slide to details</Link>{" "}
       <Link to="/about">Fade to about</Link>
+      <h2>Safe area</h2>
+      <pre data-testid="safe-area">{JSON.stringify(safeArea)}</pre>
       <h2>Device info</h2>
       <pre data-testid="device-info">
         {device.loading

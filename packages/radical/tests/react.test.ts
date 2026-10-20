@@ -1,19 +1,18 @@
 // @vitest-environment happy-dom
 import { assert, describe, it } from "@effect/vitest";
-import { Deferred, Effect } from "effect";
-import type { Layer } from "effect";
+import { Deferred, Effect, Layer } from "effect";
 import { createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
 import {
+  Bridge,
   BridgeCallFailed,
   bridgeTestLayer,
   browserDeviceInfo,
   getDeviceInfo,
 } from "../src/client.ts";
-import type { Bridge } from "../src/client.ts";
-import { RadicalProvider, useDeviceInfo } from "../src/react.ts";
+import { RadicalProvider, useDeviceInfo, useSafeArea } from "../src/react.ts";
 import type { DeviceInfoState } from "../src/react.ts";
 import { useBridgeEffect } from "../src/use-bridge-effect.ts";
 
@@ -229,3 +228,82 @@ describe(RadicalProvider, () => {
     )
   );
 });
+
+it.effect("starts with provider insets and commits bridge updates to CSS", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const initial = { top: 62, right: 0, bottom: 34, left: 0 };
+      const rotated = { top: 0, right: 62, bottom: 21, left: 62 };
+      const updated = yield* Deferred.make<boolean>();
+      let publish: ((value: unknown) => void) | undefined;
+      let removed = false;
+      const layer = Layer.succeed(Bridge, {
+        runtime: Effect.succeed("ios" as const),
+        call: () => Effect.never,
+        observe: (_event, receive) =>
+          Effect.sync(() => {
+            publish = receive;
+            receive(initial);
+            return () => {
+              removed = true;
+            };
+          }),
+      });
+      const container = document.createElement("div");
+      const root = createRoot(container);
+      const priorStyle = document.documentElement.style.cssText;
+      const values: unknown[] = [];
+      const AreaProbe = () => {
+        const area = useSafeArea();
+        useLayoutEffect(() => {
+          values.push(area);
+          if (area === rotated || area.left === rotated.left) {
+            queueMicrotask(() => {
+              Effect.runSync(Deferred.succeed(updated, true));
+            });
+          }
+        }, [area]);
+        return createElement("pre", null, JSON.stringify(area));
+      };
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => {
+          flushSync(() => {
+            root.unmount();
+          });
+          document.documentElement.style.cssText = priorStyle;
+        })
+      );
+      flushSync(() => {
+        root.render(
+          createElement(
+            RadicalProvider,
+            {
+              layer,
+              nativeContext: {
+                platform: "ios",
+                safeArea: initial,
+                shellVersion: "1",
+              },
+            },
+            createElement(AreaProbe)
+          )
+        );
+      });
+      assert.deepStrictEqual(values[0], initial);
+      publish?.(rotated);
+      yield* Deferred.await(updated);
+      assert.strictEqual(
+        document.documentElement.style.getPropertyValue(
+          "--radical-safe-area-left"
+        ),
+        "62px"
+      );
+      assert.deepStrictEqual(values.at(-1), rotated);
+      flushSync(() => {
+        root.unmount();
+      });
+      yield* Effect.yieldNow;
+      assert.isTrue(removed);
+    })
+  )
+);

@@ -98,7 +98,7 @@ export const readNativeProject = (
           )
         )
       );
-    // Real insets arrive with safe-area support (#7); the shell pads the WebView until then.
+    // Template seed only. Shells replace safeArea before writing any cookie.
     const cookie = yield* encodeNativeContextCookie({
       platform,
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
@@ -165,6 +165,7 @@ export const generateNativeProject = <E, R>(
               appId: config.appId,
               appName: config.appName ?? config.appId,
               webDir: "www",
+              plugins: { SystemBars: { insetsHandling: "disable" } },
               server: {
                 url,
                 cleartext: url.startsWith("http:"),

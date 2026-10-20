@@ -74,3 +74,7 @@ export {
   getDeviceInfo,
 } from "./device-info.ts";
 export type { DeviceInfo } from "./device-info.ts";
+
+export { safeAreaStyle } from "./native-context.ts";
+export type { SafeArea } from "./native-context.ts";
+export { syncSafeArea, watchSafeArea } from "./safe-area.ts";

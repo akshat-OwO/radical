@@ -6,31 +6,79 @@ import WebKit
 final class RadicalViewController: CAPBridgeViewController {
     private var navigationProxy: RadicalNavigationDelegate?
 
+    private var started = false
+    private var writing = false
+    private var laidOut = false
+    private var lastInsets: UIEdgeInsets?
+    private var safeAreaScript: WKUserScript?
+
     override func viewDidLoad() {
-        guard let webView = webView, let delegate = webView.navigationDelegate else { fatalError("Radical requires Capacitor WebView and navigation delegate before viewDidLoad") }
-        let origins: Set<String> = [__ORIGINS__]
-        let proxy = RadicalNavigationDelegate(delegate: delegate, origins: origins)
+        // Delay Capacitor's initial navigation until window layout and cookies are ready.
+        guard let webView = webView, let delegate = webView.navigationDelegate else { fatalError("Radical requires Capacitor WebView") }
+        let proxy = RadicalNavigationDelegate(delegate: delegate, origins: [__ORIGINS__])
         navigationProxy = proxy
         webView.navigationDelegate = proxy
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        laidOut = true
+        updateSafeArea()
+    }
+
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        updateSafeArea()
+    }
+
+    private func updateSafeArea() {
+        guard let webView = webView, view.window != nil, laidOut, !writing else { return }
+        let insets = view.safeAreaInsets
+        guard lastInsets != insets else { return }
+        writing = true
+        let area: [String: CGFloat] = ["top": insets.top, "right": insets.right, "bottom": insets.bottom, "left": insets.left]
+        let seed = __COOKIE_VALUE__.removingPercentEncoding!.data(using: .utf8)!
+        var context = try! JSONSerialization.jsonObject(with: seed) as! [String: Any]
+        context["safeArea"] = area
+        let data = try! JSONSerialization.data(withJSONObject: context, options: [.sortedKeys])
+        let value = String(data: data, encoding: .utf8)!.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+        let areaJSON = String(data: try! JSONSerialization.data(withJSONObject: area), encoding: .utf8)!
+        let script = "window.radicalSafeArea=\(areaJSON);window.dispatchEvent(new CustomEvent('radicalSafeArea',{detail:window.radicalSafeArea}));"
         let group = DispatchGroup()
         for (hostname, origin, secure) in [__COOKIES__] {
-            guard let url = URL(string: origin) else { fatalError("Radical generated an invalid cookie origin") }
+            let url = URL(string: origin)!
             var properties: [HTTPCookiePropertyKey: Any] = [
-                .originURL: url,
-                .domain: hostname,
-                .path: "/",
-                .name: __COOKIE_NAME__,
-                .value: __COOKIE_VALUE__,
+                .originURL: url, .domain: hostname, .path: "/",
+                .name: __COOKIE_NAME__, .value: value,
                 HTTPCookiePropertyKey("HttpOnly"): "TRUE",
                 .sameSitePolicy: HTTPCookieStringPolicy.sameSiteLax
             ]
             if secure { properties[.secure] = "TRUE" }
-            guard let cookie = HTTPCookie(properties: properties) else { fatalError("Radical could not construct the native context cookie") }
+            let cookie = HTTPCookie(properties: properties)!
             group.enter()
             webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) { group.leave() }
         }
-        group.notify(queue: .main) { super.viewDidLoad() }
+        group.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.writing = false
+            self.lastInsets = insets
+            // Replace only our user script, preserving Capacitor's bridge scripts.
+            let controller = webView.configuration.userContentController
+            let scripts = controller.userScripts.filter { $0 !== self.safeAreaScript }
+            controller.removeAllUserScripts()
+            for existing in scripts { controller.addUserScript(existing) }
+            let injection = WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            self.safeAreaScript = injection
+            controller.addUserScript(injection)
+            if self.view.safeAreaInsets != insets { self.updateSafeArea(); return }
+            if !self.started { self.started = true; self.startNavigation() }
+            else { webView.evaluateJavaScript(script, completionHandler: nil) }
+        }
     }
+
+    private func startNavigation() { super.viewDidLoad() }
+
 }
 
 // navigationDelegate is weak; the controller retains this proxy and it retains Capacitor.

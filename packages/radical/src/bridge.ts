@@ -41,6 +41,11 @@ export class Bridge extends Context.Service<
   Bridge,
   {
     readonly runtime: Effect.Effect<Runtime>;
+    /** Native events retain their latest value across page startup. */
+    readonly observe?: (
+      event: string,
+      receive: (value: unknown) => void
+    ) => Effect.Effect<() => void>;
     readonly call: (
       plugin: string,
       method: string,
@@ -49,10 +54,30 @@ export class Bridge extends Context.Service<
   }
 >()("radical/Bridge") {}
 
+const bridgeEventListener =
+  (receive: (value: unknown) => void) => (message: Event) => {
+    if (message instanceof CustomEvent) {
+      receive(message.detail);
+    }
+  };
+
 /** Acquisition is lazy so importing or constructing a layer is SSR-safe. */
 export const bridgeLayer = (read: () => InjectedBridge | undefined) =>
   Layer.succeed(Bridge, {
     runtime: Effect.sync(() => runtimeOf(read())),
+    observe: (event: string, receive: (value: unknown) => void) =>
+      Effect.sync(() => {
+        const listener = bridgeEventListener(receive);
+        window.addEventListener(event, listener);
+        const latest = (window as Window & { radicalSafeArea?: unknown })
+          .radicalSafeArea;
+        if (event === "radicalSafeArea" && latest !== undefined) {
+          receive(latest);
+        }
+        return () => {
+          window.removeEventListener(event, listener);
+        };
+      }),
     call: (plugin, method, options) =>
       Effect.suspend<unknown, BridgeUnavailable | BridgeCallFailed, never>(
         () => {

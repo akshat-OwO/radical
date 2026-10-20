@@ -4,8 +4,11 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 
 import { bridgeLayer, getDeviceInfo } from "../src/client.ts";
-import { RadicalProvider } from "../src/react.ts";
+import { RadicalProvider, useSafeArea } from "../src/react.ts";
 import { useBridgeEffect } from "../src/use-bridge-effect.ts";
+
+const SafeAreaProbe = () =>
+  createElement("pre", null, JSON.stringify(useSafeArea()));
 
 const Probe = () => {
   const state = useBridgeEffect(getDeviceInfo);
@@ -30,6 +33,31 @@ it.effect(
           createElement(RadicalProvider, { layer }, createElement(Probe))
         ),
         "<p>loading</p>"
+      );
+    })
+);
+
+it.effect(
+  "renders native safe area from the provider without browser APIs",
+  () =>
+    Effect.sync(() => {
+      const area = { top: 62, right: 0, bottom: 34, left: 0 };
+      const html = renderToString(
+        createElement(
+          RadicalProvider,
+          {
+            nativeContext: {
+              platform: "ios",
+              safeArea: area,
+              shellVersion: "1",
+            },
+          },
+          createElement(SafeAreaProbe)
+        )
+      );
+      assert.strictEqual(
+        html,
+        renderToString(createElement("pre", null, JSON.stringify(area)))
       );
     })
 );

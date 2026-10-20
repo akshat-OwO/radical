@@ -148,6 +148,27 @@ describe("Android shell generation", () => {
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
         assert.include(source, "CookieManager");
+        assert.include(source, "bars.top / density");
+        assert.include(source, 'context.put("safeArea", area)');
+        assert.include(
+          source,
+          "WindowCompat.setDecorFitsSystemWindows(getWindow(), false)"
+        );
+        assert.notInclude(source, "v.setPadding(");
+        assert.include(source, "if (!started)");
+        assert.include(source, "window.radicalSafeArea=");
+        const nativeConfig = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({
+              plugins: Schema.Struct({
+                SystemBars: Schema.Struct({ insetsHandling: Schema.String }),
+              }),
+            })
+          )
+        )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
+        assert.deepStrictEqual(nativeConfig.plugins.SystemBars, {
+          insetsHandling: "disable",
+        });
         assert.include(source, "addDocumentStartJavaScript(view, GUARD");
         assert.include(
           state.files.get(`${destination}/android/app/build.gradle`) ?? "",

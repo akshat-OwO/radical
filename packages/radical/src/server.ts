@@ -36,3 +36,6 @@ export const getNativeContext = (
           Effect.orElseSucceed(browserContext)
         );
   });
+
+export { safeAreaStyle } from "./native-context.ts";
+export type { SafeArea } from "./native-context.ts";
