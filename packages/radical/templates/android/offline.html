@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -12,17 +13,22 @@
     />
     <title>You're offline</title>
     <style>
+      :root {
+        color-scheme: light dark;
+        color: CanvasText;
+        background: Canvas;
+      }
       body {
         margin: 0;
         padding: 64px 24px;
         font:
           18px system-ui,
           sans-serif;
-        color: #17283b;
-        background: #dae9f5;
+        color: CanvasText;
+        background: Canvas;
       }
       a {
-        color: #124a83;
+        color: LinkText;
       }
     </style>
   </head>

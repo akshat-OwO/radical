@@ -85,6 +85,8 @@ After storing and reopening a snapshot, ran `adb -s emulator-5554 shell pm clear
 
 ![Offline launch after clearing storage](android-offline/cleared-storage.png)
 
+Revision 2 replaces the packaged pages' example palette with system colors and `color-scheme: light dark`. Rebuilt the shell and refreshed this fallback screenshot on Pixel_9. The launch page contains no visible content beyond its Canvas background.
+
 WebView stores snapshots and registrations in app-private storage. Android Clear storage also removes cookies and offline URL preferences. The startup and fallback pages ship in the APK and survive. No native clear API or `clearWebData` hook was added.
 
 ## Checks and cleanup
