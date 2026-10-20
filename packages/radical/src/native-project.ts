@@ -36,18 +36,39 @@ export const nativeCookiePlan = (origins: readonly string[]) => {
 };
 
 export const capacitor = (platform: "android" | "ios") =>
-  Effect.try({
-    try: () => ({
-      cli: require.resolve("@capacitor/cli/bin/capacitor"),
-      modules: path.join(
-        path.dirname(require.resolve(`@capacitor/${platform}/package.json`)),
-        "../.."
-      ),
-    }),
-    catch: () =>
-      new NativeToolchainUnavailable({
-        message: `Install @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8 to generate a ${platform} shell.`,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const resolved = yield* Effect.try({
+      try: () => ({
+        cli: require.resolve("@capacitor/cli/bin/capacitor"),
+        // One inclusion point until plugin manifests (#13). Resolve each package
+        // explicitly: pnpm's platform package directory need not contain Device.
+        packages: [
+          "@capacitor/core",
+          `@capacitor/${platform}`,
+          "@capacitor/device",
+        ].map((name) => ({
+          name,
+          directory: path.dirname(require.resolve(`${name}/package.json`)),
+        })),
       }),
+      catch: () =>
+        new NativeToolchainUnavailable({
+          message: `Install @capacitor/core@8, @capacitor/${platform}@8, @capacitor/device@8 and @capacitor/cli@8 to generate a ${platform} shell.`,
+        }),
+    });
+    const packages = yield* Effect.forEach(
+      (entry: (typeof resolved.packages)[number]) =>
+        fs.readFileString(path.join(entry.directory, "package.json")).pipe(
+          Effect.flatMap(
+            Schema.decodeEffect(
+              Schema.fromJsonString(Schema.Struct({ version: Schema.String }))
+            )
+          ),
+          Effect.map(({ version }) => ({ ...entry, version }))
+        )
+    )(resolved.packages);
+    return { cli: resolved.cli, packages };
   });
 export const nativeConfigSchema = Schema.Struct({
   config: RadicalConfigSchema,
@@ -106,13 +127,22 @@ export const generateNativeProject = <E, R>(
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { cli, modules } = yield* capacitor(platform);
+    const { cli, packages } = yield* capacitor(platform);
     const { config, url } = native;
     return yield* replaceProject(
       path.join(root, `.radical/${platform}`),
       (staging) =>
         Effect.gen(function* () {
-          yield* fs.symlink(modules, path.join(staging, "node_modules"));
+          yield* fs.makeDirectory(
+            path.join(staging, "node_modules/@capacitor"),
+            { recursive: true }
+          );
+          for (const entry of packages) {
+            yield* fs.symlink(
+              entry.directory,
+              path.join(staging, "node_modules", entry.name)
+            );
+          }
           yield* fs.makeDirectory(path.join(staging, "www"));
           yield* fs.writeFileString(
             path.join(staging, "www/index.html"),
@@ -120,7 +150,14 @@ export const generateNativeProject = <E, R>(
           );
           yield* fs.writeFileString(
             path.join(staging, "package.json"),
-            JSON.stringify({ name: config.appId, version: "0.0.0" })
+            JSON.stringify({
+              name: config.appId,
+              version: "0.0.0",
+              // Capacitor discovers native plugins from this package, not the symlink alone.
+              dependencies: Object.fromEntries(
+                packages.map(({ name, version }) => [name, version])
+              ),
+            })
           );
           yield* fs.writeFileString(
             path.join(staging, "capacitor.config.json"),

@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { registerOffline } from "radical/client";
+import { RadicalProvider } from "radical/react";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
@@ -28,7 +29,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <RadicalProvider>{children}</RadicalProvider>
         <Scripts />
       </body>
     </html>
