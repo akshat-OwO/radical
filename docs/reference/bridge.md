@@ -22,13 +22,23 @@ const device = callBridge("Device", "getInfo", DeviceInfoSchema).pipe(
 
 ## React state
 
-`useDeviceInfo(layer = BridgeLive)` in `radical/react` returns one of these states:
+`useDeviceInfo()` in `radical/react` returns one of these states:
 
 - `{ loading: true, value: undefined, error: undefined }`
 - `{ loading: false, value: DeviceInfo, error: undefined }`
 - `{ loading: false, value: undefined, error: BridgeError }`
 
-Rendering, including server rendering, returns the initial loading state without reading browser APIs or executing the bridge. After mount, an effect loads the device info. Unmount interrupts the Effect and ignores late results. A stable custom layer can replace `BridgeLive` in tests. Changing the layer starts another load.
+Rendering, including server rendering, returns the initial loading state without reading browser APIs or executing the bridge. After mount, an effect loads the device info. Unmount interrupts the Effect and ignores late results. Hooks use `BridgeLive` by default, without a provider. `RadicalProvider` accepts an optional `layer: Layer<Bridge>` for all hooks in its subtree and defaults to `BridgeLive`. Keep custom layers outside components or memoize them. Provider re-renders preserve the layer identity; replacing the layer interrupts the previous load and starts another.
+
+```tsx
+import { RadicalProvider } from "radical/react";
+
+<RadicalProvider layer={testBridgeLayer}>
+  <App />
+</RadicalProvider>;
+```
+
+The internal `useBridgeEffect<A, E>` owns loading state, Effect execution, and interruption for capability hooks. It is not exported from `radical/react`.
 
 `DeviceInfoSchema` defines the shared result with `platform`, `model`, `operatingSystem`, `osVersion`, `manufacturer`, and `isVirtual`. The native plugin reports `platform` as `"android"` or `"ios"`; browsers report `"web"`. Operating systems are `"android"`, `"ios"`, `"windows"`, `"mac"`, `"linux"`, or `"unknown"`.
 
@@ -36,4 +46,4 @@ The browser fallback prefers `navigator.userAgentData.platform`, then parses kno
 
 ## Generated shells
 
-Shell generation includes `@capacitor/device` in the generated package's dependencies and links each required Capacitor package explicitly. Capacitor discovers native plugins from those dependencies during `cap add` and sync. The inclusion list lives in `native-project.ts` until native plugin manifests are implemented in #13.
+Shell generation includes `@capacitor/device` in the generated package's dependencies and links each required Capacitor package explicitly. Each dependency declares the exact version read from its resolved package.json. Capacitor discovers native plugins from those dependencies during `cap add` and sync. The inclusion list lives in `native-project.ts` until native plugin manifests are implemented in #13.

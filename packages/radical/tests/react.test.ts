@@ -10,20 +10,24 @@ import {
   BridgeCallFailed,
   bridgeTestLayer,
   browserDeviceInfo,
+  getDeviceInfo,
 } from "../src/client.ts";
 import type { Bridge } from "../src/client.ts";
-import { useDeviceInfo } from "../src/react.ts";
+import { RadicalProvider, useDeviceInfo } from "../src/react.ts";
 import type { DeviceInfoState } from "../src/react.ts";
+import { useBridgeEffect } from "../src/use-bridge-effect.ts";
+
+const useTestEffect = () => useBridgeEffect(getDeviceInfo);
 
 /** Completion follows a committed React update, never a timer or polling loop. */
-const mount = (layer: Layer.Layer<Bridge>) =>
+const mount = (layer?: Layer.Layer<Bridge>, hook = useTestEffect, copies = 1) =>
   Effect.gen(function* () {
     const completed = yield* Deferred.make<DeviceInfoState>();
     const container = document.createElement("div");
     const root = createRoot(container);
     const states: DeviceInfoState[] = [];
     const Probe = () => {
-      const state = useDeviceInfo(layer);
+      const state = hook();
       useLayoutEffect(() => {
         states.push(state);
         if (!state.loading) {
@@ -42,12 +46,23 @@ const mount = (layer: Layer.Layer<Bridge>) =>
         });
       })
     );
-    flushSync(() => {
-      root.render(createElement(Probe));
-    });
+    const render = (nextLayer = layer) => {
+      flushSync(() => {
+        const probes = Array.from({ length: copies }, (_, key) =>
+          createElement(Probe, { key })
+        );
+        root.render(
+          nextLayer
+            ? createElement(RadicalProvider, { layer: nextLayer }, probes)
+            : createElement(Probe)
+        );
+      });
+    };
+    render();
     return {
       completed,
       states,
+      render,
       unmount: () => {
         flushSync(() => {
           root.unmount();
@@ -56,7 +71,7 @@ const mount = (layer: Layer.Layer<Bridge>) =>
     };
   });
 
-describe(useDeviceInfo, () => {
+describe(useBridgeEffect, () => {
   it.effect(
     "loads browser-derived info without calling the native bridge",
     () =>
@@ -116,6 +131,100 @@ describe(useDeviceInfo, () => {
         yield* Deferred.await(interrupted);
         assert.strictEqual(mounted.states.length, 1);
         assert.strictEqual(mounted.states[0].loading, true);
+      })
+    )
+  );
+});
+
+describe(RadicalProvider, () => {
+  it.effect(
+    "shares a bridge across hooks and keeps it stable on re-render",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          let calls = 0;
+          const layer = bridgeTestLayer("android", () =>
+            Effect.sync(() => {
+              calls += 1;
+              return {
+                platform: "android",
+                model: "test",
+                operatingSystem: "android",
+                osVersion: "16",
+                manufacturer: "test",
+                isVirtual: true,
+              };
+            })
+          );
+          const mounted = yield* mount(layer, useDeviceInfo, 2);
+          yield* Deferred.await(mounted.completed);
+          assert.strictEqual(calls, 2);
+          mounted.render();
+          yield* Effect.yieldNow;
+          assert.strictEqual(calls, 2);
+          assert.strictEqual(
+            mounted.states.filter((state) => !state.loading).length,
+            2
+          );
+        })
+      )
+  );
+  it.effect(
+    "interrupts the old layer and returns loading when the provider changes",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const started = yield* Deferred.make<boolean>();
+          const interrupted = yield* Deferred.make<boolean>();
+          const layer = bridgeTestLayer("android", () =>
+            Deferred.succeed(started, true).pipe(
+              Effect.andThen(Effect.never),
+              Effect.onInterrupt(() => Deferred.succeed(interrupted, true))
+            )
+          );
+          const mounted = yield* mount(layer);
+          yield* Deferred.await(started);
+          mounted.render(
+            bridgeTestLayer("browser", () =>
+              Effect.sync(() => assert.fail("unexpected native call"))
+            )
+          );
+          assert.strictEqual(mounted.states.at(-1)?.loading, true);
+          yield* Deferred.await(interrupted);
+          const state = yield* Deferred.await(mounted.completed);
+          assert.deepStrictEqual(state.value, browserDeviceInfo(navigator));
+        })
+      )
+  );
+  it.effect("clears a completed value when the provider layer changes", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const mounted = yield* mount(
+          bridgeTestLayer("browser", () => Effect.never)
+        );
+        const first = yield* Deferred.await(mounted.completed);
+        assert.isDefined(first.value);
+        const started = yield* Deferred.make<boolean>();
+        mounted.render(
+          bridgeTestLayer("android", () =>
+            Deferred.succeed(started, true).pipe(Effect.andThen(Effect.never))
+          )
+        );
+        assert.deepStrictEqual(mounted.states.at(-1), {
+          loading: true,
+          value: undefined,
+          error: undefined,
+        });
+        yield* Deferred.await(started);
+      })
+    )
+  );
+  it.effect("uses BridgeLive without a provider", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const mounted = yield* mount(undefined, useDeviceInfo);
+        const state = yield* Deferred.await(mounted.completed);
+        assert.deepStrictEqual(state.value, browserDeviceInfo(navigator));
       })
     )
   );

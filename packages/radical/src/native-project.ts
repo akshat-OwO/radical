@@ -36,24 +36,39 @@ export const nativeCookiePlan = (origins: readonly string[]) => {
 };
 
 export const capacitor = (platform: "android" | "ios") =>
-  Effect.try({
-    try: () => ({
-      cli: require.resolve("@capacitor/cli/bin/capacitor"),
-      // One inclusion point until plugin manifests (#13). Resolve each package
-      // explicitly: pnpm's platform package directory need not contain Device.
-      packages: [
-        "@capacitor/core",
-        `@capacitor/${platform}`,
-        "@capacitor/device",
-      ].map((name) => ({
-        name,
-        directory: path.dirname(require.resolve(`${name}/package.json`)),
-      })),
-    }),
-    catch: () =>
-      new NativeToolchainUnavailable({
-        message: `Install @capacitor/core@8, @capacitor/${platform}@8, @capacitor/device@8 and @capacitor/cli@8 to generate a ${platform} shell.`,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const resolved = yield* Effect.try({
+      try: () => ({
+        cli: require.resolve("@capacitor/cli/bin/capacitor"),
+        // One inclusion point until plugin manifests (#13). Resolve each package
+        // explicitly: pnpm's platform package directory need not contain Device.
+        packages: [
+          "@capacitor/core",
+          `@capacitor/${platform}`,
+          "@capacitor/device",
+        ].map((name) => ({
+          name,
+          directory: path.dirname(require.resolve(`${name}/package.json`)),
+        })),
       }),
+      catch: () =>
+        new NativeToolchainUnavailable({
+          message: `Install @capacitor/core@8, @capacitor/${platform}@8, @capacitor/device@8 and @capacitor/cli@8 to generate a ${platform} shell.`,
+        }),
+    });
+    const packages = yield* Effect.forEach(
+      (entry: (typeof resolved.packages)[number]) =>
+        fs.readFileString(path.join(entry.directory, "package.json")).pipe(
+          Effect.flatMap(
+            Schema.decodeEffect(
+              Schema.fromJsonString(Schema.Struct({ version: Schema.String }))
+            )
+          ),
+          Effect.map(({ version }) => ({ ...entry, version }))
+        )
+    )(resolved.packages);
+    return { cli: resolved.cli, packages };
   });
 export const nativeConfigSchema = Schema.Struct({
   config: RadicalConfigSchema,
@@ -140,7 +155,7 @@ export const generateNativeProject = <E, R>(
               version: "0.0.0",
               // Capacitor discovers native plugins from this package, not the symlink alone.
               dependencies: Object.fromEntries(
-                packages.map(({ name }) => [name, "^8.0.0"])
+                packages.map(({ name, version }) => [name, version])
               ),
             })
           );

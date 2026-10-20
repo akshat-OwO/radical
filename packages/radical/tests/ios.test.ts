@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
@@ -25,6 +27,17 @@ const memory = (
     ["/package/templates/ios/RadicalViewController.swift", activity],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
   ]);
+  const require = createRequire(import.meta.url);
+  for (const [name, version] of Object.entries({
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.6.1",
+    "@capacitor/device": "8.0.3",
+  })) {
+    files.set(
+      require.resolve(`${name}/package.json`),
+      JSON.stringify({ version })
+    );
+  }
   const commands: string[][] = [];
   const fs = FileSystem.layerNoop({
     readFileString: (name) =>
@@ -114,7 +127,18 @@ describe("iOS shell generation", () => {
         assert.strictEqual(state.commands.length, 1);
         const generatedPackage =
           state.files.get(`${destination}/package.json`) ?? "";
-        assert.include(generatedPackage, '"@capacitor/device":"^8.0.0"');
+        const { dependencies } = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({
+              dependencies: Schema.Record(Schema.String, Schema.String),
+            })
+          )
+        )(generatedPackage);
+        assert.deepStrictEqual(dependencies, {
+          "@capacitor/core": "8.5.3",
+          "@capacitor/ios": "8.6.1",
+          "@capacitor/device": "8.0.3",
+        });
         assert.isTrue(
           state.files
             .get(`${destination}/node_modules/@capacitor/device`)
