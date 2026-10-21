@@ -136,6 +136,7 @@ export const readNativeProject = (
           })
       )
     );
+    const bundled = config.mode === "bundled";
     const identity = nativeIdentity(config, platform);
     yield* Schema.decodeEffect(
       platform === "android" ? AndroidPackageIdSchema : IosBundleIdSchema
@@ -145,7 +146,11 @@ export const readNativeProject = (
     const assets = yield* prepareNativeAssets(root, config);
     const plugins = yield* resolvePlugins(config);
     const { origin } = new URL(url);
-    const origins = [...new Set([origin, ...(config.allowlist ?? [])])];
+    const localOrigin =
+      platform === "android" ? "https://localhost" : "capacitor://localhost";
+    const origins = bundled
+      ? [localOrigin]
+      : [...new Set([origin, ...(config.allowlist ?? [])])];
     const { version } = yield* fs
       .readFileString(path.join(packageRoot, "package.json"))
       .pipe(
@@ -165,10 +170,11 @@ export const readNativeProject = (
       config,
       identity,
       assets,
-      url,
+      url: bundled ? localOrigin : url,
+      bundled,
       origins,
       cookie,
-      cookies: nativeCookiePlan(origins),
+      cookies: nativeCookiePlan(bundled ? [] : origins),
       plugins,
     };
   });
@@ -219,10 +225,32 @@ export const generateNativeProject = <E, R>(
             );
           }
           yield* fs.makeDirectory(path.join(staging, "www"));
-          yield* fs.writeFileString(
-            path.join(staging, "www/index.html"),
-            "<!doctype html><title>Radical shell</title>"
-          );
+          if (native.bundled) {
+            const client = path.join(root, "dist/client");
+            const shell = yield* fs
+              .readFileString(path.join(client, "_shell.html"))
+              .pipe(
+                Effect.mapError(
+                  () =>
+                    new InvalidConfig({
+                      message:
+                        "Bundled mode requires the TanStack Start SPA build at dist/client/_shell.html. Use tanstackStartOptions(config) and radical android|ios.",
+                    })
+                )
+              );
+            yield* fs.copy(client, path.join(staging, "www"), {
+              overwrite: true,
+            });
+            yield* fs.writeFileString(
+              path.join(staging, "www/index.html"),
+              shell
+            );
+          } else {
+            yield* fs.writeFileString(
+              path.join(staging, "www/index.html"),
+              "<!doctype html><title>Radical shell</title>"
+            );
+          }
           yield* fs.writeFileString(
             path.join(staging, "package.json"),
             JSON.stringify({
@@ -243,10 +271,21 @@ export const generateNativeProject = <E, R>(
               // Radical serves packaged startup/fallback pages to worker fetches.
               // Capacitor's default client would replace it during bridge setup.
               ...(platform === "android"
-                ? { android: { resolveServiceWorkerRequests: false } }
+                ? {
+                    android: {
+                      resolveServiceWorkerRequests: false,
+                      allowMixedContent:
+                        native.bundled &&
+                        config.origin?.startsWith("http:") === true,
+                    },
+                  }
                 : {}),
               ...(platform === "ios"
-                ? { ios: { limitsNavigationsToAppBoundDomains: true } }
+                ? {
+                    ios: {
+                      limitsNavigationsToAppBoundDomains: !native.bundled,
+                    },
+                  }
                 : {}),
               plugins: {
                 SystemBars: { insetsHandling: "disable" },
@@ -264,10 +303,10 @@ export const generateNativeProject = <E, R>(
                 ),
               },
               server: {
-                url,
-                cleartext: url.startsWith("http:"),
+                ...(native.bundled ? {} : { url }),
+                cleartext: (config.origin ?? url).startsWith("http:"),
                 allowNavigation:
-                  platform === "android"
+                  platform === "android" || native.bundled
                     ? []
                     : native.origins.map((origin) => new URL(origin).hostname),
               },

@@ -63,6 +63,34 @@ describe("shell event scripts", () => {
   );
 
   it.effect(
+    "defers bundled inset CSS until mount and keeps later native updates live",
+    () =>
+      Effect.sync(() => {
+        const shell = sandbox();
+        shell.run("window.__radicalBundled = true;");
+        shell.run(
+          `${safeAreaUpdateScript}${JSON.stringify({ top: 62, right: 0, bottom: 34, left: 0 })});`
+        );
+        shell.document.readyState = "interactive";
+        for (const apply of shell.parsed) {
+          apply();
+        }
+        assert.deepStrictEqual(shell.writes, []);
+        shell.run("window.__radicalMounted = true;");
+        shell.run(
+          `${safeAreaUpdateScript}${JSON.stringify({ top: 0, right: 62, bottom: 21, left: 62 })});`
+        );
+        assert.strictEqual(
+          shell.properties.get("--radical-safe-area-top"),
+          "0px"
+        );
+        assert.strictEqual(
+          shell.properties.get("--radical-safe-area-right"),
+          "62px"
+        );
+      })
+  );
+  it.effect(
     "preserves matching SSR styles and updates CSS without a hook",
     () =>
       Effect.sync(() => {

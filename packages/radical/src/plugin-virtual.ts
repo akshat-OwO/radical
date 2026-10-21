@@ -1,9 +1,10 @@
 import path from "node:path";
 
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
-import { Effect, FileSystem, Layer } from "effect";
+import { Effect, FileSystem, Layer, Schema } from "effect";
 import type { Plugin } from "vite";
 
+import { HttpOriginSchema } from "./config.ts";
 import type { RadicalConfig } from "./config.ts";
 import { resolvePlugins, pluginModulesLayer } from "./plugin-plan.ts";
 import type { EnabledPlugin } from "./plugin-plan.ts";
@@ -40,6 +41,10 @@ export const pluginTypeSource = (
   ].join("\n");
 export const nativePlugins = (config: RadicalConfig): Plugin => {
   let source = "";
+  const browserConfig = JSON.stringify({
+    mode: config.mode ?? "remote",
+    origin: config.origin,
+  });
   return {
     name: "radical:plugins",
     configResolved: (resolved) =>
@@ -51,8 +56,24 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
           yield* fs.makeDirectory(path.join(resolved.root, ".radical"), {
             recursive: true,
           });
+          const metadata = path.join(resolved.root, ".radical/native.json");
+          const previous = yield* fs.readFileString(metadata).pipe(
+            Effect.flatMap(
+              Schema.decodeEffect(
+                Schema.fromJsonString(Schema.Struct({ url: HttpOriginSchema }))
+              )
+            ),
+            Effect.orElseSucceed(() => ({ url: config.origin }))
+          );
+          const url = config.origin ?? previous?.url;
+          if (url !== undefined) {
+            yield* fs.writeFileString(
+              metadata,
+              JSON.stringify({ config, url })
+            );
+          }
           const file = path.join(resolved.root, ".radical/plugins.d.ts");
-          const declarations = pluginTypeSource(resolved.root, plugins);
+          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly mode: "remote" | "bundled"; readonly origin?: string }; }\n`;
           // Preserve mtime to avoid restarting Vite's watcher on identical config.
           if (
             (yield* fs
@@ -68,7 +89,14 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
         )
       ),
     resolveId: (id) =>
-      id === "virtual:radical/plugins" ? `\0${id}` : undefined,
-    load: (id) => (id === "\0virtual:radical/plugins" ? source : undefined),
+      id === "virtual:radical/plugins" || id === "virtual:radical/config"
+        ? `\0${id}`
+        : undefined,
+    load: (id) => {
+      if (id === "\0virtual:radical/config") {
+        return `export const config = ${browserConfig};`;
+      }
+      return id === "\0virtual:radical/plugins" ? source : undefined;
+    },
   };
 };

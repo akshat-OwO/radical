@@ -1,13 +1,16 @@
 import { Effect, Schema } from "effect";
 
 /**
- * Shell cookie contract, shared by the server and shell generators.
+ * Native presentation context, shared by the server and shell generators.
  *
  * Shells set the `radical-context` cookie natively (Android `CookieManager`,
  * iOS `WKHTTPCookieStore`) on every allowed origin before the first load. The
  * WebView then sends it with every request: navigations, fetch and XHR, form
  * posts, and service-worker requests. A WebView cannot add a request header to
  * all of those.
+ *
+ * Bundled shells inject the same context before page scripts. API fetches send
+ * it as `x-radical-context`, since local pages cannot rely on remote cookies.
  *
  * The value is one URI-encoded JSON object, `encodeURIComponent(JSON.stringify(context))`:
  * {"platform":"ios","safeArea":{"top":47,"right":0,"bottom":34,"left":0},"shellVersion":"1.0.0"}
@@ -19,6 +22,7 @@ import { Effect, Schema } from "effect";
  * cookie produces browser context with zero insets and a null shellVersion.
  * The cookie is untrusted presentation data, never proof of identity.
  */
+export const NATIVE_CONTEXT_HEADER = "x-radical-context";
 export const NATIVE_CONTEXT_COOKIE = "radical-context";
 
 const Inset = Schema.Number.check(

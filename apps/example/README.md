@@ -20,7 +20,7 @@ Build the example with `pnpm exec vp build` in the same directory.
 
 The root wraps the app in the optional `RadicalProvider`, which defaults to `BridgeLive`. Pass a stable custom `layer` there to replace the bridge for all hooks. The home page displays `useDeviceInfo` from `radical/react` after mount. Browsers show browser-derived info. Generated shells call the official Device native plugin and show its model and OS version. See the [bridge reference](../../docs/reference/bridge.md) for the Effect service, typed errors, and hook state.
 
-The home page renders native context from the request middleware through a typed server function and route loader. To check server rendering, run these commands while the dev server is running:
+The root reads native context through the request middleware in remote mode and from the shell in bundled mode. The home page's **Call server function** button reads it from the server in either mode. To check server rendering, run these commands while the dev server is running:
 
 ```sh
 curl -fsS http://localhost:5173/
@@ -78,3 +78,9 @@ Screenshots and observed results are in [Android offline verification](../../doc
 The example config uses `Radical Android` with package id `dev.radical.example.android` and `Radical iOS` with bundle id `dev.radical.example.ios`. Both use the square-root launcher icon and a white square-root splash on `#241044`. The shared `appId` remains `dev.radical.example` for offline storage. Use the platform identifier in device install, launch, and clear-storage commands.
 
 Regenerate the small source PNGs with `python3 assets/generate.py` from this directory. After an identity change, start dev to refresh native config, then run `pnpm exec radical ios --generate-only` and `pnpm exec radical android --generate-only`. See the [app identity reference](../../packages/radical/README.md#app-identity) for source requirements and name precedence.
+
+## Switch loading modes
+
+Set `mode: "bundled"` in `vite.config.ts`, keep `origin` pointed at your API, and run `pnpm exec radical android --target emulator-5554`. The CLI builds and packages the UI. On the emulator, use `adb reverse tcp:4173 tcp:4173` for the example's `http://localhost:4173` origin. The API server must run the matching server build. No UI dev server is needed. **Call server function** shows the context returned by the API; Device and the slide and fade links use the native bridge.
+
+Set `mode: "remote"` and regenerate to load from the same origin. For development at port 5173, set `origin` to `http://localhost:5173`, or omit it to use the dev server's recorded URL. The default example origin is port 4173 for production preview. See the root [bundled mode guide](../../README.md#bundled-ui-with-a-remote-api) for API-server setup and authentication limits.

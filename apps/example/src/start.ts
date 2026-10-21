@@ -1,8 +1,12 @@
 import { createStart } from "@tanstack/react-start";
-import { radicalRequestMiddleware } from "radical/tanstack-start-server";
+import { createRadicalFetch } from "radical/client";
+import { createRadicalRequestMiddleware } from "radical/tanstack-start-server";
+import { config } from "virtual:radical/config";
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [...radicalRequestMiddleware],
+  defaultSsr: config.mode !== "bundled",
+  requestMiddleware: [...createRadicalRequestMiddleware()],
+  serverFns: { fetch: createRadicalFetch(config) },
 }));
 
 declare module "@tanstack/react-start" {

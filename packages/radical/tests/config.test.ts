@@ -133,3 +133,31 @@ it.effect(
       }
     })
 );
+
+describe("loading mode config", () => {
+  it.effect(
+    "decodes both modes and requires an exact API origin in bundled mode",
+    () =>
+      Effect.gen(function* () {
+        for (const mode of ["remote", "bundled"] as const) {
+          const config = {
+            appId: "dev.example.app",
+            mode,
+            origin: "https://api.example",
+          };
+          assert.deepStrictEqual(yield* validateConfig(config), config);
+        }
+        for (const config of [
+          { mode: "bundled" },
+          { mode: "invalid" },
+          { origin: "https://api.example/path" },
+          { mode: "bundled", origin: "file:///assets" },
+        ]) {
+          const error = yield* Effect.flip(
+            validateConfig({ appId: "dev.example.app", ...config })
+          );
+          assert.strictEqual(error._tag, "InvalidConfig");
+        }
+      })
+  );
+});

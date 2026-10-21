@@ -58,6 +58,7 @@ export const generateAndroid = (
       __OFFLINE_SNAPSHOT_CHECK__: JSON.stringify(
         offlineSnapshotCheckScript(config.appId)
       ),
+      __BUNDLED__: String(native.bundled),
       __APP_ID__: native.identity.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
       __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "android"),

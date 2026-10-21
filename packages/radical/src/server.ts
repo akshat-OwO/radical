@@ -1,10 +1,14 @@
 import { Effect, Schema } from "effect";
 
 import type { NativeContext } from "./native-context.ts";
-import { NATIVE_CONTEXT_COOKIE, ShellContextSchema } from "./native-context.ts";
+import {
+  NATIVE_CONTEXT_COOKIE,
+  NATIVE_CONTEXT_HEADER,
+  NativeContextSchema,
+} from "./native-context.ts";
 
 const decodeContext = Schema.decodeUnknownEffect(
-  Schema.fromJsonString(ShellContextSchema)
+  Schema.fromJsonString(NativeContextSchema)
 );
 
 const browserContext = (): NativeContext => ({
@@ -23,12 +27,13 @@ const readCookie = (request: Request) => {
     ?.slice(prefix.length);
 };
 
-/** Read shell facts without allowing a malformed cookie to fail the request. */
+/** Read header or cookie shell facts without allowing malformed input to fail the request. */
 export const getNativeContext = (
   request: Request
 ): Effect.Effect<NativeContext> =>
   Effect.suspend(() => {
-    const value = readCookie(request);
+    const value =
+      request.headers.get(NATIVE_CONTEXT_HEADER) ?? readCookie(request);
     return value === undefined
       ? Effect.succeed(browserContext())
       : Effect.try(() => decodeURIComponent(value)).pipe(
@@ -39,3 +44,5 @@ export const getNativeContext = (
 
 export { safeAreaStyle } from "./native-context.ts";
 export type { SafeArea } from "./native-context.ts";
+
+export { withBundledRequests } from "./bundled-server.ts";

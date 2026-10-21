@@ -50,6 +50,7 @@ import org.json.JSONObject;
 
 /** Remote mode keeps Chromium's networking, streaming, cookies and origin. */
 public class MainActivity extends BridgeActivity {
+    private static final boolean BUNDLED = __BUNDLED__;
     private static final String URL = __URL__;
     private static final String OFFLINE_LAUNCH = __OFFLINE_LAUNCH__;
     private static final String OFFLINE_FALLBACK = __OFFLINE_FALLBACK__;
@@ -82,6 +83,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private static WebResourceResponse packagedPage(WebResourceRequest request) {
+        if (BUNDLED) return null;
         if (launchPage(request.getUrl())) {
             String target = request.getUrl().getQueryParameter("url");
             if (target == null || !allowed(Uri.parse(target)) || offlinePage(Uri.parse(target)) || launchPage(Uri.parse(target))) target = URL;
@@ -96,7 +98,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void rememberOfflineUrl(WebView view, String url) {
-        if (allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url)) && !launchPage(Uri.parse(url))
+        if (!BUNDLED && allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url)) && !launchPage(Uri.parse(url))
                 && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             view.evaluateJavascript(SNAPSHOT_CHECK + "(" + JSONObject.quote(url) + ");", null);
         }
@@ -131,7 +133,7 @@ public class MainActivity extends BridgeActivity {
             CookieManager cookies = CookieManager.getInstance();
             __COOKIES__
             cookies.flush();
-            String script = __SAFE_AREA_SCRIPT__ + area + ");";
+            String script = "window.__radicalBundled=" + BUNDLED + ";window.__radicalNativeContext=" + context + ";" + __SAFE_AREA_SCRIPT__ + area + ");";
             if (safeAreaScript != null) safeAreaScript.remove();
             safeAreaScript = WebViewCompat.addDocumentStartJavaScript(view, script, ORIGINS);
             if (!started) {
@@ -139,7 +141,7 @@ public class MainActivity extends BridgeActivity {
                 view.getSettings().setBlockNetworkLoads(false);
                 // Establish the origin and finish registration lookup before the
                 // renderer navigates to the app, including on a cold offline start.
-                view.loadUrl(Uri.parse(LAUNCH_URL).buildUpon().appendQueryParameter("url", launchUrl()).build().toString());
+                view.loadUrl(BUNDLED ? URL : Uri.parse(LAUNCH_URL).buildUpon().appendQueryParameter("url", launchUrl()).build().toString());
             } else {
                 view.evaluateJavascript(script, null);
             }
@@ -161,7 +163,7 @@ public class MainActivity extends BridgeActivity {
         view.getSettings().setBlockNetworkLoads(true);
         // Only packaged startup and fallback pages need native worker interception. Ordinary
         // worker fetches, including cross-origin requests, use Chromium networking.
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
+        if (!BUNDLED && WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
                 && WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
             ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
                 @Override
@@ -190,7 +192,7 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         WebViewCompat.addDocumentStartJavaScript(view, GUARD, Collections.singleton("*"));
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+        if (!BUNDLED && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(view, "radicalOffline", ORIGINS, (webView, message, sourceOrigin, isMainFrame, reply) -> {
                 String url = message.getData();
                 if (isMainFrame && url != null && url.equals(webView.getUrl())
@@ -217,7 +219,7 @@ public class MainActivity extends BridgeActivity {
                     }
                     // Capacitor's remote-document proxy uses HttpURLConnection and
                     // bypasses the worker. Document-start injection supplies the bridge.
-                    return null;
+                    return BUNDLED ? super.shouldInterceptRequest(webView, request) : null;
                 }
                 return super.shouldInterceptRequest(webView, request);
             }
@@ -237,7 +239,7 @@ public class MainActivity extends BridgeActivity {
 
             @Override
             public void onReceivedError(WebView webView, WebResourceRequest request, WebResourceError error) {
-                if (!request.isForMainFrame()) return;
+                if (BUNDLED || !request.isForMainFrame()) return;
                 if (!allowed(request.getUrl())) return;
                 Log.i("RadicalOffline", "Main-frame load failed: " + error.getErrorCode() + " " + request.getUrl());
                 // A controlling worker already tried snapshots and the app fallback.

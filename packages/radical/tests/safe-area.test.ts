@@ -1,6 +1,8 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
+import { createElement } from "react";
+import { renderToString } from "react-dom/server";
 
 import { Bridge } from "../src/bridge.ts";
 import { safeAreaStyle } from "../src/native-context.ts";
@@ -11,6 +13,34 @@ const portrait = { top: 62, right: 0, bottom: 34, left: 0 };
 const landscape = { top: 0, right: 62, bottom: 21, left: 62 };
 
 describe("safe area", () => {
+  it.effect(
+    "keeps bundled shell styles identical during prerender and first client render",
+    () =>
+      Effect.sync(() => {
+        const prerender = renderToString(
+          createElement("html", {
+            style: safeAreaStyle(
+              {
+                platform: "browser",
+                shellVersion: null,
+                safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+              },
+              "bundled"
+            ),
+          })
+        );
+        const firstClient = renderToString(
+          createElement("html", {
+            style: safeAreaStyle(
+              { platform: "ios", shellVersion: "1", safeArea: portrait },
+              "bundled"
+            ),
+          })
+        );
+        assert.strictEqual(firstClient, prerender);
+        assert.include(firstClient, "env(safe-area-inset-top, 0px)");
+      })
+  );
   it.effect("serializes fractional CSS pixels for the first shell paint", () =>
     Effect.sync(() => {
       assert.deepStrictEqual(

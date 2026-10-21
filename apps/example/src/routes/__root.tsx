@@ -1,14 +1,22 @@
 import {
+  ClientOnly,
   createRootRoute,
   HeadContent,
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { registerOffline, safeAreaStyle } from "radical/client";
+import { Effect } from "effect";
+import {
+  localNativeContext,
+  mountNativeContext,
+  registerOffline,
+  safeAreaStyle,
+} from "radical/client";
 import { RadicalProvider } from "radical/react";
 import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { config } from "virtual:radical/config";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
@@ -17,9 +25,13 @@ const readNativeContext = createServerFn({ method: "GET" }).handler(
 const RootDocument = ({ children }: { children: ReactNode }) => {
   const nativeContext = Route.useLoaderData();
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
-    safeAreaStyle(nativeContext);
+    safeAreaStyle(nativeContext, config.mode);
   useEffect(() => {
+    if (config.mode === "bundled") {
+      Effect.runSync(mountNativeContext());
+    }
     void registerOffline({
+      mode: config.mode,
       production: import.meta.env.PROD,
       base: import.meta.env.BASE_URL,
     });
@@ -41,7 +53,10 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 };
 
 export const Route = createRootRoute({
-  loader: async () => await readNativeContext(),
+  loader: async () =>
+    config.mode === "bundled"
+      ? await Effect.runPromise(localNativeContext())
+      : await readNativeContext(),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -53,5 +68,12 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
-  component: Outlet,
+  component: () =>
+    config.mode === "bundled" ? (
+      <ClientOnly>
+        <Outlet />
+      </ClientOnly>
+    ) : (
+      <Outlet />
+    ),
 });

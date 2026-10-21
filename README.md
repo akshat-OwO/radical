@@ -10,7 +10,42 @@ vp run ready   # ultracite check, vp check, tests, build
 pnpm fix       # ultracite fix
 ```
 
-## Offline routes in native shells
+## Bundled UI with a remote API
+
+Keep one config object in `vite.config.ts`:
+
+```ts
+const config = {
+  appId: "dev.example.app",
+  mode: "bundled",
+  origin: "https://api.example.com",
+} satisfies RadicalConfig;
+
+// Imports from radical/tanstack-start; RadicalConfig from radical/vite.
+plugins: [tanstackStart(tanstackStartOptions(config)), radical(config)];
+```
+
+In `src/start.ts`, import `config` from `virtual:radical/config` and `createRadicalFetch` from `radical/client`:
+
+```ts
+export const startInstance = createStart(() => ({
+  defaultSsr: config.mode !== "bundled",
+  serverFns: { fetch: createRadicalFetch(config) },
+  requestMiddleware: [...createRadicalRequestMiddleware()],
+}));
+```
+
+`createRadicalRequestMiddleware` comes from `radical/tanstack-start-server`. On the API server, wrap the Start handler with `withBundledRequests` from `radical/server` to allow credentialed CORS from the two Capacitor origins. Keep this opt-in on the server when switching modes. Native context travels in a validated header for bundled requests and a cookie for remote requests. It is presentation data, not proof of identity. Use HTTPS and choose authentication that works with WebView cross-site cookie restrictions.
+
+For bundled rendering, wrap the root route's outlet in `ClientOnly`. Use `localNativeContext()` as the stable loader snapshot, `safeAreaStyle(context, config.mode)` for the document, and call `mountNativeContext()` in a mount effect. The library applies native pixels after hydration and keeps later inset updates live. The [example root](apps/example/src/routes/__root.tsx) shows the config-dependent setup.
+
+Run `radical android` or `radical ios` from the app directory. Bundled mode builds Start's SPA, copies its UI assets into both shells' `webDir`, and launches without a UI server. `--generate-only` builds and generates without launching. Use Start's standard `dist/client` output, `_shell.html` name, and Vite base `/`.
+
+Use `createRadicalFetch(config)` for other API calls too. Global fetch and HTML forms retain normal browser behavior. Keep initial route loaders independent of the API if the app must start without it. Call `registerOffline({ mode: config.mode, production: import.meta.env.PROD })` to skip worker registration in bundled mode.
+
+Change `mode` to `"remote"` and regenerate to load the UI from `origin`. Omit `origin` in remote mode to use the running dev server's recorded URL. Bridge plugins, device info, and transitions work in either mode. Bundled mode restricts document navigation to the local asset origin and skips the remote offline worker, launch gate, fallback recovery, and iOS App-Bound Domains. See [ADR 0004](docs/adr/0004-bundled-mode.md) for the request and authentication contract.
+
+## Offline routes in remote shells
 
 Mark a route with `staticData.radical.offline: true` and register the shared worker in production:
 

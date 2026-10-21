@@ -19,7 +19,7 @@ Ship one npm package, `radical`, with subpath entry points. The core depends onl
 | --- | --- | --- |
 | `radical/vite` | No | Core Vite plugin: config, manifests, service worker, dev server |
 | `radical/client` | No | JS-to-native bridge, runtime detection, transitions engine, service worker registration, safe-area CSS variables |
-| `radical/server` | No | `getNativeContext(request: Request)`: native detection, platform, and safe-area from a shell-set cookie |
+| `radical/server` | No | `getNativeContext(request: Request)`: native detection, platform, and safe-area from a shell-set cookie or bundled request header |
 | `radical/react` | React only, no router | Hooks: `useCamera`, `useSafeArea`, `useDeviceInfo`, `useNetworkStatus`, `useHapticFeedback`, and so on |
 | `radical/tanstack-start` | Yes | TanStack Start adapter: Vite plugin wrapper, request middleware, router integration |
 | `radical` (bin) | No | CLI that generates, builds, and runs the native projects |
@@ -37,7 +37,7 @@ Build and dev time (`radical/vite`):
 5. In dev, binds to the LAN address and prints a URL and QR code for a device or emulator.
 6. Writes `.radical/native.json` for the CLI.
 
-Runtime (`radical/client`, `radical/server`): bridge calls with browser fallbacks, the transitions engine (native snapshot overlay in shells, typed View Transitions in browsers, plain navigation on failure), a network-first service worker with an offline fallback page, and request-time native context.
+Runtime (`radical/client`, `radical/server`): bridge calls with browser fallbacks, the transitions engine (native snapshot overlay in shells, typed View Transitions in browsers, plain navigation on failure), a network-first service worker with an offline fallback page, and request-time native context. Bundled mode uses packaged SPA assets and a remote API origin as recorded in [ADR 0004](0004-bundled-mode.md).
 
 CLI (`radical ios|android`): generates the native projects into a gitignored `.radical/` from templates (as in Expo's continuous native generation), applies plugin manifests, icons, and splash, then builds or runs.
 
@@ -102,7 +102,7 @@ Capacitor does not fit two of our needs, so we replace them:
 - It treats `server.url` as a live-reload feature, not a production mode. Remote-origin loading needs our own native code.
 - It expects committed `ios/` and `android/` directories. We generate them into `.radical/`.
 
-Shells deliver native context as a cookie, set natively on each allowed origin before the first load (Android `CookieManager`, iOS `WKHTTPCookieStore`). A WebView cannot add a request header to every request: fetch, XHR, form posts, and service-worker requests bypass native header injection. The WebView sends its cookies with all of them. [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md) verified that `WKHTTPCookieStore.setCookie` works in the iOS shell.
+In remote mode, shells deliver native context as a cookie, set natively on each allowed origin before the first load (Android `CookieManager`, iOS `WKHTTPCookieStore`). A WebView cannot add a request header to every request: fetch, XHR, form posts, and service-worker requests bypass native header injection. The WebView sends its cookies with all of them. [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md) verified that `WKHTTPCookieStore.setCookie` works in the iOS shell.
 
 The transition implementation uses one strategy selection in the client installer. Browsers keep Router's typed view transitions. Shells wrap Router's commit boundary and use the radical-owned `RadicalTransitions` Capacitor plugin, declared by an internal plugin manifest and registered by each generated shell through the manifest composer. `cover` acknowledges full-window snapshot attachment before commit. Double animation frames and native paint completion gate `reveal`; `remove`, typed Effect timeouts, and an independent three-second native watchdog bound overlay lifetime. Slide pushes move both pages with 30% background parallax, with background dimming on iOS. Android captures through PixelCopy. Only overlay operations time out; router commits always finish with their own result or error. History back reverses the slide. The generated Android back dispatcher owns WebView history for both system buttons and gestures. iOS keeps WebKit history gestures disabled. See the [transition reference](../../packages/radical/docs/transitions.md) for the protocol and [verification](../verification/native-transitions.md) for evidence.
 
@@ -119,7 +119,7 @@ Custom native plugins use the Schema-defined contract in [ADR 0003](0003-native-
 | Middleware, startup hooks, telemetry | Start request middleware and custom `server.ts` |
 | Slide and fade transitions | Router `viewTransition` plus native snapshot overlay (radical) |
 | Offline routes, snapshots, service worker | Route `staticData`, generated manifest, service worker (radical) |
-| Native request context, safe-area | Start middleware reading a shell-set cookie (radical) |
+| Native request context, safe-area | Start middleware reading a shell-set cookie or bundled request header (radical) |
 | Camera, haptics, push, network, device, files | Capacitor plugins wrapped in hooks (`radical/react`) |
 | Video stream, data protection, web data clearing | Custom Capacitor plugins (radical native) |
 | Native project generation, icons, splash, allowlist | `radical` CLI and `@capacitor/assets` |
@@ -137,7 +137,7 @@ Custom native plugins use the Schema-defined contract in [ADR 0003](0003-native-
 
 - **iOS offline caching.** Resolved in [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md): use a service worker via App-Bound Domains for remote mode. The simulator spike verified offline HTML and the required WebView APIs; physical-device validation remains open.
 - **App Store guideline 4.2.** Apps that only wrap a website risk rejection. Bundled mode (Start `spa.enabled`) reduces the risk.
-- Whether `serverFns.base` can point at an absolute remote origin in bundled mode.
+- **Bundled requests.** Resolved in [ADR 0004](0004-bundled-mode.md): use Start's custom fetch hook and a native-context header, with explicit API-server CORS and CSRF opt-in.
 
 ## Sources
 

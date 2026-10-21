@@ -1,6 +1,7 @@
 import { createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 import { Effect } from "effect";
 
+import { isBundledOrigin } from "./bundled-server.ts";
 import type { NativeContext } from "./native-context.ts";
 import { getNativeContext } from "./server.ts";
 
@@ -25,3 +26,17 @@ export const radicalRequestMiddleware = [
   createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === "serverFn" }),
   radicalMiddleware,
 ] as const;
+
+/** Explicit API-server opt-in. Other cross-site callers retain Start's CSRF guard. */
+export const createRadicalRequestMiddleware = () =>
+  [
+    createCsrfMiddleware({
+      filter: (ctx) => ctx.handlerType === "serverFn",
+      secFetchSite: (site, ctx) =>
+        site === "same-origin" || isBundledOrigin(ctx.request),
+      origin: (origin, ctx) =>
+        origin === new URL(ctx.request.url).origin ||
+        isBundledOrigin(ctx.request),
+    }),
+    radicalMiddleware,
+  ] as const;

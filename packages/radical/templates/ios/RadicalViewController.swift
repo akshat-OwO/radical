@@ -44,11 +44,13 @@ final class RadicalViewController: CAPBridgeViewController {
         }
         webView.navigationDelegate = proxy
         let controller = webView.configuration.userContentController
-        controller.add(proxy, name: "radicalOffline")
-        controller.addUserScript(WKUserScript(source: __SNAPSHOT_CHECK__, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
-        // WKWebView URL observation also covers client-side history navigation.
-        urlObservation = webView.observe(\.url, options: [.new]) { [weak webView] _, _ in
-            webView?.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil)
+        if !__BUNDLED__ {
+            controller.add(proxy, name: "radicalOffline")
+            controller.addUserScript(WKUserScript(source: __SNAPSHOT_CHECK__, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+            // WKWebView URL observation also covers client-side history navigation.
+            urlObservation = webView.observe(\.url, options: [.new]) { [weak webView] _, _ in
+                webView?.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil)
+            }
         }
         // viewport-fit=cover keeps safe-area padding in CSS; UIKit still adjusts for the keyboard.
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
@@ -77,9 +79,9 @@ final class RadicalViewController: CAPBridgeViewController {
         let data = try! JSONSerialization.data(withJSONObject: context, options: [.sortedKeys])
         let value = String(data: data, encoding: .utf8)!.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
         let areaJSON = String(data: try! JSONSerialization.data(withJSONObject: area), encoding: .utf8)!
-        let script = __SAFE_AREA_SCRIPT__ + areaJSON + ");"
+        let script = "window.__radicalBundled=" + String(__BUNDLED__) + ";window.__radicalNativeContext=" + String(data: data, encoding: .utf8)! + ";" + __SAFE_AREA_SCRIPT__ + areaJSON + ");"
         let group = DispatchGroup()
-        for (hostname, origin, secure) in [__COOKIES__] {
+        for (hostname, origin, secure) in [__COOKIES__] as [(String, String, Bool)] {
             let url = URL(string: origin)!
             var properties: [HTTPCookiePropertyKey: Any] = [
                 .originURL: url, .domain: hostname, .path: "/",
@@ -146,7 +148,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = action.request.url,
            action.targetFrame == nil || action.targetFrame?.isMainFrame == true,
-           url.scheme == "http" || url.scheme == "https",
+           (__BUNDLED__ || url.scheme == "http" || url.scheme == "https"),
            !allowed(url) {
             if action.navigationType == .linkActivated { UIApplication.shared.open(url) }
             decisionHandler(.cancel)
@@ -187,7 +189,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
     // A failed server launch may have a worker fallback rather than a native error.
     // Both paths try the last confirmed snapshot once before showing the fallback.
     private func restoreSnapshot(_ webView: WKWebView, failed: URL) -> Bool {
-        guard launching, !attemptedSnapshot,
+        guard !__BUNDLED__, launching, !attemptedSnapshot,
               let value = UserDefaults.standard.string(forKey: savedURLKey),
               let url = URL(string: value), allowed(url), url != failed else { return false }
         attemptedSnapshot = true
@@ -220,13 +222,14 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         completed(navigation)
         launching = false
         onDocumentReady?()
-        if !showingFallback { webView.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil) }
+        if !__BUNDLED__ && !showingFallback { webView.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil) }
         delegate.webView?(webView, didFinish: navigation)
     }
 
     // Handle recovery and its own cancellation callbacks here. Capacitor must not
     // start a competing errorPath navigation over our snapshot or packaged fallback.
     private func handleFailure(_ webView: WKWebView, navigation: WKNavigation?, error: Error) -> Bool {
+        if __BUNDLED__ { return false }
         let error = error as NSError
         let replaced = navigation.map { recoveryCancellations.remove($0) != nil } ?? false
         completed(navigation)

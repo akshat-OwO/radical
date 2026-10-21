@@ -95,6 +95,14 @@ const memory = (
       Effect.sync(() => {
         files.set(name, content);
       }),
+    copy: (from, to) =>
+      Effect.sync(() => {
+        for (const [key, value] of files) {
+          if (key.startsWith(`${from}/`)) {
+            files.set(to + key.slice(from.length), value);
+          }
+        }
+      }),
     makeDirectory: () => Effect.void,
     symlink: (from, to) =>
       Effect.sync(() => {
@@ -595,4 +603,79 @@ describe("android app identity", () => {
       assert.isEmpty(state.assetCalls);
     }).pipe(Effect.provide(state.layer));
   });
+});
+
+describe("bundled android shell", () => {
+  it.effect(
+    "packages SPA assets and keeps navigation local with both internal plugins",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        mode: "bundled",
+        origin: "https://api.example",
+        allowlist: ["https://external.example"],
+      });
+      state.files.set(
+        "/app/dist/client/_shell.html",
+        "<!doctype html><title>SPA shell</title>"
+      );
+      state.files.set("/app/dist/client/assets/app.js", "application code");
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.strictEqual(
+          state.files.get(`${destination}/www/index.html`),
+          "<!doctype html><title>SPA shell</title>"
+        );
+        assert.strictEqual(
+          state.files.get(`${destination}/www/assets/app.js`),
+          "application code"
+        );
+        const config = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({
+              server: Schema.Struct({
+                url: Schema.optional(Schema.String),
+                allowNavigation: Schema.Array(Schema.String),
+              }),
+            })
+          )
+        )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+        assert.isUndefined(config.server.url);
+        assert.deepStrictEqual(config.server.allowNavigation, []);
+        const source = state.files.get(mainActivity) ?? "";
+        assert.include(source, "https://localhost");
+        assert.notInclude(source, '"https://external.example"');
+        assert.include(source, "RadicalTransitionsPlugin");
+        assert.include(source, "window.__radicalNativeContext=");
+        assert.include(
+          state.files.get(`${destination}/package.json`) ?? "",
+          "@capacitor/device"
+        );
+        assert.include(source, "BUNDLED = true");
+        assert.include(source, "BUNDLED ? URL :");
+        assert.include(source, "BUNDLED ? super.shouldInterceptRequest");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+  it.effect(
+    "rejects missing SPA output before replacing an existing shell",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        mode: "bundled",
+        origin: "https://api.example",
+      });
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.strictEqual(error._tag, "InvalidConfig");
+        assert.include(error.message, "_shell.html");
+        assert.strictEqual(
+          state.files.get(`${destination}/previous.txt`),
+          "usable shell"
+        );
+        assert.isEmpty(state.commands);
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
 });
