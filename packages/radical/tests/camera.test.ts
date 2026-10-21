@@ -27,6 +27,7 @@ const browserLayer = (overrides: Partial<BrowserCamera["Service"]> = {}) =>
     readNative: () =>
       Effect.succeed(new Blob(["hello"], { type: "image/jpeg" })),
     dataUrl: () => Effect.succeed(image),
+    dimensions: () => Effect.succeedSome({ width: 480, height: 640 }),
     ...overrides,
   });
 const unexpected = () =>
@@ -34,7 +35,7 @@ const unexpected = () =>
 
 describe("camera", () => {
   it.effect(
-    "normalizes native photos in both shells using manifest commands",
+    "reports decoded photo dimensions in both shells rather than sensor metadata",
     () =>
       Effect.gen(function* () {
         for (const runtime of ["ios", "android"] as const) {
@@ -67,8 +68,8 @@ describe("camera", () => {
           assert.deepStrictEqual(result, {
             dataUrl: image,
             mimeType: "image/jpeg",
-            width: 640,
-            height: 480,
+            width: 480,
+            height: 640,
           });
           assert.deepStrictEqual(calls, [
             {
@@ -114,6 +115,8 @@ describe("camera", () => {
         assert.deepStrictEqual(result, {
           dataUrl: image,
           mimeType: "image/jpeg",
+          width: 480,
+          height: 640,
         });
         const cancelled = yield* choosePhoto.pipe(
           Effect.provide(
@@ -140,6 +143,20 @@ describe("camera", () => {
           )
         );
         assert.deepStrictEqual(result, {
+          dataUrl: image,
+          mimeType: "image/jpeg",
+          width: 480,
+          height: 640,
+        });
+        const undecodable = yield* capturePhoto.pipe(
+          Effect.provide(
+            Layer.merge(
+              bridgeTestLayer("browser", unexpected),
+              browserLayer({ dimensions: () => Effect.succeedNone })
+            )
+          )
+        );
+        assert.deepStrictEqual(undecodable, {
           dataUrl: image,
           mimeType: "image/jpeg",
         });
@@ -232,6 +249,29 @@ describe("camera", () => {
         "prompt"
       );
     })
+  );
+  it.effect(
+    "fails Android requests and capture with PermissionDenied when the user declines",
+    () =>
+      Effect.gen(function* () {
+        const bridge = bridgeTestLayer("android", (_plugin, method) =>
+          Effect.sync(() => {
+            assert.notStrictEqual(method, "takePhoto");
+            return { camera: "prompt-with-rationale" };
+          })
+        );
+        const provide = <A, E>(
+          effect: Effect.Effect<A, E, Bridge | BrowserCamera>
+        ) => effect.pipe(Effect.provide(Layer.merge(bridge, browserLayer())));
+        assert.instanceOf(
+          yield* Effect.flip(provide(requestCameraPermission)),
+          PermissionDenied
+        );
+        assert.instanceOf(
+          yield* Effect.flip(provide(capturePhoto)),
+          PermissionDenied
+        );
+      })
   );
   it.effect(
     "preserves typed browser cancellation and rejects non-image results",

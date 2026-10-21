@@ -1,4 +1,5 @@
 // oxlint-disable promise/prefer-await-to-then -- Late browser permission results must release streams even after Effect interruption.
+import type { Option } from "effect";
 import { Context, Effect, Layer } from "effect";
 
 import { injectedBridge } from "./bridge.ts";
@@ -24,6 +25,10 @@ export class BrowserCamera extends Context.Service<
     readonly request: Effect.Effect<CameraPermission, BrowserCameraError>;
     readonly readNative: (uri: string) => Effect.Effect<Blob, Unavailable>;
     readonly dataUrl: (blob: Blob) => Effect.Effect<string, Unavailable>;
+    /** Displayed size after EXIF orientation, or none when it cannot be decoded. */
+    readonly dimensions: (
+      blob: Blob
+    ) => Effect.Effect<Option.Option<{ width: number; height: number }>>;
   }
 >()("radical/BrowserCamera") {}
 
@@ -101,6 +106,19 @@ const readDataUrl = (blob: Blob) =>
       )
     );
   });
+
+// createImageBitmap applies EXIF orientation by default, matching how <img> renders the photo.
+// A bitmap that resolves after interruption is closed in the promise continuation.
+const decodedDimensions = (blob: Blob) =>
+  typeof createImageBitmap === "function"
+    ? Effect.tryPromise(() =>
+        createImageBitmap(blob).then((bitmap) => {
+          const size = { width: bitmap.width, height: bitmap.height };
+          bitmap.close();
+          return size;
+        })
+      ).pipe(Effect.option)
+    : Effect.succeedNone;
 
 export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
   capture: Effect.suspend(() =>
@@ -180,4 +198,5 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
       );
     }),
   dataUrl: readDataUrl,
+  dimensions: decodedDimensions,
 });

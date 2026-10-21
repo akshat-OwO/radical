@@ -33,12 +33,20 @@ The simulator's system permission prompts and some picker controls were absent f
 
 ## Android
 
-Generated the Android project without opening or booting an emulator. Its package pins Camera 8.2.6 and the manifest contains `android.permission.CAMERA` plus `android.hardware.camera` with `required="false"`.
+Generated the Android project. Its package pins Camera 8.2.6, and the manifest contains `android.permission.CAMERA` plus `android.hardware.camera` with `required="false"`. Built it with `./gradlew assembleDebug`, installed it on the Pixel_9 emulator (Android 16), and loaded the example from `vp preview` on port 4173 through `adb reverse`. Permission was reset between runs with `pm revoke` and `pm clear-permission-flags ... user-set user-fixed`.
 
-Runtime verification is pending on Pixel_9. Check initial permission, denial and retry, grant, virtual-camera capture and confirmation, normalized image display, cancellation, and library selection. Only one device is used at a time; the user controls the switch from iPhone Duo to Pixel_9.
+- The initial check displayed `prompt`.
+- **Request permission**, then **Don't allow**: Android reports a first decline as `prompt-with-rationale`, which the hook had normalized to `prompt` without an error. Requests now fail with `PermissionDenied` for any result other than `granted`. After the fix, the same steps displayed `PermissionDenied`.
+- **Capture photo** asked again, as Android allows after a rationale. **Don't allow** produced `PermissionDenied`, and no camera opened. A following check displayed `denied`.
+- Reset permission. **Capture photo**, then **While using the app**, opened the camera with the emulator's virtual scene. The shutter and **Done** displayed the captured preview.
+- The first capture reported `image/jpeg 1280 960`, but the WebView decoded the image as 960 × 1280. Capacitor's resolution metadata is sensor-oriented. Dimensions now come from decoding the image with `createImageBitmap`, which applies EXIF orientation, in every runtime. After the fix the page displayed `image/jpeg 960 1280`, and `naturalWidth`/`naturalHeight` read through WebView DevTools were `960`/`1280`.
+- Opening the camera and pressing Back produced `Cancelled`. Dismissing the library picker also produced `Cancelled`.
+- Pushed the repository's icon to `/sdcard/Pictures`. **Choose photo** opened the system photo picker, and selecting the icon displayed `image/png 1024 1024` with the preview.
+
+The test image, the port forwards, and the preview server were removed afterwards, Gradle daemons were stopped, and `agent-device close` completed.
 
 ## Repository checks
 
-`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 212 tests. New tests use `@effect/vitest`, in-memory bridge and browser layers, Deferred synchronization, and TestClock interruption without timers, network, or devices. They cover SSR guards, repeat actions, duplicate suppression, provider changes, native error mapping, denial, photo normalization, and opt-in declarations. The lockfile contains no `@pnpm/exe` entries.
+`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 213 tests. New tests use `@effect/vitest`, in-memory bridge and browser layers, Deferred synchronization, and TestClock interruption without timers, network, or devices. They cover SSR guards, repeat actions, duplicate suppression, provider changes, native error mapping, denial, photo normalization, and opt-in declarations. The lockfile contains no `@pnpm/exe` entries.
 
-The preview and dev servers were stopped, port 4173 had no listener, and `agent-device close` completed. The device daemon was left running. No Android device was opened.
+The preview and dev servers were stopped, port 4173 had no listener, and `agent-device close` completed. The device daemon was left running.

@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 
 import { Bridge } from "./bridge.ts";
 import type { BridgeError } from "./bridge.ts";
@@ -79,7 +79,8 @@ const permission = (request: boolean) =>
             {}
           )
         );
-    if (request && result.camera === "denied") {
+    // Android reports a first decline as prompt-with-rationale; any non-grant after a request is a denial.
+    if (request && result.camera !== "granted") {
       return yield* new PermissionDenied({});
     }
     return result.camera === "prompt-with-rationale"
@@ -94,8 +95,6 @@ const photoEffect = (source: "camera" | "photos") =>
     const bridge = yield* Bridge;
     const browser = yield* BrowserCamera;
     const runtime = yield* bridge.runtime;
-    let width: number | undefined;
-    let height: number | undefined;
     const browserPhoto = source === "camera" ? browser.capture : browser.choose;
     const blob = yield* runtime === "browser"
       ? browserPhoto
@@ -131,24 +130,18 @@ const photoEffect = (source: "camera" | "photos") =>
                     : Effect.fail(new Cancelled({}))
                 )
               );
-          const resolution = /^(?<width>\d+)x(?<height>\d+)$/u.exec(
-            photo.metadata?.resolution ?? ""
-          );
-          if (resolution) {
-            width = Number(resolution.groups?.width);
-            height = Number(resolution.groups?.height);
-          }
           return yield* browser.readNative(photo.uri);
         });
     const dataUrl = yield* browser.dataUrl(blob);
+    // Native resolution metadata is sensor-oriented; decode instead so portrait photos report portrait sizes.
+    const size = yield* browser.dimensions(blob);
     const mimeType =
       /^data:(?<mimeType>image\/[a-zA-Z0-9.+-]+);base64,/u.exec(dataUrl)?.groups
         ?.mimeType ?? "";
     return yield* Schema.decodeUnknownEffect(PhotoSchema)({
       dataUrl,
       mimeType,
-      ...(width === undefined ? {} : { width }),
-      ...(height === undefined ? {} : { height }),
+      ...Option.getOrUndefined(size),
     }).pipe(
       Effect.mapError(
         () => new Unavailable({ reason: "Camera returned an invalid image" })
