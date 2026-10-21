@@ -517,7 +517,7 @@ describe("android app identity", () => {
           state.files.get(
             `${destination}/android/app/src/main/res/values/styles.xml`
           ) ?? "",
-          '<item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>'
+          '<item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>'
         );
         const prefix = `${destination}/android/app/src/main/java/dev/custom/shell`;
         assert.include(

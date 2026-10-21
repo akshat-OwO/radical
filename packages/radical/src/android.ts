@@ -104,7 +104,7 @@ export const generateAndroid = (
               styles,
               yield* fs.readFileString(styles),
               '<item name="android:background">@drawable/splash</item>',
-              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${config.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>`
+              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${config.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>`
             )
           );
         }

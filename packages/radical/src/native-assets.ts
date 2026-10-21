@@ -217,9 +217,29 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
           });
         }
       }
+      const splash = input.assets.find(({ file }) => file === "splash.png");
+      if (input.platform === "android" && splash) {
+        // Android 12 fits this drawable into a square system icon. Portrait/landscape
+        // splash resources would stretch its contents when used in that slot.
+        const directory = path.join(
+          input.project,
+          "android/app/src/main/res/drawable-nodpi"
+        );
+        const icon = yield* Effect.tryPromise({
+          try: () => sharp(splash.bytes).resize(1024, 1024).png().toBuffer(),
+          catch: (cause) =>
+            new AssetGenerationFailed({
+              message: `Cannot generate Android system splash: ${String(cause)}`,
+            }),
+        });
+        yield* fs.makeDirectory(directory, { recursive: true });
+        yield* fs.writeFile(
+          path.join(directory, "radical_splash_icon.png"),
+          icon
+        );
+      }
       // iOS rejects launch images whose decoded allocation exceeds 25 MB.
       // The tool emits 2732px RGBA splashes (~30 MB). Bound them to 2048px (~16 MB).
-      const splash = input.assets.find(({ file }) => file === "splash.png");
       if (input.platform === "ios" && splash) {
         for (const file of outputs.filter((name) =>
           name.includes("/Splash.imageset/")

@@ -204,7 +204,8 @@ const invocation: AssetGeneration = {
 };
 const generatorMemory = (
   mode: "success" | "failure" | "missing",
-  output: Uint8Array = new Uint8Array([3])
+  output: Uint8Array = new Uint8Array([3]),
+  request: AssetGeneration = invocation
 ) => {
   const files = new Map<string, Uint8Array>();
   const commands: string[][] = [];
@@ -215,7 +216,7 @@ const generatorMemory = (
     )
   );
   // Template files cannot disguise a CLI that exits successfully without generating anything.
-  for (const file of assetOutputPaths(invocation)) {
+  for (const file of assetOutputPaths(request)) {
     files.set(path.join(project, file), new Uint8Array([99]));
   }
   const spawner = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {
@@ -227,7 +228,7 @@ const generatorMemory = (
           commands.push([...command.args]);
         }
         if (mode === "success") {
-          for (const file of assetOutputPaths(invocation)) {
+          for (const file of assetOutputPaths(request)) {
             files.set(path.join(project, file), output);
           }
         }
@@ -294,6 +295,53 @@ describe("asset generator command boundary", () => {
             /<image name="RadicalSplash[a-f0-9]+" width="1024" height="1024"\/>/u
           );
           assert.notInclude(storyboard, 'image="Splash"');
+        }).pipe(Effect.provide(state.layer));
+      })
+  );
+
+  it.effect(
+    "generates a square Android system splash independently of portrait drawable variants",
+    () =>
+      Effect.gen(function* () {
+        const source = yield* image(2732, "#241044");
+        const request: AssetGeneration = {
+          ...invocation,
+          platform: "android",
+          assets: [{ file: "splash.png", bytes: source }],
+          backgroundColor: "#241044",
+        };
+        const state = generatorMemory(
+          "success",
+          yield* Effect.promise(() =>
+            sharp(source).resize(320, 480).png().toBuffer()
+          ),
+          request
+        );
+        yield* Effect.gen(function* () {
+          const generator = yield* AssetGenerator;
+          yield* generator.generate(request);
+          const output = state.files.get(
+            path.join(
+              project,
+              "android/app/src/main/res/drawable-nodpi/radical_splash_icon.png"
+            )
+          );
+          assert.isDefined(
+            output,
+            "Android system splash needs a dedicated square image"
+          );
+          const metadata = yield* Effect.promise(() =>
+            sharp(output).metadata()
+          );
+          assert.strictEqual(metadata.width, 1024);
+          assert.strictEqual(metadata.height, 1024);
+          const pixel = yield* Effect.promise(() =>
+            sharp(output)
+              .extract({ left: 0, top: 0, width: 1, height: 1 })
+              .raw()
+              .toBuffer()
+          );
+          assert.deepStrictEqual([...pixel], [0x24, 0x10, 0x44, 255]);
         }).pipe(Effect.provide(state.layer));
       })
   );
