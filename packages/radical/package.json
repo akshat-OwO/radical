@@ -46,6 +46,7 @@
   "devDependencies": {
     "@capacitor/android": "catalog:",
     "@capacitor/assets": "catalog:",
+    "@capacitor/camera": "catalog:",
     "@capacitor/cli": "catalog:",
     "@capacitor/core": "catalog:",
     "@capacitor/device": "catalog:",
@@ -69,6 +70,7 @@
   "peerDependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/assets": "3.0.5",
+    "@capacitor/camera": "8.2.6",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@capacitor/device": "^8.0.3",
@@ -104,6 +106,9 @@
       "optional": true
     },
     "@capacitor/assets": {
+      "optional": true
+    },
+    "@capacitor/camera": {
       "optional": true
     }
   }

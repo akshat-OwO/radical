@@ -100,3 +100,56 @@ const echo = plugins.echo.echo({ text: "hello" }).pipe(
 ```
 
 Native rejection codes map to the command's declared `Schema.TaggedError` classes. Undeclared codes and malformed error data stay `BridgeCallFailed`. Invalid manifests, missing config, undeclared native commands, and dependency conflicts fail generation with typed errors. Disabled plugins contribute no sources, imports, dependencies, or native config. Generate both shells again after changing enabled manifests.
+
+## Camera capture and permission
+
+Enable Camera explicitly and install the pinned plugin:
+
+```sh
+pnpm add @capacitor/camera@8.2.6
+```
+
+```ts
+radical({
+  appId: "dev.example.app",
+  internalPlugins: { camera: true },
+  pluginOptions: {
+    Camera: {
+      usageDescription: "Take a photo to attach to your report.",
+      photoLibraryUsageDescription: "Choose a photo to attach to your report.",
+    },
+  },
+});
+```
+
+Regenerate both shells after enabling it. Generation adds Android `CAMERA` with optional camera hardware, and iOS `NSCameraUsageDescription` plus `NSPhotoLibraryUsageDescription`. Both descriptions must contain non-whitespace text and no invalid XML control characters. Camera is disabled by default so existing apps gain no camera permissions.
+
+```tsx
+import { useCamera, useCameraPermission } from "radical/react";
+
+function Camera() {
+  const camera = useCamera();
+  const permission = useCameraPermission();
+  return (
+    <>
+      <p>{permission.error?._tag ?? permission.value ?? "Checking..."}</p>
+      <button onClick={() => permission.request()}>
+        Request camera access
+      </button>
+      <button disabled={camera.loading} onClick={() => camera.capture()}>
+        Take photo
+      </button>
+      <p>{camera.error?._tag}</p>
+      {camera.value && <img src={camera.value.dataUrl} alt="Captured photo" />}
+    </>
+  );
+}
+```
+
+`useCamera()` returns `{ capture, choose, loading, value, error }`. `choose()` opens a single-image library picker. `value` is a `Photo`: `{ dataUrl, mimeType, width?, height? }`. The data URL stays valid after unmount. `width` and `height` are the decoded, orientation-corrected size, present whenever the runtime can decode the image. `useCameraPermission()` returns `{ check, request, loading, value, error }`. It checks after mount, reports `"granted" | "denied" | "prompt"`, and requests only after `request()` is called. `check()` refreshes after returning from system settings. A denied request sets `error` to `PermissionDenied`; a check can return `"denied"` without failing.
+
+`CameraError` is `PermissionDenied | Cancelled | Unavailable | BridgeError`. Unexpected native codes remain `BridgeCallFailed`; invalid native results remain `BridgeDecodeError`. These error classes and result types are exported from `radical/react` and `radical/client`. The client entry also exports `capturePhoto`, `choosePhoto`, `checkCameraPermission`, and `requestCameraPermission` as Effects requiring `Bridge` and `BrowserCamera`. Use `cameraLive(effect)` to supply the default browser service, or an in-memory `BrowserCamera` layer for tests.
+
+Browsers capture through `<input type="file" accept="image/*" capture="environment">`. Desktop browsers usually offer file selection; mobile browsers decide whether to offer a camera. Permission checks use the Permissions API where supported and otherwise report `"prompt"`. Requests require getUserMedia in a secure context and immediately stop the temporary stream. A successful file selection does not imply camera permission was granted.
+
+Both hooks guard server rendering, ignore duplicate actions while busy, interrupt pending work on unmount, and clear state when the provider changes. Browser inputs and readers are cleaned up on success, failure, and interruption. Capacitor cannot dismiss an open native picker on interruption; keep one camera hook mounted until the picker closes. Android process-death restoration is not included. See the [example route](apps/example/src/routes/camera.tsx), [camera decision](docs/adr/0005-camera-capability-hooks.md), and [verification record](docs/verification/camera.md).

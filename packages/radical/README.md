@@ -123,3 +123,7 @@ Startup loads the configured server URL. If that navigation fails or the worker 
 For an allowed main-frame load failure, the shell loads the packaged `templates/offline.html` with `loadHTMLString(_:baseURL:)` and the failed allowed URL as its base. It needs no worker or external assets and follows light and dark appearance. Removing all website data removes snapshots and registrations; uninstalling and reinstalling also removes the saved URL preference. The public `clearWebData` hook remains #24.
 
 Use a production build at HTTPS or localhost. The iOS simulator shares the host network, so `http://localhost:4173` works without port forwarding. Stop preview to test offline. Plain HTTP LAN origins are not secure contexts. See [iOS verification](../../docs/verification/ios-offline.md) for the procedure and screenshots.
+
+## Camera
+
+`radical/react` exports `useCamera` and `useCameraPermission`. Enable `internalPlugins.camera` with `pluginOptions.Camera.usageDescription` and `photoLibraryUsageDescription` and install `@capacitor/camera@8.2.6` before regenerating shells. See the [camera API and configuration](../../README.md#camera-capture-and-permission) for result types, typed errors, browser behavior, and lifecycle limits.

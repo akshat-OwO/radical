@@ -9,6 +9,7 @@ export class NativeTemplateMismatch extends Schema.TaggedError<
   }
 }
 
+/** Function replacements keep user text literal; a string would expand `$&`, `$'`, `` $` `` and `$$`. */
 export const replaceAnchor = (
   file: string,
   source: string,
@@ -19,8 +20,8 @@ export const replaceAnchor = (
     (typeof anchor === "string" ? source.includes(anchor) : anchor.test(source))
       ? Effect.succeed(
           typeof anchor === "string"
-            ? source.replaceAll(anchor, replacement)
-            : source.replace(anchor, replacement)
+            ? source.replaceAll(anchor, () => replacement)
+            : source.replace(anchor, () => replacement)
         )
       : Effect.fail(
           new NativeTemplateMismatch({ file, anchor: String(anchor) })

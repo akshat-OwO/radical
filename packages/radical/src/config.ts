@@ -59,6 +59,7 @@ export const RadicalConfigSchema = Schema.Struct({
   pluginOptions: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   internalPlugins: Schema.optional(
     Schema.Struct({
+      camera: Schema.optional(Schema.Boolean),
       device: Schema.optional(Schema.Boolean),
       transitions: Schema.optional(Schema.Boolean),
     })

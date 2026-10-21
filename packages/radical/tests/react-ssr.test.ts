@@ -4,7 +4,12 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 
 import { bridgeLayer, getDeviceInfo } from "../src/client.ts";
-import { RadicalProvider, useSafeArea } from "../src/react.ts";
+import {
+  RadicalProvider,
+  useSafeArea,
+  useCamera,
+  useCameraPermission,
+} from "../src/react.ts";
 import { useBridgeEffect } from "../src/use-bridge-effect.ts";
 
 const SafeAreaProbe = () =>
@@ -58,6 +63,32 @@ it.effect(
       assert.strictEqual(
         html,
         renderToString(createElement("pre", null, JSON.stringify(area)))
+      );
+    })
+);
+
+const CameraProbe = () => {
+  const camera = useCamera();
+  const permission = useCameraPermission();
+  assert.isFalse(camera.loading);
+  assert.isUndefined(camera.value);
+  assert.isUndefined(permission.value);
+  camera.capture();
+  permission.request();
+  return createElement("p", null, "camera idle");
+};
+it.effect(
+  "guards camera actions during server rendering without reading the bridge",
+  () =>
+    Effect.sync(() => {
+      const layer = bridgeLayer(() =>
+        assert.fail("Camera read bridge during SSR")
+      );
+      assert.strictEqual(
+        renderToString(
+          createElement(RadicalProvider, { layer }, createElement(CameraProbe))
+        ),
+        "<p>camera idle</p>"
       );
     })
 );

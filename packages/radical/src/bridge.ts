@@ -18,13 +18,14 @@ export type BridgeError =
 /** The subset injected by Capacitor 8's native-bridge.js on both platforms. */
 export interface InjectedBridge {
   readonly getPlatform: () => string;
+  readonly convertFileSrc?: (path: string) => string;
   readonly nativePromise: (
     plugin: string,
     method: string,
     options: Readonly<Record<string, unknown>>
   ) => Promise<unknown>;
 }
-const injectedBridge = (): InjectedBridge | undefined =>
+export const injectedBridge = (): InjectedBridge | undefined =>
   typeof window === "undefined"
     ? undefined
     : (window as Window & { Capacitor?: InjectedBridge }).Capacitor;

@@ -84,3 +84,7 @@ Regenerate the small source PNGs with `python3 assets/generate.py` from this dir
 Set `mode: "bundled"` in `vite.config.ts`, keep `origin` pointed at your API, and run `pnpm exec radical android --target emulator-5554`. The CLI builds and packages the UI. On the emulator, use `adb reverse tcp:4173 tcp:4173` for the example's `http://localhost:4173` origin. The API server must run the matching server build. No UI dev server is needed. **Call server function** shows the context returned by the API; Device and the slide and fade links use the native bridge.
 
 Set `mode: "remote"` and regenerate to load from the same origin. For development at port 5173, set `origin` to `http://localhost:5173`, or omit it to use the dev server's recorded URL. The default example origin is port 4173 for production preview. See the root [bundled mode guide](../../README.md#bundled-ui-with-a-remote-api) for API-server setup and authentication limits.
+
+## Camera
+
+Open `/camera` from the home page. The example enables `internalPlugins.camera` with its own usage description. **Check permission** reads current state; **Request permission** prompts for camera access. **Capture photo** opens the native camera or browser capture input, and **Choose photo** opens an image picker. Both display the normalized image and MIME type. On iOS simulators, the camera may open a black viewfinder without producing a frame. Dismiss it to check `Cancelled`, then use **Choose photo** to verify native image results. Use a physical iPhone to verify hardware capture.

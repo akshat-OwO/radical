@@ -5,7 +5,11 @@ import { pathToFileURL } from "node:url";
 import { Effect, Layer, Schema } from "effect";
 
 import type { RadicalConfig } from "./config.ts";
-import { devicePlugin, transitionsPlugin } from "./internal-plugins.ts";
+import {
+  cameraPlugin,
+  devicePlugin,
+  transitionsPlugin,
+} from "./internal-plugins.ts";
 import { InvalidPlugin } from "./invalid-plugin.ts";
 import { resolvePluginDependencies } from "./plugin-dependencies.ts";
 import { PluginModules } from "./plugin-modules.ts";
@@ -168,6 +172,13 @@ export const validatePlugins = (
 export const resolvePlugins = (config: RadicalConfig) =>
   Effect.gen(function* () {
     const plugins: EnabledPlugin[] = [];
+    if (config.internalPlugins?.camera === true) {
+      plugins.push({
+        manifest: cameraPlugin,
+        module: "radical/internal-plugins",
+        selector: "cameraPlugin",
+      });
+    }
     if (config.internalPlugins?.device !== false) {
       plugins.push({
         manifest: devicePlugin,

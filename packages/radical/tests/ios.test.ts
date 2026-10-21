@@ -47,6 +47,7 @@ const memory = (
     "@capacitor/core": "8.5.3",
     "@capacitor/ios": "8.6.1",
     "@capacitor/device": "8.0.3",
+    "@capacitor/camera": "8.2.6",
   })) {
     files.set(
       require.resolve(`${name}/package.json`),
@@ -380,6 +381,31 @@ describe("iOS shell generation", () => {
           "<key>WKAppBoundDomains</key><array><string>app.test</string></array>"
         );
         assert.notInclude(plist, "NSAppTransportSecurity");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "writes camera usage text with replacement patterns literally into Info.plist",
+    () => {
+      const usageDescription = "Price $& tax $' after $` before $$ total";
+      const photoLibraryUsageDescription = "Pick $& or $$";
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { camera: true },
+        pluginOptions: {
+          Camera: { usageDescription, photoLibraryUsageDescription },
+        },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const plist =
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+        assert.include(
+          plist,
+          `<key>NSCameraUsageDescription</key><string>${usageDescription.replaceAll("&", "&amp;")}</string><key>NSPhotoLibraryUsageDescription</key><string>${photoLibraryUsageDescription.replaceAll("&", "&amp;")}</string>\n</dict>\n</plist>`
+        );
+        assert.strictEqual(plist.match(/<\/plist>/gu)?.length, 1);
       }).pipe(Effect.provide(state.layer));
     }
   );

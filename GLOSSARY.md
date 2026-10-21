@@ -32,6 +32,10 @@ _Avoid_: Wrapper, container, native app (when meaning the host)
 The channel through which web code calls native capabilities in the shell.\
 _Avoid_: Interface, JSI, IPC
 
+**Capability hook**:\
+A UI hook that exposes one native capability and its browser fallback.\
+_Avoid_: Native hook, device hook
+
 **Native plugin**:\
 A unit of native capability that exposes commands over the bridge.\
 _Avoid_: Extension, module
