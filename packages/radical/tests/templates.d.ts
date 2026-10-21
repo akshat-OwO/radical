@@ -16,3 +16,8 @@ declare module "*.html?raw" {
   const content: string;
   export default content;
 }
+
+declare module "*.storyboard?raw" {
+  const source: string;
+  export default source;
+}

@@ -6,6 +6,9 @@ import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../apps/example/plugins/EchoPlugin.java?raw";
 import { generateAndroid } from "../src/android.ts";
+import { AssetGenerationFailed } from "../src/asset-generation-failed.ts";
+import type { AssetGeneration } from "../src/native-assets.ts";
+import { AssetGenerator } from "../src/native-assets.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
@@ -18,6 +21,7 @@ import gradle from "../templates/android/radical.gradle?raw";
 import transitions from "../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../templates/offline.html?raw";
 import { echo } from "./fixtures/echo-plugin.ts";
+import { image } from "./fixtures/image.ts";
 
 const destination = "/app/.radical/android";
 const mainActivity = `${destination}/android/app/src/main/java/dev/radical/example/MainActivity.java`;
@@ -44,6 +48,7 @@ const memory = (
   ]);
   const require = createRequire(import.meta.url);
   for (const [name, version] of Object.entries({
+    "@capacitor/assets": "3.0.5",
     "@capacitor/core": "8.5.3",
     "@capacitor/android": "8.6.1",
     "@capacitor/device": "8.0.3",
@@ -54,7 +59,24 @@ const memory = (
     );
   }
   const commands: string[][] = [];
+  const binaries = new Map<string, Uint8Array>();
+  const assetCalls: AssetGeneration[] = [];
+  const control = { failAssets: false };
   const fs = FileSystem.layerNoop({
+    readFile: (name) =>
+      Effect.suspend(() => {
+        const bytes = binaries.get(name);
+        return bytes === undefined
+          ? Effect.fail(
+              PlatformError.systemError({
+                _tag: "NotFound",
+                module: "FileSystem",
+                method: "readFile",
+                pathOrDescriptor: name,
+              })
+            )
+          : Effect.succeed(bytes);
+      }),
     readFileString: (name) =>
       Effect.suspend(() => {
         const content = files.get(name);
@@ -108,6 +130,10 @@ const memory = (
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>'
           );
           files.set(
+            `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
+            '<resources><style name="AppTheme.NoActionBarLaunch"><item name="android:background">@drawable/splash</item></style></resources>'
+          );
+          files.set(
             `${command.options.cwd}/android/app/build.gradle`,
             "// Capacitor app"
           );
@@ -121,10 +147,26 @@ const memory = (
   });
   return {
     files,
+    binaries,
+    assetCalls,
+    control,
     commands,
     layer: Layer.mergeAll(
       fs,
       spawner,
+      Layer.succeed(AssetGenerator, {
+        generate: (input) =>
+          Effect.suspend(() => {
+            assetCalls.push(input);
+            return control.failAssets
+              ? Effect.fail(
+                  new AssetGenerationFailed({
+                    message: "Fake generator failed",
+                  })
+                )
+              : Effect.void;
+          }),
+      }),
       Layer.succeed(PluginModules, {
         load: (module) =>
           module === "./plugins/echo.ts"
@@ -396,10 +438,161 @@ describe("Android shell generation", () => {
       const state = memory(false, { appId: "../outside" });
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
-        assert.strictEqual(error._tag, "SchemaError");
+        assert.strictEqual(error._tag, "InvalidConfig");
         assert.deepStrictEqual(state.commands, []);
         assert.isFalse(state.files.has(mainActivity));
       }).pipe(Effect.provide(state.layer));
     }
   );
+});
+
+describe("android app identity", () => {
+  it.effect(
+    "reports invalid android fallback and explicit ids with an actionable typed error",
+    () =>
+      Effect.gen(function* () {
+        for (const config of [
+          { appId: "dev.class.app" },
+          { ...defaultConfig, android: { packageId: "dev.class.app" } },
+        ]) {
+          const state = memory(false, config);
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "android");
+          assert.include(error.message, "dev.class.app");
+          assert.include(error.message, "android.packageId");
+          assert.include(error.message, "Java keyword");
+          assert.isEmpty(state.commands);
+        }
+        const state = memory(false, {
+          appId: "dev.class.app",
+          android: { packageId: "dev.valid.app" },
+        });
+        yield* generate.pipe(Effect.provide(state.layer));
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          "dev.valid.app"
+        );
+        assert.isNotEmpty(state.commands);
+      })
+  );
+
+  it.effect(
+    "regenerates the platform identity and passes changed icon and splash pixels to the generator",
+    () => {
+      const config = {
+        ...defaultConfig,
+        name: "Shared",
+        android: { name: "Platform name", packageId: "dev.custom.shell" },
+        icon: "icon.png",
+        splash: { image: "splash.png", backgroundColor: "#241044" },
+      };
+      const state = memory(false, config);
+      return Effect.gen(function* () {
+        state.binaries.set("/app/icon.png", yield* image(1024));
+        state.binaries.set("/app/splash.png", yield* image(2732));
+        yield* generate;
+        const nativeConfig = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({ appId: Schema.String, appName: Schema.String })
+          )
+        )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+        assert.deepStrictEqual(nativeConfig, {
+          appId: "dev.custom.shell",
+          appName: "Platform name",
+        });
+        assert.include(
+          state.files.get(`${destination}/package.json`) ?? "",
+          '"@capacitor/assets":"3.0.5"'
+        );
+        assert.strictEqual(state.assetCalls[0].platform, "android");
+        assert.strictEqual(state.assetCalls[0].backgroundColor, "#241044");
+        const first = state.assetCalls[0].assets;
+        state.binaries.set("/app/icon.png", yield* image(1024, "#ff0000"));
+        state.binaries.set("/app/splash.png", yield* image(2732, "#00ff00"));
+        state.files.set(
+          "/app/.radical/native.json",
+          JSON.stringify({
+            config: {
+              ...config,
+              android: { ...config.android, name: "Renamed shell" },
+            },
+            url: "http://192.168.1.2:3000",
+          })
+        );
+        yield* generate;
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          '"appName":"Renamed shell"'
+        );
+        assert.strictEqual(state.assetCalls.length, 2);
+        assert.notDeepEqual(
+          state.assetCalls[1].assets.find(
+            ({ file }) => file === "icon-only.png"
+          )?.bytes,
+          first.find(({ file }) => file === "icon-only.png")?.bytes
+        );
+        assert.notDeepEqual(
+          state.assetCalls[1].assets.find(({ file }) => file === "splash.png")
+            ?.bytes,
+          first.find(({ file }) => file === "splash.png")?.bytes
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/android/app/src/main/res/values/styles.xml`
+          ) ?? "",
+          '<item name="windowSplashScreenBackground">#241044</item>'
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/android/app/src/main/res/values/styles.xml`
+          ) ?? "",
+          '<item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>'
+        );
+        const prefix = `${destination}/android/app/src/main/java/dev/custom/shell`;
+        assert.include(
+          state.files.get(`${prefix}/MainActivity.java`) ?? "",
+          "package dev.custom.shell;"
+        );
+        assert.include(
+          state.files.get(`${prefix}/RadicalTransitionsPlugin.java`) ?? "",
+          "package dev.custom.shell;"
+        );
+        assert.isFalse(state.files.has(mainActivity));
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("keeps the previous shell when the asset generator fails", () => {
+    const state = memory(false, { ...defaultConfig, icon: "icon.png" });
+    return Effect.gen(function* () {
+      state.binaries.set("/app/icon.png", yield* image(1024));
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+      state.control.failAssets = true;
+      const error = yield* Effect.flip(generate);
+      assert.strictEqual(error._tag, "AssetGenerationFailed");
+      assert.strictEqual(
+        state.files.get(`${destination}/previous.txt`),
+        "usable shell"
+      );
+      assert.isFalse(
+        [...state.files.keys()].some((key) =>
+          key.startsWith(`${destination}.next/`)
+        )
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
+  it.effect("rejects a missing icon before invoking any tool", () => {
+    const state = memory(false, { ...defaultConfig, icon: "missing.png" });
+    return Effect.gen(function* () {
+      const error = yield* Effect.flip(generate);
+      assert.strictEqual(error._tag, "InvalidAsset");
+      assert.include(error.message, "/app/missing.png");
+      assert.isEmpty(state.commands);
+      assert.isEmpty(state.assetCalls);
+    }).pipe(Effect.provide(state.layer));
+  });
 });

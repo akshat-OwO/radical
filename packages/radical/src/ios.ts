@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Schema } from "effect";
 
 import { InvalidConfig } from "./config.ts";
+import { iosSplashResourceName } from "./native-assets.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
 import { offlineSnapshotCheckScript } from "./native-offline.ts";
 import {
@@ -43,6 +44,7 @@ export const generateIos = (
       template,
       {
         __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
+        __SPLASH_NAME__: JSON.stringify(iosSplashResourceName(native.assets)),
         __URL__: JSON.stringify(native.url),
         __SNAPSHOT_CHECK__: JSON.stringify(
           `(() => { const radicalOffline = window.webkit.messageHandlers.radicalOffline; return (${offlineSnapshotCheckScript(native.config.appId)})(location.href); })()`
@@ -69,6 +71,30 @@ export const generateIos = (
     return yield* generateNativeProject(root, "ios", native, (staging) =>
       Effect.gen(function* () {
         const app = path.join(staging, "ios/App/App");
+        if (native.config.splash) {
+          const color = native.config.splash.backgroundColor;
+          const storyboard = "LaunchScreen.storyboard";
+          yield* fs.writeFileString(
+            path.join(app, "Base.lproj", storyboard),
+            yield* renderTemplate(
+              storyboard,
+              yield* fs.readFileString(
+                path.join(packageRoot, "templates/ios", storyboard)
+              ),
+              {
+                __BACKGROUND_RED__: String(
+                  Number.parseInt(color.slice(1, 3), 16) / 255
+                ),
+                __BACKGROUND_GREEN__: String(
+                  Number.parseInt(color.slice(3, 5), 16) / 255
+                ),
+                __BACKGROUND_BLUE__: String(
+                  Number.parseInt(color.slice(5, 7), 16) / 255
+                ),
+              }
+            )
+          );
+        }
         const delegate = path.join(app, "AppDelegate.swift");
         yield* fs.writeFileString(
           delegate,

@@ -5,16 +5,21 @@ import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../apps/example/plugins/EchoPlugin.swift?raw";
+import { AssetGenerationFailed } from "../src/asset-generation-failed.ts";
 import { generateIos } from "../src/ios.ts";
+import type { AssetGeneration } from "../src/native-assets.ts";
+import { AssetGenerator } from "../src/native-assets.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
 import { PluginModules } from "../src/plugin-modules.ts";
+import launchScreen from "../templates/ios/LaunchScreen.storyboard?raw";
 import transitions from "../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../templates/offline.html?raw";
 import { echo } from "./fixtures/echo-plugin.ts";
+import { image } from "./fixtures/image.ts";
 
 const destination = "/app/.radical/ios";
 const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
@@ -32,11 +37,13 @@ const memory = (
     ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
+    ["/package/templates/ios/LaunchScreen.storyboard", launchScreen],
     ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
   ]);
   const require = createRequire(import.meta.url);
   for (const [name, version] of Object.entries({
+    "@capacitor/assets": "3.0.5",
     "@capacitor/core": "8.5.3",
     "@capacitor/ios": "8.6.1",
     "@capacitor/device": "8.0.3",
@@ -47,7 +54,24 @@ const memory = (
     );
   }
   const commands: string[][] = [];
+  const binaries = new Map<string, Uint8Array>();
+  const assetCalls: AssetGeneration[] = [];
+  const control = { failAssets: false };
   const fs = FileSystem.layerNoop({
+    readFile: (name) =>
+      Effect.suspend(() => {
+        const bytes = binaries.get(name);
+        return bytes === undefined
+          ? Effect.fail(
+              PlatformError.systemError({
+                _tag: "NotFound",
+                module: "FileSystem",
+                method: "readFile",
+                pathOrDescriptor: name,
+              })
+            )
+          : Effect.succeed(bytes);
+      }),
     readFileString: (name) =>
       Effect.suspend(() => {
         const content = files.get(name);
@@ -122,10 +146,26 @@ const memory = (
   });
   return {
     files,
+    binaries,
+    assetCalls,
+    control,
     commands,
     layer: Layer.mergeAll(
       fs,
       spawner,
+      Layer.succeed(AssetGenerator, {
+        generate: (input) =>
+          Effect.suspend(() => {
+            assetCalls.push(input);
+            return control.failAssets
+              ? Effect.fail(
+                  new AssetGenerationFailed({
+                    message: "Fake generator failed",
+                  })
+                )
+              : Effect.void;
+          }),
+      }),
       Layer.succeed(PluginModules, {
         load: (module) =>
           module === "./plugins/echo.ts"
@@ -476,10 +516,157 @@ describe("iOS shell generation", () => {
       const state = memory(false, { appId: "../outside" });
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
-        assert.strictEqual(error._tag, "SchemaError");
+        assert.strictEqual(error._tag, "InvalidConfig");
         assert.deepStrictEqual(state.commands, []);
         assert.isFalse(state.files.has(appDelegate));
       }).pipe(Effect.provide(state.layer));
     }
   );
+});
+
+describe("ios app identity", () => {
+  it.effect(
+    "reports invalid ios fallback and explicit ids with an actionable typed error",
+    () =>
+      Effect.gen(function* () {
+        for (const config of [
+          { appId: "dev.my_app" },
+          { ...defaultConfig, ios: { bundleId: "dev.my_app" } },
+        ]) {
+          const state = memory(false, config);
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "ios");
+          assert.include(error.message, "dev.my_app");
+          assert.include(error.message, "ios.bundleId");
+          assert.include(error.message, "letters, digits and hyphens");
+          assert.isEmpty(state.commands);
+        }
+        const state = memory(false, {
+          appId: "dev.my_app",
+          ios: { bundleId: "dev.valid.app" },
+        });
+        yield* generate.pipe(Effect.provide(state.layer));
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          "dev.valid.app"
+        );
+        assert.isNotEmpty(state.commands);
+      })
+  );
+
+  it.effect(
+    "regenerates the platform identity and passes changed icon and splash pixels to the generator",
+    () => {
+      const config = {
+        ...defaultConfig,
+        name: "Shared",
+        ios: { name: "Platform name", bundleId: "dev.custom.shell" },
+        icon: "icon.png",
+        splash: { image: "splash.png", backgroundColor: "#241044" },
+      };
+      const state = memory(false, config);
+      return Effect.gen(function* () {
+        state.binaries.set("/app/icon.png", yield* image(1024));
+        state.binaries.set("/app/splash.png", yield* image(2732));
+        yield* generate;
+        const nativeConfig = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({ appId: Schema.String, appName: Schema.String })
+          )
+        )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+        assert.deepStrictEqual(nativeConfig, {
+          appId: "dev.custom.shell",
+          appName: "Platform name",
+        });
+        assert.include(
+          state.files.get(`${destination}/package.json`) ?? "",
+          '"@capacitor/assets":"3.0.5"'
+        );
+        assert.strictEqual(state.assetCalls[0].platform, "ios");
+        const storyboard =
+          state.files.get(
+            `${destination}/ios/App/App/Base.lproj/LaunchScreen.storyboard`
+          ) ?? "";
+        assert.include(
+          storyboard,
+          `red="${0x24 / 255}" green="${0x10 / 255}" blue="${0x44 / 255}"`
+        );
+        assert.include(
+          storyboard,
+          'secondItem="launch-view" secondAttribute="top"'
+        );
+        const source = state.files.get(appDelegate) ?? "";
+        assert.match(source, /let splashName = "RadicalSplash[a-f0-9]+"/u);
+        assert.include(source, "view.addSubview(splash)");
+        assert.include(source, "proxy.onDocumentReady = { [weak self] in");
+        assert.include(source, "self?.startupSplash?.removeFromSuperview()");
+        assert.include(source, "onDocumentReady?()");
+        assert.strictEqual(state.assetCalls[0].backgroundColor, "#241044");
+        const first = state.assetCalls[0].assets;
+        state.binaries.set("/app/icon.png", yield* image(1024, "#ff0000"));
+        state.binaries.set("/app/splash.png", yield* image(2732, "#00ff00"));
+        state.files.set(
+          "/app/.radical/native.json",
+          JSON.stringify({
+            config: {
+              ...config,
+              ios: { ...config.ios, name: "Renamed shell" },
+            },
+            url: "http://192.168.1.2:3000",
+          })
+        );
+        yield* generate;
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          '"appName":"Renamed shell"'
+        );
+        assert.strictEqual(state.assetCalls.length, 2);
+        assert.notDeepEqual(
+          state.assetCalls[1].assets.find(
+            ({ file }) => file === "icon-only.png"
+          )?.bytes,
+          first.find(({ file }) => file === "icon-only.png")?.bytes
+        );
+        assert.notDeepEqual(
+          state.assetCalls[1].assets.find(({ file }) => file === "splash.png")
+            ?.bytes,
+          first.find(({ file }) => file === "splash.png")?.bytes
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("keeps the previous shell when the asset generator fails", () => {
+    const state = memory(false, { ...defaultConfig, icon: "icon.png" });
+    return Effect.gen(function* () {
+      state.binaries.set("/app/icon.png", yield* image(1024));
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+      state.control.failAssets = true;
+      const error = yield* Effect.flip(generate);
+      assert.strictEqual(error._tag, "AssetGenerationFailed");
+      assert.strictEqual(
+        state.files.get(`${destination}/previous.txt`),
+        "usable shell"
+      );
+      assert.isFalse(
+        [...state.files.keys()].some((key) =>
+          key.startsWith(`${destination}.next/`)
+        )
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
+  it.effect("rejects a missing icon before invoking any tool", () => {
+    const state = memory(false, { ...defaultConfig, icon: "missing.png" });
+    return Effect.gen(function* () {
+      const error = yield* Effect.flip(generate);
+      assert.strictEqual(error._tag, "InvalidAsset");
+      assert.include(error.message, "/app/missing.png");
+      assert.isEmpty(state.commands);
+      assert.isEmpty(state.assetCalls);
+    }).pipe(Effect.provide(state.layer));
+  });
 });

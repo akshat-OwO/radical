@@ -4,7 +4,15 @@ import path from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import semver from "semver";
 
-import { HttpOriginSchema, RadicalConfigSchema } from "./config.ts";
+import {
+  HttpOriginSchema,
+  InvalidConfig,
+  RadicalConfigSchema,
+  nativeIdentity,
+  AndroidPackageIdSchema,
+  IosBundleIdSchema,
+} from "./config.ts";
+import { AssetGenerator, prepareNativeAssets } from "./native-assets.ts";
 import { encodeNativeContextCookie } from "./native-context.ts";
 import { replaceAnchor } from "./native-template.ts";
 import { resolvePlugins, InvalidPlugin } from "./plugin-plan.ts";
@@ -41,7 +49,8 @@ export const nativeCookiePlan = (origins: readonly string[]) => {
 export const capacitor = (
   platform: "android" | "ios",
   plugins: readonly EnabledPlugin[],
-  root: string
+  root: string,
+  assets = false
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -53,6 +62,7 @@ export const capacitor = (
           ...new Set([
             "@capacitor/core",
             `@capacitor/${platform}`,
+            ...(assets ? ["@capacitor/assets"] : []),
             ...plugins.flatMap(({ manifest }) =>
               Object.keys(manifest.dependencies)
             ),
@@ -71,7 +81,7 @@ export const capacitor = (
       }),
       catch: (cause) =>
         new NativeToolchainUnavailable({
-          message: `Install the enabled plugins' npm dependencies and @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8 to generate a ${platform} shell: ${String(cause)}`,
+          message: `Install the enabled plugins' npm dependencies and @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8, plus @capacitor/assets@3.0.5 for icons or splash, to generate a ${platform} shell: ${String(cause)}`,
         }),
     });
     const packages = yield* Effect.forEach(
@@ -86,6 +96,11 @@ export const capacitor = (
         )
     )(resolved.packages);
     for (const entry of packages) {
+      if (entry.name === "@capacitor/assets" && entry.version !== "3.0.5") {
+        return yield* new NativeToolchainUnavailable({
+          message: `Install @capacitor/assets@3.0.5 to generate icons or splash; installed ${entry.version}`,
+        });
+      }
       for (const { manifest } of plugins) {
         const range = manifest.dependencies[entry.name];
         if (range !== undefined && !semver.satisfies(entry.version, range)) {
@@ -113,7 +128,21 @@ export const readNativeProject = (
     );
     const { config, url } = yield* Schema.decodeEffect(
       Schema.fromJsonString(nativeConfigSchema)
-    )(native);
+    )(native).pipe(
+      Effect.mapError(
+        (error) =>
+          new InvalidConfig({
+            message: `Invalid radical config: ${error.message}`,
+          })
+      )
+    );
+    const identity = nativeIdentity(config, platform);
+    yield* Schema.decodeEffect(
+      platform === "android" ? AndroidPackageIdSchema : IosBundleIdSchema
+    )(identity.appId).pipe(
+      Effect.mapError((error) => new InvalidConfig({ message: error.message }))
+    );
+    const assets = yield* prepareNativeAssets(root, config);
     const plugins = yield* resolvePlugins(config);
     const { origin } = new URL(url);
     const origins = [...new Set([origin, ...(config.allowlist ?? [])])];
@@ -134,6 +163,8 @@ export const readNativeProject = (
     });
     return {
       config,
+      identity,
+      assets,
       url,
       origins,
       cookie,
@@ -162,7 +193,12 @@ export const generateNativeProject = <E, R>(
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { cli, packages } = yield* capacitor(platform, native.plugins, root);
+    const { cli, packages } = yield* capacitor(
+      platform,
+      native.plugins,
+      root,
+      native.assets.length > 0
+    );
     const { config, url } = native;
     return yield* replaceProject(
       path.join(root, `.radical/${platform}`),
@@ -201,8 +237,8 @@ export const generateNativeProject = <E, R>(
           yield* fs.writeFileString(
             path.join(staging, "capacitor.config.json"),
             JSON.stringify({
-              appId: config.appId,
-              appName: config.appName ?? config.appId,
+              appId: native.identity.appId,
+              appName: native.identity.name,
               webDir: "www",
               // Radical serves packaged startup/fallback pages to worker fetches.
               // Capacitor's default client would replace it during bridge setup.
@@ -239,6 +275,15 @@ export const generateNativeProject = <E, R>(
           );
           yield* execute(process.execPath, [cli, "add", platform], staging);
           yield* customize(staging);
+          if (native.assets.length > 0) {
+            const generator = yield* AssetGenerator;
+            yield* generator.generate({
+              project: staging,
+              platform,
+              assets: native.assets,
+              backgroundColor: config.splash?.backgroundColor ?? "#ffffff",
+            });
+          }
         })
     );
   });

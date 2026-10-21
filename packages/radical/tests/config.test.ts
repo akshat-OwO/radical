@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { validateConfig } from "../src/config.ts";
+import { nativeIdentity, validateConfig } from "../src/config.ts";
 
 describe("radical config", () => {
   it.effect("accepts an app id and optional app name", () =>
@@ -71,3 +71,65 @@ describe("radical config", () => {
       })
   );
 });
+
+it.effect(
+  "resolves shared names, legacy names, platform overrides and default ids",
+  () =>
+    Effect.gen(function* () {
+      const config = yield* validateConfig({
+        appId: "dev.example.app",
+        appName: "Legacy",
+        name: "Shared",
+        android: { name: "Android", packageId: "dev.android.app" },
+        ios: { bundleId: "dev.ios.my-app" },
+      });
+      assert.deepStrictEqual(nativeIdentity(config, "android"), {
+        appId: "dev.android.app",
+        name: "Android",
+      });
+      assert.deepStrictEqual(nativeIdentity(config, "ios"), {
+        appId: "dev.ios.my-app",
+        name: "Shared",
+      });
+      assert.deepStrictEqual(
+        nativeIdentity({ appId: "dev.example.app", appName: "Legacy" }, "ios"),
+        { appId: "dev.example.app", name: "Legacy" }
+      );
+      assert.deepStrictEqual(
+        nativeIdentity({ appId: "dev.example.app" }, "android"),
+        { appId: "dev.example.app", name: "dev.example.app" }
+      );
+    })
+);
+
+it.effect(
+  "rejects invalid native ids, empty names and non-RGB splash colours by field",
+  () =>
+    Effect.gen(function* () {
+      for (const [field, value] of [
+        ["android", { android: { packageId: "dev.my-app" } }],
+        ["android", { android: { packageId: "dev.class.app" } }],
+        ["android", { android: { packageId: "dev.1app" } }],
+        ["ios", { ios: { bundleId: "dev.my_app" } }],
+        ["ios", { ios: { bundleId: "dev..app" } }],
+        ["ios", { ios: { bundleId: "dev.app\n" } }],
+        ["icon", { icon: { image: "icon.png", backgroundColor: "#fff" } }],
+        ["name", { name: "" }],
+        ["android", { android: { name: "" } }],
+        ["ios", { ios: { name: "" } }],
+        ...["red", "#fff", "#ffffffff", "#gg0000", "#123456\n"].map(
+          (backgroundColor) =>
+            [
+              "backgroundColor",
+              { splash: { image: "splash.png", backgroundColor } },
+            ] as const
+        ),
+      ] as const) {
+        const error = yield* Effect.flip(
+          validateConfig({ appId: "dev.example.app", ...value })
+        );
+        assert.strictEqual(error._tag, "InvalidConfig");
+        assert.include(error.message, field);
+      }
+    })
+);

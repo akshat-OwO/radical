@@ -8,7 +8,14 @@ export default defineConfig({
     tanstackStart(),
     radical({
       appId: "dev.radical.example",
-      appName: "Radical example",
+      name: "Radical",
+      android: {
+        name: "Radical Android",
+        packageId: "dev.radical.example.android",
+      },
+      ios: { name: "Radical iOS", bundleId: "dev.radical.example.ios" },
+      icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
+      splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
       plugins: [{ manifest: "./plugins/echo.ts" }],
       pluginOptions: { Echo: { prefix: "Native: " } },
       devHost: "localhost",

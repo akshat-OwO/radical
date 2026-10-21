@@ -14,6 +14,37 @@ export const HttpOriginSchema = Schema.String.check(
   })
 );
 
+const javaKeywords = new Set(
+  "abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null _".split(
+    " "
+  )
+);
+export const AndroidPackageIdSchema = Schema.String.check(
+  Schema.makeFilter((value) => {
+    const invalid = (reason: string) =>
+      `Invalid android package id ${JSON.stringify(value)}: ${reason}. Set android.packageId to a valid package id.`;
+    if (!/^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/u.test(value)) {
+      return invalid(
+        "use at least two dot-separated segments starting with a letter and containing only letters, digits and underscores"
+      );
+    }
+    if (value.split(".").some((part) => javaKeywords.has(part))) {
+      return invalid("segments must not be a Java keyword");
+    }
+    return true;
+  })
+);
+export const IosBundleIdSchema = Schema.String.check(
+  Schema.makeFilter((value) =>
+    /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u.test(value)
+      ? undefined
+      : `Invalid ios bundle id ${JSON.stringify(value)}: use at least two dot-separated segments containing only letters, digits and hyphens. Set ios.bundleId to a valid bundle id.`
+  )
+);
+export const SplashColorSchema = Schema.String.check(
+  Schema.isPattern(/^#[A-Fa-f0-9]{6}$/u)
+);
+
 export const RadicalConfigSchema = Schema.Struct({
   plugins: Schema.optional(
     Schema.Array(
@@ -40,6 +71,45 @@ export const RadicalConfigSchema = Schema.Struct({
     Schema.String.check(Schema.isPattern(/^[a-zA-Z0-9.-]+$/u))
   ),
   appName: Schema.optional(Schema.NonEmptyString),
+  name: Schema.optional(Schema.NonEmptyString),
+  android: Schema.optional(
+    Schema.Struct({
+      name: Schema.optional(Schema.NonEmptyString),
+      packageId: Schema.optional(AndroidPackageIdSchema),
+    })
+  ),
+  ios: Schema.optional(
+    Schema.Struct({
+      name: Schema.optional(Schema.NonEmptyString),
+      bundleId: Schema.optional(IosBundleIdSchema),
+    })
+  ),
+  icon: Schema.optional(
+    Schema.Union([
+      Schema.NonEmptyString,
+      Schema.Struct({
+        image: Schema.NonEmptyString,
+        backgroundColor: Schema.optional(SplashColorSchema),
+      }),
+    ])
+  ),
+  splash: Schema.optional(
+    Schema.Struct({
+      image: Schema.NonEmptyString,
+      backgroundColor: SplashColorSchema,
+    })
+  ),
+});
+
+export const nativeIdentity = (
+  config: RadicalConfig,
+  platform: "android" | "ios"
+) => ({
+  appId:
+    platform === "android"
+      ? (config.android?.packageId ?? config.appId)
+      : (config.ios?.bundleId ?? config.appId),
+  name: config[platform]?.name ?? config.name ?? config.appName ?? config.appId,
 });
 
 export type RadicalConfig = typeof RadicalConfigSchema.Type;
