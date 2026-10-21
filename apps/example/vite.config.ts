@@ -9,6 +9,8 @@ export default defineConfig({
     radical({
       appId: "dev.radical.example",
       appName: "Radical example",
+      plugins: [{ manifest: "./plugins/echo.ts" }],
+      pluginOptions: { Echo: { prefix: "Native: " } },
       devHost: "localhost",
     }),
     react(),

@@ -9,6 +9,8 @@ import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
+import { PluginModules } from "../src/plugin-modules.ts";
+import transitions from "../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../templates/offline.html?raw";
 
@@ -24,6 +26,7 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
     ["/package/templates/offline.html", offlinePage],
@@ -114,12 +117,65 @@ const memory = (
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
   });
-  return { files, commands, layer: Layer.merge(fs, spawner) };
+  return {
+    files,
+    commands,
+    layer: Layer.mergeAll(
+      fs,
+      spawner,
+      Layer.succeed(PluginModules, {
+        load: () => Effect.die("Unexpected manifest load"),
+      })
+    ),
+  };
 };
 
 const generate = generateIos("/app", "/package");
 
 describe("iOS shell generation", () => {
+  it.effect(
+    "omits disabled internal dependencies, registration and sources",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { device: false, transitions: false },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.notInclude(
+          state.files.get(`${destination}/package.json`) ?? "",
+          "@capacitor/device"
+        );
+        assert.isFalse(
+          state.files.has(`${destination}/node_modules/@capacitor/device`)
+        );
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "RadicalTransitionsPlugin"
+        );
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "class RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("registers and includes the internal transitions source", () => {
+    const state = memory();
+    return Effect.gen(function* () {
+      yield* generate;
+      assert.include(
+        state.files.get(appDelegate) ?? "",
+        "registerPluginInstance(RadicalTransitionsPlugin())"
+      );
+      assert.include(
+        state.files.get(appDelegate) ?? "",
+        "class RadicalTransitionsPlugin"
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
   it.effect(
     "generates a Capacitor project with the encoded shared native context",
     () => {

@@ -4,6 +4,8 @@ export default defineConfig({
   pack: {
     entry: [
       "src/vite.ts",
+      "src/plugins.ts",
+      "src/internal-plugins.ts",
       "src/cli.ts",
       "src/tanstack-start.ts",
       "src/tanstack-start-client.ts",

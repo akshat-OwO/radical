@@ -1,24 +1,11 @@
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
-import { Bridge, callBridge } from "./bridge.ts";
+import { Bridge } from "./bridge.ts";
+import type { DeviceInfo } from "./device-info-schema.ts";
+import { devicePlugin } from "./internal-plugins.ts";
+import { callPlugin } from "./plugins.ts";
 
-/** Common subset of the official Device.getInfo result and browser observations. */
-export const DeviceInfoSchema = Schema.Struct({
-  platform: Schema.Literals(["android", "ios", "web"]),
-  model: Schema.String,
-  operatingSystem: Schema.Literals([
-    "android",
-    "ios",
-    "windows",
-    "mac",
-    "linux",
-    "unknown",
-  ]),
-  osVersion: Schema.String,
-  manufacturer: Schema.String,
-  isVirtual: Schema.Boolean,
-});
-export type DeviceInfo = typeof DeviceInfoSchema.Type;
+export { DeviceInfoSchema, type DeviceInfo } from "./device-info-schema.ts";
 
 export interface BrowserDeviceSource {
   readonly userAgent: string;
@@ -73,7 +60,12 @@ export const getDeviceInfo = Effect.gen(function* () {
   const bridge = yield* Bridge;
   const runtime = yield* bridge.runtime;
   if (runtime !== "browser") {
-    return yield* callBridge("Device", "getInfo", DeviceInfoSchema);
+    return yield* callPlugin(
+      devicePlugin.bridge,
+      "getInfo",
+      devicePlugin.commands.getInfo,
+      {}
+    );
   }
   return yield* Effect.sync(() =>
     browserDeviceInfo(

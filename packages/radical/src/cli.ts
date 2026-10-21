@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { Command, Flag } from "effect/cli";
 
 import { generateAndroid, runAndroid } from "./android.ts";
+import { InvalidPlugin } from "./invalid-plugin.ts";
 import { generateIos, runIos } from "./ios.ts";
+import { pluginModulesLayer } from "./plugin-plan.ts";
 
 const android = Command.make(
   "android",
@@ -33,11 +35,29 @@ const ios = Command.make(
       )
     )
 );
+const typegen = Command.make("typegen", {}, () =>
+  Effect.tryPromise({
+    try: () => import("vite"),
+    catch: (cause) => new InvalidPlugin({ message: String(cause) }),
+  }).pipe(
+    Effect.flatMap(({ resolveConfig }) =>
+      Effect.tryPromise({
+        try: () => resolveConfig({}, "build"),
+        catch: (cause) =>
+          new InvalidPlugin({
+            message: `Cannot generate plugin types: ${String(cause)}`,
+          }),
+      })
+    )
+  )
+);
 const cli = Command.make("radical").pipe(
-  Command.withSubcommands([android, ios])
+  Command.withSubcommands([android, ios, typegen])
 );
 Command.run(cli, { version: "0.0.0" }).pipe(
-  Effect.provide(NodeServices.layer),
+  Effect.provide(
+    Layer.merge(pluginModulesLayer(process.cwd()), NodeServices.layer)
+  ),
   (program) => {
     NodeRuntime.runMain(program);
   }

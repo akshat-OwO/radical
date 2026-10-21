@@ -1,11 +1,11 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer } from "effect";
 
-import { Bridge, callBridge } from "./bridge.ts";
+import { Bridge } from "./bridge.ts";
 import type { Transition } from "./browser-transitions.ts";
+import { transitionsPlugin } from "./internal-plugins.ts";
+import { callPlugin } from "./plugins.ts";
 import { TransitionFailed } from "./transition-error.ts";
 import { TransitionTimeout } from "./transition-timeout.ts";
-
-const acknowledgement = Schema.Struct({ id: Schema.String });
 
 export class NativeTransitions extends Context.Service<
   NativeTransitions,
@@ -20,11 +20,20 @@ export class NativeTransitions extends Context.Service<
   }
 >()("radical/NativeTransitions") {}
 
-const command = (method: string, id: string, options = {}) =>
-  callBridge("RadicalTransitions", method, acknowledgement, {
-    id,
-    ...options,
-  }).pipe(
+const command = (
+  method: keyof typeof transitionsPlugin.commands,
+  id: string,
+  options = {}
+) =>
+  callPlugin(
+    transitionsPlugin.bridge,
+    method,
+    transitionsPlugin.commands[method],
+    {
+      id,
+      ...options,
+    }
+  ).pipe(
     Effect.filterOrFail(
       (result) => result.id === id,
       () =>
@@ -47,7 +56,11 @@ export const NativeTransitionsLive = Layer.effect(
   NativeTransitions,
   Effect.gen(function* () {
     const bridge = yield* Bridge;
-    const invoke = (method: string, id: string, options = {}) =>
+    const invoke = (
+      method: keyof typeof transitionsPlugin.commands,
+      id: string,
+      options = {}
+    ) =>
       command(method, id, options).pipe(Effect.provideService(Bridge, bridge));
     return {
       cover: (id: string) => invoke("cover", id),

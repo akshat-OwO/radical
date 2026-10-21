@@ -34,3 +34,34 @@ Service workers require HTTPS or a trustworthy localhost origin. The iOS simulat
 Install `browserTransitions(router)` from `radical/tanstack-start-client` once per router and import `radical/transitions.css`. Mark destinations with `staticData.radical.transition: "slide"` or `"fade"`. The same installer selects native snapshot overlays in Android and iOS shells and typed view transitions in browsers. Unsupported browsers and capture failures use plain navigation.
 
 Native overlays cover the full window before the route commits, then reveal only after web and native paint signals. Slides push the new page over the outgoing snapshot with 30% background parallax. Back navigation reverses the push. Overlay timeouts never time out the router commit. Both shells honor reduced motion and expire stale overlays after three seconds. See the [transition reference](packages/radical/docs/transitions.md) and [device verification](docs/verification/native-transitions.md).
+
+## Native plugins
+
+Enable a Schema-defined manifest in Vite config:
+
+```ts
+radical({
+  appId: "dev.example.app",
+  plugins: [{ manifest: "./plugins/echo.ts" }],
+  pluginOptions: { Echo: { prefix: "Native: " } },
+});
+```
+
+A manifest declares its id, Capacitor bridge name, dependencies, native sources, and command argument, result, and error schemas. See the [Echo manifest](apps/example/plugins/echo.ts) and [manifest contract](docs/adr/0003-native-plugin-manifests.md) for the full shape. Native sources resolve relative to the manifest module. Custom plugins are off until listed. Device info and Transitions stay enabled by default; disable either with `internalPlugins: { device: false, transitions: false }`.
+
+Include `.radical/plugins.d.ts` in your app's tsconfig and run `radical typegen` before typechecking. Vite also generates that file at startup. Web code imports typed commands from the virtual module:
+
+```ts
+import { Effect } from "effect";
+import { BridgeLive } from "radical/client";
+import { plugins } from "virtual:radical/plugins";
+
+const echo = plugins.echo.echo({ text: "hello" }).pipe(
+  Effect.catchTag("EchoRejected", (error) =>
+    Effect.succeed({ text: error.reason })
+  ),
+  Effect.provide(BridgeLive)
+);
+```
+
+Native rejection codes map to the command's declared `Schema.TaggedError` classes. Undeclared codes and malformed error data stay `BridgeCallFailed`. Invalid manifests, missing config, undeclared native commands, and dependency conflicts fail generation with typed errors. Disabled plugins contribute no sources, imports, dependencies, or native config. Generate both shells again after changing enabled manifests.

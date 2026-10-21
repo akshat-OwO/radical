@@ -12,6 +12,8 @@ import {
   renderTemplate,
 } from "./native-project.ts";
 import { replaceAnchor } from "./native-template.ts";
+import { pluginRegistration } from "./plugin-plan.ts";
+import { composePluginSources } from "./plugin-sources.ts";
 import { safeAreaUpdateScript } from "./shell-events.ts";
 import { execute } from "./shell.ts";
 
@@ -40,6 +42,7 @@ export const generateIos = (
       "RadicalViewController.swift",
       template,
       {
+        __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
         __URL__: JSON.stringify(native.url),
         __SNAPSHOT_CHECK__: JSON.stringify(
           `(() => { const radicalOffline = window.webkit.messageHandlers.radicalOffline; return (${offlineSnapshotCheckScript(native.config.appId)})(location.href); })()`
@@ -107,6 +110,14 @@ export const generateIos = (
             /<\/dict>\s*<\/plist>/u,
             `${bound}${ats}\n</dict>\n</plist>`
           )
+        );
+        yield* composePluginSources(
+          staging,
+          "ios",
+          native.config.appId,
+          native.plugins,
+          root,
+          packageRoot
         );
       })
     );

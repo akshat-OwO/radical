@@ -2,10 +2,13 @@ import { createRequire } from "node:module";
 import path from "node:path";
 
 import { Effect, FileSystem, Schema } from "effect";
+import semver from "semver";
 
 import { HttpOriginSchema, RadicalConfigSchema } from "./config.ts";
 import { encodeNativeContextCookie } from "./native-context.ts";
 import { replaceAnchor } from "./native-template.ts";
+import { resolvePlugins, InvalidPlugin } from "./plugin-plan.ts";
+import type { EnabledPlugin } from "./plugin-plan.ts";
 import { execute, replaceProject } from "./shell.ts";
 
 const require = createRequire(import.meta.url);
@@ -35,26 +38,40 @@ export const nativeCookiePlan = (origins: readonly string[]) => {
   );
 };
 
-export const capacitor = (platform: "android" | "ios") =>
+export const capacitor = (
+  platform: "android" | "ios",
+  plugins: readonly EnabledPlugin[],
+  root: string
+) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
+    const appRequire = createRequire(path.join(root, "package.json"));
     const resolved = yield* Effect.try({
       try: () => ({
         cli: require.resolve("@capacitor/cli/bin/capacitor"),
-        // One inclusion point until plugin manifests (#13). Resolve each package
-        // explicitly: pnpm's platform package directory need not contain Device.
         packages: [
-          "@capacitor/core",
-          `@capacitor/${platform}`,
-          "@capacitor/device",
+          ...new Set([
+            "@capacitor/core",
+            `@capacitor/${platform}`,
+            ...plugins.flatMap(({ manifest }) =>
+              Object.keys(manifest.dependencies)
+            ),
+          ]),
         ].map((name) => ({
           name,
-          directory: path.dirname(require.resolve(`${name}/package.json`)),
+          directory: path.dirname(
+            appRequire.resolve(`${name}/package.json`, {
+              paths: [
+                root,
+                path.dirname(require.resolve("@capacitor/core/package.json")),
+              ],
+            })
+          ),
         })),
       }),
-      catch: () =>
+      catch: (cause) =>
         new NativeToolchainUnavailable({
-          message: `Install @capacitor/core@8, @capacitor/${platform}@8, @capacitor/device@8 and @capacitor/cli@8 to generate a ${platform} shell.`,
+          message: `Install the enabled plugins' npm dependencies and @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8 to generate a ${platform} shell: ${String(cause)}`,
         }),
     });
     const packages = yield* Effect.forEach(
@@ -68,6 +85,16 @@ export const capacitor = (platform: "android" | "ios") =>
           Effect.map(({ version }) => ({ ...entry, version }))
         )
     )(resolved.packages);
+    for (const entry of packages) {
+      for (const { manifest } of plugins) {
+        const range = manifest.dependencies[entry.name];
+        if (range !== undefined && !semver.satisfies(entry.version, range)) {
+          return yield* new InvalidPlugin({
+            message: `Plugin ${manifest.id} requires ${entry.name}@${range}, installed ${entry.version}`,
+          });
+        }
+      }
+    }
     return { cli: resolved.cli, packages };
   });
 export const nativeConfigSchema = Schema.Struct({
@@ -87,6 +114,7 @@ export const readNativeProject = (
     const { config, url } = yield* Schema.decodeEffect(
       Schema.fromJsonString(nativeConfigSchema)
     )(native);
+    const plugins = yield* resolvePlugins(config);
     const { origin } = new URL(url);
     const origins = [...new Set([origin, ...(config.allowlist ?? [])])];
     const { version } = yield* fs
@@ -104,7 +132,14 @@ export const readNativeProject = (
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
       shellVersion: version,
     });
-    return { config, url, origins, cookie, cookies: nativeCookiePlan(origins) };
+    return {
+      config,
+      url,
+      origins,
+      cookie,
+      cookies: nativeCookiePlan(origins),
+      plugins,
+    };
   });
 export const renderTemplate = (
   file: string,
@@ -127,7 +162,7 @@ export const generateNativeProject = <E, R>(
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { cli, packages } = yield* capacitor(platform);
+    const { cli, packages } = yield* capacitor(platform, native.plugins, root);
     const { config, url } = native;
     return yield* replaceProject(
       path.join(root, `.radical/${platform}`),
@@ -138,6 +173,10 @@ export const generateNativeProject = <E, R>(
             { recursive: true }
           );
           for (const entry of packages) {
+            yield* fs.makeDirectory(
+              path.dirname(path.join(staging, "node_modules", entry.name)),
+              { recursive: true }
+            );
             yield* fs.symlink(
               entry.directory,
               path.join(staging, "node_modules", entry.name)
@@ -173,7 +212,21 @@ export const generateNativeProject = <E, R>(
               ...(platform === "ios"
                 ? { ios: { limitsNavigationsToAppBoundDomains: true } }
                 : {}),
-              plugins: { SystemBars: { insetsHandling: "disable" } },
+              plugins: {
+                SystemBars: { insetsHandling: "disable" },
+                ...Object.fromEntries(
+                  native.plugins.flatMap(({ manifest }) =>
+                    manifest.config
+                      ? [
+                          [
+                            manifest.bridge,
+                            config.pluginOptions?.[manifest.config.selector],
+                          ],
+                        ]
+                      : []
+                  )
+                ),
+              },
               server: {
                 url,
                 cleartext: url.startsWith("http:"),
