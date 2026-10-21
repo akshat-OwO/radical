@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typegen": "radical typegen"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.45",
     "@tanstack/react-start": "1.169.3",
+    "effect": "catalog:",
     "radical": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1"

@@ -1,13 +1,36 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { Effect } from "effect";
+import { BridgeLive } from "radical/client";
 import { useDeviceInfo, useSafeArea } from "radical/react";
 import { useEffect, useState } from "react";
+import { plugins } from "virtual:radical/plugins";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
 );
 
 const Home = () => {
+  const [echo, setEcho] = useState("Ready");
+  const runEcho = (text: string) => {
+    Effect.runFork(
+      plugins.echo.echo({ text }).pipe(
+        Effect.provide(BridgeLive),
+        Effect.match({
+          onFailure: (error) =>
+            error._tag === "EchoRejected"
+              ? `EchoRejected: ${error.reason}`
+              : error._tag,
+          onSuccess: (result) => result.text,
+        }),
+        Effect.tap((value) =>
+          Effect.sync(() => {
+            setEcho(value);
+          })
+        )
+      )
+    );
+  };
   const device = useDeviceInfo();
   const safeArea = useSafeArea();
   const nativeContext = Route.useLoaderData();
@@ -47,6 +70,24 @@ const Home = () => {
           ? "Loading device info..."
           : JSON.stringify(device.error ?? device.value, null, 2)}
       </pre>
+      <h2>Manifest commands</h2>
+      <button
+        type="button"
+        onClick={() => {
+          runEcho("hello");
+        }}
+      >
+        Call echo
+      </button>{" "}
+      <button
+        type="button"
+        onClick={() => {
+          runEcho("deny");
+        }}
+      >
+        Reject echo
+      </button>
+      <pre>{echo}</pre>
       <h2>Native context</h2>
       <pre>{JSON.stringify(nativeContext, null, 2)}</pre>
       <p>

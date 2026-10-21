@@ -3,6 +3,10 @@ import type { Plugin } from "vite";
 
 import type { RadicalConfig } from "./config.ts";
 import { validateConfig } from "./config.ts";
+import { nativePlugins } from "./plugin-virtual.ts";
+
+export { InvalidPlugin } from "./invalid-plugin.ts";
+export { PluginDependencyConflict } from "./plugin-dependency-conflict.ts";
 
 export { AdapterUnavailable } from "./adapter-error.ts";
 export { RadicalAdapter } from "./adapter.ts";
@@ -21,6 +25,7 @@ export type { RadicalConfig } from "./config.ts";
 
 /** Validate at Vite's config hook, before either dev or build starts. */
 export const radical = (config: RadicalConfig): Plugin => ({
+  ...nativePlugins(config),
   name: "radical:config",
   configureServer: (server) =>
     Effect.runPromise(

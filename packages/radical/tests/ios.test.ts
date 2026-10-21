@@ -4,13 +4,17 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
+import echoSource from "../../../apps/example/plugins/EchoPlugin.swift?raw";
 import { generateIos } from "../src/ios.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
+import { PluginModules } from "../src/plugin-modules.ts";
+import transitions from "../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../templates/offline.html?raw";
+import { echo } from "./fixtures/echo-plugin.ts";
 
 const destination = "/app/.radical/ios";
 const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
@@ -24,6 +28,8 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/app/plugins/EchoPlugin.swift", echoSource],
+    ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
     ["/package/templates/offline.html", offlinePage],
@@ -114,12 +120,85 @@ const memory = (
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
   });
-  return { files, commands, layer: Layer.merge(fs, spawner) };
+  return {
+    files,
+    commands,
+    layer: Layer.mergeAll(
+      fs,
+      spawner,
+      Layer.succeed(PluginModules, {
+        load: (module) =>
+          module === "./plugins/echo.ts"
+            ? Effect.succeed({ default: echo })
+            : Effect.die("Unexpected manifest load"),
+      })
+    ),
+  };
 };
 
 const generate = generateIos("/app", "/package");
 
 describe("iOS shell generation", () => {
+  it.effect("includes the Echo Swift class used by shell registration", () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      plugins: [{ manifest: "./plugins/echo.ts" }],
+      pluginOptions: { Echo: { prefix: "Native: " } },
+    });
+    return Effect.gen(function* () {
+      yield* generate;
+      const source = state.files.get(appDelegate) ?? "";
+      assert.include(source, "bridge?.registerPluginInstance(EchoPlugin())");
+      assert.include(
+        source,
+        "public class EchoPlugin: CAPPlugin, CAPBridgedPlugin"
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
+  it.effect(
+    "omits disabled internal dependencies, registration and sources",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { device: false, transitions: false },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.notInclude(
+          state.files.get(`${destination}/package.json`) ?? "",
+          "@capacitor/device"
+        );
+        assert.isFalse(
+          state.files.has(`${destination}/node_modules/@capacitor/device`)
+        );
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "RadicalTransitionsPlugin"
+        );
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "class RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("registers and includes the internal transitions source", () => {
+    const state = memory();
+    return Effect.gen(function* () {
+      yield* generate;
+      assert.include(
+        state.files.get(appDelegate) ?? "",
+        "registerPluginInstance(RadicalTransitionsPlugin())"
+      );
+      assert.include(
+        state.files.get(appDelegate) ?? "",
+        "class RadicalTransitionsPlugin"
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
   it.effect(
     "generates a Capacitor project with the encoded shared native context",
     () => {

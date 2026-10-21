@@ -4,23 +4,34 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
+import echoSource from "../../../apps/example/plugins/EchoPlugin.java?raw";
 import { generateAndroid } from "../src/android.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../src/native-context.ts";
+import { PluginModules } from "../src/plugin-modules.ts";
+import type { PluginManifest } from "../src/plugins.ts";
 import launch from "../templates/android/launch.html?raw";
 import activity from "../templates/android/MainActivity.java?raw";
 import gradle from "../templates/android/radical.gradle?raw";
+import transitions from "../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../templates/offline.html?raw";
+import { echo } from "./fixtures/echo-plugin.ts";
 
 const destination = "/app/.radical/android";
 const mainActivity = `${destination}/android/app/src/main/java/dev/radical/example/MainActivity.java`;
 
 /** Per-test files and command results, with no SDK, processes or real disk. */
 const defaultConfig = { appId: "dev.radical.example" };
-const memory = (fail = false, config: unknown = defaultConfig) => {
+const memory = (
+  fail = false,
+  config: unknown = defaultConfig,
+  manifest: PluginManifest = echo
+) => {
   const files = new Map<string, string>([
+    ["/app/plugins/EchoPlugin.java", echoSource],
+    ["/package/templates/android/RadicalTransitionsPlugin.java", transitions],
     [
       "/app/.radical/native.json",
       JSON.stringify({ config, url: "http://192.168.1.2:3000" }),
@@ -108,12 +119,104 @@ const memory = (fail = false, config: unknown = defaultConfig) => {
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
   });
-  return { files, commands, layer: Layer.merge(fs, spawner) };
+  return {
+    files,
+    commands,
+    layer: Layer.mergeAll(
+      fs,
+      spawner,
+      Layer.succeed(PluginModules, {
+        load: (module) =>
+          module === "./plugins/echo.ts"
+            ? Effect.succeed({ default: manifest })
+            : Effect.die("Unexpected manifest load"),
+      })
+    ),
+  };
 };
 
 const generate = generateAndroid("/app", "/package");
 
 describe("Android shell generation", () => {
+  it.effect(
+    "generates Echo with matching source path, package and registered class",
+    () =>
+      Effect.gen(function* () {
+        for (const className of [
+          "EchoPlugin",
+          "dev.radical.example.EchoPlugin",
+        ]) {
+          const state = memory(
+            false,
+            {
+              ...defaultConfig,
+              plugins: [{ manifest: "./plugins/echo.ts" }],
+              pluginOptions: { Echo: { prefix: "Native: " } },
+            },
+            { ...echo, android: { ...echo.android, className } }
+          );
+          yield* generate.pipe(Effect.provide(state.layer));
+          const source =
+            state.files.get(
+              `${destination}/android/app/src/main/java/dev/radical/example/EchoPlugin.java`
+            ) ?? "";
+          assert.match(source, /^package dev\.radical\.example;/u);
+          assert.include(source, "public class EchoPlugin extends Plugin");
+          assert.include(
+            state.files.get(mainActivity) ?? "",
+            `registerPlugin(${className}.class);`
+          );
+        }
+      })
+  );
+
+  it.effect(
+    "omits disabled internal dependencies, registration and sources",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { device: false, transitions: false },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.notInclude(
+          state.files.get(`${destination}/package.json`) ?? "",
+          "@capacitor/device"
+        );
+        assert.isFalse(
+          state.files.has(`${destination}/node_modules/@capacitor/device`)
+        );
+        assert.notInclude(
+          state.files.get(mainActivity) ?? "",
+          "RadicalTransitionsPlugin"
+        );
+        assert.notInclude(
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalTransitionsPlugin.java`
+          ) ?? "",
+          "class RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect("registers and includes the internal transitions source", () => {
+    const state = memory();
+    return Effect.gen(function* () {
+      yield* generate;
+      assert.include(
+        state.files.get(mainActivity) ?? "",
+        "registerPlugin(RadicalTransitionsPlugin.class)"
+      );
+      assert.include(
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalTransitionsPlugin.java`
+        ) ?? "",
+        "class RadicalTransitionsPlugin"
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
   it.effect(
     "generates a Capacitor project with the encoded shared native context",
     () => {

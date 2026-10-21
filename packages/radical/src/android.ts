@@ -12,6 +12,8 @@ import {
   renderTemplate,
 } from "./native-project.ts";
 import { replaceAnchor } from "./native-template.ts";
+import { pluginRegistration } from "./plugin-plan.ts";
+import { composePluginSources } from "./plugin-sources.ts";
 import { safeAreaUpdateScript } from "./shell-events.ts";
 import { execute } from "./shell.ts";
 
@@ -58,6 +60,7 @@ export const generateAndroid = (
       ),
       __APP_ID__: config.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
+      __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "android"),
       __URL__: JSON.stringify(url),
       __COOKIES__: native.cookies
         .map(
@@ -108,6 +111,14 @@ export const generateAndroid = (
             "MainActivity.java"
           ),
           activity
+        );
+        yield* composePluginSources(
+          staging,
+          "android",
+          native.config.appId,
+          native.plugins,
+          root,
+          packageRoot
         );
       })
     );
