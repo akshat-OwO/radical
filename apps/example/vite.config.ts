@@ -15,7 +15,15 @@ const config = {
   icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
   splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
-  pluginOptions: { Echo: { prefix: "Native: " } },
+  internalPlugins: { camera: true },
+  pluginOptions: {
+    Echo: { prefix: "Native: " },
+    Camera: {
+      photoLibraryUsageDescription:
+        "Choose a photo to preview it in the Radical example.",
+      usageDescription: "Take a photo to preview it in the Radical example.",
+    },
+  },
   devHost: "localhost",
   mode: "remote",
   origin: "http://localhost:4173",

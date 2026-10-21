@@ -94,3 +94,19 @@ export {
   browserContext,
   RequestFailed,
 } from "./bundled-request.ts";
+
+export {
+  capturePhoto,
+  choosePhoto,
+  checkCameraPermission,
+  requestCameraPermission,
+  cameraLive,
+  BrowserCamera,
+  BrowserCameraLive,
+  PhotoSchema,
+  CameraPermissionSchema,
+  PermissionDenied,
+  Cancelled,
+  Unavailable,
+} from "./camera.ts";
+export type { Photo, CameraPermission, CameraError } from "./camera.ts";

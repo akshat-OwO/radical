@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Schema } from "effect";
 
 import { resolveAndroidTarget } from "./android-target.ts";
+import { cameraDeclarations } from "./camera-declarations.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
 import { offlineSnapshotCheckScript } from "./native-offline.ts";
 import {
@@ -37,6 +38,7 @@ export const generateAndroid = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const native = yield* readNativeProject(root, packageRoot, "android");
+    const camera = yield* cameraDeclarations(native.config);
     const { config, url, origins, cookie } = native;
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/MainActivity.java")
@@ -91,7 +93,7 @@ export const generateAndroid = (
             "AndroidManifest.xml",
             manifest,
             "</manifest>",
-            '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /></manifest>'
+            `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${camera.android}</manifest>`
           )
         );
         if (config.splash) {

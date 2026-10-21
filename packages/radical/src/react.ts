@@ -50,3 +50,8 @@ export const useSafeArea = (): SafeArea => {
   return snapshot.layer === layer ? snapshot.area : context.safeArea;
 };
 export type { SafeArea } from "./native-context.ts";
+
+export { useCamera, useCameraPermission } from "./use-camera.ts";
+export type { CameraState, CameraPermissionState } from "./use-camera.ts";
+export type { Photo, CameraPermission, CameraError } from "./camera.ts";
+export { PermissionDenied, Cancelled, Unavailable } from "./camera-schema.ts";

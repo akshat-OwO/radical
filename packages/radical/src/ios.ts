@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, FileSystem, Schema } from "effect";
 
+import { cameraDeclarations } from "./camera-declarations.ts";
 import { InvalidConfig } from "./config.ts";
 import { iosSplashResourceName } from "./native-assets.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
@@ -25,6 +26,7 @@ export const generateIos = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const native = yield* readNativeProject(root, packageRoot, "ios");
+    const camera = yield* cameraDeclarations(native.config);
     const domains = [
       ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
     ];
@@ -140,7 +142,7 @@ export const generateIos = (
             plist,
             contents,
             /<\/dict>\s*<\/plist>/u,
-            `${bound}${ats}\n</dict>\n</plist>`
+            `${bound}${ats}${camera.ios}\n</dict>\n</plist>`
           )
         );
         yield* composePluginSources(

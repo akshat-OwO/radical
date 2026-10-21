@@ -9,6 +9,7 @@ catalog:
   "@capacitor/android": ^8.5.3
   "@capacitor/assets": 3.0.5
   "@capacitor/cli": ^8.5.3
+  "@capacitor/camera": 8.2.6
   "@capacitor/core": ^8.5.3
   "@capacitor/device": ^8.0.3
   "@capacitor/ios": ^8.5.3
