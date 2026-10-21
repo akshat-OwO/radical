@@ -392,7 +392,44 @@ describe("asset generator command boundary", () => {
     "generates a square Android system splash independently of portrait drawable variants",
     () =>
       Effect.gen(function* () {
-        const source = yield* image(2732, "#241044");
+        const source = yield* Effect.promise(() =>
+          sharp({
+            create: {
+              width: 2732,
+              height: 2732,
+              channels: 4,
+              background: "#241044",
+            },
+          })
+            .composite([
+              {
+                input: {
+                  create: {
+                    width: 683,
+                    height: 1366,
+                    channels: 4,
+                    background: "#ff0000",
+                  },
+                },
+                left: 0,
+                top: 683,
+              },
+              {
+                input: {
+                  create: {
+                    width: 683,
+                    height: 683,
+                    channels: 4,
+                    background: "#00ff00",
+                  },
+                },
+                left: 1366,
+                top: 0,
+              },
+            ])
+            .png()
+            .toBuffer()
+        );
         const request: AssetGeneration = {
           ...invocation,
           platform: "android",
@@ -402,7 +439,7 @@ describe("asset generator command boundary", () => {
         const state = generatorMemory(
           "success",
           yield* Effect.promise(() =>
-            sharp(source).resize(320, 480).png().toBuffer()
+            sharp(source).resize(320, 480, { fit: "cover" }).png().toBuffer()
           ),
           request
         );
@@ -424,13 +461,24 @@ describe("asset generator command boundary", () => {
           );
           assert.strictEqual(metadata.width, 1024);
           assert.strictEqual(metadata.height, 1024);
-          const pixel = yield* Effect.promise(() =>
-            sharp(output)
-              .extract({ left: 0, top: 0, width: 1, height: 1 })
-              .raw()
-              .toBuffer()
-          );
-          assert.deepStrictEqual([...pixel], [0x24, 0x10, 0x44, 255]);
+          for (const [left, top, expected] of [
+            [128, 512, [255, 0, 0, 255]],
+            [640, 128, [0, 255, 0, 255]],
+            [384, 512, [0x24, 0x10, 0x44, 255]],
+            [896, 896, [0x24, 0x10, 0x44, 255]],
+          ] as const) {
+            const pixel = yield* Effect.promise(() =>
+              sharp(output)
+                .extract({ left, top, width: 1, height: 1 })
+                .raw()
+                .toBuffer()
+            );
+            assert.deepStrictEqual(
+              [...pixel],
+              [...expected],
+              `square artwork at ${left},${top}`
+            );
+          }
         }).pipe(Effect.provide(state.layer));
       })
   );
