@@ -7,6 +7,7 @@ import { Command, Flag } from "effect/cli";
 import { generateAndroid, runAndroid } from "./android.ts";
 import { InvalidPlugin } from "./invalid-plugin.ts";
 import { generateIos, runIos } from "./ios.ts";
+import { assetGeneratorLayer } from "./native-assets.ts";
 import { pluginModulesLayer } from "./plugin-plan.ts";
 
 const android = Command.make(
@@ -56,7 +57,11 @@ const cli = Command.make("radical").pipe(
 );
 Command.run(cli, { version: "0.0.0" }).pipe(
   Effect.provide(
-    Layer.merge(pluginModulesLayer(process.cwd()), NodeServices.layer)
+    Layer.mergeAll(
+      pluginModulesLayer(process.cwd()),
+      assetGeneratorLayer,
+      NodeServices.layer
+    )
   ),
   (program) => {
     NodeRuntime.runMain(program);

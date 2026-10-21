@@ -4,7 +4,28 @@ Run server-rendered web apps inside native Android and iOS WebView shells.
 
 `radical/vite` validates the core config. `radical/tanstack-start` registers the core plugin and exports the Effect adapter layer. See the [example app](../../apps/example/README.md) for setup and the [architecture ADR](../../docs/adr/0001-framework-agnostic-native-shell-plugin.md) for the planned native behavior.
 
-The config accepts `appId`, a dot-separated identifier whose segments start with a letter and contain letters, digits, or underscores, and an optional nonempty `appName`. Validation runs before dev and build start.
+## App identity
+
+```ts
+radical({
+  appId: "dev.example.app",
+  name: "Example",
+  android: { name: "Example Android", packageId: "dev.example.android" },
+  ios: { name: "Example iOS", bundleId: "dev.example.ios" },
+  icon: "./assets/icon.png",
+  splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
+});
+```
+
+`appId` is the shared identity used for offline storage. It is dot-separated, with segments starting with a letter and containing letters, digits, or underscores. `android.packageId` and `ios.bundleId` default to `appId`. Android ids use Java package segments and reject Java keywords. iOS bundle ids contain dot-separated letters, digits, and hyphens. A shared id that is invalid on a platform requires an explicit override for that platform.
+
+The display name resolves from the platform's `name`, then shared `name`, then legacy `appName`, then `appId`. Names must be nonempty. The generated iOS `CFBundleDisplayName` and Android `app_name` use that name. Android's application id, namespace, activity, and copied plugin sources all use `android.packageId`. A copied plugin's qualified class name must match that package. An unqualified class name works with any package override.
+
+`icon` and `splash` are optional. Image paths resolve relative to the app root. Sources must be decodable square PNG or JPEG images, at least 1024×1024 pixels for icons and 2732×2732 for splash screens. `splash.backgroundColor` requires an opaque `#RRGGBB` colour. Radical composites transparent splash pixels onto this colour for both light and dark appearances. Opaque source pixels keep their colours. Android 12 and later use the splash drawable as a system-sized icon on the configured background. The iOS shell retains the configured splash during cookie setup and the first document load, then removes it when that document or its offline fallback finishes loading.
+
+Install `@capacitor/assets@3.0.5` alongside your Capacitor toolchain to generate custom assets. Radical resolves its installed version and pins it in the generated package, like the other Capacitor dependencies. Generation invokes its local CLI through Effect's child-process service, with `generate --ios` or `generate --android` and normalized custom-mode inputs. It never invokes a package downloader or generates PWA assets. Generated iOS splash images are limited to 2048×2048 pixels so their decoded allocation stays below the system launch-image limit. The launch storyboard uses a content-derived splash resource name so changed images invalidate UIKit's named-image cache.
+
+After changing config or source images, start dev to refresh `.radical/native.json`, then run `radical ios --generate-only` and `radical android --generate-only`. Each command replaces its project, including names, identifiers, icons, and splash resources. Missing files, unsupported or corrupt images, and invalid dimensions fail with `InvalidAsset` naming the path and constraint. Schema errors name invalid config fields. Tool failures and missing generated resources fail with `AssetGenerationFailed`. Failed generation preserves the previous project.
 
 ## Native context
 

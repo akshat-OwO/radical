@@ -5,6 +5,7 @@ import WebKit
 // Capacitor sets limitsNavigationsToAppBoundDomains before creating the WebView.
 final class RadicalViewController: CAPBridgeViewController {
     private var navigationProxy: RadicalNavigationDelegate?
+    private var startupSplash: UIImageView?
 
     private var urlObservation: NSKeyValueObservation?
     private var started = false
@@ -28,6 +29,19 @@ final class RadicalViewController: CAPBridgeViewController {
         guard let webView = webView, let delegate = webView.navigationDelegate else { fatalError("Radical requires Capacitor WebView") }
         let proxy = RadicalNavigationDelegate(delegate: delegate, origins: [__ORIGINS__], errorPathURL: bridge?.config.errorPathURL)
         navigationProxy = proxy
+        let splashName = __SPLASH_NAME__
+        if !splashName.isEmpty, let image = UIImage(named: splashName) {
+            let splash = UIImageView(image: image)
+            splash.frame = view.bounds
+            splash.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            splash.contentMode = .scaleAspectFill
+            view.addSubview(splash)
+            startupSplash = splash
+        }
+        proxy.onDocumentReady = { [weak self] in
+            self?.startupSplash?.removeFromSuperview()
+            self?.startupSplash = nil
+        }
         webView.navigationDelegate = proxy
         let controller = webView.configuration.userContentController
         controller.add(proxy, name: "radicalOffline")
@@ -102,6 +116,7 @@ final class RadicalViewController: CAPBridgeViewController {
 
 // navigationDelegate is weak; the controller retains this proxy and it retains Capacitor.
 final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    var onDocumentReady: (() -> Void)?
     private let serverURL = URL(string: __URL__)!
     private let savedURLKey = "radical.lastOfflineURL"
     private var launching = true
@@ -204,6 +219,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         if let navigation = navigation { recoveryCancellations.remove(navigation) }
         completed(navigation)
         launching = false
+        onDocumentReady?()
         if !showingFallback { webView.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil) }
         delegate.webView?(webView, didFinish: navigation)
     }

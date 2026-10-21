@@ -67,8 +67,14 @@ In another terminal, run `pnpm exec radical android --target emulator-5554`. Ope
 
 1. Stop the preview server. This also disconnects localhost traffic, which Wi-Fi toggles alone cannot block through `adb reverse`.
 2. Follow **Home** to see the worker's offline fallback, then **Open the offline route** to open the stored snapshot. Tap **Hydration check** to verify that cached scripts work.
-3. Force-stop the app with `adb -s emulator-5554 shell am force-stop dev.radical.example`. Reopen it while the server remains stopped. Disable Wi-Fi and mobile data with `adb -s emulator-5554 shell svc wifi disable` and `adb -s emulator-5554 shell svc data disable`. The last visited offline route opens directly from its snapshot. Android connectivity selects this route; an online launch opens the configured server URL. Visiting an online-only route does not replace the saved offline URL.
-4. Run `adb -s emulator-5554 shell pm clear dev.radical.example`, then reopen the app offline. The packaged fallback appears because snapshots and worker registrations were removed. **Try again** retries the failed URL after connectivity returns.
+3. Force-stop the app with `adb -s emulator-5554 shell am force-stop dev.radical.example.android`. Reopen it while the server remains stopped. Disable Wi-Fi and mobile data with `adb -s emulator-5554 shell svc wifi disable` and `adb -s emulator-5554 shell svc data disable`. The last visited offline route opens directly from its snapshot. Android connectivity selects this route; an online launch opens the configured server URL. Visiting an online-only route does not replace the saved offline URL.
+4. Run `adb -s emulator-5554 shell pm clear dev.radical.example.android`, then reopen the app offline. The packaged fallback appears because snapshots and worker registrations were removed. **Try again** retries the failed URL after connectivity returns.
 5. Restart preview and reopen the app to capture fresh snapshots. Restore any disabled network interfaces, stop preview, and run `./gradlew --stop` from `.radical/android/android` when finished. Leave the emulator booted.
 
 Screenshots and observed results are in [Android offline verification](../../docs/verification/android-offline.md).
+
+## App identity
+
+The example config uses `Radical Android` with package id `dev.radical.example.android` and `Radical iOS` with bundle id `dev.radical.example.ios`. Both use the square-root launcher icon and a white square-root splash on `#241044`. The shared `appId` remains `dev.radical.example` for offline storage. Use the platform identifier in device install, launch, and clear-storage commands.
+
+Regenerate the small source PNGs with `python3 assets/generate.py` from this directory. After an identity change, start dev to refresh native config, then run `pnpm exec radical ios --generate-only` and `pnpm exec radical android --generate-only`. See the [app identity reference](../../packages/radical/README.md#app-identity) for source requirements and name precedence.

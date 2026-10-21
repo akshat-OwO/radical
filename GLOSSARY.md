@@ -20,6 +20,10 @@ _Avoid_: Engine, runtime (when meaning the whole core)
 
 ### Native
 
+**App identity**:\
+The names, platform identifiers, launcher icon, and splash screen that identify an app on a device.\
+_Avoid_: Branding config, app metadata
+
 **Shell**:\
 The native Android or iOS app that hosts the web app in a WebView.\
 _Avoid_: Wrapper, container, native app (when meaning the host)

@@ -14,6 +14,24 @@ export const HttpOriginSchema = Schema.String.check(
   })
 );
 
+const javaKeywords = new Set(
+  "abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null _".split(
+    " "
+  )
+);
+export const AndroidPackageIdSchema = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/u),
+  Schema.makeFilter(
+    (value) => !value.split(".").some((part) => javaKeywords.has(part))
+  )
+);
+export const IosBundleIdSchema = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u)
+);
+export const SplashColorSchema = Schema.String.check(
+  Schema.isPattern(/^#[A-Fa-f0-9]{6}$/u)
+);
+
 export const RadicalConfigSchema = Schema.Struct({
   plugins: Schema.optional(
     Schema.Array(
@@ -40,6 +58,37 @@ export const RadicalConfigSchema = Schema.Struct({
     Schema.String.check(Schema.isPattern(/^[a-zA-Z0-9.-]+$/u))
   ),
   appName: Schema.optional(Schema.NonEmptyString),
+  name: Schema.optional(Schema.NonEmptyString),
+  android: Schema.optional(
+    Schema.Struct({
+      name: Schema.optional(Schema.NonEmptyString),
+      packageId: Schema.optional(AndroidPackageIdSchema),
+    })
+  ),
+  ios: Schema.optional(
+    Schema.Struct({
+      name: Schema.optional(Schema.NonEmptyString),
+      bundleId: Schema.optional(IosBundleIdSchema),
+    })
+  ),
+  icon: Schema.optional(Schema.NonEmptyString),
+  splash: Schema.optional(
+    Schema.Struct({
+      image: Schema.NonEmptyString,
+      backgroundColor: SplashColorSchema,
+    })
+  ),
+});
+
+export const nativeIdentity = (
+  config: RadicalConfig,
+  platform: "android" | "ios"
+) => ({
+  appId:
+    platform === "android"
+      ? (config.android?.packageId ?? config.appId)
+      : (config.ios?.bundleId ?? config.appId),
+  name: config[platform]?.name ?? config.name ?? config.appName ?? config.appId,
 });
 
 export type RadicalConfig = typeof RadicalConfigSchema.Type;

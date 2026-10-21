@@ -58,7 +58,7 @@ export const generateAndroid = (
       __OFFLINE_SNAPSHOT_CHECK__: JSON.stringify(
         offlineSnapshotCheckScript(config.appId)
       ),
-      __APP_ID__: config.appId,
+      __APP_ID__: native.identity.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
       __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "android"),
       __URL__: JSON.stringify(url),
@@ -93,6 +93,21 @@ export const generateAndroid = (
             '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /></manifest>'
           )
         );
+        if (config.splash) {
+          const styles = path.join(
+            staging,
+            "android/app/src/main/res/values/styles.xml"
+          );
+          yield* fs.writeFileString(
+            styles,
+            yield* replaceAnchor(
+              styles,
+              yield* fs.readFileString(styles),
+              '<item name="android:background">@drawable/splash</item>',
+              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${config.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>`
+            )
+          );
+        }
         const appGradle = path.join(staging, "android/app/build.gradle");
         const gradle = yield* fs.readFileString(appGradle);
         yield* fs.writeFileString(
@@ -107,7 +122,7 @@ export const generateAndroid = (
           path.join(
             staging,
             "android/app/src/main/java",
-            ...config.appId.split("."),
+            ...native.identity.appId.split("."),
             "MainActivity.java"
           ),
           activity
@@ -115,7 +130,7 @@ export const generateAndroid = (
         yield* composePluginSources(
           staging,
           "android",
-          native.config.appId,
+          native.identity.appId,
           native.plugins,
           root,
           packageRoot
