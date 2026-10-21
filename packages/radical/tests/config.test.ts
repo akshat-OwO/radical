@@ -113,6 +113,7 @@ it.effect(
         ["ios", { ios: { bundleId: "dev.my_app" } }],
         ["ios", { ios: { bundleId: "dev..app" } }],
         ["ios", { ios: { bundleId: "dev.app\n" } }],
+        ["icon", { icon: { image: "icon.png", backgroundColor: "#fff" } }],
         ["name", { name: "" }],
         ["android", { android: { name: "" } }],
         ["ios", { ios: { name: "" } }],

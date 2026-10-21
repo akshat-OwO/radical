@@ -22,10 +22,12 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const assets: NativeAsset[] = [];
+    const icon =
+      typeof config.icon === "string" ? { image: config.icon } : config.icon;
     for (const entry of [
-      ...(config.icon === undefined
+      ...(icon === undefined
         ? []
-        : [{ kind: "icon", source: config.icon, size: 1024 }]),
+        : [{ kind: "icon", source: icon.image, size: 1024 }]),
       ...(config.splash
         ? [{ kind: "splash", source: config.splash.image, size: 2732 }]
         : []),
@@ -65,25 +67,45 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
           `must be square and at least ${entry.size}×${entry.size}px; got ${metadata.width}×${metadata.height}px`
         );
       }
+      const background =
+        entry.kind === "splash"
+          ? (config.splash?.backgroundColor ?? "#ffffff")
+          : (icon?.backgroundColor ?? "#ffffff");
       const bytes = yield* Effect.tryPromise({
-        try: () =>
-          image
-            .flatten({
-              background:
-                entry.kind === "splash"
-                  ? (config.splash?.backgroundColor ?? "#ffffff")
-                  : "#ffffff",
-            })
-            .png()
-            .toBuffer(),
+        try: () => image.clone().flatten({ background }).png().toBuffer(),
         catch: (cause) => invalid(`cannot decode image: ${String(cause)}`),
       });
-      const names =
-        entry.kind === "icon"
-          ? ["icon-only.png", "icon-foreground.png", "icon-background.png"]
-          : ["splash.png", "splash-dark.png"];
-      for (const file of names) {
-        assets.push({ file, bytes });
+      if (entry.kind === "icon") {
+        const foreground = yield* Effect.tryPromise({
+          try: () => image.clone().png().toBuffer(),
+          catch: (cause) =>
+            invalid(`cannot decode foreground: ${String(cause)}`),
+        });
+        const solid = yield* Effect.tryPromise({
+          try: () =>
+            sharp({
+              create: {
+                width: metadata.width,
+                height: metadata.height,
+                channels: 3,
+                background,
+              },
+            })
+              .png()
+              .toBuffer(),
+          catch: (cause) =>
+            invalid(`cannot create background: ${String(cause)}`),
+        });
+        assets.push(
+          { file: "icon-only.png", bytes },
+          { file: "icon-foreground.png", bytes: foreground },
+          { file: "icon-background.png", bytes: solid }
+        );
+      } else {
+        assets.push(
+          { file: "splash.png", bytes },
+          { file: "splash-dark.png", bytes }
+        );
       }
     }
     return assets;

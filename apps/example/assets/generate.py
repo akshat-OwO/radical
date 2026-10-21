@@ -34,5 +34,5 @@ def png(size, mark_size, background):
 
 
 root = Path(__file__).parent
-(root / 'icon.png').write_bytes(png(1024, 700, bytes([109, 40, 217, 255])))
+(root / 'icon.png').write_bytes(png(1024, 700, bytes([0, 0, 0, 0])))
 (root / 'splash.png').write_bytes(png(2732, 500, bytes([0, 0, 0, 0])))

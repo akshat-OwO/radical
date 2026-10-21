@@ -71,7 +71,15 @@ export const RadicalConfigSchema = Schema.Struct({
       bundleId: Schema.optional(IosBundleIdSchema),
     })
   ),
-  icon: Schema.optional(Schema.NonEmptyString),
+  icon: Schema.optional(
+    Schema.Union([
+      Schema.NonEmptyString,
+      Schema.Struct({
+        image: Schema.NonEmptyString,
+        backgroundColor: Schema.optional(SplashColorSchema),
+      }),
+    ])
+  ),
   splash: Schema.optional(
     Schema.Struct({
       image: Schema.NonEmptyString,

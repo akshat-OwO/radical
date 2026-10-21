@@ -136,6 +136,95 @@ describe("native asset validation", () => {
   );
 
   it.effect(
+    "preserves transparent icon foregrounds with uniform backgrounds and opaque icon-only images",
+    () =>
+      Effect.gen(function* () {
+        const files = new Map([
+          [
+            "/app/icon.png",
+            yield* Effect.promise(() =>
+              sharp({
+                create: {
+                  width: 1024,
+                  height: 1024,
+                  channels: 4,
+                  background: "#00000000",
+                },
+              })
+                .composite([
+                  {
+                    input: {
+                      create: {
+                        width: 128,
+                        height: 128,
+                        channels: 4,
+                        background: "#ff0000",
+                      },
+                    },
+                    left: 256,
+                    top: 256,
+                  },
+                ])
+                .png()
+                .toBuffer()
+            ),
+          ],
+        ]);
+        for (const icon of [
+          "icon.png",
+          { image: "icon.png", backgroundColor: "#123456" },
+          { image: "icon.png" },
+        ]) {
+          const assets = yield* prepareNativeAssets("/app", {
+            appId: "dev.example.app",
+            icon,
+          }).pipe(Effect.provide(filesystem(files)));
+          const colour =
+            typeof icon === "object" && icon.backgroundColor !== undefined
+              ? [0x12, 0x34, 0x56]
+              : [255, 255, 255];
+          for (const asset of assets) {
+            const { data, info } = yield* Effect.promise(() =>
+              sharp(asset.bytes)
+                .ensureAlpha()
+                .raw()
+                .toBuffer({ resolveWithObject: true })
+            );
+            const expected =
+              asset.file === "icon-foreground.png"
+                ? [0, 0, 0, 0]
+                : [...colour, 255];
+            assert.strictEqual(info.channels, 4);
+            const stats = yield* Effect.promise(() =>
+              sharp(data, { raw: info }).stats()
+            );
+            assert.deepStrictEqual(
+              [...data.subarray(0, 4)],
+              expected,
+              asset.file
+            );
+            const glyphOffset = (300 * info.width + 300) * 4;
+            assert.deepStrictEqual(
+              [...data.subarray(glyphOffset, glyphOffset + 4)],
+              asset.file === "icon-background.png"
+                ? [...colour, 255]
+                : [255, 0, 0, 255]
+            );
+            if (asset.file === "icon-background.png") {
+              assert.deepStrictEqual(
+                stats.channels.map(({ min, max }) => [min, max]),
+                expected.map((value) => [value, value])
+              );
+            }
+            if (asset.file === "icon-only.png") {
+              assert.strictEqual(stats.channels[3].min, 255);
+            }
+          }
+        }
+      })
+  );
+
+  it.effect(
     "resolves paths from the app root, decodes JPEGs and flattens transparent splash pixels onto the configured colour",
     () =>
       Effect.gen(function* () {

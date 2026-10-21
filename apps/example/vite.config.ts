@@ -14,7 +14,7 @@ export default defineConfig({
         packageId: "dev.radical.example.android",
       },
       ios: { name: "Radical iOS", bundleId: "dev.radical.example.ios" },
-      icon: "./assets/icon.png",
+      icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
       splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
       plugins: [{ manifest: "./plugins/echo.ts" }],
       pluginOptions: { Echo: { prefix: "Native: " } },
