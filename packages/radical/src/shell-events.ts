@@ -5,7 +5,7 @@ export const shellEventPublisher = `(name, value) => {
   window.dispatchEvent(new CustomEvent(name, { detail: value }));
 }`;
 
-/** Document-start records state; CSS waits for the SSR root to finish parsing. */
+/** Bundled CSS waits for mount; remote CSS waits for the SSR root to finish parsing. */
 export const safeAreaUpdateScript = `((value) => {
   const apply = () => {
     const { style } = document.documentElement;
@@ -15,10 +15,12 @@ export const safeAreaUpdateScript = `((value) => {
       if (style.getPropertyValue(name) !== css) style.setProperty(name, css);
     }
   };
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", apply, { once: true });
-  } else {
-    apply();
+  if (!window.__radicalBundled || window.__radicalMounted) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", apply, { once: true });
+    } else {
+      apply();
+    }
   }
   (${shellEventPublisher})("radicalSafeArea", value);
 })(`;

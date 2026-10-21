@@ -79,7 +79,7 @@ final class RadicalViewController: CAPBridgeViewController {
         let data = try! JSONSerialization.data(withJSONObject: context, options: [.sortedKeys])
         let value = String(data: data, encoding: .utf8)!.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
         let areaJSON = String(data: try! JSONSerialization.data(withJSONObject: area), encoding: .utf8)!
-        let script = "window.__radicalNativeContext=" + String(data: data, encoding: .utf8)! + ";" + __SAFE_AREA_SCRIPT__ + areaJSON + ");"
+        let script = "window.__radicalBundled=" + String(__BUNDLED__) + ";window.__radicalNativeContext=" + String(data: data, encoding: .utf8)! + ";" + __SAFE_AREA_SCRIPT__ + areaJSON + ");"
         let group = DispatchGroup()
         for (hostname, origin, secure) in [__COOKIES__] as [(String, String, Bool)] {
             let url = URL(string: origin)!

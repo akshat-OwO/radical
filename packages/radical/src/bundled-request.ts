@@ -6,6 +6,7 @@ import {
   NATIVE_CONTEXT_HEADER,
 } from "./native-context.ts";
 import type { NativeContext } from "./native-context.ts";
+import { safeAreaStyle } from "./safe-area-style.ts";
 
 export const bundledOrigins = [
   "https://localhost",
@@ -23,17 +24,50 @@ export const browserContext = (): NativeContext => ({
   shellVersion: null,
 });
 
-/** Read presentation data injected before application scripts, without a server. */
-export const localNativeContext = () =>
+interface BundledDocument {
+  readonly __radicalNativeContext?: unknown;
+  __radicalMounted?: boolean;
+  readonly document: {
+    readonly documentElement: {
+      readonly style: Pick<CSSStyleDeclaration, "setProperty">;
+    };
+  };
+}
+
+const shellDocument = (): BundledDocument | undefined =>
+  typeof window === "undefined" ? undefined : window;
+const injectedNativeContext = (value: unknown) =>
+  Schema.decodeUnknownEffect(NativeContextSchema)(value).pipe(
+    Effect.orElseSucceed(browserContext)
+  );
+
+/** Keep prerender and hydration stable; live reads begin only after the mount handoff. */
+export const localNativeContext = (
+  read: () => BundledDocument | undefined = shellDocument
+) =>
   Effect.suspend(() => {
-    const context =
-      typeof window === "undefined"
-        ? undefined
-        : (window as Window & { __radicalNativeContext?: unknown })
-            .__radicalNativeContext;
-    return Schema.decodeUnknownEffect(NativeContextSchema)(context).pipe(
-      Effect.orElseSucceed(browserContext)
+    const target = read();
+    return target?.__radicalMounted === true
+      ? injectedNativeContext(target.__radicalNativeContext)
+      : Effect.succeed(browserContext());
+  });
+
+/** Run after mount. Native CSS owns subsequent inset updates; React keeps stable style props. */
+export const mountNativeContext = (
+  read: () => BundledDocument | undefined = shellDocument
+) =>
+  Effect.gen(function* () {
+    const target = read();
+    const context = yield* injectedNativeContext(
+      target?.__radicalNativeContext
     );
+    if (target) {
+      target.__radicalMounted = true;
+      for (const [name, value] of Object.entries(safeAreaStyle(context))) {
+        target.document.documentElement.style.setProperty(name, value);
+      }
+    }
+    return context;
   });
 
 /** Only local shell requests are redirected. Other origins never receive shell context. */
@@ -97,7 +131,9 @@ export const createRadicalFetch =
             catch: (cause) => new RequestFailed({ cause }),
           });
         }
-        const context = yield* localNativeContext();
+        const context = yield* injectedNativeContext(
+          shellDocument()?.__radicalNativeContext
+        );
         const request = yield* routeBundledRequest(
           config,
           input,

@@ -1,6 +1,6 @@
 # Bundled mode verification
 
-Verified on 2026-10-21 using Pixel_9, Android 16, serial `emulator-5554`. The example uses `dev.radical.example.android` and `origin: "http://localhost:4173"`. Screenshots are attached to the implementation PR. No iOS device was booted.
+Verified on 2026-10-21 using Pixel_9, Android 16, serial `emulator-5554`. The example uses `dev.radical.example.android` and `origin: "http://localhost:4173"`. Screenshots are attached to the implementation PR. A follow-up runtime round on the already-booted iPhone Duo is recorded below.
 
 ## Packaged Android UI and API requests
 
@@ -75,10 +75,79 @@ xcodebuild -project ios/App/App.xcodeproj -scheme App \
   -derivedDataPath build build
 ```
 
-Result: `BUILD SUCCEEDED`. The generated project packaged SPA assets, omitted `server.url` and `WKAppBoundDomains`, disabled `limitsNavigationsToAppBoundDomains`, and retained Device and Transitions. iOS runtime behavior and authentication were not exercised.
+Result: `BUILD SUCCEEDED`. The generated project packaged SPA assets, omitted `server.url` and `WKAppBoundDomains`, disabled `limitsNavigationsToAppBoundDomains`, and retained Device and Transitions. This initial check covered compilation only; the follow-up below covers iOS runtime behavior.
+
+## iPhone Duo runtime and hydration revision
+
+Verified the generated app `dev.radical.example.ios` on the already-booted iPhone Duo, iOS 27.1, UDID `88BEE7A3-757E-40C4-A789-5E3259B6B673`. No other device was booted. For this round, the temporary config used `origin: "http://127.0.0.1:4173"`; the simulator reaches the host directly. The tracked config is restored to remote mode and its original localhost origin.
+
+Generated bundled mode, built for this simulator with xcodebuild, and installed and drove it with agent-device. The API-only Node adapter accepted only `/_serverFn/` paths and returned 404 for UI paths. No UI server ran during these checks. The packaged app loaded, Device returned `iPhone19,4`, `ios`, `27.1`, `Apple`, and `isVirtual: true`, and slide, reversed back, and fade animations completed. The PR includes a recording of those transitions on the Duo's active display. After stopping the API and confirming connection refusal, a process restart still opened the packaged home page with Device info.
+
+### Actual custom-scheme Origin and credentials
+
+WebKit sent the literal **`Origin: capacitor://localhost` on both OPTIONS and GET**. It did not send `Origin: null`. JavaScript URL origin serialization for this non-special scheme is not the value WebKit used in these HTTP CORS requests. The existing exact-origin CORS and CSRF rules passed; no null-origin exception was added.
+
+The clean build after the hydration fix produced this server trace, abbreviated only by replacing the server-function id:
+
+```text
+OPTIONS /_serverFn/<id> 204
+  Origin: capacitor://localhost
+  Access-Control-Request-Headers: x-radical-context,x-tsr-serverfn
+  Cookie: absent
+  Access-Control-Allow-Origin: capacitor://localhost
+  Access-Control-Allow-Credentials: true
+GET /_serverFn/<id> 200
+  Origin: capacitor://localhost
+  Cookie: absent
+  x-radical-context: URI-encoded JSON with platform ios, right 84, bottom 34, shellVersion 0.0.0
+  Access-Control-Allow-Origin: capacitor://localhost
+  Access-Control-Allow-Credentials: true
+  Access-Control-Expose-Headers: x-tss-serialized, x-tss-raw, x-tss-error
+```
+
+The page displayed the decoded iOS context returned by the server. A negative control removed `Access-Control-Allow-Credentials` only in the temporary server adapter. WebKit then stopped at the OPTIONS response, issued no GET, and the page showed **Server unavailable**. Restoring the header restored the successful GET. This establishes that the native request uses credentialed browser CORS rather than bypassing it through CapacitorHttp.
+
+The temporary server also offered a `SameSite=None; Secure` cookie. Repeated calls over this HTTP development origin still sent no Cookie header. This does not establish HTTPS cookie-session support. The ADR's warning about cross-site cookie policy remains; the feature does not promise a shared remote-mode session.
+
+Bundled Info.plist had no `WKAppBoundDomains`, and Capacitor config set `limitsNavigationsToAppBoundDomains: false`. The bridge, native Device, transitions, and cross-origin server functions worked with that setting.
+
+### Hydration comparison
+
+The review identified a real split between Node prerender and injected native context. Added failing tests before changing the library:
+
+- `keeps bundled shell styles identical during prerender and first client render`
+- `defers bundled inset CSS until mount and keeps later native updates live`
+
+The fix gives `localNativeContext()` a stable browser-default snapshot until mount. `safeAreaStyle(context, "bundled")` retains `env(...)` React props, and `mountNativeContext()` applies injected pixel values after commit. Native document-start scripts record bundled insets before mount and continue applying changes afterward. API requests still read live injected context independently. A third test, `keeps the bundled loader snapshot stable and applies injected insets only at mount`, checks that handoff with an in-memory document.
+
+For device comparison, added temporary, observational instrumentation only to the ignored generated AppDelegate: a document-start React commit hook and console/error forwarding to a native log handler. Compared the generated `_shell.html` style with the first React html fiber's style props and the DOM style before passive effects. All three matched exactly, with native iOS context already present:
+
+```text
+first-react-commit:
+  href: capacitor://localhost
+  native: { platform: ios, safeArea: { top: 0, right: 84, bottom: 34, left: 0 } }
+  mounted: false
+  top: env(safe-area-inset-top, 0px)
+  right: env(safe-area-inset-right, 0px)
+  bottom: env(safe-area-inset-bottom, 0px)
+  left: env(safe-area-inset-left, 0px)
+after-effects:
+  mounted: true
+  DOM CSS: top 0px; right 84px; bottom 34px; left 0px
+```
+
+An assertion against the generated HTML confirmed the equality. The capture reported no `console.error` or window error events, including hydration errors. Later inset updates are covered by the shell-event regression test. Rotation requests on this Duo pose did not change the reported insets, so they are not claimed as a device rotation check.
+
+Regenerated the project to remove all diagnostic instrumentation, rebuilt, and repeated the bundled server-function call successfully. No verification handler, React hook, or native test command is committed.
+
+### Remote mode and worker after switching back
+
+Changed mode back to remote, rebuilt the web app, generated and built the iOS shell, and ran production preview at `127.0.0.1:4173`. Info.plist contained `WKAppBoundDomains = [127.0.0.1]`; Capacitor config enabled `limitsNavigationsToAppBoundDomains` and set `server.url` to that origin. The home page, Device, and server-function context worked. Remote mode retained its native cookie path.
+
+Visited `/offline-route` online. The first shutdown immediately after navigation raced the new worker's capture and showed the offline fallback. Repeated the check after observing an actual stored response in the current build's snapshot cache, rather than waiting a fixed delay. A temporary read-only native diagnostic reported `limitsNavigationsToAppBoundDomains = true`, controller `http://127.0.0.1:4173/radical-sw.js`, and a current-build cached response with `x-radical-offline: 1`. Native preferences recorded `radical.lastOfflineURL = http://127.0.0.1:4173/offline-route`, which the shell writes only after confirming that exact cached snapshot. Stopped preview and confirmed HTTP connection refusal, then terminated and reopened the app. It restored **Offline route** through the persistent worker. Tapping **Hydration check: 0** changed it to **Hydration check: 1** with the server still stopped. This verifies persistent worker recovery and usable cached JavaScript with App-Bound Domains enabled. Regenerated again to remove the worker diagnostics and repeated the offline cold launch with the clean shell. The PR includes the offline cold-launch screenshot.
 
 ## Repository checks
 
-`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite runs Ultracite, Vite checks, Effect type checks, and all 192 tests. Tests cover both generated shells and loading modes, config validation, request paths and bodies, native context precedence, credentials, CORS preflights, exposed Start headers, and CSRF origin checks. No lockfile changes or `@pnpm/exe` entries are included.
+`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite runs Ultracite, Vite checks, Effect type checks, and all 195 tests. Tests cover both generated shells and loading modes, config validation, request paths and bodies, native context precedence, credentials, CORS preflights, exposed Start headers, and CSRF origin checks. No lockfile changes or `@pnpm/exe` entries are included.
 
 The API and preview servers were stopped, Gradle reported two daemons stopped, the port forward was removed, and `agent-device close` completed. The agent-device daemon was left running.

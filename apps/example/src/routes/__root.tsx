@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import {
   localNativeContext,
+  mountNativeContext,
   registerOffline,
   safeAreaStyle,
 } from "radical/client";
@@ -22,14 +23,13 @@ const readNativeContext = createServerFn({ method: "GET" }).handler(
 );
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
-  const loadedContext = Route.useLoaderData();
-  const nativeContext =
-    config.mode === "bundled"
-      ? Effect.runSync(localNativeContext())
-      : loadedContext;
+  const nativeContext = Route.useLoaderData();
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
-    safeAreaStyle(nativeContext);
+    safeAreaStyle(nativeContext, config.mode);
   useEffect(() => {
+    if (config.mode === "bundled") {
+      Effect.runSync(mountNativeContext());
+    }
     void registerOffline({
       mode: config.mode,
       production: import.meta.env.PROD,

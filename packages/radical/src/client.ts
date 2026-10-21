@@ -90,6 +90,7 @@ export { transitionStrategy } from "./transition-strategy.ts";
 export {
   createRadicalFetch,
   localNativeContext,
+  mountNativeContext,
   browserContext,
   RequestFailed,
 } from "./bundled-request.ts";

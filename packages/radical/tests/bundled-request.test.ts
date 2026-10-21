@@ -3,6 +3,8 @@ import { Effect } from "effect";
 
 import {
   bundledOrigins,
+  localNativeContext,
+  mountNativeContext,
   routeBundledRequest,
   RequestFailed,
 } from "../src/bundled-request.ts";
@@ -27,6 +29,42 @@ const contextRequest = (headers: Record<string, string>) =>
   new Request(config.origin, { headers });
 
 describe("bundled requests", () => {
+  it.effect(
+    "keeps the bundled loader snapshot stable and applies injected insets only at mount",
+    () =>
+      Effect.gen(function* () {
+        const styles = new Map<string, string>();
+        const document = {
+          __radicalNativeContext: context,
+          __radicalMounted: false,
+          document: {
+            documentElement: {
+              style: {
+                setProperty: (name: string, value: string) => {
+                  styles.set(name, value);
+                },
+              },
+            },
+          },
+        };
+        assert.strictEqual(
+          (yield* localNativeContext(() => document)).platform,
+          "browser"
+        );
+        assert.isEmpty(styles);
+        assert.deepStrictEqual(
+          yield* mountNativeContext(() => document),
+          context
+        );
+        assert.isTrue(document.__radicalMounted);
+        assert.strictEqual(styles.get("--radical-safe-area-top"), "24px");
+        assert.strictEqual(styles.get("--radical-safe-area-bottom"), "16px");
+        assert.deepStrictEqual(
+          yield* localNativeContext(() => document),
+          context
+        );
+      })
+  );
   it.effect(
     "routes server functions and API paths from either shell with credentials and native context",
     () =>

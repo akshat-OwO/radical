@@ -37,7 +37,7 @@ export const startInstance = createStart(() => ({
 
 `createRadicalRequestMiddleware` comes from `radical/tanstack-start-server`. On the API server, wrap the Start handler with `withBundledRequests` from `radical/server` to allow credentialed CORS from the two Capacitor origins. Keep this opt-in on the server when switching modes. Native context travels in a validated header for bundled requests and a cookie for remote requests. It is presentation data, not proof of identity. Use HTTPS and choose authentication that works with WebView cross-site cookie restrictions.
 
-For bundled rendering, wrap the root route's outlet in `ClientOnly` and use `localNativeContext()` for its document style and provider. The [example root](apps/example/src/routes/__root.tsx) shows the config-dependent setup.
+For bundled rendering, wrap the root route's outlet in `ClientOnly`. Use `localNativeContext()` as the stable loader snapshot, `safeAreaStyle(context, config.mode)` for the document, and call `mountNativeContext()` in a mount effect. The library applies native pixels after hydration and keeps later inset updates live. The [example root](apps/example/src/routes/__root.tsx) shows the config-dependent setup.
 
 Run `radical android` or `radical ios` from the app directory. Bundled mode builds Start's SPA, copies its UI assets into both shells' `webDir`, and launches without a UI server. `--generate-only` builds and generates without launching. Use Start's standard `dist/client` output, `_shell.html` name, and Vite base `/`.
 
