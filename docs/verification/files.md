@@ -8,7 +8,7 @@ Generated with `pnpm --filter @radical/example exec radical android --generate-o
 
 The agent-device daemon was unavailable during this run, so the app was driven with `adb shell input tap` on bounds from `uiautomator dump`.
 
-- **Pick file** opened the system document picker on Recent files. Selecting `radical-note.txt` displayed `radical-note.txt text/plain 19 19`: the name, MIME type, and reported size, and a 19-byte blob read back through the `content://` URI.
+- **Pick file** opened the system document picker on Recent files. Selecting `radical-note.txt` displayed `radical-note.txt text/plain 19 19`: the name, MIME type, the size the picker reported, and the 19-byte blob read back through the `content://` URI. The example now shows only `size`, which is the blob's size.
 - **Open picked file** showed Android's "Open with" sheet (Chrome, HTML Viewer). **HTML Viewer**, **Just once** opened the file, which displayed `hello from radical`. Back in the app, the page showed `Intent: Opened`.
 - **Open URL** made Chrome the resumed activity on `https://example.com/` (its first-run screen on this emulator).
 - **Pick images or PDFs** opened the picker filtered to Images and Documents. The `.txt` file was not offered. Back produced `Cancelled`. A second pick of `radical-icon.png` displayed `image/png`.
@@ -38,4 +38,4 @@ Tests use `@effect/vitest` with in-memory bridge, file, and intent layers and `T
 - hook state
 - server-rendering guards
 
-`pnpm exec ultracite check`, `pnpm install --frozen-lockfile` (no `@pnpm/exe` entries), and `pnpm run ready` pass, with 230 tests.
+`pnpm exec ultracite check`, `pnpm install --frozen-lockfile` (no `@pnpm/exe` entries), and `pnpm run ready` pass, with 231 tests.

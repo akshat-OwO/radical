@@ -91,4 +91,4 @@ Open `/camera` from the home page. The example enables `internalPlugins.camera` 
 
 ## Files and intents
 
-Open `/files` from the home page. The example enables `internalPlugins.filePicker` and `internalPlugins.intents`. **Pick file** opens the system document picker for any file; **Pick images or PDFs** filters by type and allows several files. The page lists each file's name, MIME type, reported size, and the size of the blob read back. **Open URL** opens `https://example.com/` in the default browser. **Open picked file** hands the first native file to an external app; in a browser it reports `Unavailable`.
+Open `/files` from the home page. The example enables `internalPlugins.filePicker` and `internalPlugins.intents`. **Pick file** opens the system document picker for any file; **Pick images or PDFs** filters by type and allows several files. The page lists each file's name, MIME type, and size. **Open URL** opens `https://example.com/` in the default browser. **Open picked file** hands the first native file to an external app; in a browser it reports `Unavailable`.

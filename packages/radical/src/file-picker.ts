@@ -56,6 +56,11 @@ export const BrowserFilesLive = Layer.succeed(BrowserFiles, {
 });
 
 const fallbackType = "application/octet-stream";
+/** Native pickers report unknown text fields as missing or empty. */
+const present = (value: string | undefined) =>
+  value === undefined || value === "" ? undefined : value;
+const nameFromUri = (uri: string) =>
+  uri.split(/[/?#]/u).findLast(Boolean) ?? "file";
 // Capawesome rejects cancellation without a code; its message is the stable contract in 8.1.1.
 const cancelled = "pickFiles canceled.";
 
@@ -102,23 +107,25 @@ export const pickFiles = (options: PickFilesOptions = {}) =>
       return yield* new Cancelled({});
     }
     return yield* Effect.all(
-      files.map((file) =>
-        file.path === undefined || file.path === ""
+      files.map(({ path, ...file }) =>
+        path === undefined || path === ""
           ? Effect.fail(
               new Unavailable({
-                reason: `No path for picked file ${file.name}`,
+                reason: `No path for picked file ${file.name ?? ""}`,
               })
             )
-          : browser.readNative(file.path).pipe(
+          : browser.readNative(path).pipe(
               Effect.map((blob): PickedFile => ({
-                name: file.name,
-                mimeType: file.mimeType || blob.type || fallbackType,
-                size: file.size,
-                ...(file.modifiedAt === undefined
+                name: present(file.name) ?? nameFromUri(path),
+                mimeType:
+                  present(file.mimeType) ?? present(blob.type) ?? fallbackType,
+                // The bytes read back are authoritative; reported sizes can be -1 or 0 when unknown.
+                size: blob.size,
+                ...(file.modifiedAt === undefined || file.modifiedAt <= 0
                   ? {}
                   : { lastModified: file.modifiedAt }),
                 blob,
-                uri: file.path,
+                uri: path,
               }))
             )
       )

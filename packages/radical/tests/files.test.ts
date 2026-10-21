@@ -107,7 +107,7 @@ describe("file picker", () => {
             {
               name: "a.pdf",
               mimeType: "application/pdf",
-              size: 3,
+              size: 1,
               lastModified: 7,
               uri: "content://docs/a.pdf",
             },
@@ -120,6 +120,55 @@ describe("file picker", () => {
           ]);
           assert.instanceOf(files[0]?.blob, Blob);
         }
+      })
+  );
+
+  it.effect(
+    "keeps a multi-select when the provider omits a type or name, or reports unknown size and date",
+    () =>
+      Effect.gen(function* () {
+        const files = yield* pickFiles({ multiple: true }).pipe(
+          Effect.provide(
+            Layer.merge(
+              bridgeTestLayer("android", () =>
+                Effect.succeed({
+                  files: [
+                    { size: 4, path: "content://docs/document%2F42" },
+                    {
+                      name: "c.txt",
+                      mimeType: "text/plain",
+                      size: -1,
+                      modifiedAt: 0,
+                      path: "file:///tmp/c.txt",
+                    },
+                  ],
+                })
+              ),
+              filesLayer({
+                readNative: (uri) =>
+                  Effect.succeed(
+                    new Blob([uri.endsWith("42") ? "four" : "seven!!"], {
+                      type: "",
+                    })
+                  ),
+              })
+            )
+          )
+        );
+        assert.deepStrictEqual(strip(files), [
+          {
+            name: "document%2F42",
+            mimeType: "application/octet-stream",
+            size: 4,
+            uri: "content://docs/document%2F42",
+          },
+          {
+            name: "c.txt",
+            mimeType: "text/plain",
+            size: 7,
+            uri: "file:///tmp/c.txt",
+          },
+        ]);
       })
   );
 

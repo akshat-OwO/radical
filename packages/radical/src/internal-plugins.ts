@@ -108,9 +108,10 @@ export const cameraPlugin = definePlugin({
   },
 });
 
+// Android omits null names and types; iOS sends "" and -1/0 for unknown type, size, and date.
 const pickedFile = Schema.Struct({
-  name: Schema.String,
-  mimeType: Schema.String,
+  name: Schema.optional(Schema.String),
+  mimeType: Schema.optional(Schema.String),
   size: Schema.Finite,
   path: Schema.optional(Schema.String),
   modifiedAt: Schema.optional(Schema.Finite),

@@ -42,7 +42,7 @@ const Files = () => {
       <ul>
         {picker.value?.map((file) => (
           <li key={`${file.name}-${file.uri ?? file.size}`}>
-            {file.name} {file.mimeType} {file.size} {file.blob.size}
+            {file.name} {file.mimeType} {file.size}
           </li>
         ))}
       </ul>
