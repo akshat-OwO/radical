@@ -1,4 +1,5 @@
 // oxlint-disable unicorn/throw-new-error -- Schema.TaggedError is an Effect factory.
+// oxlint-disable eslint/max-classes-per-file -- Rejection tests compare required-field and tag-only error classes.
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Schema, Fiber } from "effect";
 import { TestClock } from "effect/testing";
@@ -24,6 +25,10 @@ import type { PluginManifest } from "../src/plugins.ts";
 class EchoRejected extends Schema.TaggedError<EchoRejected>()("EchoRejected", {
   reason: Schema.String,
 }) {}
+class TagOnlyRejected extends Schema.TaggedError<
+  TagOnlyRejected,
+  { readonly brand: unique symbol }
+>()("EchoRejected", {}) {}
 const echo = definePlugin({
   id: "echo",
   bridge: "Echo",
@@ -123,6 +128,21 @@ const compose = (platform: "android" | "ios", plugins = [entry(nativeEcho)]) =>
   );
 
 describe("native plugin manifests", () => {
+  it.effect(
+    "rejects qualified iOS class names because Swift sources stay in the app module",
+    () =>
+      Effect.gen(function* () {
+        const error = yield* validatePlugins([
+          entry({
+            ...nativeEcho,
+            ios: { ...nativeEcho.ios, className: "OtherModule.Echo" },
+          }),
+        ]).pipe(Effect.flip);
+        assert.strictEqual(error._tag, "InvalidPlugin");
+        assert.include(error.message, "className");
+      })
+  );
+
   it.effect(
     "loads only explicitly enabled exports and preserves command codecs",
     () =>
@@ -387,6 +407,34 @@ describe("native plugin manifests", () => {
 
 describe("plugin bridge commands", () => {
   it.effect(
+    "preserves BridgeCallFailed for null rejection data including tag-only errors",
+    () =>
+      Effect.gen(function* () {
+        const emptyPlugin = definePlugin({
+          ...echo,
+          commands: {
+            echo: {
+              ...echo.commands.echo,
+              errors: {
+                EchoRejected: TagOnlyRejected,
+              },
+            },
+          },
+        });
+        const cause = { code: "EchoRejected", data: null };
+        for (const manifest of [echo, emptyPlugin]) {
+          const error = yield* createPluginClient(manifest)
+            .echo({ text: "deny" })
+            .pipe(Effect.provide(failedCall(cause)), Effect.flip);
+          assert.strictEqual(error._tag, "BridgeCallFailed");
+          if (error._tag === "BridgeCallFailed") {
+            assert.strictEqual(error.cause, cause);
+          }
+        }
+      })
+  );
+
+  it.effect(
     "encodes arguments and decodes results through an in-memory bridge",
     () =>
       Effect.gen(function* () {
@@ -487,6 +535,158 @@ describe("plugin bridge commands", () => {
 
 describe("native plugin source composition", () => {
   it.effect(
+    "requires fully qualified Android classes when sources are dependency-provided",
+    () => {
+      const state = memory();
+      return Effect.gen(function* () {
+        const android = { className: "Echo", sources: [], dependencies: {} };
+        const error = yield* compose("android", [
+          entry({ ...echo, android }),
+        ]).pipe(Effect.flip);
+        assert.strictEqual(error._tag, "InvalidPlugin");
+        if (error._tag === "InvalidPlugin") {
+          assert.include(
+            error.message,
+            "fully qualified dependency-provided class"
+          );
+        }
+        const plugins = [
+          entry({
+            ...echo,
+            android: { ...android, className: "com.example.Echo" },
+          }),
+        ];
+        yield* compose("android", plugins);
+        assert.strictEqual(
+          pluginRegistration(plugins, "android"),
+          "registerPlugin(com.example.Echo.class);"
+        );
+        assert.isFalse(
+          state.files.has(
+            "/out/android/app/src/main/java/dev/test/app/Echo.java"
+          )
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "rejects Android source classes that do not match the generated package and filename",
+    () =>
+      Effect.gen(function* () {
+        for (const className of [
+          "com.example.Echo",
+          "Missing",
+          "dev.test.app.Missing",
+        ]) {
+          const state = memory();
+          const plugin = entry({
+            ...nativeEcho,
+            android: { ...nativeEcho.android, className },
+          });
+          const error = yield* compose("android", [plugin]).pipe(
+            Effect.provide(state.layer),
+            Effect.flip
+          );
+          assert.strictEqual(error._tag, "InvalidPlugin");
+          if (error._tag === "InvalidPlugin") {
+            assert.include(error.message, "Plugin echo: android class");
+            assert.include(error.message, className);
+            assert.include(error.message, "dev.test.app.Echo");
+          }
+          assert.isFalse(
+            state.files.has(
+              "/out/android/app/src/main/java/dev/test/app/Echo.java"
+            )
+          );
+        }
+      })
+  );
+
+  it.effect(
+    "rejects undeclared Java and Kotlin commands with parenthesized annotations",
+    () =>
+      Effect.gen(function* () {
+        for (const extension of ["java", "kt"]) {
+          for (const annotation of [
+            "@PluginMethod()",
+            "@PluginMethod(returnType = PluginMethod.RETURN_PROMISE)",
+          ]) {
+            const state = memory();
+            const method =
+              extension === "java"
+                ? "public void hidden(PluginCall call) {}"
+                : "fun hidden(call: PluginCall) {}";
+            const file = `/app/plugins/Echo.${extension}`;
+            state.files.set(
+              file,
+              `${state.files.get(file)} ${annotation} ${method}`
+            );
+            const plugin = entry({
+              ...nativeEcho,
+              android: {
+                ...nativeEcho.android,
+                sources: [
+                  { file: `Echo.${extension}`, source: `Echo.${extension}` },
+                ],
+              },
+            });
+            const error = yield* compose("android", [plugin]).pipe(
+              Effect.provide(state.layer),
+              Effect.flip
+            );
+            assert.strictEqual(error._tag, "InvalidPlugin");
+            if (error._tag === "InvalidPlugin") {
+              assert.include(error.message, "command hidden is not declared");
+            }
+          }
+        }
+      })
+  );
+
+  it.effect(
+    "composes Java and Kotlin commands with every PluginMethod annotation form",
+    () =>
+      Effect.gen(function* () {
+        for (const extension of ["java", "kt"]) {
+          for (const annotation of [
+            "@PluginMethod",
+            "@PluginMethod()",
+            "@PluginMethod(returnType = PluginMethod.RETURN_PROMISE)",
+          ]) {
+            const state = memory();
+            const method =
+              extension === "java"
+                ? "public void echo(PluginCall call) {}"
+                : "public fun echo(call: PluginCall) {}";
+            state.files.set(
+              `/app/plugins/Echo.${extension}`,
+              `${annotation} ${method}`
+            );
+            const plugin = entry({
+              ...nativeEcho,
+              android: {
+                ...nativeEcho.android,
+                sources: [
+                  { file: `Echo.${extension}`, source: `Echo.${extension}` },
+                ],
+              },
+            });
+            yield* compose("android", [plugin]).pipe(
+              Effect.provide(state.layer)
+            );
+            assert.include(
+              state.files.get(
+                `/out/android/app/src/main/java/dev/test/app/Echo.${extension}`
+              ) ?? "",
+              `${annotation} ${method}`
+            );
+          }
+        }
+      })
+  );
+
+  it.effect(
     "copies Java sources with the app package and shared Gradle versions",
     () => {
       const state = memory();
@@ -498,7 +698,7 @@ describe("native plugin source composition", () => {
             id: "other",
             bridge: "Other",
             android: {
-              className: "Other",
+              className: "org.example.Other",
               sources: [],
               dependencies: { "org.example:core": ">=1.5 <2" },
             },

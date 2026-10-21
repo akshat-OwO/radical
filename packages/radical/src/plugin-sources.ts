@@ -30,6 +30,31 @@ export const composePluginSources = (
       const spm = new Map<string, { version: string; products: Set<string> }>();
       for (const { manifest, module } of plugins) {
         const native = manifest[platform];
+        if (platform === "android" && native && native.sources.length > 0) {
+          const sourceClasses = native.sources.map(({ file }) =>
+            path.basename(file, path.extname(file))
+          );
+          if (
+            !sourceClasses.some(
+              (name) =>
+                native.className === name ||
+                native.className === `${appId}.${name}`
+            )
+          ) {
+            return yield* new InvalidPlugin({
+              message: `Plugin ${manifest.id}: android class ${native.className} must match a copied source class in package ${appId}: ${sourceClasses.map((name) => `${appId}.${name}`).join(", ")}`,
+            });
+          }
+        }
+        if (
+          platform === "android" &&
+          native?.sources.length === 0 &&
+          !native.className.includes(".")
+        ) {
+          return yield* new InvalidPlugin({
+            message: `Plugin ${manifest.id}: android class ${native.className} with empty sources must name a fully qualified dependency-provided class`,
+          });
+        }
         let manifestDirectory = packageRoot;
         if (module !== "radical/internal-plugins") {
           const resolved = module.startsWith(".")
@@ -65,7 +90,7 @@ export const composePluginSources = (
           const pattern =
             platform === "ios"
               ? /CAPPluginMethod\s*\(\s*name:\s*"(?<command>[A-Za-z][A-Za-z0-9_]*)"/gu
-              : /@PluginMethod\s+(?:public\s+void\s+|(?:public\s+)?fun\s+)(?<command>[A-Za-z][A-Za-z0-9_]*)\s*\(/gu;
+              : /@PluginMethod(?:\s*\([^)]*\))?\s+(?:public\s+void\s+|(?:public\s+)?fun\s+)(?<command>[A-Za-z][A-Za-z0-9_]*)\s*\(/gu;
           const exposed = new Set(
             [...contents.matchAll(pattern)].map(
               (match) => match.groups?.command

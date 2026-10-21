@@ -4,6 +4,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
+import echoSource from "../../../apps/example/plugins/EchoPlugin.swift?raw";
 import { generateIos } from "../src/ios.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
@@ -13,6 +14,7 @@ import { PluginModules } from "../src/plugin-modules.ts";
 import transitions from "../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../templates/offline.html?raw";
+import { echo } from "./fixtures/echo-plugin.ts";
 
 const destination = "/app/.radical/ios";
 const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
@@ -26,6 +28,7 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/app/plugins/EchoPlugin.swift", echoSource],
     ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
@@ -124,7 +127,10 @@ const memory = (
       fs,
       spawner,
       Layer.succeed(PluginModules, {
-        load: () => Effect.die("Unexpected manifest load"),
+        load: (module) =>
+          module === "./plugins/echo.ts"
+            ? Effect.succeed({ default: echo })
+            : Effect.die("Unexpected manifest load"),
       })
     ),
   };
@@ -133,6 +139,23 @@ const memory = (
 const generate = generateIos("/app", "/package");
 
 describe("iOS shell generation", () => {
+  it.effect("includes the Echo Swift class used by shell registration", () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      plugins: [{ manifest: "./plugins/echo.ts" }],
+      pluginOptions: { Echo: { prefix: "Native: " } },
+    });
+    return Effect.gen(function* () {
+      yield* generate;
+      const source = state.files.get(appDelegate) ?? "";
+      assert.include(source, "bridge?.registerPluginInstance(EchoPlugin())");
+      assert.include(
+        source,
+        "public class EchoPlugin: CAPPlugin, CAPBridgedPlugin"
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+
   it.effect(
     "omits disabled internal dependencies, registration and sources",
     () => {

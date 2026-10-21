@@ -122,8 +122,15 @@ export const callPlugin = <C extends Command>(
             typeof cause === "object" && cause !== null && "data" in cause
               ? cause.data
               : {};
+          if (
+            typeof data !== "object" ||
+            data === null ||
+            Array.isArray(data)
+          ) {
+            return Effect.fail(error);
+          }
           return Schema.decodeUnknownEffect(schema)({
-            ...(typeof data === "object" ? data : {}),
+            ...data,
             _tag: code,
           }).pipe(
             Effect.matchEffect({
