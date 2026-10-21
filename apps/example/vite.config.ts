@@ -15,7 +15,7 @@ const config = {
   icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
   splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
-  internalPlugins: { camera: true },
+  internalPlugins: { camera: true, filePicker: true, intents: true },
   pluginOptions: {
     Echo: { prefix: "Native: " },
     Camera: {

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as CameraRouteImport } from './routes/camera'
 import { Route as DetailsRouteImport } from './routes/details'
+import { Route as FilesRouteImport } from './routes/files'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
 
@@ -36,6 +37,11 @@ const DetailsRoute = DetailsRouteImport.update({
   path: '/details',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FilesRoute = FilesRouteImport.update({
+  id: '/files',
+  path: '/files',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfflineRouteRoute = OfflineRouteRouteImport.update({
   id: '/offline-route',
   path: '/offline-route',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
+  '/files': typeof FilesRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
+  '/files': typeof FilesRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
 }
@@ -69,22 +77,36 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
+  '/files': typeof FilesRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/about' | '/camera' | '/details' | '/offline-route' | '/online-route'
+    | '/'
+    | '/about'
+    | '/camera'
+    | '/details'
+    | '/files'
+    | '/offline-route'
+    | '/online-route'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/about' | '/camera' | '/details' | '/offline-route' | '/online-route'
+    | '/'
+    | '/about'
+    | '/camera'
+    | '/details'
+    | '/files'
+    | '/offline-route'
+    | '/online-route'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/camera'
     | '/details'
+    | '/files'
     | '/offline-route'
     | '/online-route'
   fileRoutesById: FileRoutesById
@@ -94,6 +116,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CameraRoute: typeof CameraRoute
   DetailsRoute: typeof DetailsRoute
+  FilesRoute: typeof FilesRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
 }
@@ -128,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DetailsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/files': {
+      id: '/files'
+      path: '/files'
+      fullPath: '/files'
+      preLoaderRoute: typeof FilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/offline-route': {
       id: '/offline-route'
       path: '/offline-route'
@@ -150,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CameraRoute: CameraRoute,
   DetailsRoute: DetailsRoute,
+  FilesRoute: FilesRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
 }

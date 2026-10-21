@@ -107,3 +107,55 @@ export const cameraPlugin = definePlugin({
     },
   },
 });
+
+const pickedFile = Schema.Struct({
+  name: Schema.String,
+  mimeType: Schema.String,
+  size: Schema.Finite,
+  path: Schema.optional(Schema.String),
+  modifiedAt: Schema.optional(Schema.Finite),
+});
+export const filePickerPlugin = definePlugin({
+  id: "filePicker",
+  bridge: "FilePicker",
+  dependencies: { "@capawesome/capacitor-file-picker": "8.1.1" },
+  commands: {
+    pickFiles: {
+      args: Schema.Struct({
+        types: Schema.optional(Schema.Array(Schema.String)),
+        limit: Schema.Literals([0, 1]),
+        readData: Schema.Literal(false),
+      }),
+      result: Schema.Struct({ files: Schema.Array(pickedFile) }),
+      errors: {},
+    },
+  },
+});
+export const appLauncherPlugin = definePlugin({
+  id: "appLauncher",
+  bridge: "AppLauncher",
+  dependencies: { "@capacitor/app-launcher": "8.0.1" },
+  commands: {
+    openUrl: {
+      args: Schema.Struct({ url: Schema.String }),
+      result: Schema.Struct({ completed: Schema.Boolean }),
+      errors: {},
+    },
+  },
+});
+export const fileOpenerPlugin = definePlugin({
+  id: "fileOpener",
+  bridge: "FileOpener",
+  dependencies: { "@capacitor-community/file-opener": "8.0.1" },
+  commands: {
+    open: {
+      args: Schema.Struct({
+        filePath: Schema.String,
+        contentType: Schema.optional(Schema.String),
+        openWithDefault: Schema.Boolean,
+      }),
+      result: Schema.Unknown,
+      errors: {},
+    },
+  },
+});

@@ -110,3 +110,24 @@ export {
   Unavailable,
 } from "./camera.ts";
 export type { Photo, CameraPermission, CameraError } from "./camera.ts";
+
+export {
+  pickFiles,
+  filesLive,
+  BrowserFiles,
+  BrowserFilesLive,
+} from "./file-picker.ts";
+export type {
+  PickedFile,
+  PickFilesOptions,
+  FilePickerError,
+} from "./file-picker.ts";
+export {
+  openUrl,
+  openFile,
+  intentsLive,
+  BrowserIntents,
+  BrowserIntentsLive,
+  NoHandler,
+} from "./intents.ts";
+export type { IntentError, OpenableFile, OpenFileOptions } from "./intents.ts";

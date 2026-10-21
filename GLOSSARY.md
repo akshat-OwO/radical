@@ -36,6 +36,10 @@ _Avoid_: Interface, JSI, IPC
 A UI hook that exposes one native capability and its browser fallback.\
 _Avoid_: Native hook, device hook
 
+**Intent**:\
+A request to hand a URL or file to another app on the device.\
+_Avoid_: Share, deep link
+
 **Native plugin**:\
 A unit of native capability that exposes commands over the bridge.\
 _Avoid_: Extension, module

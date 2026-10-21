@@ -6,8 +6,11 @@ import { Effect, Layer, Schema } from "effect";
 
 import type { RadicalConfig } from "./config.ts";
 import {
+  appLauncherPlugin,
   cameraPlugin,
   devicePlugin,
+  fileOpenerPlugin,
+  filePickerPlugin,
   transitionsPlugin,
 } from "./internal-plugins.ts";
 import { InvalidPlugin } from "./invalid-plugin.ts";
@@ -178,6 +181,27 @@ export const resolvePlugins = (config: RadicalConfig) =>
         module: "radical/internal-plugins",
         selector: "cameraPlugin",
       });
+    }
+    if (config.internalPlugins?.filePicker === true) {
+      plugins.push({
+        manifest: filePickerPlugin,
+        module: "radical/internal-plugins",
+        selector: "filePickerPlugin",
+      });
+    }
+    if (config.internalPlugins?.intents === true) {
+      plugins.push(
+        {
+          manifest: appLauncherPlugin,
+          module: "radical/internal-plugins",
+          selector: "appLauncherPlugin",
+        },
+        {
+          manifest: fileOpenerPlugin,
+          module: "radical/internal-plugins",
+          selector: "fileOpenerPlugin",
+        }
+      );
     }
     if (config.internalPlugins?.device !== false) {
       plugins.push({

@@ -1,0 +1,131 @@
+import { Context, Effect, Layer } from "effect";
+
+import { Bridge } from "./bridge.ts";
+import type { BridgeError } from "./bridge.ts";
+import { readNativeFile } from "./browser-camera.ts";
+import { browserFileInput } from "./browser-file-input.ts";
+import { Cancelled } from "./camera-cancelled.ts";
+import { Unavailable } from "./camera-unavailable.ts";
+import { filePickerPlugin } from "./internal-plugins.ts";
+import { callPlugin } from "./plugins.ts";
+
+export interface PickedFile {
+  readonly name: string;
+  readonly mimeType: string;
+  readonly size: number;
+  readonly lastModified?: number;
+  /** File contents, read the same way in every runtime. */
+  readonly blob: Blob;
+  /** Native file URI, present only in a shell. Pass the file to `openFile` to open it externally. */
+  readonly uri?: string;
+}
+export interface PickFilesOptions {
+  /** MIME types or `type/*` patterns. All files when omitted. */
+  readonly types?: readonly string[];
+  readonly multiple?: boolean;
+}
+export type FilePickerError = Cancelled | Unavailable | BridgeError;
+
+/** Browser resources are isolated so tests never need a device or network. */
+export class BrowserFiles extends Context.Service<
+  BrowserFiles,
+  {
+    readonly pick: (
+      options: PickFilesOptions
+    ) => Effect.Effect<readonly File[], Cancelled | Unavailable>;
+    readonly readNative: (uri: string) => Effect.Effect<Blob, Unavailable>;
+  }
+>()("radical/BrowserFiles") {}
+
+export const BrowserFilesLive = Layer.succeed(BrowserFiles, {
+  pick: (options) =>
+    Effect.suspend(
+      (): Effect.Effect<readonly File[], Cancelled | Unavailable> =>
+        typeof document === "undefined"
+          ? Effect.fail(
+              new Unavailable({ reason: "Files require a browser document" })
+            )
+          : browserFileInput(document, {
+              ...(options.types === undefined
+                ? {}
+                : { accept: options.types.join(",") }),
+              multiple: options.multiple === true,
+            })
+    ),
+  readNative: readNativeFile,
+});
+
+const fallbackType = "application/octet-stream";
+// Capawesome rejects cancellation without a code; its message is the stable contract in 8.1.1.
+const cancelled = "pickFiles canceled.";
+
+const nativeFiles = (options: PickFilesOptions) =>
+  callPlugin(
+    filePickerPlugin.bridge,
+    "pickFiles",
+    filePickerPlugin.commands.pickFiles,
+    {
+      ...(options.types === undefined ? {} : { types: [...options.types] }),
+      limit: options.multiple === true ? 0 : 1,
+      readData: false,
+    }
+  ).pipe(
+    Effect.catchTag(
+      "BridgeCallFailed",
+      (error): Effect.Effect<never, FilePickerError> =>
+        typeof error.cause === "object" &&
+        error.cause !== null &&
+        "message" in error.cause &&
+        error.cause.message === cancelled
+          ? Effect.fail(new Cancelled({}))
+          : Effect.fail(error)
+    )
+  );
+
+/** Normalizes native and browser selections to one `PickedFile` shape. */
+export const pickFiles = (options: PickFilesOptions = {}) =>
+  Effect.gen(function* () {
+    const bridge = yield* Bridge;
+    const browser = yield* BrowserFiles;
+    if ((yield* bridge.runtime) === "browser") {
+      const files = yield* browser.pick(options);
+      return files.map((file): PickedFile => ({
+        name: file.name,
+        mimeType: file.type || fallbackType,
+        size: file.size,
+        lastModified: file.lastModified,
+        blob: file,
+      }));
+    }
+    const { files } = yield* nativeFiles(options);
+    if (files.length === 0) {
+      return yield* new Cancelled({});
+    }
+    return yield* Effect.all(
+      files.map((file) =>
+        file.path === undefined || file.path === ""
+          ? Effect.fail(
+              new Unavailable({
+                reason: `No path for picked file ${file.name}`,
+              })
+            )
+          : browser.readNative(file.path).pipe(
+              Effect.map((blob): PickedFile => ({
+                name: file.name,
+                mimeType: file.mimeType || blob.type || fallbackType,
+                size: file.size,
+                ...(file.modifiedAt === undefined
+                  ? {}
+                  : { lastModified: file.modifiedAt }),
+                blob,
+                uri: file.path,
+              }))
+            )
+      )
+    );
+  });
+
+/** Default browser service for callers that only supply a Bridge layer. */
+export const filesLive = <A, E, R>(
+  effect: Effect.Effect<A, E, R | BrowserFiles>
+) => effect.pipe(Effect.provide(BrowserFilesLive));

@@ -88,3 +88,7 @@ Set `mode: "remote"` and regenerate to load from the same origin. For developmen
 ## Camera
 
 Open `/camera` from the home page. The example enables `internalPlugins.camera` with its own usage description. **Check permission** reads current state; **Request permission** prompts for camera access. **Capture photo** opens the native camera or browser capture input, and **Choose photo** opens an image picker. Both display the normalized image and MIME type. On iOS simulators, the camera may open a black viewfinder without producing a frame. Dismiss it to check `Cancelled`, then use **Choose photo** to verify native image results. Use a physical iPhone to verify hardware capture.
+
+## Files and intents
+
+Open `/files` from the home page. The example enables `internalPlugins.filePicker` and `internalPlugins.intents`. **Pick file** opens the system document picker for any file; **Pick images or PDFs** filters by type and allows several files. The page lists each file's name, MIME type, reported size, and the size of the blob read back. **Open URL** opens `https://example.com/` in the default browser. **Open picked file** hands the first native file to an external app; in a browser it reports `Unavailable`.

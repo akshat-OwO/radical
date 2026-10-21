@@ -55,3 +55,13 @@ export { useCamera, useCameraPermission } from "./use-camera.ts";
 export type { CameraState, CameraPermissionState } from "./use-camera.ts";
 export type { Photo, CameraPermission, CameraError } from "./camera.ts";
 export { PermissionDenied, Cancelled, Unavailable } from "./camera-schema.ts";
+
+export { useFilePicker, useIntent } from "./use-files.ts";
+export type { FilePickerState, IntentState } from "./use-files.ts";
+export type {
+  PickedFile,
+  PickFilesOptions,
+  FilePickerError,
+} from "./file-picker.ts";
+export type { IntentError, OpenableFile, OpenFileOptions } from "./intents.ts";
+export { NoHandler } from "./no-handler.ts";
