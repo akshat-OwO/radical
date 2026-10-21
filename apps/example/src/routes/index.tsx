@@ -33,7 +33,22 @@ const Home = () => {
   };
   const device = useDeviceInfo();
   const safeArea = useSafeArea();
-  const nativeContext = Route.useLoaderData();
+  const [nativeContext, setNativeContext] = useState("Not requested");
+  const callServer = () => {
+    Effect.runFork(
+      Effect.tryPromise(async () => await readNativeContext()).pipe(
+        Effect.match({
+          onSuccess: (value) => JSON.stringify(value, null, 2),
+          onFailure: () => "Server unavailable",
+        }),
+        Effect.tap((value) =>
+          Effect.sync(() => {
+            setNativeContext(value);
+          })
+        )
+      )
+    );
+  };
   const [css, setCSS] = useState("");
   useEffect(() => {
     const readCSS = () => {
@@ -89,7 +104,10 @@ const Home = () => {
       </button>
       <pre>{echo}</pre>
       <h2>Native context</h2>
-      <pre>{JSON.stringify(nativeContext, null, 2)}</pre>
+      <button type="button" onClick={callServer}>
+        Call server function
+      </button>
+      <pre>{nativeContext}</pre>
       <p>
         <a href="/?navigation=allowed">Navigate within the shell</a>
       </p>
@@ -116,6 +134,5 @@ const Home = () => {
 
 export const Route = createFileRoute("/")({
   staticData: { radical: { transition: "slide" } },
-  loader: async () => await readNativeContext(),
   component: Home,
 });

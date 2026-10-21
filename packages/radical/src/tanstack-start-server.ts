@@ -33,6 +33,7 @@ export const offlineHandler =
   };
 
 export {
+  createRadicalRequestMiddleware,
   createRadicalMiddleware,
   radicalMiddleware,
   radicalRequestMiddleware,

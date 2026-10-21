@@ -1,6 +1,6 @@
 # radical
 
-A Vite plugin and runtime that runs a server-rendered web app inside native Android and iOS apps, which host its UI in a WebView.
+A Vite plugin and runtime that runs a web app inside native Android and iOS apps, which host its UI in a WebView.
 
 ## Language
 
@@ -41,7 +41,7 @@ The declaration of a native plugin's identity, commands, configuration, dependen
 _Avoid_: Build manifest, plugin config
 
 **Native context**:\
-Request-time facts about the shell, such as platform and safe-area insets, read from a cookie the shell sets natively on its allowed origins.\
+Request-time facts about the shell, such as platform and safe-area insets, available to the web app and its server.\
 _Avoid_: Device context, client hints
 
 ### Loading and offline
@@ -51,7 +51,7 @@ The shell loads the web app from a live server origin, with server rendering.\
 _Avoid_: Server URL mode, online mode
 
 **Bundled mode**:\
-The shell loads a prebuilt SPA shell from assets packaged in the app.\
+The shell loads a prebuilt SPA shell from assets packaged in the app, with server functions and data calls served by a remote origin.\
 _Avoid_: Static mode, local mode, export mode
 
 **Manifest**:\

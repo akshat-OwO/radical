@@ -11,6 +11,7 @@ export class ServiceWorkerRegistrationError extends Schema.TaggedError<
 >()("ServiceWorkerRegistrationError", { cause: Schema.Unknown }) {}
 
 export const registerOfflineEffect = (options: {
+  readonly mode?: "remote" | "bundled";
   readonly production: boolean;
   readonly base?: string;
 }) =>
@@ -18,6 +19,7 @@ export const registerOfflineEffect = (options: {
     const browser =
       typeof window !== "undefined" && typeof navigator !== "undefined";
     if (
+      options.mode === "bundled" ||
       !shouldRegister({
         production: options.production,
         browser,
@@ -84,3 +86,10 @@ export {
 export { TransitionTimeout } from "./transition-timeout.ts";
 
 export { transitionStrategy } from "./transition-strategy.ts";
+
+export {
+  createRadicalFetch,
+  localNativeContext,
+  browserContext,
+  RequestFailed,
+} from "./bundled-request.ts";

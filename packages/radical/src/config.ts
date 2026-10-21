@@ -63,6 +63,8 @@ export const RadicalConfigSchema = Schema.Struct({
       transitions: Schema.optional(Schema.Boolean),
     })
   ),
+  mode: Schema.optional(Schema.Literals(["remote", "bundled"])),
+  origin: Schema.optional(HttpOriginSchema),
   appId: Schema.String.check(
     Schema.isPattern(/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+$/u)
   ),
@@ -99,7 +101,14 @@ export const RadicalConfigSchema = Schema.Struct({
       backgroundColor: SplashColorSchema,
     })
   ),
-});
+}).check(
+  Schema.makeFilter(
+    (config) =>
+      config.mode !== "bundled" ||
+      config.origin !== undefined ||
+      "Bundled mode requires origin for server functions and data calls"
+  )
+);
 
 export const nativeIdentity = (
   config: RadicalConfig,

@@ -28,7 +28,7 @@ export const generateIos = (
     const domains = [
       ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
     ];
-    if (domains.length > 10) {
+    if (!native.bundled && domains.length > 10) {
       return yield* Effect.fail(
         new InvalidConfig({
           message:
@@ -43,6 +43,7 @@ export const generateIos = (
       "RadicalViewController.swift",
       template,
       {
+        __BUNDLED__: String(native.bundled),
         __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
         __SPLASH_NAME__: JSON.stringify(iosSplashResourceName(native.assets)),
         __URL__: JSON.stringify(native.url),
@@ -124,8 +125,13 @@ export const generateIos = (
         const plist = path.join(app, "Info.plist");
         const contents = yield* fs.readFileString(plist);
         // Exact origin validation remains in the navigation delegate.
-        const bound = `<key>WKAppBoundDomains</key><array>${domains.map((domain) => `<string>${domain.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</string>`).join("")}</array>`;
-        const ats = native.origins.some((origin) => origin.startsWith("http:"))
+        const bound = native.bundled
+          ? ""
+          : `<key>WKAppBoundDomains</key><array>${domains.map((domain) => `<string>${domain.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</string>`).join("")}</array>`;
+        const ats = [
+          native.config.origin ?? native.url,
+          ...native.origins,
+        ].some((origin) => origin.startsWith("http:"))
           ? "<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>"
           : "";
         yield* fs.writeFileString(

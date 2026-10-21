@@ -2,8 +2,11 @@ import {
   createStartHandler,
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
+import { withBundledRequests } from "radical/server";
 import { offlineHandler } from "radical/tanstack-start-server";
 
 export default {
-  fetch: createStartHandler(offlineHandler(defaultStreamHandler)),
+  fetch: withBundledRequests(
+    createStartHandler(offlineHandler(defaultStreamHandler))
+  ),
 };

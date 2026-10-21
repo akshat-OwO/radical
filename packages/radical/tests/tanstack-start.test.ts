@@ -4,6 +4,7 @@ import { Effect, Layer, Schema } from "effect";
 import { RadicalAdapter } from "../src/adapter.ts";
 import { getNativeContext } from "../src/server.ts";
 import {
+  createRadicalRequestMiddleware,
   createRadicalMiddleware,
   radical,
   radicalRequestMiddleware,
@@ -206,5 +207,63 @@ describe("TanStack Start adapter", () => {
       assert.lengthOf(plugins, 2);
       assert.propertyVal(plugins[0], "name", "radical:config");
     })
+  );
+});
+
+describe("bundled server-function CSRF opt-in", () => {
+  it.effect(
+    "allows only exact bundled origins or same-origin fetch metadata",
+    () =>
+      Effect.gen(function* () {
+        const [csrf] = createRadicalRequestMiddleware();
+        const guard = csrf.options.server;
+        assert.isDefined(guard);
+        for (const origin of [
+          "https://localhost",
+          "capacitor://localhost",
+          "https://attacker.test",
+          "null",
+          "https://localhost:444",
+        ]) {
+          for (const metadata of [true, false]) {
+            const request = new Request("https://api.test/_serverFn/id", {
+              headers: {
+                origin,
+                ...(metadata ? { "sec-fetch-site": "cross-site" } : {}),
+              },
+            });
+            const options = {
+              request,
+              pathname: "/_serverFn/id",
+              context: undefined,
+              handlerType: "serverFn" as const,
+            };
+            // Start composes generic middleware contexts at runtime.
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Model Start's continuation boundary.
+            const next = (async () =>
+              await Promise.resolve({
+                ...options,
+                response: new Response("allowed"),
+              })) as Parameters<typeof guard>[0]["next"];
+            const result = yield* Effect.tryPromise({
+              try: async () =>
+                await guard({
+                  ...options,
+                  next,
+                }),
+              catch: (cause) => new MiddlewareFailure({ cause }),
+            });
+            const response =
+              result instanceof Response ? result : result.response;
+            assert.strictEqual(
+              response.status,
+              origin === "https://localhost" ||
+                origin === "capacitor://localhost"
+                ? 200
+                : 403
+            );
+          }
+        }
+      })
   );
 });

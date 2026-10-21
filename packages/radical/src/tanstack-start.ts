@@ -14,6 +14,7 @@ const unavailable = (operation: string) =>
   Effect.fail(new AdapterUnavailable({ operation }));
 
 export {
+  createRadicalRequestMiddleware,
   createRadicalMiddleware,
   radicalMiddleware,
   radicalRequestMiddleware,
@@ -39,7 +40,7 @@ export const TanStackStartAdapter = /* @__PURE__ */ Layer.suspend(() =>
 /** Register next to tanstackStart(); the host framework still owns rendering. */
 export const radical = (config: RadicalConfig): PluginOption[] => [
   corePlugin(config),
-  offlineBuild(config),
+  ...(config.mode === "bundled" ? [] : [offlineBuild(config)]),
 ];
 
 export { NavigationFailed } from "./navigation-error.ts";
@@ -48,3 +49,8 @@ export { browserTransitions } from "./tanstack-navigation.ts";
 export type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
 
 export { tanstackStartAdapterLayer } from "./tanstack-start-client.ts";
+
+/** Pass to tanstackStart() so the native loading mode also selects SPA output. */
+export const tanstackStartOptions = (config: RadicalConfig) => ({
+  spa: { enabled: config.mode === "bundled" },
+});
