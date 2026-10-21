@@ -47,6 +47,6 @@ The test image, the port forwards, and the preview server were removed afterward
 
 ## Repository checks
 
-`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 213 tests. New tests use `@effect/vitest`, in-memory bridge and browser layers, Deferred synchronization, and TestClock interruption without timers, network, or devices. They cover SSR guards, repeat actions, duplicate suppression, provider changes, native error mapping, denial, photo normalization, and opt-in declarations. The lockfile contains no `@pnpm/exe` entries.
+`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `pnpm run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 216 tests. New tests use `@effect/vitest`, in-memory bridge and browser layers, Deferred synchronization, and TestClock interruption without timers, network, or devices. They cover SSR guards, repeat actions, duplicate suppression, provider changes, native error mapping, denial, photo normalization, and opt-in declarations. The lockfile contains no `@pnpm/exe` entries.
 
 The preview and dev servers were stopped, port 4173 had no listener, and `agent-device close` completed. The device daemon was left running.
