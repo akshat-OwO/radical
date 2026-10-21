@@ -516,7 +516,7 @@ describe("iOS shell generation", () => {
       const state = memory(false, { appId: "../outside" });
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
-        assert.strictEqual(error._tag, "SchemaError");
+        assert.strictEqual(error._tag, "InvalidConfig");
         assert.deepStrictEqual(state.commands, []);
         assert.isFalse(state.files.has(appDelegate));
       }).pipe(Effect.provide(state.layer));
@@ -525,6 +525,38 @@ describe("iOS shell generation", () => {
 });
 
 describe("ios app identity", () => {
+  it.effect(
+    "reports invalid ios fallback and explicit ids with an actionable typed error",
+    () =>
+      Effect.gen(function* () {
+        for (const config of [
+          { appId: "dev.my_app" },
+          { ...defaultConfig, ios: { bundleId: "dev.my_app" } },
+        ]) {
+          const state = memory(false, config);
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "ios");
+          assert.include(error.message, "dev.my_app");
+          assert.include(error.message, "ios.bundleId");
+          assert.include(error.message, "letters, digits and hyphens");
+          assert.isEmpty(state.commands);
+        }
+        const state = memory(false, {
+          appId: "dev.my_app",
+          ios: { bundleId: "dev.valid.app" },
+        });
+        yield* generate.pipe(Effect.provide(state.layer));
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          "dev.valid.app"
+        );
+        assert.isNotEmpty(state.commands);
+      })
+  );
+
   it.effect(
     "regenerates the platform identity and passes changed icon and splash pixels to the generator",
     () => {

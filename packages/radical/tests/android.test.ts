@@ -438,7 +438,7 @@ describe("Android shell generation", () => {
       const state = memory(false, { appId: "../outside" });
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
-        assert.strictEqual(error._tag, "SchemaError");
+        assert.strictEqual(error._tag, "InvalidConfig");
         assert.deepStrictEqual(state.commands, []);
         assert.isFalse(state.files.has(mainActivity));
       }).pipe(Effect.provide(state.layer));
@@ -447,6 +447,38 @@ describe("Android shell generation", () => {
 });
 
 describe("android app identity", () => {
+  it.effect(
+    "reports invalid android fallback and explicit ids with an actionable typed error",
+    () =>
+      Effect.gen(function* () {
+        for (const config of [
+          { appId: "dev.class.app" },
+          { ...defaultConfig, android: { packageId: "dev.class.app" } },
+        ]) {
+          const state = memory(false, config);
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "android");
+          assert.include(error.message, "dev.class.app");
+          assert.include(error.message, "android.packageId");
+          assert.include(error.message, "Java keyword");
+          assert.isEmpty(state.commands);
+        }
+        const state = memory(false, {
+          appId: "dev.class.app",
+          android: { packageId: "dev.valid.app" },
+        });
+        yield* generate.pipe(Effect.provide(state.layer));
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          "dev.valid.app"
+        );
+        assert.isNotEmpty(state.commands);
+      })
+  );
+
   it.effect(
     "regenerates the platform identity and passes changed icon and splash pixels to the generator",
     () => {

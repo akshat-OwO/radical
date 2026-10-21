@@ -6,6 +6,7 @@ import semver from "semver";
 
 import {
   HttpOriginSchema,
+  InvalidConfig,
   RadicalConfigSchema,
   nativeIdentity,
   AndroidPackageIdSchema,
@@ -127,11 +128,20 @@ export const readNativeProject = (
     );
     const { config, url } = yield* Schema.decodeEffect(
       Schema.fromJsonString(nativeConfigSchema)
-    )(native);
+    )(native).pipe(
+      Effect.mapError(
+        (error) =>
+          new InvalidConfig({
+            message: `Invalid radical config: ${error.message}`,
+          })
+      )
+    );
     const identity = nativeIdentity(config, platform);
     yield* Schema.decodeEffect(
       platform === "android" ? AndroidPackageIdSchema : IosBundleIdSchema
-    )(identity.appId);
+    )(identity.appId).pipe(
+      Effect.mapError((error) => new InvalidConfig({ message: error.message }))
+    );
     const assets = yield* prepareNativeAssets(root, config);
     const plugins = yield* resolvePlugins(config);
     const { origin } = new URL(url);
