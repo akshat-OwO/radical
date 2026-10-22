@@ -137,6 +137,27 @@ const compose = (platform: "android" | "ios", plugins = [entry(nativeEcho)]) =>
   );
 
 describe("native plugin manifests", () => {
+  for (const module of [
+    "radical/internal-plugins",
+    "another-package/manifests",
+  ]) {
+    it.effect(`copies sources from an explicit root for ${module}`, () =>
+      Effect.gen(function* () {
+        const { files, layer } = memory();
+        files.set(
+          "/package/native/Echo.java",
+          "@PluginMethod public void echo(PluginCall call) {}"
+        );
+        yield* compose("android", [
+          { ...entry(nativeEcho), module, sourceRoot: "native" },
+        ]).pipe(Effect.provide(layer));
+        assert.strictEqual(
+          files.get("/out/android/app/src/main/java/dev/test/app/Echo.java"),
+          "package dev.test.app;\n@PluginMethod public void echo(PluginCall call) {}"
+        );
+      })
+    );
+  }
   it.effect(
     "rejects qualified iOS class names because Swift sources stay in the app module",
     () =>

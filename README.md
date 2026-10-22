@@ -86,7 +86,7 @@ radical({
 });
 ```
 
-A manifest declares its id, Capacitor bridge name, dependencies, native sources, and command argument, result, and error schemas. See the [Echo manifest](apps/example/plugins/echo.ts) and [manifest contract](docs/adr/0003-native-plugin-manifests.md) for the full shape. Native sources resolve relative to the manifest module. Custom plugins are off until listed. Device info and Transitions stay enabled by default; disable either with `internalPlugins: { device: false, transitions: false }`.
+A manifest declares its id, Capacitor bridge name, dependencies, native sources, and command argument, result, and error schemas. See the [Echo manifest](apps/example/plugins/echo.ts) and [manifest contract](docs/adr/0003-native-plugin-manifests.md) for the full shape. Native sources resolve relative to the manifest module. Custom plugins are off until listed. Device info and Transitions stay enabled by default; disable either with `internalPlugins: { device: false, transitions: false }`. The [internal plugin registry](packages/radical/src/core/plugins/internal-plugin-registry.ts) declares flags, defaults, manifests, export selectors, implied capabilities, and source roots. Push notifications enable notifications, which enable network, even if those flags are false.
 
 Include `.radical/plugins.d.ts` in your app's tsconfig and run `radical typegen` before typechecking. Vite also generates that file at startup. Web code imports typed commands from the virtual module:
 
