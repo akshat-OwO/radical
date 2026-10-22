@@ -2,11 +2,14 @@ import { Effect, Schema } from "effect";
 
 import { safeAreaStyle } from "../../capabilities/safe-area/safe-area-style.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
+import { browserContext } from "../context/browser-context.ts";
 import {
   NativeContextSchema,
   NATIVE_CONTEXT_HEADER,
 } from "../context/native-context.ts";
 import type { NativeContext } from "../context/native-context.ts";
+
+export { browserContext } from "../context/browser-context.ts";
 
 export const bundledOrigins = [
   "https://localhost",
@@ -17,12 +20,6 @@ export class RequestFailed extends Schema.TaggedError<
   RequestFailed,
   { readonly brand: unique symbol }
 >()("RequestFailed", { cause: Schema.Unknown }) {}
-
-export const browserContext = (): NativeContext => ({
-  platform: "browser",
-  safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
-  shellVersion: null,
-});
 
 interface BundledDocument {
   readonly __radicalNativeContext?: unknown;

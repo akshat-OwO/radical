@@ -5,7 +5,7 @@ description: "Initial document CSS, component state, and scoped subscriptions."
 
 `SafeArea` has `top`, `right`, `bottom`, and `left`. Each inset is finite, nonnegative, and measured in CSS pixels. Insets exclude keyboard height.
 
-`safeAreaStyle(context, mode = "remote")` returns `--radical-safe-area-top`, `--radical-safe-area-right`, `--radical-safe-area-bottom`, and `--radical-safe-area-left`. Remote native context produces pixel strings. Browser context and bundled mode produce `env(safe-area-inset-*, 0px)` values for stable hydration.
+`safeAreaStyle(context?, mode = "remote")` returns `--radical-safe-area-top`, `--radical-safe-area-right`, `--radical-safe-area-bottom`, and `--radical-safe-area-left`. Missing context uses browser defaults, including when SSR-disabled routes skip their loaders. Remote native context produces pixel strings. Browser context and bundled mode produce `env(safe-area-inset-*, 0px)` values for stable hydration.
 
 `watchSafeArea(receive)` is an Effect subscription requiring `Bridge | Scope`. Acquisition returns the cleanup function and registers it for scope closure. Native events use `radicalSafeArea`; malformed inset events are ignored. Browser observation measures CSS `env()` insets and listens for resize changes.
 

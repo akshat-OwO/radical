@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 
+import { browserContext } from "../core/context/browser-context.ts";
 import type { NativeContext } from "../core/context/native-context.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
@@ -10,12 +11,6 @@ import {
 const decodeContext = Schema.decodeUnknownEffect(
   Schema.fromJsonString(NativeContextSchema)
 );
-
-const browserContext = (): NativeContext => ({
-  platform: "browser",
-  safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
-  shellVersion: null,
-});
 
 const readCookie = (request: Request) => {
   const prefix = `${NATIVE_CONTEXT_COOKIE}=`;

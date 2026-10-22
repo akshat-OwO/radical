@@ -11,7 +11,7 @@ Bundled shells cannot depend on that cookie for their API origin. They inject co
 
 ## Hydration and live insets have different owners
 
-Remote rendering starts with server context. Bundled rendering starts with a stable browser context and CSS `env()` expressions. After mount, `mountNativeContext` hands live CSS values to the shell. This avoids different style props between prerender and hydration.
+Remote rendering starts with server context. Bundled rendering starts with a stable browser context and CSS `env()` expressions. With SSR disabled, TanStack still renders the document shell but skips its loader. `safeAreaStyle` treats absent loader data as browser context, so direct document requests to a bundled API server also render with CSS `env()` values. After mount, `mountNativeContext` hands live CSS values to the shell. This avoids different style props between prerender and hydration.
 
 Later safe-area changes reach CSS directly and React through `radicalSafeArea` events. Insets describe system UI boundaries, not keyboard height. Your framework still owns rendering and route data.
 

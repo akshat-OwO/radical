@@ -31,7 +31,7 @@ The wrapper does not authenticate callers or replace the framework's CSRF config
 
 ## Other server exports
 
-`safeAreaStyle(context, mode?)` returns the document CSS variables. `SafeArea` is an exported type. `NativeContext` is available from `radical/native-context`.
+`safeAreaStyle(context?, mode?)` returns the document CSS variables. Missing context uses browser defaults. `SafeArea` is an exported type. `NativeContext` is available from `radical/native-context`.
 
 `radical/native-context` exports the context schemas, cookie and header constants, `encodeNativeContextCookie`, `safeAreaStyle`, `zeroSafeArea`, and context types. `encodeNativeContextCookie` returns an Effect encoding a shell context as URI-encoded JSON.
 
