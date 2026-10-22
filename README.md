@@ -223,3 +223,26 @@ The hook returns stable `light()`, `medium()`, `heavy()`, `success()`, `warning(
 Each hook suppresses overlapping actions and interrupts pending work on unmount or provider replacement. Actions remain idle during server rendering. Browser feedback uses `navigator.vibrate` with approximate patterns. Missing APIs and a `false` return are successful no-ops, including browsers that block vibration. A thrown browser exception becomes `HapticFeedbackFailed`. Native devices without a haptic engine also complete without feedback.
 
 Effect callers import `hapticImpact(style?)`, `hapticNotification(type)`, and `hapticSelection` from `radical/client`. Notification types are `"SUCCESS"`, `"WARNING"`, and `"ERROR"`. Supply `Bridge` and the injectable `BrowserHaptics` service, or use `hapticsLive(effect)` to supply `BrowserHapticsLive`. See [ADR 0008](docs/adr/0008-haptics.md) and [device verification](docs/verification/haptics.md).
+
+## Network status
+
+Enable `internalPlugins: { network: true }`, install `@capacitor/network@8.0.1`, and regenerate both shells. The plugin is opt-in and needs no permission prompt.
+
+```tsx
+import { useNetworkStatus } from "radical/react";
+
+function Network() {
+  const network = useNetworkStatus();
+  if (network.loading) return <p>Reading network status...</p>;
+  if (network.error) return <p>{network.error._tag}</p>;
+  return (
+    <p>
+      {String(network.value.connected)}: {network.value.connectionType}
+    </p>
+  );
+}
+```
+
+The hook subscribes after mount and updates live. SSR and the first hydration render return `{ loading: true, value: undefined, error: undefined }`. Unmount and provider replacement remove the listener and interrupt pending work. `connected` describes local connectivity, not whether an internet endpoint is reachable. Offline reports type `none`. Native types are `wifi`, `cellular`, `none`, or `unknown`; browsers can also report `ethernet`, `bluetooth`, `wimax`, or `other`. Browsers use `navigator.onLine` and online/offline events, plus `navigator.connection` change events when available. Without network-type support, an online browser reports `unknown`.
+
+`radical/client` exports `getNetworkStatus`, `watchNetworkStatus`, `NetworkStatusSchema`, `NetworkTypeSchema`, `BrowserNetwork`, `BrowserNetworkLive`, `browserNetworkLayer`, and `networkLive`. The Effect and Stream require `Bridge` and `BrowserNetwork`. Wrap a stream consumer Effect with `networkLive` for the default browser service, or inject an in-memory layer. Unexpected native failures are `BridgeCallFailed`; malformed results and events are `BridgeDecodeError`; missing native listener support is `BridgeUnavailable`. See [network verification](docs/verification/network.md).

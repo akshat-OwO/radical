@@ -36,6 +36,10 @@ _Avoid_: Interface, JSI, IPC
 A UI hook that exposes one native capability and its browser fallback.\
 _Avoid_: Native hook, device hook
 
+**Network status**:\
+Whether a local network connection is active and which connection type it uses.\
+_Avoid_: Internet reachability, server health
+
 **Video stream**:\
 A live camera session with a preview and optional QR detection.\
 _Avoid_: Video recording, capture session

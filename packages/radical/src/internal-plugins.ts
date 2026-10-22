@@ -3,6 +3,7 @@ import { Schema } from "effect";
 import { CameraConfigSchema } from "./camera-schema.ts";
 import { DeviceInfoSchema } from "./device-info-schema.ts";
 import { ImpactStyleSchema, NotificationTypeSchema } from "./haptics-schema.ts";
+import { NetworkStatusSchema } from "./network-schema.ts";
 import { definePlugin } from "./plugins.ts";
 
 export const devicePlugin = definePlugin({
@@ -245,5 +246,18 @@ export const hapticsPlugin = definePlugin({
     selectionStart: selectionCommand,
     selectionChanged: selectionCommand,
     selectionEnd: selectionCommand,
+  },
+});
+
+export const networkPlugin = definePlugin({
+  id: "network",
+  bridge: "Network",
+  dependencies: { "@capacitor/network": "8.0.1" },
+  commands: {
+    getStatus: {
+      args: Schema.Struct({}),
+      result: NetworkStatusSchema,
+      errors: {},
+    },
   },
 });

@@ -16,6 +16,7 @@ const config = {
   splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
   internalPlugins: {
+    network: true,
     camera: true,
     videoStream: true,
     filePicker: true,

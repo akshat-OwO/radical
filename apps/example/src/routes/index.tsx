@@ -77,6 +77,7 @@ const Home = () => {
       <Link to="/about">Fade to about</Link>
       <Link to="/camera">Camera capture and permission</Link>
       <Link to="/video">Live video and QR scanning</Link>
+      <Link to="/network">Network status</Link>
       <Link to="/files">Files and intents</Link>
       <Link to="/haptics">Haptic feedback</Link>
       <h2>Safe area</h2>

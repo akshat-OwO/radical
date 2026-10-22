@@ -159,3 +159,9 @@ Effect callers import `startVideoStream`, `videoStreamLive`, `BrowserVideoStream
 ## Haptics
 
 `radical/react` exports `useHapticFeedback`; `radical/client` exports the haptic Effects, `BrowserHaptics`, and `BrowserHapticsLive`. Install `@capacitor/haptics@8.0.2`, enable `internalPlugins.haptics`, and regenerate shells. See [haptic feedback](../../README.md#haptic-feedback) for helpers, state, typed failures, browser no-ops, and lifecycle behavior.
+
+## Network status
+
+`radical/react` exports `useNetworkStatus` and the `NetworkStatusState`, `NetworkStatus`, and `NetworkType` types. Enable `internalPlugins.network`, install the optional `@capacitor/network@8.0.1` peer, and regenerate shells. The hook returns `{ loading, value, error }`, subscribes after mount, and removes its listener on unmount or provider replacement. SSR reports loading without reading globals.
+
+`radical/client` exports the current-status Effect `getNetworkStatus` and the live Stream `watchNetworkStatus`, plus schemas, types, and the injectable `BrowserNetwork` service. `networkLive(effect)` supplies `BrowserNetworkLive`; `browserNetworkLayer(read)` accepts browser event and navigator objects for tests. Each stream subscription installs its own listener, emits initial status, then distinct changes, and removes its listener on completion, failure, or interruption. A change received during the initial read takes precedence over the read's response. Status buffering keeps only the latest pending value for slow consumers. See the [network API](../../README.md#network-status) for fields, browser limits, and typed errors.

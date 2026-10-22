@@ -6,6 +6,7 @@ import { Effect, Layer, Schema } from "effect";
 
 import type { RadicalConfig } from "./config.ts";
 import {
+  networkPlugin,
   appLauncherPlugin,
   cameraPlugin,
   devicePlugin,
@@ -175,6 +176,7 @@ export const validatePlugins = (
     }
   );
 const optInPlugins = [
+  ["network", networkPlugin],
   ["videoStream", videoStreamPlugin],
   ["camera", cameraPlugin],
   ["filePicker", filePickerPlugin],

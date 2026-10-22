@@ -77,3 +77,6 @@ export type {
 export { useHapticFeedback } from "./use-haptic-feedback.ts";
 export type { HapticFeedbackState } from "./use-haptic-feedback.ts";
 export type { HapticError, ImpactStyle, NotificationType } from "./haptics.ts";
+export { useNetworkStatus } from "./use-network-status.ts";
+export type { NetworkStatusState } from "./use-network-status.ts";
+export type { NetworkStatus, NetworkType } from "./network.ts";

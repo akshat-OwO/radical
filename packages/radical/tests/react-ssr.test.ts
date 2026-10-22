@@ -7,6 +7,7 @@ import { bridgeLayer, getDeviceInfo } from "../src/client.ts";
 import {
   RadicalProvider,
   useSafeArea,
+  useNetworkStatus,
   useCamera,
   useCameraPermission,
   useFilePicker,
@@ -174,4 +175,28 @@ it.effect("guards every haptic helper during server rendering", () =>
       "<p>haptics idle</p>"
     );
   })
+);
+
+const NetworkProbe = () => {
+  assert.deepStrictEqual(useNetworkStatus(), {
+    loading: true,
+    value: undefined,
+    error: undefined,
+  });
+  return createElement("p", null, "network unknown");
+};
+it.effect(
+  "renders network status as loading without accessing globals during SSR",
+  () =>
+    Effect.sync(() => {
+      const layer = bridgeLayer(() =>
+        assert.fail("Network read bridge during SSR")
+      );
+      assert.strictEqual(
+        renderToString(
+          createElement(RadicalProvider, { layer }, createElement(NetworkProbe))
+        ),
+        "<p>network unknown</p>"
+      );
+    })
 );
