@@ -3,27 +3,82 @@ title: "Configure Firebase push"
 description: "Register a native push token and manage topic subscriptions."
 ---
 
-1. Configure Firebase apps with your Android package identifier and iOS bundle identifier.
-2. Add the Firebase Android and iOS configuration files to app-owned, gitignored paths.
-3. Install the local notification dependencies from [Schedule a local notification](/docs/guides/notifications).
-4. Install `@capacitor-firebase/messaging@8.5.2` and set `internalPlugins.pushNotifications: true`.
-5. Configure the file paths:
+<Steps>
+<Step>
+
+### Prepare Firebase
+
+Create Firebase apps matching your native identifiers:
+
+| Platform | Identifier         | App-owned, gitignored file |
+| -------- | ------------------ | -------------------------- |
+| Android  | Package identifier | `google-services.json`     |
+| iOS      | Bundle identifier  | `GoogleService-Info.plist` |
+
+</Step>
+<Step>
+
+### Enable push
+
+Complete [local notification setup](/docs/guides/notifications), then apply [capability setup](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.pushNotifications: true`:
+
+```sh
+pnpm add @capacitor-firebase/messaging@8.5.2
+```
+
+</Step>
+<Step>
+
+### Configure platforms
+
+Set file paths before regenerating:
+
+<Tabs items={["Android", "iOS"]}>
+<Tab value="Android">
 
 ```ts
 notifications: {
 	android: { googleServices: "./private/google-services.json" },
+},
+```
+
+</Tab>
+<Tab value="iOS">
+
+```ts
+notifications: {
 	ios: {
 		googleServiceInfo: "./private/GoogleService-Info.plist",
-		environment: "development",
+		environment: "development", // "production" for distribution
 	},
 },
 ```
 
-6. For distribution, set `notifications.ios.environment` to `"production"` and configure APNs credentials in Firebase.
-7. Regenerate both shells. Keep signing and push entitlements consistent with your provisioning profile.
-8. Call `notifications.registerPush()` from `useNotifications()`. Read the FCM token from `value` after success.
-9. Send the token to your backend through your authenticated API.
-10. To subscribe, call `notifications.subscribe("reports")`. To unsubscribe, call `notifications.unsubscribe("reports")`.
-11. To read this installation's confirmed topic list, call `notifications.lookupTopics()`.
+Match signing and entitlements to your provisioning profile; configure APNs credentials in Firebase for distribution.
 
-Send messages through your Firebase backend. Radical does not expose a message-sending server API. Never commit Firebase configuration files. See [Notifications reference](/docs/reference/notifications).
+</Tab>
+</Tabs>
+
+</Step>
+<Step>
+
+### Register and manage topics
+
+Send the successful `value` token through your authenticated backend API:
+
+```ts
+const notifications = useNotifications(); // radical/react
+notifications.registerPush();
+notifications.subscribe("reports");
+notifications.unsubscribe("reports");
+notifications.lookupTopics(); // Confirmed topics for this installation
+```
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+  Keep Firebase files out of Git; send messages through your backend.
+</Callout>
+
+See [Notifications reference](/docs/reference/notifications).

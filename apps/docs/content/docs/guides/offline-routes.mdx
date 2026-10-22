@@ -3,15 +3,42 @@ title: "Keep visited routes available offline"
 description: "Add remote-mode snapshots and an offline fallback."
 ---
 
-1. For a route that can display a stored document, set its static data:
+See the [snapshot lifecycle](/docs/explanation/offline-caching).
+
+<Tabs items={["Remote", "Bundled"]}>
+<Tab value="Remote">
+
+<Steps>
+<Step>
+
+### Mark routes
+
+Set eligible routes' static data:
 
 ```ts
 staticData: { radical: { offline: true } },
 ```
 
-2. In `src/server.ts`, wrap `defaultStreamHandler` with `offlineHandler` from `radical/tanstack-start-server`.
-3. Add your offline fallback at `public/offline.html`.
-4. In a root mount effect, register the worker:
+</Step>
+<Step>
+
+### Configure the server
+
+Wrap `defaultStreamHandler` with `offlineHandler` from `radical/tanstack-start-server` in `src/server.ts`.
+
+</Step>
+<Step>
+
+### Add the fallback
+
+Create `public/offline.html`.
+
+</Step>
+<Step>
+
+### Register the worker
+
+Register in the root mount effect:
 
 ```ts
 void registerOffline({
@@ -21,8 +48,32 @@ void registerOffline({
 });
 ```
 
-5. Build and serve the production app over HTTPS or trustworthy localhost. Do not use a plain HTTP LAN address for worker tests.
-6. After worker activation, visit the offline route through a document navigation. To store a query variant, visit that exact URL.
-7. Stop the UI server. Reopen the stored URL to check its snapshot. Open an unvisited URL to check the offline fallback.
+</Step>
+<Step>
 
-For shell startup checks and platform limits, use the [Android verification record](https://github.com/akshat-OwO/radical/blob/main/docs/verification/android-offline.md) and [iOS verification record](https://github.com/akshat-OwO/radical/blob/main/docs/verification/ios-offline.md). For bundled mode, package the UI instead of registering the remote worker.
+### Verify snapshots
+
+After worker activation in a production build, visit each exact URL through document navigation, then stop the UI server.
+
+| Reopen                              | Expected result  |
+| ----------------------------------- | ---------------- |
+| Visited URL, including query string | Stored document  |
+| Unvisited URL                       | Offline fallback |
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+  Serve over HTTPS or trustworthy localhost. Plain HTTP LAN addresses cannot
+  register workers.
+</Callout>
+
+</Tab>
+<Tab value="Bundled">
+
+[Package the UI](/docs/guides/bundled-mode); do not register the remote worker.
+
+</Tab>
+</Tabs>
+
+See shell startup checks for [Android](https://github.com/akshat-OwO/radical/blob/main/docs/verification/android-offline.md) and [iOS](https://github.com/akshat-OwO/radical/blob/main/docs/verification/ios-offline.md).

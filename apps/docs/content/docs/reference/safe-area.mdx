@@ -3,16 +3,33 @@ title: "Safe-area API"
 description: "Initial document CSS, component state, and scoped subscriptions."
 ---
 
-`SafeArea` has `top`, `right`, `bottom`, and `left`. Each inset is finite, nonnegative, and measured in CSS pixels. Insets exclude keyboard height.
+## Insets and document styles
 
-`safeAreaStyle(context?, mode = "remote")` returns `--radical-safe-area-top`, `--radical-safe-area-right`, `--radical-safe-area-bottom`, and `--radical-safe-area-left`. Missing context uses browser defaults, including when SSR-disabled routes skip their loaders. Remote native context produces pixel strings. Browser context and bundled mode produce `env(safe-area-inset-*, 0px)` values for stable hydration.
+| API or value | Contract |
+| --- | --- |
+| `SafeArea` | Finite, nonnegative `top`, `right`, `bottom`, `left` in CSS pixels; excludes keyboard height |
+| `safeAreaStyle(context?, mode = "remote")` | Returns `--radical-safe-area-top`, `--radical-safe-area-right`, `--radical-safe-area-bottom`, `--radical-safe-area-left` |
+| Remote native context | Pixel strings |
+| Browser, bundled, or absent loader context | `env(safe-area-inset-*, 0px)` for stable hydration |
+| `watchSafeArea(receive)` | Effect requiring `Bridge \| Scope`; returns cleanup and registers it for scope closure |
+| Native events | `radicalSafeArea`; malformed inset events ignored |
+| Browser observation | Measures CSS `env()` insets; listens for resize |
+| `useSafeArea()` | Initial provider insets, then live values; no loading or error state |
 
-`watchSafeArea(receive)` is an Effect subscription requiring `Bridge | Scope`. Acquisition returns the cleanup function and registers it for scope closure. Native events use `radicalSafeArea`; malformed inset events are ignored. Browser observation measures CSS `env()` insets and listens for resize changes.
+## Platform support
 
-`useSafeArea()` returns the provider's initial safe area and live changes after mount. It returns the insets directly, without loading or error state.
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Live insets | Shell CSS updates at document start and later changes | Shell CSS updates at document start and later changes | CSS environment insets and resize events |
+| Keyboard | Layout viewport resizes | Focused input scrolls into view | Browser layout behavior |
+| Enablement | No capability flag or extra dependency | No capability flag or extra dependency | No native dependency |
 
-Native shells update CSS variables at document start and on inset changes. Android uses a layout viewport that resizes for the keyboard. iOS scrolls the focused input into view. The safe area does not become the keyboard height. No capability flag or extra dependency is required for the shell's safe-area handling.
+## Exports
 
-`safeAreaStyle` is exported from `radical/client`, `radical/server`, and `radical/native-context`. `watchSafeArea` is exported from `radical/client`; `useSafeArea` is exported from `radical/react`.
+| Export | Entry points |
+| --- | --- |
+| `safeAreaStyle` | `radical/client`, `radical/server`, `radical/native-context` |
+| `watchSafeArea` | `radical/client` |
+| `useSafeArea` | `radical/react` |
 
 Source: [safe-area implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/safe-area), [safe-area contract](https://github.com/akshat-OwO/radical/blob/main/docs/safe-area.md).

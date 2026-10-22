@@ -3,11 +3,19 @@ title: "Capture or choose a photo"
 description: "Enable still-camera capture and a single-image library picker."
 ---
 
-1. Install `@capacitor/camera@8.2.6` in your app.
-2. Set `internalPlugins.camera: true`.
-3. Add both usage descriptions to your config:
+<Steps>
+<Step>
+
+### Enable capture
+
+Apply the [capability setup](/docs/guides/run-on-a-device#prerequisites) with this dependency and config:
+
+```sh
+pnpm add @capacitor/camera@8.2.6
+```
 
 ```ts
+internalPlugins: { camera: true },
 pluginOptions: {
 	Camera: {
 		usageDescription: "Take a photo to attach to your report.",
@@ -16,11 +24,42 @@ pluginOptions: {
 },
 ```
 
-4. Regenerate both shells.
-5. In a component, call `useCamera()` and `useCameraPermission()` from `radical/react`.
-6. To request permission from a user action, call `permission.request()`.
-7. To capture, call `camera.capture()`. To choose one image, call `camera.choose()`.
-8. While `camera.loading` is true, disable the action button. On success, display `<img src={camera.value.dataUrl} alt="Selected attachment" />`.
-9. If the user returns from system settings, call `permission.check()` to refresh the state.
+</Step>
+<Step>
 
-Keep the camera hook mounted until a native picker closes. Interruption cannot dismiss the native picker. See [Camera reference](/docs/reference/camera) for error handling and browser behavior.
+### Connect actions
+
+Connect these `radical/react` hooks to user actions:
+
+```ts
+const camera = useCamera();
+const permission = useCameraPermission();
+// Buttons:
+permission.request();
+camera.capture();
+camera.choose();
+// After returning from settings:
+permission.check();
+```
+
+</Step>
+<Step>
+
+### Show the image
+
+Disable actions while `camera.loading` and render successful results:
+
+```tsx
+<img src={camera.value.dataUrl} alt="Selected attachment" />
+```
+
+You see the captured or selected photo.
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+  Keep the hook mounted until the picker closes. Interruption cannot dismiss it.
+</Callout>
+
+See [errors and browser behavior](/docs/reference/camera).

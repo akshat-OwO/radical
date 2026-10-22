@@ -3,20 +3,44 @@ title: "Add a typed native plugin"
 description: "Enable a Schema-defined manifest and call its commands."
 ---
 
-1. Create a manifest module with `definePlugin` from `radical/plugins`. Use the [Echo manifest](https://github.com/akshat-OwO/radical/blob/main/apps/example/plugins/echo.ts) as a working starting point.
-2. Declare the bridge name, dependency versions, native sources, and each command's `args`, `result`, and `errors` schemas.
-3. For a declared native error, create a `Schema.TaggedError` whose tag matches the native rejection code.
-4. Enable the manifest in Vite config:
+<Steps>
+<Step>
+
+### Define the manifest
+
+Copy the [Echo manifest](https://github.com/akshat-OwO/radical/blob/main/apps/example/plugins/echo.ts), following the [manifest contract](/docs/reference/plugins).
+
+</Step>
+<Step>
+
+### Enable the plugin
+
+Configure your manifest:
 
 ```ts
 plugins: [{ manifest: "./plugins/echo.ts" }],
 pluginOptions: { Echo: { prefix: "Native: " } },
 ```
 
-5. Include `.radical/plugins.d.ts` in your app's `tsconfig.json`.
-6. Run `pnpm exec radical typegen` from the app directory.
-7. Regenerate both shells after changing manifests or native sources.
-8. Call the generated command from the virtual module:
+</Step>
+<Step>
+
+### Generate declarations
+
+Include `.radical/plugins.d.ts` in `tsconfig.json` before running:
+
+```sh
+pnpm exec radical typegen
+```
+
+[Regenerate shells](/docs/guides/run-on-a-device#prerequisites) after manifest or native-source changes.
+
+</Step>
+<Step>
+
+### Call the command
+
+Run this Effect from your lifecycle or event handler:
 
 ```ts
 import { Effect } from "effect";
@@ -31,4 +55,9 @@ const echo = plugins.echo.echo({ text: "hello" }).pipe(
 );
 ```
 
-Run the Effect from your app lifecycle or event handler. See [Plugin manifest reference](/docs/reference/plugins) for the contract.
+You receive the native Echo result or handled rejection.
+
+</Step>
+</Steps>
+
+See the [bridge sequence](/docs/explanation/bridge).

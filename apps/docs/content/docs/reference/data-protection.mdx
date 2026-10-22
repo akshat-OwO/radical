@@ -17,13 +17,25 @@ Protection persists until explicitly disabled, including after hook unmount. Sta
 
 ## `clearWebData`
 
-An Effect of void requiring `Bridge | BrowserDataProtection`. Clears accessible browser storage before native WebView data. Browser clearing pauses Radical snapshot writes, unregisters service workers, deletes Cache Storage, deletes enumerated IndexedDB databases, clears local and session storage, and expires accessible cookies. HttpOnly cookies are inaccessible to browser JavaScript. Native clearing covers native WebView data too.
+`clearWebData` is an Effect of void requiring `Bridge | BrowserDataProtection`.
 
-IndexedDB deletion requires closed connections. Browser database enumeration depends on `indexedDB.databases` support. Browser clearing can fail after partial deletion. It does not reload the document or stop application writes by itself.
+| Deletion phase | Scope |
+| --- | --- |
+| Browser first | Pause snapshot writes; unregister workers; delete Cache Storage and enumerated IndexedDB databases; clear local and session storage; expire accessible cookies |
+| Native next | Native WebView data, including data inaccessible to browser JavaScript |
+| Browser limits | HttpOnly cookies inaccessible; database enumeration requires `indexedDB.databases` |
+
+<Callout type="warning">
+  Clearing requires closed IndexedDB connections and can fail after partial
+  deletion. It neither reloads the document nor stops application writes.
+</Callout>
 
 `dataProtectionLive(effect)` provides `BrowserDataProtectionLive`. `BrowserDataProtection` exposes the injectable clear operation.
 
-`DataProtectionError` is `BridgeError | WebDataClearFailed`. `WebDataClearFailed` carries `cause`. Invalid enabled values produce `BridgeDecodeError`.
+| Error | Meaning |
+| --- | --- |
+| `BridgeError` | Includes `BridgeDecodeError` for invalid enabled values |
+| `WebDataClearFailed` | Clearing failed; carries `cause` |
 
 `useDataProtection()` exposes `setEnabled(enabled)` and `clearWebData()` with action state. Its value is the protection status or `true` after successful clearing.
 

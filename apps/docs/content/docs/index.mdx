@@ -3,23 +3,49 @@ title: "Radical runs your web app in native shells"
 description: "An introduction to Radical for developers who already use server-rendered web apps."
 ---
 
-Radical is a Vite plugin and runtime that runs your web app inside Android and iOS WebView shells. You keep your framework's routing, server rendering, data fetching, and HTTP server. Radical generates the native projects and connects your UI to native capabilities through a typed bridge.
+Radical runs a web UI in Android and iOS WebViews. The Vite plugin generates the native projects; an Effect bridge connects the UI to native capabilities. Your framework keeps routing, rendering, data fetching, and HTTP handling.
 
-Radical fits teams that want to share a web UI with mobile apps while keeping a server-rendered framework. TanStack Start is the implemented framework adapter. React hooks expose camera capture, files, Google sign-in, haptics, network status, notifications, safe area, live video, device info, and data protection. Custom native plugins use Effect Schema contracts.
+TanStack Start is the implemented adapter. React hooks expose capabilities; custom plugins use Effect Schema manifests.
 
-## Two modes select where the UI lives
+<Cards>
+  <Card
+    title="Create an app"
+    href="/docs/tutorials/create-an-app"
+    description="Run the example UI in a browser and native shells."
+  />
+  <Card
+    title="Change an existing app"
+    href="/docs/guides/bundled-mode"
+    description="Package the UI, add capabilities, or configure native assets."
+  />
+  <Card
+    title="Look up an API"
+    href="/docs/reference/config"
+    description="Find config fields, Effect services, hooks, and errors."
+  />
+  <Card
+    title="Understand the design"
+    href="/docs/explanation/native-shells"
+    description="See the architecture, request boundaries, and generated shells."
+  />
+</Cards>
+
+## Where the UI lives
 
 | Mode | UI source | Server work | Offline startup |
 | --- | --- | --- | --- |
-| Remote mode | Your configured HTTP origin | Your framework renders documents and handles data calls | Previously visited offline routes use snapshots. A packaged offline fallback covers missing snapshots. |
-| Bundled mode | SPA assets packaged in the shell | Your configured remote API handles server functions and data calls | Packaged UI starts without a UI server. Data still needs your API unless your app handles its absence. |
+| Remote, the default | Configured HTTP origin | Documents and data | Visited route snapshots or packaged fallback |
+| Bundled | Packaged SPA assets | API and server functions | Packaged UI; remote data needs app-owned handling |
 
-Remote mode is the default. Both modes use the same bridge and native capabilities. Browsers use capability-specific fallbacks.
+Both modes share the native bridge. Browser behavior depends on each capability.
 
-## Platform support has boundaries
+## Platform boundaries
 
-The native shells use Capacitor 8. Android runs through Gradle and adb. The iOS CLI runs iPhone simulators through Xcode on macOS. Physical iOS devices require your own Xcode signing and run setup. Browser support varies by capability and browser API.
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| CLI build and run | Gradle and adb; emulator or USB device | Xcode on macOS; iPhone simulator | Vite dev server |
+| Physical device | CLI with adb target | App-owned signing and Xcode run | Not applicable |
+| Native APIs | Enabled manifests | Enabled manifests | Capability-specific web services |
+| UI delivery | Remote or bundled | Remote or bundled | Web origin |
 
-Radical does not provide authentication, app-store distribution, a database, or a replacement router. Native context describes presentation and never proves identity.
-
-[Create and run an app](/docs/tutorials/create-an-app) for a working starting point. Use [task guides](/docs/guides/bundled-mode) for changes to an existing app, [configuration reference](/docs/reference/config) for lookup, and [delivery modes](/docs/explanation/delivery-modes) for the design trade-offs.
+Radical does not provide authentication, store distribution, or a database. Native context describes presentation and cannot prove identity.

@@ -3,13 +3,48 @@ title: "Protect sensitive content and clear web data"
 description: "Enable native screen protection and delete local WebView data."
 ---
 
-1. Set `internalPlugins.dataProtection: true` and regenerate both shells.
-2. Call `useDataProtection()` from `radical/react`.
-3. Before showing sensitive content, call `protection.setEnabled(true)`.
-4. Read the returned status to determine which protections the platform supports.
-5. When the protected flow ends, call `protection.setEnabled(false)`. Unmount does not disable protection.
-6. Before clearing data, stop app writes, close other tabs, and close IndexedDB connections.
-7. From an explicit user action, call `protection.clearWebData()`.
-8. If `error` exists, handle the failure before assuming local data is gone.
+<Steps>
+<Step>
 
-Clearing removes accessible storage, cookies, databases, caches, and worker registrations, plus native WebView data. A failure can occur after some data is already deleted. Reload or navigate to your signed-out screen after success. See [Data protection reference](/docs/reference/data-protection) for platform limits.
+### Enable protection
+
+[Configure and regenerate](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.dataProtection: true`.
+
+</Step>
+<Step>
+
+### Protect content
+
+Enable protection before showing sensitive content and disable it when the flow ends:
+
+```ts
+const protection = useDataProtection(); // radical/react
+protection.setEnabled(true);
+// After the sensitive flow:
+protection.setEnabled(false);
+```
+
+Read the returned status for supported protections.
+
+</Step>
+<Step>
+
+### Clear data
+
+Stop writes, close other tabs and IndexedDB connections, then call from an explicit user action:
+
+```ts
+protection.clearWebData();
+```
+
+After success, reload or show your signed-out screen.
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+  Unmount does not disable protection. Clearing can fail after partial deletion;
+  handle `protection.error` before assuming data is gone.
+</Callout>
+
+See [deletion scope and platform limits](/docs/reference/data-protection).

@@ -3,16 +3,65 @@ title: "Animate route navigation"
 description: "Enable slide or fade transitions with TanStack Router."
 ---
 
-1. In `src/router.tsx`, import `radical/transitions.css`.
-2. After creating the router, call `browserTransitions(router)` from `radical/tanstack-start-client` once.
-3. On each destination route, set a transition:
+<Steps>
+<Step>
+
+### Install transitions
+
+Configure `src/router.tsx` once after creating the router:
 
 ```ts
-staticData: { radical: { transition: "slide" } },
+import "radical/transitions.css";
+import { browserTransitions } from "radical/tanstack-start-client";
+
+const transitions = browserTransitions(router);
+// Retain transitions.cancel() and transitions.dispose() for teardown.
 ```
 
-4. To use a fade, set `transition: "fade"` instead.
-5. If you disabled `internalPlugins.transitions`, enable it and regenerate both shells.
-6. Navigate through Router links or `router.navigate` to check the transition. Use history back to check the reverse slide.
+</Step>
+<Step>
 
-For cancellation and teardown, retain the installer's returned `cancel()` and `dispose()` methods. See [Transitions reference](/docs/reference/transitions).
+### Choose a transition
+
+Set destination route static data:
+
+```ts
+staticData: { radical: { transition: "slide" } }, // or "fade"
+```
+
+</Step>
+<Step>
+
+### Verify navigation
+
+If disabled, enable `internalPlugins.transitions` and [regenerate](/docs/guides/run-on-a-device#prerequisites) before navigating through Router links.
+
+You see the configured transition. With `slide`, history back reverses the slide direction. With `fade`, history back fades.
+
+</Step>
+</Steps>
+
+<Mermaid
+  title="One native overlay ID per navigation"
+  chart={`sequenceDiagram
+    participant Router as Router commit hook
+    participant Effect as nativeTransition
+    participant Native as NativeTransitions plugin
+    Router->>Effect: nextId, transition, commit
+    Effect->>Native: cover(id)
+    alt Capture acknowledged with matching id
+        Native-->>Effect: id
+        Effect->>Router: commit once
+        Router-->>Effect: Commit completes
+        Effect->>Effect: painted: two animation frames
+        Effect->>Native: reveal(id, kind, direction, reducedMotion)
+        Native-->>Effect: Matching id acknowledgement
+        Effect->>Native: remove(id) in finalizer
+    else Capture fails or times out
+        Effect->>Native: remove(id), bounded and ignored on failure
+        Effect->>Router: commit once without animation
+    end
+`}
+/>
+
+Check that failed commits remove overlays. See [timeouts and reduced motion](/docs/reference/transitions).

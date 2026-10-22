@@ -5,11 +5,19 @@ description: "Native identity tokens and browser service injection."
 
 Native enablement is `internalPlugins.googleSignIn`. The dependency is `@capawesome/capacitor-google-sign-in@0.1.4`.
 
-`GoogleSignInConfigSchema` validates `webClientId` and `iosClientId`. Each identifier matches letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`. `pluginOptions.GoogleSignIn` supplies the config. Generation defines the runtime config and writes the iOS client identifier and reversed URL scheme.
+| Configuration | Contract |
+| --- | --- |
+| `pluginOptions.GoogleSignIn` | Validated by `GoogleSignInConfigSchema` |
+| `webClientId`, `iosClientId` | Letters, digits, underscores, or hyphens, then `.apps.googleusercontent.com` |
+| Generation | Runtime config; iOS client identifier and reversed URL scheme |
 
 `googleSignIn` is an Effect of `GoogleIdentity`, requiring `Bridge | BrowserGoogleSignIn | GoogleSignInConfiguration`. `GoogleIdentitySchema` validates `{ idToken: nonempty string }`.
 
-`googleSignInLive(effect)` supplies `BrowserGoogleSignInLive` and `GoogleSignInConfigurationLive`. The default browser service fails with `GoogleSignInUnavailable`. The browser service can be replaced with an app-owned OAuth flow. Native code initializes the plugin with `webClientId` before sign-in.
+| Service | Contract |
+| --- | --- |
+| `googleSignInLive(effect)` | Provides `BrowserGoogleSignInLive` and `GoogleSignInConfigurationLive` |
+| Native initialization | Uses `webClientId` before sign-in |
+| Browser replacement | Injectable `BrowserGoogleSignIn` for an app-owned OAuth flow |
 
 ## Typed errors
 
@@ -24,5 +32,12 @@ Native enablement is `internalPlugins.googleSignIn`. The dependency is `@capawes
 | `BridgeDecodeError` | Invalid native identity result. |
 
 `useGoogleSignIn()` exposes `signIn()`, `cancel()`, loading state, `value.idToken`, and `error`. Interrupting the Effect does not provide a native sign-out API. Radical does not verify tokens or create an application session.
+
+## Platform support
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Sign-in | Native identity token | Native identity token | Default service fails with `GoogleSignInUnavailable` |
+| Token verification and session | App-owned backend | App-owned backend | App-owned backend |
 
 Source: [Google sign-in implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/google-sign-in).

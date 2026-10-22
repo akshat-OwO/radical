@@ -16,8 +16,20 @@ description: "The shared native and browser device result."
 | `manufacturer` | String |
 | `isVirtual` | Boolean |
 
-`browserDeviceInfo({ userAgent, userAgentData? })` synchronously derives browser information. Browser `platform` is `"web"`, unlike native context's `"browser"`. Browser model and manufacturer are `"unknown"`, and `isVirtual` is false because user-agent data cannot reliably identify emulators. Reduced user-agent information can leave OS version unknown.
+| Browser field or API | Contract |
+| --- | --- |
+| `browserDeviceInfo({ userAgent, userAgentData? })` | Synchronous user-agent derivation |
+| `platform` | `"web"`, unlike native context `"browser"` |
+| `model`, `manufacturer` | `"unknown"` |
+| `isVirtual` | `false`; user agents cannot reliably identify emulators |
+| `osVersion` | May be unknown with reduced user-agent information |
 
 `useDeviceInfo()` returns `DeviceInfoState` with loading, value, and error fields. The effect starts after mount. Native failures use bridge error tags.
+
+## Platform support
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Device result | Capacitor device info | Capacitor device info | Derived user-agent info |
 
 Source: [device info implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/device-info).

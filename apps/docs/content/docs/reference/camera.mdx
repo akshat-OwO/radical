@@ -22,14 +22,22 @@ These are Effect values, not functions. `cameraLive(effect)` provides `BrowserCa
 
 ## Runtime behavior
 
-Native capture requests camera permission and does not save to the gallery. Android generation adds one `CAMERA` permission and optional camera hardware. iOS generation adds camera and photo-library usage descriptions.
-
-Browsers use an image file input with `capture="environment"` for capture. The browser decides whether the input opens a camera or file selection. Permission checks use the Permissions API when available, otherwise report `"prompt"`. Permission requests use `getUserMedia` in a secure context and stop the temporary stream.
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Capture | Camera permission; no gallery save | Camera permission; no gallery save | Image input with `capture="environment"`; camera or file UI depends on browser |
+| Generation | `CAMERA` permission; optional camera hardware | Camera and photo-library usage descriptions | No native generation |
+| Permission check | Native camera status | Native camera status | Permissions API or `"prompt"` |
+| Permission request | Native prompt | Native prompt | Secure-context `getUserMedia`; temporary stream stopped |
 
 ## Errors and hooks
 
-`CameraError` is `PermissionDenied | Cancelled | Unavailable | BridgeError`. Known native permission and cancellation errors map to the capability errors. Unknown native failures remain `BridgeCallFailed`. Invalid bridge results remain `BridgeDecodeError`.
-
-`useCamera()` exposes `capture`, `choose`, and action state. `useCameraPermission()` checks after mount and exposes `check` and `request`. Both hooks come from `radical/react`.
+| Contract | Value |
+| --- | --- |
+| `CameraError` | `PermissionDenied \| Cancelled \| Unavailable \| BridgeError` |
+| Native permission or cancellation rejection | Mapped to capability errors |
+| Unknown rejection | `BridgeCallFailed` |
+| Invalid bridge result | `BridgeDecodeError` |
+| `useCamera()` | `capture`, `choose`, and action state |
+| `useCameraPermission()` | Check after mount; `check` and `request` |
 
 Source: [camera implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/camera).

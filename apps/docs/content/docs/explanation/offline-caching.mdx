@@ -3,22 +3,86 @@ title: "Offline caching"
 description: "Why snapshots require an online visit and an exact URL."
 ---
 
-Remote offline support stores successful HTML responses for eligible routes. The server adapter marks the deepest selected route through `x-radical-offline`. The worker stores only successful, non-redirected HTML with that marker.
+Remote snapshots preserve successful documents, not arbitrary application data. An online visit must store a route before that exact URL can work offline.
 
-A snapshot belongs to an exact URL, including its query string. A visit to `/reports?page=1` does not create a snapshot for `/reports?page=2`. Document navigation uses the network first. When the network request rejects, the worker uses a stored snapshot or its cached offline fallback.
+<Mermaid
+  title="Service worker assets and exact-URL snapshots"
+  chart={`flowchart TD
+    Build[Build ID and asset manifest] --> Install[Worker install: precache assets and offline.html]
+    Install --> Activate[Activate: delete older app cache namespaces]
+    Activate --> Nav[Same-origin GET document navigation]
+    Nav --> Network{Network request}
+    Network -->|Response| Eligible{Successful, non-redirected HTML with x-radical-offline: 1?}
+    Eligible -->|Yes| Cache[Store snapshot with exact URL and query]
+    Cache --> Return[Return network response]
+    Eligible -->|No| Return
+    Network -->|Request rejects| Match{Exact snapshot exists?}
+    Match -->|Yes| HTML[Return stored HTML]
+    Match -->|No| Fallback[Return cached offline.html or Response.error]
+    Cache --> Check[Shell checks completed snapshot for current URL]
+    Check -->|Confirmed message| Saved[Persist saved snapshot URL]
+`}
+/>
 
-## Assets and snapshots have separate roles
-
-The build produces an asset list and a content-derived build ID. Worker installation precaches those assets and `offline.html`. Activation deletes older cache namespaces for the app. The worker handles same-origin GET navigations and known assets. It does not cache arbitrary API responses.
-
-A snapshot contains rendered HTML, which can include user data. It is not a database or a guarantee that an application action works offline. Data protection and sign-out flows need an explicit local-data policy.
+A `/reports?page=1` snapshot cannot satisfy `/reports?page=2`. HTTP error responses do not trigger the network-rejection fallback. Storage failures do not discard a successful network response.
 
 ## Native startup adds recovery
 
-Android's remote shell uses a launch gate to restore worker control before the first remote navigation. Both native shells can recover to a previously confirmed snapshot URL. Without usable web data, a packaged offline fallback still offers recovery.
+<Mermaid
+  title="Remote shell startup recovery"
+  chart={`flowchart TD
+    subgraph Android
+      Start[Android launch gate] --> Connected{Internet capability present?}
+      Connected -->|Yes| Config[Select configured URL]
+      Connected -->|No| Saved{Allowed saved app URL?}
+      Saved -->|Yes| Select[Select saved URL]
+      Saved -->|No| Config
+      Config --> Gate{Service worker API available?}
+      Select --> Gate
+      Gate -->|Yes| Lookup[Wait for getRegistration: fulfillment or rejection]
+      Gate -->|No| Load[Load selected URL]
+      Lookup --> Load
+      Load --> Outcome{Navigation outcome}
+      Outcome -->|Network or snapshot response| Ready[Show document]
+      Outcome -->|Worker fallback response| WebFallback[Show worker offline.html]
+      Outcome -->|Main-frame load error| NativeFallback[Show packaged offline HTML]
+    end
+    subgraph iOS
+      Initial[Load configured URL] --> Result{Navigation outcome}
+      Result -->|Network or snapshot response| Document[Show document]
+      Result -->|Worker fallback header| Header[Recovery requested by response]
+      Result -->|Load failure| Error[Recovery requested by load error]
+      Header --> Launching{Still launching?}
+      Error --> Launching
+      Launching -->|Yes| Attempted{Snapshot already attempted?}
+      Attempted -->|No| Exists{Saved URL exists and parses?}
+      Exists -->|Yes| Allowed{Saved origin allowed?}
+      Allowed -->|Yes| Distinct{Saved URL differs from current URL?}
+      Distinct -->|Yes| Retry[Mark attempted and load saved URL once]
+      Retry --> Result
+      Launching -->|No| Reason{Recovery trigger}
+      Attempted -->|Yes| Reason
+      Exists -->|No| Reason
+      Allowed -->|No| Reason
+      Distinct -->|No| Reason
+      Reason -->|Worker fallback header| WorkerHTML[Allow worker offline.html]
+      Reason -->|Load failure| Packaged[Load packaged offline HTML]
+    end
+`}
+/>
 
-iOS remote mode enables App-Bound Domains and persistent website data. Generation limits the distinct server and allowlist hostnames to ten. The recorded WebKit experiment also found a ceiling of three worker origins, so one stable app origin avoids that constraint.
+The iOS flow covers allowed main-frame startup navigations. Recovery cancellation callbacks are consumed; unrelated cancellations go to Capacitor.
 
-Removing web data deletes snapshots and worker registrations. A saved native URL alone cannot restore deleted HTML. [Data protection](/docs/reference/data-protection) describes the public clear operation.
+Android stores `lastOfflineUrl`; iOS stores `radical.lastOfflineURL`. The saved URL records a confirmed snapshot; it does not contain HTML. Clearing web data deletes snapshots and worker registrations, so a saved URL cannot restore deleted data. Bundled mode omits this recovery path.
 
-The [iOS caching decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0002-ios-offline-caching-with-app-bound-domains.md) records the platform evidence and its limits. [Keep visited routes available offline](/docs/guides/offline-routes) contains setup steps.
+## Cache boundaries
+
+| Boundary | Consequence |
+| --- | --- |
+| Known assets and same-origin GET navigations | Arbitrary API responses are not cached |
+| Content-derived build ID | Activation removes older app cache namespaces |
+| HTML snapshots | User data may remain locally; sign-out needs a deletion policy |
+| iOS App-Bound Domains | At most ten distinct configured hostnames |
+| Recorded WebKit experiment | Three worker origins; prefer one stable app origin |
+
+The [iOS caching decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0002-ios-offline-caching-with-app-bound-domains.md) records the platform evidence. [Keep visited routes available offline](/docs/guides/offline-routes) contains setup; [Data protection](/docs/reference/data-protection) describes deletion.

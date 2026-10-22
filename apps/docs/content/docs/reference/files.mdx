@@ -7,7 +7,22 @@ description: "File selection, URL opening, and native file handoff."
 
 ## File selection
 
-`pickFiles(options?)` returns an Effect of `readonly PickedFile[]` requiring `Bridge | BrowserFiles`. Options are `types?: readonly string[]` and `multiple?: boolean`. Types are MIME types or patterns such as `image/*`. Omitted types allow all files. Omitted `multiple` selects one file.
+`pickFiles(options?)` returns `Effect<readonly PickedFile[], FilePickerError, Bridge | BrowserFiles>`.
+
+<TypeTable
+  type={{
+    types: {
+      type: "readonly string[]",
+      description:
+        "MIME types or patterns such as image/*; omitted allows all files.",
+    },
+    multiple: {
+      type: "boolean",
+      default: "false",
+      description: "Select more than one file.",
+    },
+  }}
+/>
 
 | `PickedFile` field | Type | Meaning |
 | --- | --- | --- |
@@ -18,7 +33,11 @@ description: "File selection, URL opening, and native file handoff."
 | `blob` | `Blob` | Complete file contents in memory. |
 | `uri` | Optional string | Native URI. Absent for browser selections. |
 
-`FilePickerError` is `Cancelled | Unavailable | BridgeError`. An empty native selection is `Cancelled`. Missing native paths fail with `Unavailable`.
+| Picker error  | Meaning                         |
+| ------------- | ------------------------------- |
+| `Cancelled`   | Empty selection or cancellation |
+| `Unavailable` | Includes missing native paths   |
+| `BridgeError` | Transport or schema failure     |
 
 `filesLive(effect)` provides `BrowserFilesLive`. `BrowserFiles` isolates picker and native-file reads. `useFilePicker()` exposes `pick(options?)`, loading state, selected files, and errors.
 
@@ -28,8 +47,21 @@ description: "File selection, URL opening, and native file handoff."
 
 `openFile(file, options?)` accepts `OpenableFile` with optional `uri` and `mimeType`. `OpenFileOptions.chooser` defaults to false. Browser calls and files without a native URI fail with `Unavailable`. Android's chooser and iOS Open In menu are selected by `chooser: true`. iOS's default is a Quick Look preview, which settles when the preview closes.
 
-`IntentError` is `NoHandler | Unavailable | BridgeError`. `NoHandler` carries `target` when no app accepts the operation. Invalid URLs and missing files produce `Unavailable`.
+| Intent error | Meaning |
+| --- | --- |
+| `NoHandler` | No app accepts operation; carries `target` |
+| `Unavailable` | Includes invalid URLs, missing files, browser file calls, or absent native URI |
+| `BridgeError` | Transport or schema failure |
 
 `intentsLive(effect)` provides `BrowserIntentsLive`. `BrowserIntents` replaces browser URL opening. `useIntent()` exposes `openUrl`, `openFile`, and action state. Its success value is `true`.
+
+## Platform support
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Picker | System document UI | System document UI | File input |
+| `openFile` default | Registered file handler | Quick Look; settles when closed | `Unavailable` |
+| `chooser: true` | System chooser | Open In menu | `Unavailable` |
+| `openUrl` | Registered URL handler | Registered URL handler | New tab with `noopener,noreferrer`; blocked popups undetectable |
 
 Source: [files implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/files).

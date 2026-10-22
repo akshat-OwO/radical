@@ -5,7 +5,12 @@ description: "Request parsing and bundled CORS exports from radical/server."
 
 ## `getNativeContext(request)`
 
-Returns `Effect<NativeContext>` without a typed failure. Prefers `x-radical-context` whenever the header is present. Otherwise reads the `radical-context` cookie. The reader does not authenticate the header or check its origin. URI decoding or schema failure returns browser context.
+| Reader behavior | Contract |
+| --- | --- |
+| Result | `Effect<NativeContext>` without typed failure |
+| Precedence | `x-radical-context` header whenever present; otherwise `radical-context` cookie |
+| Invalid URI or schema | Browser context |
+| Trust | No authentication or origin check |
 
 | Field          | Native value                   | Browser value |
 | -------------- | ------------------------------ | ------------- |
@@ -19,11 +24,17 @@ Insets are finite, nonnegative CSS pixel values. Native context is untrusted pre
 
 Returns a Promise-based fetch handler. Allows credentialed CORS for `https://localhost` and `capacitor://localhost` only. Other callers retain the handler's normal behavior without a CORS grant.
 
-`handler` accepts a `Request` and returns `Response | Promise<Response>`. The optional `outputs` argument has type `Pick<AdapterOutputs, "exposedHeaders">` and defaults to `{}`.
-
-Allowed preflights return 204 with methods `GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS` and the requested headers. They bypass `handler` and vary on `Origin` and `Access-Control-Request-Headers`. Every response from `handler` varies on `Origin`.
-
-For allowed origins, the wrapper appends `outputs.exposedHeaders` to `Access-Control-Expose-Headers`. It adds no exposed headers by default or when the array is empty. Existing exposed headers remain unchanged.
+| CORS contract | Value |
+| --- | --- |
+| `handler` | `Request` to `Response \| Promise<Response>` |
+| `outputs` | `Pick<AdapterOutputs, "exposedHeaders">`; defaults to `{}` |
+| Allowed preflight | 204; bypasses handler |
+| Allowed methods | `GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS` |
+| Allowed request headers | Requested headers |
+| Preflight `Vary` | `Origin, Access-Control-Request-Headers` |
+| Handler response `Vary` | Appends `Origin` for every caller |
+| Response header exposure | Appends supplied `outputs.exposedHeaders` for allowed origins; preserves existing headers |
+| Empty or omitted exposed headers | Adds none |
 
 The [TanStack Start wrapper](/docs/reference/vite#radicaltanstack-start-server) from `radical/tanstack-start-server` supplies the adapter outputs. It exposes `x-tss-serialized`, `x-tss-raw`, and `x-tss-error` to bundled clients.
 

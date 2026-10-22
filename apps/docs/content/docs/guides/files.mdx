@@ -3,14 +3,53 @@ title: "Pick and open files"
 description: "Select attachments and hand native files or URLs to other apps."
 ---
 
-1. For the picker, install `@capawesome/capacitor-file-picker@8.1.1` and set `internalPlugins.filePicker: true`.
-2. For external apps, install `@capacitor/app-launcher@8.0.1` and `@capacitor-community/file-opener@8.0.1`. Set `internalPlugins.intents: true`.
-3. Regenerate both shells.
-4. Call `useFilePicker()` and `useIntent()` from `radical/react` in your component.
-5. To select PDFs, call `picker.pick({ types: ["application/pdf"], multiple: true })` from a button.
-6. Read each file's bytes through `picker.value[i].blob`. Avoid very large files because Radical reads each selection into memory.
-7. To open a selected native file, call `intent.openFile(file)`.
-8. To offer the system chooser, call `intent.openFile(file, { chooser: true })`.
-9. To open a URL, call `intent.openUrl("https://example.com/help")`.
+<Steps>
+<Step>
 
-Handle `picker.error` and `intent.error` separately. Browser files have no native URI, so external file opening returns `Unavailable`. See [Files reference](/docs/reference/files).
+### Enable file capabilities
+
+Apply [capability setup](/docs/guides/run-on-a-device#prerequisites) for the operations you need:
+
+| Operation | Install | Enable |
+| --- | --- | --- |
+| Pick | `@capawesome/capacitor-file-picker@8.1.1` | `internalPlugins.filePicker` |
+| Open externally | `@capacitor/app-launcher@8.0.1`, `@capacitor-community/file-opener@8.0.1` | `internalPlugins.intents` |
+
+</Step>
+<Step>
+
+### Pick attachments
+
+Connect a button to these `radical/react` hooks:
+
+```ts
+const picker = useFilePicker();
+const intent = useIntent();
+picker.pick({ types: ["application/pdf"], multiple: true });
+```
+
+You receive files with bytes in `picker.value[i].blob`.
+
+</Step>
+<Step>
+
+### Open externally
+
+Choose an action:
+
+```ts
+intent.openFile(file);
+intent.openFile(file, { chooser: true });
+intent.openUrl("https://example.com/help");
+```
+
+Handle `picker.error` and `intent.error` separately.
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+  Selections load into memory; avoid very large files.
+</Callout>
+
+See [browser restrictions and file errors](/docs/reference/files).

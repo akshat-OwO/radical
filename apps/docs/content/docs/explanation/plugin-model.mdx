@@ -3,16 +3,32 @@ title: "The plugin model"
 description: "Why capability enablement controls native output."
 ---
 
-Every native command needs a JavaScript contract and a native implementation. Radical keeps the command contract in an Effect Schema manifest. The same manifest supplies argument types, result validation, error mapping, native registration, and dependency requirements.
+A manifest connects a JavaScript command contract to native implementations. The same Effect Schema codecs supply argument types, result validation, and rejection mapping.
 
-Custom plugins are disabled until your config lists their manifest. Internal capabilities use the same contract, with a registry that owns defaults and implications. Device info and transitions are enabled by default. Optional capabilities add native dependencies and permissions only when enabled.
+<Mermaid
+  title="Enabled manifests produce clients and native contributions"
+  chart={`flowchart TD
+    Custom[Config plugins: custom manifest paths] --> Resolve[Resolve enabled manifests]
+    Internal[internalPlugins flags and registry defaults] --> Resolve
+    Push[pushNotifications] --> Notifications[notifications]
+    Notifications --> Network[network]
+    Network --> Internal
+    Resolve --> Validate[Validate schemas, options, and installed dependency versions]
+    Validate --> Clients[virtual:radical/plugins and plugins.d.ts]
+    Validate --> Plan[Compose native build contributions]
+    Plan --> Sources[Enabled sources and native registration]
+    Plan --> Deps[npm, Gradle, and SPM requirements]
+    Plan --> Config[Permissions, plist, entitlements, and runtime defines]
+    Plan -->|Conflicting contributions| Fail[Generation failure]
+`}
+/>
 
-## Implications represent runtime dependencies
+Custom plugins stay disabled until listed in config. Internal `device` and `transitions` default to enabled; other capabilities are opt-in. Required implications override explicit false flags.
 
-Notifications use network status for offline tap navigation, so `notifications` enables `network`. Push adds local notification and badge behavior, so `pushNotifications` enables `notifications`. An explicit false flag does not remove a dependency required by another enabled capability.
+## Build contracts and runtime contracts stay separate
 
-Build-only platform contributions stay separate from browser-safe manifests. Camera descriptions, Firebase copies, entitlements, and runtime defines compose in the resolved build plan. A conflicting plist value fails generation rather than depending on plugin order.
+Browser-safe manifests describe commands. Build-only contributions add camera descriptions, Firebase files, entitlements, and runtime defines. Conflicting plist values fail generation instead of depending on plugin order.
 
-The generated virtual module contains typed clients for enabled manifests. Type generation does not install missing packages or implement native methods. Native regeneration remains necessary after changing the plugin set.
+Generated clients preserve schema-derived types. Type generation neither installs missing packages nor implements native methods. Changing the plugin set requires native regeneration.
 
-The [plugin manifest decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0003-native-plugin-manifests.md) records validation and composition rules. [Add a typed native plugin](/docs/guides/custom-plugins) contains the authoring workflow.
+[Add a typed native plugin](/docs/guides/custom-plugins) contains the authoring procedure. [Plugin manifest reference](/docs/reference/plugins) lists fields and error rules.

@@ -3,26 +3,50 @@ title: "Remote and bundled modes"
 description: "Why UI delivery changes requests, startup, and offline behavior."
 ---
 
-Remote mode keeps your server as the document origin. The shell loads its URL, so your framework renders documents and the WebView sends ordinary requests. You can deploy UI changes on the server without repackaging native UI assets.
+Remote mode keeps the server as the document origin. Bundled mode moves the UI into the shell and keeps data on an API origin. That choice changes startup and the browser's request boundary.
 
-That choice makes startup depend on either the server or a previously stored snapshot. The remote worker and shell recovery handle connection failure. They cannot invent a snapshot of a route you have never visited.
+<Mermaid
+  title="Remote documents and bundled API requests"
+  chart={`flowchart TD
+    subgraph Remote
+        R[Remote WebView] -->|HTTP document, fetch, or form with radical-context cookie| S[Framework server]
+        S -->|Server-rendered HTML and data| R
+    end
+    subgraph Bundled
+        L[Packaged SPA on local shell origin] --> F[createRadicalFetch]
+        F -->|Eligible local or API URL rewritten to config.origin| C[Credentialed CORS request with x-radical-context]
+        C --> W[withBundledRequests]
+        W -->|Allowed OPTIONS: 204 CORS response| L
+        W -->|Other requests| M[createRadicalRequestMiddleware]
+        M --> A[Start handler and API]
+        A -->|Response through wrapper, CORS and exposed headers| L
+    end
+`}
+/>
 
-Bundled mode packages a SPA shell and its assets. Android loads `https://localhost`; iOS loads `capacitor://localhost`. The shell starts the UI without a UI server, while server functions and data requests still use the configured API origin.
+The bundled origins are `https://localhost` on Android and `capacitor://localhost` on iOS. Global fetch, HTML forms, third-party origins, and ordinary browsers retain normal request behavior. Only `createRadicalFetch` routes eligible shell requests.
 
-## Requests need an explicit boundary
+## Startup follows the UI location
 
-The local document origin differs from the API origin. `createRadicalFetch(config)` routes eligible local-shell requests to the API and attaches native context. It includes credentials and uses CORS. Global fetch and HTML forms retain normal browser behavior.
+| Choice | Remote | Bundled |
+| --- | --- | --- |
+| UI update | Deploy server documents | Repackage native UI assets |
+| First offline launch | Packaged fallback | Packaged SPA; loaders must tolerate API failure |
+| Visited offline route | Exact-URL HTML snapshot | App-owned data strategy |
+| Worker and launch gate | Remote worker; Android launch gate | Omitted |
+| iOS App-Bound Domains | Enabled | Omitted |
 
-A TanStack Start API opts in with `withBundledRequests` and `createRadicalRequestMiddleware` from `radical/tanstack-start-server`. The wrapper grants credentialed CORS to the two known local origins. The middleware permits those origins through Start's server-function CSRF checks and retains the checks for other callers. Neither authenticates the caller.
+Packaging HTML does not make remote data available offline.
 
-Start's bundled clients also need to read its response protocol headers. The adapter declares `x-tss-serialized`, `x-tss-raw`, and `x-tss-error` in `outputs.exposedHeaders`, and its server wrapper passes those outputs to core. The generic `withBundledRequests(handler, outputs?)` from `radical/server` adds no exposed headers by default. Using that helper without adapter outputs prevents bundled clients from reading Start's protocol headers unless the handler already exposes them.
+## CORS grants access, not identity
 
-Cross-site WebView cookie restrictions still apply. HTTPS and an authentication design compatible with those restrictions remain your responsibility. Native context is presentation data, so an API must not authorize requests because a context header says `ios` or `android`.
+The wrapper grants credentialed CORS only to the two local origins. Start's middleware permits those origins through server-function CSRF checks and retains checks for other callers. Neither authenticates requests.
 
-## Startup follows the selected mode
+The TanStack wrapper exposes `x-tss-serialized`, `x-tss-raw`, and `x-tss-error`. Core `withBundledRequests(handler, outputs?)` exposes no headers unless supplied with adapter outputs. Without those headers, bundled Start clients cannot read the response protocol.
 
-Bundled generation builds the SPA and copies `dist/client` into the shells' `webDir`. Native generation still uses the configured remote origin for API calls. The local asset origin is the only permitted document origin.
+<Callout type="warning" title="Authentication remains app-owned">
+  Cross-site WebView cookie restrictions still apply. Use HTTPS and a compatible
+  authentication design. Native context cannot authorize a request.
+</Callout>
 
-Bundled mode omits the remote worker, launch gate, snapshot recovery, and iOS App-Bound Domains. Its initial route loaders must tolerate API failure if offline startup is a requirement. Packaging HTML does not make remote data available offline.
-
-The [bundled-mode decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0004-bundled-mode.md) records the request and authentication contract. [Switch to bundled mode](/docs/guides/bundled-mode) contains the implementation steps.
+[Switch to bundled mode](/docs/guides/bundled-mode) contains the setup steps. The [bundled-mode decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0004-bundled-mode.md) records the request contract.

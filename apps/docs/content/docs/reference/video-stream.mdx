@@ -32,11 +32,19 @@ The session exposes Effect values `info` and `switchCamera`, plus `setZoom(level
 | `frameRate`          | Optional finite number                               |
 | `detectionAvailable` | Boolean                                              |
 
-Browser preview uses `getUserMedia`; QR detection requires `BarcodeDetector`. Native preview sits behind a transparent WebView cut-out. Capture is a preview and QR API; it does not record a video file.
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Preview | Behind transparent WebView cut-out | Behind transparent WebView cut-out | `getUserMedia` |
+| QR detection | Native preview detector | Native preview detector | Requires `BarcodeDetector` |
+| Video file recording | Not exposed | Not exposed | Not exposed |
 
 ## Errors and hook
 
-`VideoStreamError` is `BridgeError | PermissionDenied | Unavailable`. Native code `cameraPermissionDenied` maps to `PermissionDenied`. A missing mounted viewfinder produces `Unavailable` in the hook. Native sessions require listener support.
+| Error | Meaning |
+| --- | --- |
+| `BridgeError` | Transport or validation failure; native sessions require listener support |
+| `PermissionDenied` | Native `cameraPermissionDenied` |
+| `Unavailable` | Includes missing mounted viewfinder in the hook |
 
 `useVideoStream({ viewfinder, facing?, onDetect? })` accepts a React ref rather than an element. It returns `start`, `stop`, `switchCamera`, `setZoom`, `setTorch`, `running`, `loading`, `value`, and `error`. Unmount and provider replacement release the session.
 

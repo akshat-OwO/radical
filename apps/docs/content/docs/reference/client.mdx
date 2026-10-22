@@ -30,9 +30,13 @@ Common capability errors are `PermissionDenied`, `Cancelled`, and `Unavailable`.
 
 ## Offline exports
 
-`registerOfflineEffect({ production, mode?, base? })` registers `${base}radical-sw.js` at scope `base`. `base` defaults to `/`. Registration requires a browser, production mode, service-worker support, and a mode other than `"bundled"`.
-
-`registerOffline(options)` is the Promise facade. `ServiceWorkerRegistrationError` carries `cause`. `shouldRegister({ production, browser })` returns the conjunction of those booleans.
+| Registration API | Contract |
+| --- | --- |
+| `registerOfflineEffect({ production, mode?, base? })` | Effect registering `${base}radical-sw.js` at scope `base`; base defaults to `/` |
+| Required conditions | Browser, production, service-worker support, and mode other than `"bundled"` |
+| `registerOffline(options)` | Promise facade |
+| `ServiceWorkerRegistrationError` | Carries `cause` |
+| `shouldRegister({ production, browser })` | Conjunction of the two flags |
 
 ## Bundled request exports
 

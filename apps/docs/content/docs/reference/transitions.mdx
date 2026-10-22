@@ -29,6 +29,19 @@ The optional third argument replaces `BrowserTransitionsLive`. Destination `stat
 | `nativeTransition(id, transition, commit, timeoutMs?)` | Effect requiring `NativeTransitions`. Runs the commit once even if capture fails. Default timeout 1000 milliseconds. |
 | `transitionStrategy` | Effect requiring `Bridge \| BrowserTransitions`. Returns `"native"`, `"browser"`, or `"plain"`. |
 
-`TransitionFailed` and `TransitionTimeout` carry `cause`. The adapter exports `NavigationFailed` for navigation failures. Overlay capture failure falls back to plain commit. Both shells honor reduced motion and remove stale overlays after three seconds. Slide transitions use 30% background parallax; history back reverses direction.
+| Behavior or error | Contract |
+| --- | --- |
+| `TransitionFailed`, `TransitionTimeout` | Carry `cause` |
+| `NavigationFailed` | Adapter navigation failure |
+| Capture failure | Commit once without animation |
+| Reduced motion | Honored by both shells |
+| Stale overlay | Removed after three seconds |
+| Slide | 30% background parallax; history back reverses direction |
+
+## Platform support
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Navigation transition | Native overlay | Native overlay | Typed view transition if supported; otherwise plain navigation |
 
 Source: [transition implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/transitions), [protocol details](https://github.com/akshat-OwO/radical/blob/main/packages/radical/docs/transitions.md).

@@ -3,33 +3,42 @@ title: "Create and run a TanStack Start app"
 description: "Build a Radical app from the repository example, then run its Android and iOS shells."
 ---
 
-You create a TanStack Start app from the working example and run the same UI in a browser and native shells. You need Node.js 22.18 or newer, pnpm, and Vite+. For Android, install Android Studio, its SDK, a compatible JDK, and an AVD. For iOS, use macOS with Xcode and an installed iPhone simulator.
+Build a browser app, then open the same UI in a native shell with [these prerequisites](/docs/guides/run-on-a-device#prerequisites).
 
-## Create your app from the example
+<Steps>
+<Step>
 
-1. Clone Radical and install its workspace dependencies:
+### Copy the example
+
+Clone, build, and copy the working app:
 
 ```sh
 git clone https://github.com/akshat-OwO/radical.git
 cd radical
 pnpm install
-```
-
-2. Build the package:
-
-```sh
 vp run radical#build
-```
-
-3. Copy the example into a new workspace app:
-
-```sh
 cp -R apps/example apps/my-app
 ```
 
-4. In `apps/my-app/package.json`, change `name` to `@radical/my-app`.
-5. Run `pnpm install` from the repository root.
-6. In `apps/my-app/vite.config.ts`, replace the config object with this minimal remote-mode config. Keep the existing imports and plugin array:
+You have `apps/my-app`.
+
+</Step>
+<Step>
+
+### Rename the package
+
+Set `apps/my-app/package.json`'s `name` to `@radical/my-app`, then run from the repository root:
+
+```sh
+pnpm install
+```
+
+</Step>
+<Step>
+
+### Set app identity
+
+Replace the config object in `apps/my-app/vite.config.ts`, keeping imports and the plugin array:
 
 ```ts
 const config = {
@@ -40,7 +49,12 @@ const config = {
 } satisfies RadicalConfig;
 ```
 
-7. Remove the `plugins` folder and `src/routes/index.tsx` from your copy. Replace `index.tsx` with this route, so the app does not import the example's Echo plugin:
+</Step>
+<Step>
+
+### Replace example routes
+
+Keep `__root.tsx` and `public/offline.html`; remove `plugins` and all other routes before creating `src/routes/index.tsx`:
 
 ```tsx
 import { createFileRoute } from "@tanstack/react-router";
@@ -58,43 +72,65 @@ const Home = () => {
 export const Route = createFileRoute("/")({ component: Home });
 ```
 
-8. Remove `NotificationNavigation` and its rendered element from `src/routes/__root.tsx`. Remove the unused notification imports. Keep `RadicalProvider`, the native-context loader, and the document setup.
-9. Remove the other example routes from `src/routes`. Keep `__root.tsx` and your new `index.tsx`. Keep `public/offline.html`.
-10. Start the app:
+</Step>
+<Step>
+
+### Remove the notification watcher
+
+Remove `NotificationNavigation`, its rendered element, and unused imports from `__root.tsx`, keeping `RadicalProvider`, the loader, and document setup.
+
+</Step>
+<Step>
+
+### Open the browser app
+
+Start from the repository root:
 
 ```sh
 vp -C apps/my-app dev --host 0.0.0.0 --port 5173
 ```
 
-Open `http://localhost:5173`. You see **My Radical app** and browser device information. The Vite plugin records the server URL in `.radical/native.json`.
+At `http://localhost:5173`, you see **My Radical app** and browser device information.
 
-## Run Android
+</Step>
+<Step>
 
-1. For an Android emulator, make the host server reachable through adb:
+### Open a native shell
+
+Run in a second terminal:
+
+<Tabs items={["Android", "iOS"]}>
+<Tab value="Android">
 
 ```sh
 adb reverse tcp:5173 tcp:5173
-```
-
-2. In a second terminal, run the shell from the app directory:
-
-```sh
 cd apps/my-app
 pnpm exec radical android
 ```
 
-The CLI generates `.radical/android`, builds the debug APK, installs it, and opens the app. If no connected device exists, the CLI offers installed AVDs. You see the same heading with `platform: "android"` in device information.
+You see the heading and `platform: "android"`.
 
-## Run iOS
-
-1. On macOS, run the shell from `apps/my-app`:
+</Tab>
+<Tab value="iOS">
 
 ```sh
+cd apps/my-app
 pnpm exec radical ios
 ```
 
-The CLI selects a booted iPhone simulator or the first available iPhone, builds the app, and launches it. You see your heading and `platform: "ios"`. The simulator reaches the host's localhost server directly.
+You see the heading and `platform: "ios"`.
 
-2. After you finish, stop the dev server with Control-C.
+</Tab>
+</Tabs>
 
-For a physical Android device, follow [Run on a device](/docs/guides/run-on-a-device). To package the UI, follow [Switch to bundled mode](/docs/guides/bundled-mode). The [example source](https://github.com/akshat-OwO/radical/tree/main/apps/example) contains the complete integration with optional capabilities.
+</Step>
+<Step>
+
+### Stop the server
+
+Press Control-C in the dev-server terminal.
+
+</Step>
+</Steps>
+
+Continue with [device targets](/docs/guides/run-on-a-device) or [bundled delivery](/docs/guides/bundled-mode).
