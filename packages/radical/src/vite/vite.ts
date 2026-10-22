@@ -1,6 +1,8 @@
 import { Effect } from "effect";
+import type { Layer } from "effect";
 import type { Plugin } from "vite";
 
+import type { RadicalAdapter } from "../core/adapter/adapter.ts";
 import type { RadicalConfig } from "./config.ts";
 import { validateConfig } from "./config.ts";
 import { nativePlugins } from "./plugins/plugin-virtual.ts";
@@ -11,6 +13,7 @@ export { PluginDependencyConflict } from "./plugins/errors.ts";
 export { AdapterUnavailable } from "../core/adapter/errors.ts";
 export { RadicalAdapter } from "../core/adapter/adapter.ts";
 export type {
+  AdapterOutputs,
   RadicalCore,
   RadicalNavigation,
   RadicalRoute,
@@ -24,8 +27,11 @@ export {
 export type { RadicalConfig } from "./config.ts";
 
 /** Validate at Vite's config hook, before either dev or build starts. */
-export const radical = (config: RadicalConfig): Plugin => ({
-  ...nativePlugins(config),
+export const radical = (
+  config: RadicalConfig,
+  adapterLayer?: Layer.Layer<RadicalAdapter>
+): Plugin => ({
+  ...nativePlugins(config, adapterLayer),
   name: "radical:config",
   configureServer: (server) =>
     Effect.runPromise(

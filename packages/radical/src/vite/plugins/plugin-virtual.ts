@@ -4,6 +4,7 @@ import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect, FileSystem, Layer } from "effect";
 import type { Plugin } from "vite";
 
+import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import {
   NativeMetadata,
   nativeMetadataLayer,
@@ -42,7 +43,10 @@ export const pluginTypeSource = (
     "}",
     "",
   ].join("\n");
-export const nativePlugins = (config: RadicalConfig): Plugin => {
+export const nativePlugins = (
+  config: RadicalConfig,
+  adapterLayer?: Layer.Layer<RadicalAdapter>
+): Plugin => {
   let source = "";
   const browserConfig = JSON.stringify({
     appId: config.appId,
@@ -58,7 +62,13 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
           source = pluginVirtualSource(resolved.root, plugins);
           const fs = yield* FileSystem.FileSystem;
           const metadata = yield* NativeMetadata;
-          yield* metadata.update(resolved.root, config);
+          const outputs = adapterLayer
+            ? yield* RadicalAdapter.pipe(
+                Effect.flatMap((adapter) => adapter.outputs),
+                Effect.provide(adapterLayer)
+              )
+            : undefined;
+          yield* metadata.update(resolved.root, config, undefined, outputs);
           yield* fs.makeDirectory(path.join(resolved.root, ".radical"), {
             recursive: true,
           });

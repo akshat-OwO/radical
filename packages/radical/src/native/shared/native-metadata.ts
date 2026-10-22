@@ -3,6 +3,8 @@ import path from "node:path";
 import { Context, Effect, FileSystem, Layer, Schema } from "effect";
 import type { PlatformError } from "effect";
 
+import { AdapterOutputsSchema } from "../../core/adapter/adapter.ts";
+import type { AdapterOutputs } from "../../core/adapter/adapter.ts";
 import {
   HttpOriginSchema,
   InvalidConfig,
@@ -15,6 +17,7 @@ const file = (root: string) => path.join(root, ".radical/native.json");
 const NativeMetadataSchema = Schema.Struct({
   config: RadicalConfigSchema,
   url: HttpOriginSchema,
+  outputs: Schema.optional(AdapterOutputsSchema),
 });
 type Metadata = typeof NativeMetadataSchema.Type;
 type MetadataError = InvalidConfig | PlatformError.PlatformError;
@@ -35,7 +38,8 @@ export class NativeMetadata extends Context.Service<
     readonly update: (
       root: string,
       config: RadicalConfig,
-      listeningUrl?: string
+      listeningUrl?: string,
+      outputs?: AdapterOutputs
     ) => Effect.Effect<void, MetadataError>;
   }
 >()("radical/NativeMetadata") {}
@@ -48,12 +52,12 @@ export const nativeMetadataLayer = Layer.effect(
       fs.readFileString(file(root)).pipe(Effect.flatMap(decode));
     return NativeMetadata.of({
       read,
-      update: (root, config, listeningUrl) =>
+      update: (root, config, listeningUrl, outputs) =>
         Effect.gen(function* () {
           // Config resolution can run before the dev server has selected a port.
           const selectedUrl = listeningUrl ?? config.origin;
           const previous =
-            selectedUrl === undefined
+            selectedUrl === undefined || outputs === undefined
               ? yield* read(root).pipe(
                   Effect.catchIf(
                     (error) =>
@@ -68,7 +72,11 @@ export const nativeMetadataLayer = Layer.effect(
           if (url === undefined) {
             return;
           }
-          const source = JSON.stringify({ config, url });
+          const source = JSON.stringify({
+            config,
+            url,
+            outputs: outputs ?? previous?.outputs,
+          });
           yield* decode(source);
           yield* fs.makeDirectory(path.dirname(file(root)), {
             recursive: true,

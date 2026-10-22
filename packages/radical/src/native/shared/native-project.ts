@@ -117,7 +117,7 @@ export const readNativeProject = (
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { config, url } = yield* NativeMetadata.pipe(
+    const { config, url, outputs } = yield* NativeMetadata.pipe(
       Effect.flatMap((metadata) => metadata.read(root)),
       Effect.provide(nativeMetadataLayer)
     );
@@ -157,6 +157,7 @@ export const readNativeProject = (
       assets,
       url: bundled ? localOrigin : url,
       bundled,
+      outputs,
       origins,
       cookie,
       cookies: nativeCookiePlan(bundled ? [] : origins),
@@ -206,18 +207,22 @@ export const generateNativeProject = <E, R>(
           }
           yield* fs.makeDirectory(path.join(staging, "www"));
           if (native.bundled) {
-            const client = path.join(root, "dist/client");
-            const shell = yield* fs
-              .readFileString(path.join(client, "_shell.html"))
-              .pipe(
-                Effect.mapError(
-                  () =>
-                    new InvalidConfig({
-                      message:
-                        "Bundled mode requires the TanStack Start SPA build at dist/client/_shell.html. Use tanstackStartOptions(config) and radical android|ios.",
-                    })
-                )
-              );
+            if (native.outputs?.spaShell === undefined) {
+              return yield* new InvalidConfig({
+                message:
+                  "Bundled mode requires the adapter to report clientDir and spaShell outputs. Rebuild the app before generating the shell.",
+              });
+            }
+            const client = path.resolve(root, native.outputs.clientDir);
+            const shellPath = path.resolve(client, native.outputs.spaShell);
+            const shell = yield* fs.readFileString(shellPath).pipe(
+              Effect.mapError(
+                () =>
+                  new InvalidConfig({
+                    message: `Bundled mode requires the adapter SPA shell at ${shellPath}. Rebuild the app before generating the shell.`,
+                  })
+              )
+            );
             yield* fs.copy(client, path.join(staging, "www"), {
               overwrite: true,
             });
@@ -312,6 +317,7 @@ export const generateNativeProject = <E, R>(
               backgroundColor: config.splash?.backgroundColor ?? "#ffffff",
             });
           }
+          return yield* Effect.void;
         })
     );
   });

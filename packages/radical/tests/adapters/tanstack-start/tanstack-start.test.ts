@@ -159,7 +159,7 @@ describe("TanStack Start adapter", () => {
         assert.deepStrictEqual(adapter, {
           name: "tanstack-start",
           routes: [],
-          outputs: { clientDir: "dist/client" },
+          outputs: { clientDir: "dist/client", spaShell: "_shell.html" },
         });
       })
   );

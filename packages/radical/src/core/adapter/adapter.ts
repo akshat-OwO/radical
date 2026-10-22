@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import { Context } from "effect";
+import { Context, Schema } from "effect";
 import type { PluginOption } from "vite";
 
 import type { RadicalConfig } from "../../vite/config.ts";
@@ -29,6 +29,13 @@ export interface RadicalNavigation {
   ) => Effect.Effect<() => void, AdapterUnavailable>;
 }
 
+export const AdapterOutputsSchema = Schema.Struct({
+  clientDir: Schema.String,
+  /** SPA shell path relative to clientDir. */
+  spaShell: Schema.optional(Schema.String),
+});
+export type AdapterOutputs = typeof AdapterOutputsSchema.Type;
+
 /** Framework-specific operations, supplied through a Layer. */
 export class RadicalAdapter extends Context.Service<
   RadicalAdapter,
@@ -40,9 +47,6 @@ export class RadicalAdapter extends Context.Service<
       get: (request: Request) => Effect.Effect<NativeContext>
     ) => Effect.Effect<unknown, AdapterUnavailable>;
     readonly navigation: Effect.Effect<RadicalNavigation>;
-    readonly outputs: Effect.Effect<{
-      readonly clientDir: string;
-      readonly spaShell?: string;
-    }>;
+    readonly outputs: Effect.Effect<AdapterOutputs>;
   }
 >()("radical/Adapter") {}
