@@ -24,6 +24,8 @@ public class RadicalTransitionsPlugin extends Plugin {
     private String overlayId;
     private Runnable expiry;
 
+    public void clearData() { if (overlayId != null) clear(overlayId); }
+
     private void clear(String id) {
         if (!id.equals(overlayId)) return;
         if (expiry != null) handler.removeCallbacks(expiry);

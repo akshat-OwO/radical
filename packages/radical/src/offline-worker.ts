@@ -27,19 +27,41 @@ export const createOfflineWorker = (
   manifest: OfflineManifest,
   services: WorkerServices
 ) => {
+  let cleared = false;
+  const operations = new Set<Promise<unknown>>();
   const namespace = `${manifest.cachePrefix}${manifest.buildId}`;
   const assetsName = `${namespace}:assets`;
   const snapshotsName = `${namespace}:snapshots`;
   const absolute = (path: string) => new URL(path, services.origin).href;
   const assetURLs = new Set(manifest.assets.map(absolute));
-  const cached = (name: string, request: Request) =>
-    services.caches
+  const track = <A>(operation: Promise<A>): Promise<A> => {
+    operations.add(operation);
+    return operation.finally(() => {
+      operations.delete(operation);
+    });
+  };
+  const missing: Response | undefined = undefined;
+  const cached = (name: string, request: Request) => {
+    if (cleared) {
+      return Promise.resolve(missing);
+    }
+    return track(
+      services.caches
+        .open(name)
+        .then((cache) => cache.match(request, { ignoreVary: true }))
+    );
+  };
+  const store = (name: string, request: Request, response: Response) => {
+    if (cleared) {
+      return Promise.resolve();
+    }
+    const write = services.caches
       .open(name)
-      .then((cache) => cache.match(request, { ignoreVary: true }));
-  const store = (name: string, request: Request, response: Response) =>
-    services.caches
-      .open(name)
-      .then((cache) => cache.put(request, response.clone()));
+      .then((cache) =>
+        cleared ? undefined : cache.put(request, response.clone())
+      );
+    return track(write);
+  };
   const fallback = () =>
     cached(assetsName, new Request(absolute(manifest.fallback))).then(
       (response) => {
@@ -79,6 +101,18 @@ export const createOfflineWorker = (
     );
 
   return {
+    clear: () => {
+      cleared = true;
+      return Promise.allSettled(operations)
+        .then(() => services.caches.keys())
+        .then((keys) =>
+          Promise.all(
+            keys
+              .filter((key) => key.startsWith(manifest.cachePrefix))
+              .map((key) => services.caches.delete(key))
+          )
+        );
+    },
     capture: (url: string): Promise<unknown> =>
       new URL(url).origin === services.origin
         ? document(new Request(url, { headers: { accept: "text/html" } }))
@@ -112,6 +146,7 @@ export const createOfflineWorker = (
           )
         ),
     handles: (request: Request) =>
+      !cleared &&
       request.method === "GET" &&
       new URL(request.url).origin === services.origin &&
       (request.mode === "navigate" || assetURLs.has(request.url)),

@@ -210,3 +210,33 @@ The `googleSignIn` Effect, `GoogleSignInConfiguration`, and `BrowserGoogleSignIn
 `notificationsLive(effect)` supplies `BrowserNotificationsLive`. Tests can inject `BrowserNotifications` or use `browserNotificationsLayer(read)` with an in-memory Notification API and `TestClock`. Browser schedules belong to the page and cancel by ID. `watchNotificationNavigation` needs an app-wide scope, a bridge, an adapter, and `NotificationSnapshots`; its Live layer checks Cache Storage before navigation when the network is offline or its status is unavailable. If no snapshot matches, the watcher uses adapter navigation. See the [notification API and Firebase setup](../../README.md#notifications) for flags, pinned peers, payloads, permissions, topic lookup limits, and native configuration.
 
 Enabling `internalPlugins.notifications` or `internalPlugins.pushNotifications` also registers `@capacitor/network@8.0.1` to select snapshots on notification taps, even when `internalPlugins.network` is false. Install that optional peer alongside the notification peers before regenerating shells.
+
+## Data protection
+
+Set `internalPlugins: { dataProtection: true }` in radical config to generate the native templates. No additional peer dependency is required.
+
+```tsx
+import { useDataProtection } from "radical/react";
+
+function PrivateScreen() {
+  const protection = useDataProtection();
+  return (
+    <button
+      disabled={protection.loading}
+      onClick={() => protection.setEnabled(true)}
+    >
+      Protect screen
+    </button>
+  );
+}
+```
+
+The hook returns `setEnabled(boolean)`, `clearWebData()`, `loading`, `value`, and `error`. Actions are guarded during SSR and ignore overlap. Setting protection returns `{ enabled, screenshots, recording, appSwitcher }`. Clearing returns `true` on completion. Protection stays enabled across unmounts; call `setEnabled(false)` to disable it. A successful clear does not change the screen policy.
+
+Android uses FLAG_SECURE. iOS covers the window while inactive or recording and mirroring is detected. It cannot block screenshots, and detection may miss initial recording frames. Browser protection is unsupported and returns all fields false. These fields describe the enabled policy, not proof that a particular capture was blocked.
+
+`radical/client` exports `setDataProtection(enabled)` and the `clearWebData` Effect, plus `BrowserDataProtection`, `BrowserDataProtectionLive`, and `dataProtectionLive(effect)`. Provide `BridgeLive` and the browser layer when running the Effects directly. `DataProtectionError` includes bridge failures and `WebDataClearFailed` for browser storage errors, blocked IndexedDB deletion, and worker acknowledgement timeouts.
+
+Clearing stops radical's worker from writing snapshots, unregisters origin workers, deletes all origin Cache Storage, localStorage, sessionStorage, visible cookies, and discoverable IndexedDB databases. Native shells also clear their WebView website data and cookies, HTTP caches, app cache and temporary files, saved offline URL, local notification topic membership record, and transition overlays. Cached offline manifests are removed; packaged assets and the build manifest remain installed. Offline support resumes after navigation registers a fresh worker.
+
+Stop app writes and worker registration, close database connections and other tabs, and handle failures before treating clearing as complete. Browser JavaScript cannot erase HttpOnly cookies, other origins or partitions, cookies at hidden paths, HTTP disk caches, or databases without enumeration support. A failed clear may have deleted only some data. Clearing does not revoke server sessions, unsubscribe from FCM topics, delete push tokens, cancel OS-scheduled notifications, or remove screenshots already saved by the user. Unsubscribe before clearing if delivery must stop, and stop in-flight topic operations to prevent them from recreating the local record. See [ADR 0012](../../docs/adr/0012-data-protection.md) for the native API choice and scope.

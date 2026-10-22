@@ -18,6 +18,7 @@ import type { PluginManifest } from "../src/plugins.ts";
 import launch from "../templates/android/launch.html?raw";
 import activity from "../templates/android/MainActivity.java?raw";
 import gradle from "../templates/android/radical.gradle?raw";
+import dataProtection from "../templates/android/RadicalDataProtectionPlugin.java?raw";
 import transitions from "../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../templates/offline.html?raw";
 import { echo } from "./fixtures/echo-plugin.ts";
@@ -36,6 +37,10 @@ const memory = (
   const files = new Map<string, string>([
     ["/app/plugins/EchoPlugin.java", echoSource],
     ["/package/templates/android/RadicalTransitionsPlugin.java", transitions],
+    [
+      "/package/templates/android/RadicalDataProtectionPlugin.java",
+      dataProtection,
+    ],
     [
       "/app/.radical/native.json",
       JSON.stringify({ config, url: "http://192.168.1.2:3000" }),
@@ -188,6 +193,63 @@ const memory = (
 const generate = generateAndroid("/app", "/package");
 
 describe("Android shell generation", () => {
+  it.effect(
+    "generates topic-record cleanup even when notifications are disabled",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: {
+          dataProtection: true,
+          notifications: false,
+          pushNotifications: false,
+        },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const source =
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
+          ) ?? "";
+        assert.include(
+          source,
+          'getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()'
+        );
+        assert.include(
+          source,
+          'call.reject("Cannot clear notification topic membership")'
+        );
+        assert.notInclude(source, "class RadicalNotificationTopicsPlugin");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "generates data protection without the disabled transitions class",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { dataProtection: true, transitions: false },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const source =
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
+          ) ?? "";
+        assert.include(source, "class RadicalDataProtectionPlugin");
+        assert.notInclude(source, "RadicalTransitionsPlugin");
+        assert.include(
+          state.files.get(mainActivity) ?? "",
+          "RadicalDataProtectionPlugin"
+        );
+        assert.notInclude(
+          state.files.get(mainActivity) ?? "",
+          "RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
   it.effect(
     "generates Echo with matching source path, package and registered class",
     () =>

@@ -96,3 +96,10 @@ export type {
   NotificationsState,
   NotificationPermissionState,
 } from "./use-notifications.ts";
+
+export { useDataProtection } from "./use-data-protection.ts";
+export type { DataProtectionState } from "./use-data-protection.ts";
+export type {
+  DataProtectionStatus,
+  DataProtectionError,
+} from "./data-protection.ts";

@@ -7,6 +7,7 @@ import { Effect, Layer, Schema } from "effect";
 import type { RadicalConfig } from "./config.ts";
 import {
   googleSignInPlugin,
+  dataProtectionPlugin,
   networkPlugin,
   appLauncherPlugin,
   localNotificationsPlugin,
@@ -182,6 +183,7 @@ export const validatePlugins = (
   );
 const optInPlugins = [
   ["googleSignIn", googleSignInPlugin],
+  ["dataProtection", dataProtectionPlugin],
   ["network", networkPlugin],
   ["notifications", localNotificationsPlugin],
   ["notifications", badgePlugin],

@@ -7,6 +7,7 @@ import { bridgeLayer, getDeviceInfo } from "../src/client.ts";
 import {
   RadicalProvider,
   useGoogleSignIn,
+  useDataProtection,
   useSafeArea,
   useNetworkStatus,
   useNotificationPermission,
@@ -260,6 +261,33 @@ it.effect("guards every notification action during server rendering", () =>
         )
       ),
       "<p>notifications idle</p>"
+    );
+  })
+);
+
+const DataProtectionProbe = () => {
+  const protection = useDataProtection();
+  assert.isFalse(protection.loading);
+  assert.isUndefined(protection.value);
+  protection.setEnabled(true);
+  protection.setEnabled(false);
+  protection.clearWebData();
+  return createElement("p", null, "protection idle");
+};
+it.effect("guards data protection and clearing during server rendering", () =>
+  Effect.sync(() => {
+    const layer = bridgeLayer(() =>
+      assert.fail("Data protection read bridge during SSR")
+    );
+    assert.strictEqual(
+      renderToString(
+        createElement(
+          RadicalProvider,
+          { layer },
+          createElement(DataProtectionProbe)
+        )
+      ),
+      "<p>protection idle</p>"
     );
   })
 );

@@ -15,6 +15,8 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin {
     private var overlayID: String?
     private var expiry: DispatchWorkItem?
 
+    @objc public func clearData() { if let id = overlayID { clear(id) } }
+
     private func clear(_ id: String) {
         guard overlayID == id else { return }
         // Invalidate before cancelling animations, whose completion can re-enter cleanup.
