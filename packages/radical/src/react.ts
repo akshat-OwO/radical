@@ -65,3 +65,11 @@ export type {
 } from "./file-picker.ts";
 export type { IntentError, OpenableFile, OpenFileOptions } from "./intents.ts";
 export { NoHandler } from "./no-handler.ts";
+
+export { useVideoStream } from "./use-video-stream.ts";
+export type { VideoStreamState } from "./use-video-stream.ts";
+export type {
+  VideoStreamInfo,
+  VideoStreamError,
+  CameraFacing,
+} from "./video-stream.ts";

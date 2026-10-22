@@ -61,6 +61,9 @@ catalogs:
     '@capawesome/capacitor-file-picker':
       specifier: 8.1.1
       version: 8.1.1
+    '@capgo/camera-preview':
+      specifier: 8.14.2
+      version: 8.14.2
     '@effect/platform-node':
       specifier: ^4.0.5
       version: 4.0.5
@@ -222,6 +225,9 @@ importers:
       '@capawesome/capacitor-file-picker':
         specifier: 'catalog:'
         version: 8.1.1(@capacitor/core@8.5.3)
+      '@capgo/camera-preview':
+        specifier: 'catalog:'
+        version: 8.14.2(@capacitor/core@8.5.3)
       '@effect/tsgo':
         specifier: 'catalog:'
         version: 0.53.4
@@ -392,6 +398,11 @@ packages:
 
   '@capawesome/capacitor-file-picker@8.1.1':
     resolution: {integrity: sha512-4zDRca+uQbhFkbASoRbMpvXRbuCVhmVATDYLL9MG5UvILer01uUcN7oQhuxpltVir2YnP+1O8LasnwYlqlLM5g==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capgo/camera-preview@8.14.2':
+    resolution: {integrity: sha512-2YmkpIVz8h/2SrB3UOoM83tUWJ0Xy7TzFzp1FFuLj85PwxrQwmJ8K8600M8aF8RmetjYbn4X4qGwxzwwYzXrxQ==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -3486,6 +3497,10 @@ snapshots:
       '@capacitor/core': 8.5.3
 
   '@capawesome/capacitor-file-picker@8.1.1(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
+  '@capgo/camera-preview@8.14.2(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
 

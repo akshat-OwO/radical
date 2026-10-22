@@ -92,3 +92,9 @@ Open `/camera` from the home page. The example enables `internalPlugins.camera` 
 ## Files and intents
 
 Open `/files` from the home page. The example enables `internalPlugins.filePicker` and `internalPlugins.intents`. **Pick file** opens the system document picker for any file; **Pick images or PDFs** filters by type and allows several files. The page lists each file's name, MIME type, and size. **Open URL** opens `https://example.com/` in the default browser. **Open picked file** hands the first native file to an external app; in a browser it reports `Unavailable`.
+
+## Live video and QR scanning
+
+Open `/video` from the home page. Press **Start** to show the native camera through the bordered cut-out, **Switch camera** to select the other camera, and **Stop** to release it. The page shows the last QR value and frame rate. Zoom uses the camera's reported range; torch is disabled when unavailable. Browsers use a media stream and report when QR detection is unavailable. The example enables `internalPlugins.videoStream` with its own camera explanation.
+
+Build radical before generating or building either shell because this app imports the package's built dist. See [video verification](../../docs/verification/video.md) for commands, device evidence, and simulator limits.

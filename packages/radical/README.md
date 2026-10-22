@@ -131,3 +131,27 @@ Use a production build at HTTPS or localhost. The iOS simulator shares the host 
 ## Files and intents
 
 `radical/react` exports `useFilePicker` and `useIntent`. Enable `internalPlugins.filePicker` and `internalPlugins.intents`, install `@capawesome/capacitor-file-picker@8.1.1`, `@capacitor/app-launcher@8.0.1`, and `@capacitor-community/file-opener@8.0.1`, then regenerate shells. See [files and intents](../../README.md#files-and-intents) for result types, typed errors, and browser behavior.
+
+## Live video
+
+Enable `internalPlugins: { videoStream: true }` and set `pluginOptions.VideoStream.usageDescription` to a nonblank camera explanation. This installs the pinned optional `@capgo/camera-preview@8.14.2` plugin and generates camera permissions without microphone or photo-library access.
+
+```tsx
+const viewfinder = useRef<HTMLDivElement>(null);
+const camera = useVideoStream({ viewfinder, onDetect: console.log });
+return (
+  <>
+    <button onClick={() => camera.start()}>Start</button>
+    <button onClick={() => camera.stop()}>Stop</button>
+    <div ref={viewfinder} style={{ height: 300 }} />
+  </>
+);
+```
+
+The hook starts only from an explicit action and stays idle during SSR. `running`, `loading`, `value`, and `error` describe the session. `value` includes `facing`, optional `zoom: { min, max, current }`, `torch`, `torchAvailable`, optional `frameRate`, and `detectionAvailable`. Call `switchCamera()`, `setZoom(level)`, or `setTorch(enabled)` while running. Use the reported ranges and availability to enable controls. `onDetect(value)` receives each decoded QR result, including repeats while the code remains visible.
+
+Mount one hook per camera session. Keep the viewfinder's ancestors transparent while streaming, and cover the rest of the screen with opaque overlays. The hook clears ancestor backgrounds temporarily and restores their inline values on stop or unmount. It cannot clear backgrounds from unrelated elements or pseudo-elements. The [example route](../../apps/example/src/routes/video.tsx) uses an opaque control section and a shadow around the cut-out. The native preview fills the shell behind the WebView; browser video fills the viewfinder element.
+
+Unmount and provider replacement release the session. Stop also cancels pending startup; native cleanup waits for startup to settle before sending stop. Browser media tracks that arrive after cancellation are stopped. Browsers require a secure context and camera access. QR detection requires the browser's `BarcodeDetector` API or an application-supplied polyfill; preview still works without it. Native Android detection can wait for Google Play Services to download its model on first use. Physical torch and zoom behavior depends on the camera hardware.
+
+Effect callers import `startVideoStream`, `videoStreamLive`, `BrowserVideoStream`, and `BrowserVideoStreamLive` from `radical/client`. Run `startVideoStream({ viewfinder, onDetect })` inside `Effect.scoped`, provide a Bridge layer and BrowserVideoStream layer, and keep the scope open for the preview's lifetime. The returned session has `info`, `switchCamera`, `setZoom`, and `setTorch` Effects. Tests inject browser and bridge layers instead of accessing devices. Failures include `PermissionDenied`, `Unavailable`, and bridge errors.

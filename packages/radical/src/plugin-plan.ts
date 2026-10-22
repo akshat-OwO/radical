@@ -12,6 +12,7 @@ import {
   fileOpenerPlugin,
   filePickerPlugin,
   transitionsPlugin,
+  videoStreamPlugin,
 } from "./internal-plugins.ts";
 import { InvalidPlugin } from "./invalid-plugin.ts";
 import { resolvePluginDependencies } from "./plugin-dependencies.ts";
@@ -175,6 +176,13 @@ export const validatePlugins = (
 export const resolvePlugins = (config: RadicalConfig) =>
   Effect.gen(function* () {
     const plugins: EnabledPlugin[] = [];
+    if (config.internalPlugins?.videoStream === true) {
+      plugins.push({
+        manifest: videoStreamPlugin,
+        module: "radical/internal-plugins",
+        selector: "videoStreamPlugin",
+      });
+    }
     if (config.internalPlugins?.camera === true) {
       plugins.push({
         manifest: cameraPlugin,

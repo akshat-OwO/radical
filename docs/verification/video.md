@@ -1,0 +1,49 @@
+# Live video verification
+
+Verified on 2026-10-22 with Capacitor 8.5.3 and `@capgo/camera-preview@8.14.2`. Both devices were opened through the T3 Device panel, one at a time. The pinned device CLI returned `Error (COMMAND_FAILED): Remote daemon is unavailable` on both platforms. Verification therefore used adb, simctl, screenshots, and the shells' WebView debuggers. No diagnostic code or generated native project is committed.
+
+## Build commands
+
+The example resolves radical from dist. Built it first with `vp run radical#build`, generated both shells with `pnpm --filter @radical/example exec radical android --generate-only` and `pnpm --filter @radical/example exec radical ios --generate-only`, then built the example with `vp run @radical/example#build`. Served the example in remote mode with `pnpm --filter @radical/example exec vp preview --host 0.0.0.0 --port 4173`.
+
+Android build, from `apps/example/.radical/android/android`:
+
+```sh
+JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew assembleDebug
+```
+
+iOS build, from the repository root:
+
+```sh
+xcodebuild -project apps/example/.radical/ios/ios/App/App.xcodeproj \
+	-scheme App -configuration Debug -sdk iphonesimulator \
+	-destination id=88BEE7A3-757E-40C4-A789-5E3259B6B673 \
+	-derivedDataPath apps/example/.radical/ios/build build
+```
+
+Both native builds succeeded. Generated projects include the pinned CameraPreview plugin. Camera permission and the configured explanation are present; streaming requests disable audio.
+
+## Pixel_9, Android 16
+
+Installed the debug APK and forwarded port 4173 with `adb reverse`. Used accessibility bounds from `uiautomator dump` for taps and `adb exec-out screencap -p` for screenshots. Read page state and inline styles through the WebView's DevTools socket.
+
+- Opened **Live video and QR scanning**, then **Start**. The page displayed **Streaming**, rear camera, and 30 fps. The emulator's checkerboard camera output showed through the bordered cut-out while the HTML controls remained opaque and interactive.
+- The first screenshot revealed that the upstream default 4:3 preview ended halfway down the cut-out. Passing `aspectRatio: "fill"` made the preview fill the entire cut-out.
+- **Switch camera** changed the state to front and retained a live preview. Both emulated cameras reported a zoom range of 1 to 1 and only the `off` flash mode. Torch stayed disabled. Optical zoom and torch illumination cannot be verified on this emulator.
+- The first Stop attempt exposed Capacitor's `removeListener` contract: it returns no native promise result. Awaiting it left the session's finalizer pending. Removal now uses a fire-and-forget native callback call; a deterministic regression test asserts that removal never uses `nativePromise`.
+- Stop/restart and background restoration were repeated after this fix. Stop returned the UI to **Stopped** and restored body/root inline backgrounds; restart acquired another session.
+- Configured the virtual scene's wall and table images with a generated `radical-video-19` QR. The available preview continued to show a checkerboard, so no camera-decoded QR result was observed. The native barcode model loaded successfully according to logcat. Native optical QR detection remains unverified; in-memory tests verify QR event decoding, filtering, callback delivery, and listener removal.
+
+The QR scene images were reset after the attempt. Screenshots of the full cut-out, stopped state, and iOS unavailable state are attached to the PR.
+
+## iPhone Duo, iOS 27.1 simulator
+
+Installed and launched the built app on `88BEE7A3-757E-40C4-A789-5E3259B6B673` with simctl. The Duo has multiple displays: the default screenshot selected a black secondary screen. `simctl io ... screenshot --display=1` captured the app on its primary screen.
+
+Because the device daemon was unavailable, used LLDB to evaluate DOM navigation and the existing Start button's click in the shell's WKWebView. This exercised the actual hook and native plugin; no native results were replaced. The `/video` route rendered idle. Start displayed **Unavailable**, with Start enabled and Stop, Switch camera, and Torch disabled. The simulator has no camera devices, so it cannot verify a live cut-out, QR detection, switching, zoom, torch, or actual frame rate. Physical iPhone verification remains required for those behaviors.
+
+## Automated checks
+
+`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `vp run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 245 tests. The lockfile contains no `@pnpm/exe` entries.
+
+Video tests use `it.effect`, `assert`, per-test bridge/browser layers, Deferred synchronization, and TestClock. They cover QR callbacks and filtering, command arguments, switching and state, permission denial, missing cameras, interrupted native startup, failed startup cleanup, late browser acquisition cleanup, background longhand restoration, fire-and-forget listener removal, duplicate hook starts, stop/restart, unmount, provider replacement with retired actions and callbacks, and SSR guards. They use no real camera, network, or timers. Browser preview and BarcodeDetector behavior on physical browser hardware remain unverified.

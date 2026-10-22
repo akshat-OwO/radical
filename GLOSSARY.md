@@ -36,6 +36,14 @@ _Avoid_: Interface, JSI, IPC
 A UI hook that exposes one native capability and its browser fallback.\
 _Avoid_: Native hook, device hook
 
+**Video stream**:\
+A live camera session with a preview and optional QR detection.\
+_Avoid_: Video recording, capture session
+
+**Viewfinder cut-out**:\
+The transparent area of the app UI through which the camera preview is visible.\
+_Avoid_: Camera modal, scanner screen
+
 **Intent**:\
 A request to hand a URL or file to another app on the device.\
 _Avoid_: Share, deep link

@@ -16,6 +16,7 @@ import { Route as DetailsRouteImport } from './routes/details'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
+import { Route as VideoRouteImport } from './routes/video'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const OnlineRouteRoute = OnlineRouteRouteImport.update({
   path: '/online-route',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VideoRoute = VideoRouteImport.update({
+  id: '/video',
+  path: '/video',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/files': typeof FilesRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/video': typeof VideoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/files': typeof FilesRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/video': typeof VideoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/files': typeof FilesRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/video': typeof VideoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/offline-route'
     | '/online-route'
+    | '/video'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/offline-route'
     | '/online-route'
+    | '/video'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/offline-route'
     | '/online-route'
+    | '/video'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   FilesRoute: typeof FilesRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
+  VideoRoute: typeof VideoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/video': {
+      id: '/video'
+      path: '/video'
+      fullPath: '/video'
+      preLoaderRoute: typeof VideoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   FilesRoute: FilesRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
+  VideoRoute: VideoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
