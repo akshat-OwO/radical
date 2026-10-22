@@ -9,6 +9,10 @@ description: "Build-time plugins, virtual modules, and framework integration."
 
 The plugin resolves enabled manifests, validates options, generates typed plugin declarations, and maintains native metadata. Its dev-server integration records the actual protocol and port with the selected `devHost`.
 
+In bundled mode, the plugin sets `server.cors.origin` only when `server.cors` is undefined. Its callback returns `false` for the exact origins `https://localhost` and `capacitor://localhost`, bypassing Vite's CORS middleware so `withBundledRequests` handles preflights and credentials. All other origins use Vite's `defaultAllowedOrigins` policy. Remote mode keeps Vite's defaults.
+
+`preview.cors` takes precedence over `server.cors`. When `preview.cors` is undefined, preview inherits `server.cors`. Explicit settings, including `true`, `false`, and objects, remain unchanged. Custom policies must pass bundled preflights through to the API handler, for example with `cors: false` or an origin callback returning `false` for the bundled origins.
+
 Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `InvalidConfig`, `InvalidPlugin`, `PluginDependencyConflict`, `AdapterUnavailable`, and `RadicalAdapter`. Adapter types are `RadicalCore`, `RadicalRoute`, `RadicalNavigation`, and `AdapterOutputs`.
 
 `RadicalAdapter` is an Effect service with `name`, optional `vite(core)`, `routes`, `provideRequestContext(get)`, `navigation`, and `outputs`. `RadicalNavigation` contains `navigate(to, options?)`, `onBeforeNavigate(callback)`, and `onAfterNavigate(callback)`. `outputs` returns `Effect<AdapterOutputs>` with these fields:

@@ -55,4 +55,10 @@ export default {
 9. For other API requests, use `createRadicalFetch(config)`. Keep initial route loaders independent of the API if the app must start without it.
 10. Regenerate with `pnpm exec radical android` or `pnpm exec radical ios` from the app directory. To generate without launching, add `--generate-only`.
 
+To serve the API locally, build the app and run `pnpm exec vp preview --host 0.0.0.0 --port 4173` from the app directory. Set `origin` to the address the device can reach.
+
+In bundled mode, `radical()` lets requests from `https://localhost` and `capacitor://localhost` reach `withBundledRequests` in both dev and preview. Keep the handler wrapper from step 4 so preflights receive credentialed CORS headers. Other origins retain Vite's default CORS policy.
+
+Explicit `preview.cors` settings take precedence. Preview otherwise inherits `server.cors`, including an explicit user setting. If you customize either setting, use `cors: false` to let the API handler own CORS, or an origin callback that returns `false` for both bundled origins. A static origin list can still consume preflights before the handler.
+
 Keep Start's `dist/client`, `_shell.html`, and Vite base `/`. The [example root route](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) has the complete mode-dependent setup. For authentication constraints, read [Delivery modes](/docs/explanation/delivery-modes).
