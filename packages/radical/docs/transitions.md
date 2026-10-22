@@ -3,8 +3,8 @@
 Import the stylesheet once, then install transitions on each TanStack Router in `getRouter`:
 
 ```ts
-import { browserTransitions } from "radical/tanstack-start-client";
-import "radical/transitions.css";
+import { browserTransitions } from "@akshatowo/radical/tanstack-start-client";
+import "@akshatowo/radical/transitions.css";
 
 const router = createRouter({ routeTree });
 const transitions = browserTransitions(router, { timeoutMs: 1000 });
@@ -34,13 +34,13 @@ The default browser duration is 250ms. Reduced-motion preferences disable moveme
 
 `transitions.cancel()` calls `document.activeViewTransition?.skipTransition()`. The timeout also skips the active transition, using its public `finished` promise. These controls require browser support for `document.activeViewTransition`; Router's transition and fallback behavior still work without it. `transitions.dispose()` stops the watcher, cancels the animation, removes subscriptions, and restores the previous `defaultViewTransition` option. The browser skips an older transition when another starts.
 
-`tanstackStartAdapterLayer(router)` supplies `RadicalAdapter` navigation through a lazy Layer. Import it from `radical/tanstack-start-client` to keep build and server dependencies out of the browser module graph. The no-router `TanStackStartAdapter` wires server request context and reports unavailable navigation; the client Layer reports unavailable request context. Router navigation failures produce `NavigationFailed` with the original cause. Before listeners run their Effects as fibers and do not block Router. Both before and after subscriptions return unsubscribe functions.
+`tanstackStartAdapterLayer(router)` supplies `RadicalAdapter` navigation through a lazy Layer. Import it from `@akshatowo/radical/tanstack-start-client` to keep build and server dependencies out of the browser module graph. The no-router `TanStackStartAdapter` wires server request context and reports unavailable navigation; the client Layer reports unavailable request context. Router navigation failures produce `NavigationFailed` with the original cause. Before listeners run their Effects as fibers and do not block Router. Both before and after subscriptions return unsubscribe functions.
 
 ## Native snapshot overlays
 
 The existing `browserTransitions(router)` installer detects shells through the Bridge and selects native snapshots automatically. No app API changes are required. Shells do not call `document.startViewTransition`, including on WebViews that support it. The router-specific adapter wraps TanStack's `startViewTransition` commit boundary. This hook covers links, imperative navigation, and history without changing global browser APIs. Keep the pinned Router version and the commit-boundary tests when upgrading Router.
 
-`radical/client` owns `transitionStrategy`, which selects native overlays for both shells, browser view transitions when typed selectors exist, and plain navigation otherwise. It exports the router-independent `nativeTransition` Effect, `NativeTransitions` service, live Layer, and `TransitionTimeout`. `TransitionSchema` describes `kind` and `direction`. `BrowserTransitions` and `NativeTransitions` accept in-memory implementations for tests.
+`@akshatowo/radical/client` owns `transitionStrategy`, which selects native overlays for both shells, browser view transitions when typed selectors exist, and plain navigation otherwise. It exports the router-independent `nativeTransition` Effect, `NativeTransitions` service, live Layer, and `TransitionTimeout`. `TransitionSchema` describes `kind` and `direction`. `BrowserTransitions` and `NativeTransitions` accept in-memory implementations for tests.
 
 The generated shell registers a radical-owned Capacitor plugin named `RadicalTransitions`. All commands return `{ id: string }`. The Bridge decodes that result with Schema and checks that the id matches the request. The `NativeTransitions` capability owns a shared monotonic overlay id sequence because the native plugin has one overlay slot. Its `nextId` Effect allocates an id only when a native transition starts. The sequence survives live Layer rebuilds, router installations, and disposal, so stale callbacks cannot match a newer overlay. The adapter owns no id counter. Plain navigation needs no id, and insecure development origins need no Web Crypto support.
 

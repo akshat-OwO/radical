@@ -25,6 +25,14 @@ Use Node.js 24 and the repository's pnpm version. Sign in to the npm account tha
 
    The tarball is `.release/akshatowo-radical-0.1.0.tgz`. Keep this file for verification, publication, and the GitHub release.
 
+   Check the packed license before publishing:
+
+   ```sh
+   tar -xOf .release/akshatowo-radical-0.1.0.tgz package/LICENSE
+   ```
+
+   The output contains the MIT license and `Copyright (c) 2026 Akshat`.
+
 3. Install that tarball into a temporary consumer and check the CLI:
 
    ```sh
@@ -51,8 +59,10 @@ Use Node.js 24 and the repository's pnpm version. Sign in to the npm account tha
 
    ```sh
    cd "$radical_release_root"
-   gh release create v0.1.0 --target "$(git rev-parse HEAD)" --title v0.1.0 --generate-notes .release/akshatowo-radical-0.1.0.tgz
+   gh release create v0.1.0 --target "$(git rev-parse HEAD)" --title v0.1.0 --notes "The attached tarball is the published npm package. This tag records source with a placeholder version; stamp 0.1.0 before rebuilding." --generate-notes .release/akshatowo-radical-0.1.0.tgz
    ```
+
+The tag identifies the source commit, whose manifest retains `0.0.0`. To reproduce the published version from that tag, stamp `0.1.0` before building and packing. The attached tarball contains the stamped manifest and CLI.
 
 Do not commit the stamped version. npm versions are immutable. If publication succeeds but creating the GitHub release fails, retry the GitHub step only.
 
