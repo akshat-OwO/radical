@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, for example 0.2.0 or 0.2.0-alpha.1
+        required: true
+        type: string
+      dry_run:
+        description: Verify and upload the tarball without publishing
+        default: true
+        type: boolean
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      dist_tag: ${{ steps.release.outputs.dist_tag }}
+      is_prerelease: ${{ steps.release.outputs.is_prerelease }}
+      make_latest: ${{ steps.release.outputs.make_latest }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: voidzero-dev/setup-vp@v1.21.2
+        with:
+          node-version: "24"
+          cache: true
+      - name: Resolve version and check the release tag
+        id: release
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          node packages/radical/scripts/release.ts resolve "$VERSION" > "$RUNNER_TEMP/release.env"
+          cat "$RUNNER_TEMP/release.env" >> "$GITHUB_OUTPUT"
+          source "$RUNNER_TEMP/release.env"
+          sha="$(git rev-parse HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$sha" || {
+              echo "::error::Tag $tag points at a different commit."
+              exit 1
+            }
+          fi
+      - name: Require an unpublished npm version
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          status="$(curl --silent --show-error --output "$RUNNER_TEMP/registry-response" \
+            --write-out '%{http_code}' "https://registry.npmjs.org/@akshatowo%2Fradical/$VERSION")"
+          case "$status" in
+            404) echo "Version $VERSION is absent from npm." ;;
+            200) echo "::error::Version $VERSION already exists on npm."; exit 1 ;;
+            *) cat "$RUNNER_TEMP/registry-response"; echo "::error::Registry returned HTTP $status."; exit 1 ;;
+          esac
+
+  quality:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.sha }}
+          persist-credentials: false
+      - uses: voidzero-dev/setup-vp@v1.21.2
+        with:
+          node-version: "24"
+          cache: true
+      - run: vp run ready
+
+  artifact:
+    needs: [preflight, quality]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.sha }}
+          persist-credentials: false
+      - uses: voidzero-dev/setup-vp@v1.21.2
+        with:
+          node-version: "24"
+          cache: true
+      - uses: ./.github/actions/verify-radical-artifact
+        id: artifact
+        with:
+          version: ${{ needs.preflight.outputs.version }}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: radical-${{ needs.preflight.outputs.version }}
+          path: ${{ steps.artifact.outputs.tarball }}
+          if-no-files-found: error
+
+  publish:
+    if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+    needs: [preflight, artifact]
+    runs-on: ubuntu-latest
+    # Configure required reviewers and npm's trusted publisher for this environment.
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      TAG: ${{ needs.preflight.outputs.tag }}
+      SHA: ${{ needs.preflight.outputs.sha }}
+      DIST_TAG: ${{ needs.preflight.outputs.dist_tag }}
+      IS_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+      MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Install release npm
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@12.2.1
+      - uses: actions/download-artifact@v7
+        with:
+          name: radical-${{ needs.preflight.outputs.version }}
+          path: ${{ runner.temp }}/radical-publish
+      - name: Establish the exact release tag before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin --tags
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" || {
+              echo "::error::Tag $TAG moved to a different commit."
+              exit 1
+            }
+          else
+            # Atomic ref creation fails on a concurrent tag collision.
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/tags/$TAG" -f "sha=$SHA"
+          fi
+      - name: Publish the verified tarball with npm trusted publishing
+        working-directory: ${{ runner.temp }}/radical-publish
+        run: |
+          shopt -s nullglob
+          tarballs=("$PWD"/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          npm publish "${tarballs[0]}" --access public --ignore-scripts \
+            --registry https://registry.npmjs.org --tag "$DIST_TAG"
+      - name: Create the GitHub release with the same tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" "$RUNNER_TEMP/radical-publish/"*.tgz \
+            --verify-tag --title "radical v$VERSION" --generate-notes \
+            --prerelease="$IS_PRERELEASE" --latest="$MAKE_LATEST"

@@ -1,0 +1,77 @@
+name: Verify Radical release artifact
+description: Stamp, build, pack once, and verify an isolated installation
+inputs:
+  version:
+    description: Release version to stamp into the package
+    required: true
+outputs:
+  tarball:
+    description: Absolute path to the verified tarball
+    value: ${{ steps.pack.outputs.tarball }}
+runs:
+  using: composite
+  steps:
+    - name: Install release npm
+      shell: bash
+      working-directory: ${{ runner.temp }}
+      run: npm install --global npm@12.2.1
+    - name: Stamp and build
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        node packages/radical/scripts/release.ts stamp "$VERSION"
+        pnpm --filter @akshatowo/radical build
+    - name: Pack once with resolved catalog dependencies
+      id: pack
+      shell: bash
+      run: |
+        destination="$(mktemp -d "$RUNNER_TEMP/radical-artifact.XXXXXX")"
+        pnpm --filter @akshatowo/radical pack --pack-destination "$destination"
+        shopt -s nullglob
+        tarballs=("$destination"/*.tgz)
+        test "${#tarballs[@]}" -eq 1
+        echo "tarball=${tarballs[0]}" >> "$GITHUB_OUTPUT"
+    - name: Verify a clean npm installation
+      shell: bash
+      working-directory: ${{ runner.temp }}
+      env:
+        TARBALL: ${{ steps.pack.outputs.tarball }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        install_dir="$(mktemp -d "$RUNNER_TEMP/radical-install.XXXXXX")"
+        cd "$install_dir"
+        printf '{"private":true,"type":"module"}\n' > package.json
+        npm install --no-audit --no-fund --registry https://registry.npmjs.org \
+          "$TARBALL" react@19 react-dom@19 vite@8 @capacitor/core@8
+        test "$(./node_modules/.bin/radical --version)" = "radical v$VERSION"
+        ./node_modules/.bin/radical --help
+        node --input-type=module <<'JS'
+        import assert from 'node:assert/strict';
+        import { existsSync, readFileSync, statSync } from 'node:fs';
+        import { join } from 'node:path';
+
+        const root = join(process.cwd(), 'node_modules/@akshatowo/radical');
+        const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+        assert.equal(manifest.name, '@akshatowo/radical');
+        assert.equal(manifest.version, process.env.VERSION);
+        assert(!JSON.stringify(manifest).includes('catalog:'));
+        const checkExport = (target) => {
+          if (typeof target === 'string') {
+            assert(existsSync(join(root, target)), `Missing export: ${target}`);
+            if (target.endsWith('.mjs')) {
+              assert(existsSync(join(root, target.replace(/\.mjs$/, '.d.mts'))), `Missing declarations: ${target}`);
+            }
+          } else if (target) {
+            Object.values(target).forEach(checkExport);
+          }
+        };
+        Object.values(manifest.exports).forEach(checkExport);
+        for (const file of ['LICENSE', 'dist/transitions.css', 'templates/offline.html',
+          'templates/android/MainActivity.java', 'templates/android/radical.gradle',
+          'templates/ios/RadicalViewController.swift', 'templates/ios/LaunchScreen.storyboard']) {
+          assert(statSync(join(root, file)).size > 0, `Missing or empty file: ${file}`);
+        }
+        Promise.all(['plugins', 'server', 'client'].map((entry) => import(`@akshatowo/radical/${entry}`)))
+          .then((modules) => modules.forEach((module) => assert(Object.keys(module).length > 0)));
+        JS
