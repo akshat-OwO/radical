@@ -1,14 +1,18 @@
 import { Effect } from "effect";
 
+import type { AdapterOutputs } from "../adapter/adapter.ts";
 import { bundledOrigins, RequestFailed } from "./bundled-request.ts";
 
 export const isBundledOrigin = (request: Request) =>
   bundledOrigins.some((origin) => origin === request.headers.get("origin"));
 
-/** Opt in on the API server. Preflights finish before Start's server-function handler. */
-export const withBundledRequests =
-  (handler: (request: Request) => Response | Promise<Response>) =>
-  (request: Request): Promise<Response> =>
+/** Opt in on the API server. Preflights finish before the request handler. */
+export const withBundledRequests = (
+  handler: (request: Request) => Response | Promise<Response>,
+  outputs: Pick<AdapterOutputs, "exposedHeaders"> = {}
+) => {
+  const exposedHeaders = outputs.exposedHeaders?.join(", ");
+  return (request: Request): Promise<Response> =>
     Effect.runPromise(
       Effect.gen(function* () {
         const allowed = isBundledOrigin(request);
@@ -40,10 +44,9 @@ export const withBundledRequests =
             request.headers.get("origin") ?? ""
           );
           headers.set("access-control-allow-credentials", "true");
-          headers.append(
-            "access-control-expose-headers",
-            "x-tss-serialized, x-tss-raw, x-tss-error"
-          );
+          if (exposedHeaders !== undefined && exposedHeaders !== "") {
+            headers.append("access-control-expose-headers", exposedHeaders);
+          }
         }
         return new Response(response.body, {
           status: response.status,
@@ -52,3 +55,4 @@ export const withBundledRequests =
         });
       })
     );
+};

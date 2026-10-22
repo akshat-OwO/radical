@@ -33,6 +33,8 @@ export const AdapterOutputsSchema = Schema.Struct({
   clientDir: Schema.String,
   /** SPA shell path relative to clientDir. */
   spaShell: Schema.optional(Schema.String),
+  /** Response headers exposed to bundled clients through CORS. */
+  exposedHeaders: Schema.optional(Schema.Array(Schema.String)),
 });
 export type AdapterOutputs = typeof AdapterOutputsSchema.Type;
 
