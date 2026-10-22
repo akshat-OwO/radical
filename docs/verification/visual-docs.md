@@ -19,7 +19,7 @@ Prose decreases by 4,214 words, or 47.7%.
 
 ### Second pass
 
-The same counter compares first-pass commit `c46e01d` with this revision. Counts exclude code and tables; the reductions measure prose, not all visible words.
+The same counter compares first-pass commit `46561f8` with this revision. Counts exclude code and tables; the reductions measure prose, not all visible words.
 
 | Section  | First pass | Second pass | Reduction |
 | -------- | ---------: | ----------: | --------: |
@@ -27,7 +27,7 @@ The same counter compares first-pass commit `c46e01d` with this revision. Counts
 | Tutorial |        374 |         173 |     53.7% |
 | Total    |       6103 |        4628 |     24.2% |
 
-To compare against the first pass, replace `754e2f7` with `c46e01d` in the counter below.
+To compare against the first pass, replace `754e2f7` with `46561f8` in the counter below.
 
 ### Per page
 

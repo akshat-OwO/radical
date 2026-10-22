@@ -8,7 +8,7 @@ Build a browser app, then open the same UI in a native shell with [these prerequ
 <Steps>
 <Step>
 
-## Copy the example
+### Copy the example
 
 Clone, build, and copy the working app:
 
@@ -25,7 +25,7 @@ You have `apps/my-app`.
 </Step>
 <Step>
 
-## Rename the package
+### Rename the package
 
 Set `apps/my-app/package.json`'s `name` to `@radical/my-app`, then run from the repository root:
 
@@ -36,7 +36,7 @@ pnpm install
 </Step>
 <Step>
 
-## Set app identity
+### Set app identity
 
 Replace the config object in `apps/my-app/vite.config.ts`, keeping imports and the plugin array:
 
@@ -52,7 +52,7 @@ const config = {
 </Step>
 <Step>
 
-## Replace example routes
+### Replace example routes
 
 Keep `__root.tsx` and `public/offline.html`; remove `plugins` and all other routes before creating `src/routes/index.tsx`:
 
@@ -75,14 +75,14 @@ export const Route = createFileRoute("/")({ component: Home });
 </Step>
 <Step>
 
-## Remove the notification watcher
+### Remove the notification watcher
 
 Remove `NotificationNavigation`, its rendered element, and unused imports from `__root.tsx`, keeping `RadicalProvider`, the loader, and document setup.
 
 </Step>
 <Step>
 
-## Open the browser app
+### Open the browser app
 
 Start from the repository root:
 
@@ -95,7 +95,7 @@ At `http://localhost:5173`, you see **My Radical app** and browser device inform
 </Step>
 <Step>
 
-## Open a native shell
+### Open a native shell
 
 Run in a second terminal:
 
@@ -126,7 +126,7 @@ You see the heading and `platform: "ios"`.
 </Step>
 <Step>
 
-## Stop the server
+### Stop the server
 
 Press Control-C in the dev-server terminal.
 
