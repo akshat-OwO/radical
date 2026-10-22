@@ -464,3 +464,60 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
       })
   )
 );
+
+it.effect("keeps native overlay sequences independent for each router", () =>
+  Effect.gen(function* () {
+    const first = makeRouter();
+    const second = makeRouter();
+    const firstIds: string[] = [];
+    const secondIds: string[] = [];
+    const install = (router: ReturnType<typeof makeRouter>, ids: string[]) =>
+      installNativeTransitions(
+        router,
+        {},
+        Layer.succeed(NativeTransitions, {
+          cover: (id) =>
+            Effect.sync(() => {
+              ids.push(id);
+            }),
+          painted: Effect.void,
+          reveal: () => Effect.void,
+          remove: () => Effect.void,
+        })
+      );
+    yield* Effect.acquireUseRelease(
+      Effect.sync(() => [install(first, firstIds), install(second, secondIds)]),
+      () =>
+        Effect.gen(function* () {
+          yield* Effect.promise(async () => {
+            await first.load();
+          });
+          yield* Effect.promise(async () => {
+            await second.load();
+          });
+          for (const [router, to] of [
+            [first, "/details"],
+            [second, "/about"],
+            [first, "/about"],
+            [second, "/details"],
+          ] as const) {
+            const navigation = router.navigate({ to });
+            yield* Effect.promise(async () => {
+              await router.load();
+            });
+            yield* Effect.promise(async () => {
+              await navigation;
+            });
+          }
+          assert.deepStrictEqual(firstIds, ["1", "2"]);
+          assert.deepStrictEqual(secondIds, ["1", "2"]);
+        }),
+      (controllers) =>
+        Effect.sync(() => {
+          for (const controller of controllers) {
+            controller.dispose();
+          }
+        })
+    );
+  })
+);

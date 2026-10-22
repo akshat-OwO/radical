@@ -9,8 +9,7 @@ import {
 } from "../../capabilities/transitions/native-transitions.ts";
 import { NavigationFailed } from "../../core/adapter/errors.ts";
 import type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
-
-let overlaySequence = 0;
+import { installRouterCommitHook } from "./tanstack-router-internals.ts";
 
 /** Router's commit boundary covers links, imperative navigation, and history. */
 export const installNativeTransitions = (
@@ -18,7 +17,7 @@ export const installNativeTransitions = (
   options: BrowserTransitionOptions,
   native: Layer.Layer<NativeTransitions>
 ) => {
-  const original = router.startViewTransition;
+  let overlaySequence = 0;
   let direction: Transition["direction"] = "forward";
   let stop = Effect.void;
   let cancelOverlay = Effect.void;
@@ -29,55 +28,54 @@ export const installNativeTransitions = (
         ? "back"
         : "forward";
   });
-  const start: typeof original = (commit) => {
-    const enabled = router.shouldViewTransition !== false;
-    router.shouldViewTransition = undefined;
-    const next = router.latestLocation;
-    const previous = router.stores.resolvedLocation.get();
-    const kind = router
-      .matchRoutes(next.pathname)
-      .findLast((match) => match.staticData.radical?.transition)?.staticData
-      .radical?.transition;
-    const update = Effect.tryPromise({
-      try: commit,
-      catch: (cause) => new NavigationFailed({ cause }),
-    });
-    const selectedDirection = options.direction?.(direction) ?? direction;
-    const previousStop = stop;
-    const effect = Effect.gen(function* () {
-      yield* previousStop;
-      if (
-        disposed ||
-        !enabled ||
-        !previous ||
-        previous.href === next.href ||
-        !kind
-      ) {
-        return yield* update;
-      }
-      overlaySequence += 1;
-      const id = String(overlaySequence);
-      cancelOverlay = Effect.gen(function* () {
-        const transitions = yield* NativeTransitions;
-        yield* transitions.remove(id);
-      }).pipe(
-        Effect.timeout(options.timeoutMs ?? 1000),
-        Effect.ignore,
-        Effect.provide(native)
-      );
-      return yield* nativeTransition(
-        id,
-        { kind, direction: selectedDirection },
-        update,
-        options.timeoutMs
-      );
-    }).pipe(Effect.provide(native));
-    const fiber = Effect.runFork(effect);
-    // Cancelling an animation must not interrupt the router's commit.
-    stop = Fiber.join(fiber).pipe(Effect.ignore);
-    return Effect.runPromise(Fiber.join(fiber));
-  };
-  router.startViewTransition = start;
+  const removeCommitHook = installRouterCommitHook(
+    router,
+    (commit, enabled) => {
+      const { location: next, resolvedLocation: previous } = router.state;
+      const kind = router
+        .matchRoutes(next.pathname)
+        .findLast((match) => match.staticData.radical?.transition)?.staticData
+        .radical?.transition;
+      const update = Effect.tryPromise({
+        try: commit,
+        catch: (cause) => new NavigationFailed({ cause }),
+      });
+      const selectedDirection = options.direction?.(direction) ?? direction;
+      const previousStop = stop;
+      const effect = Effect.gen(function* () {
+        yield* previousStop;
+        if (
+          disposed ||
+          !enabled ||
+          !previous ||
+          previous.href === next.href ||
+          !kind
+        ) {
+          return yield* update;
+        }
+        overlaySequence += 1;
+        const id = String(overlaySequence);
+        cancelOverlay = Effect.gen(function* () {
+          const transitions = yield* NativeTransitions;
+          yield* transitions.remove(id);
+        }).pipe(
+          Effect.timeout(options.timeoutMs ?? 1000),
+          Effect.ignore,
+          Effect.provide(native)
+        );
+        return yield* nativeTransition(
+          id,
+          { kind, direction: selectedDirection },
+          update,
+          options.timeoutMs
+        );
+      }).pipe(Effect.provide(native));
+      const fiber = Effect.runFork(effect);
+      // Cancelling an animation must not interrupt the router's commit.
+      stop = Fiber.join(fiber).pipe(Effect.ignore);
+      return Effect.runPromise(Fiber.join(fiber));
+    }
+  );
   return {
     cancel: () => {
       Effect.runFork(cancelOverlay);
@@ -86,9 +84,7 @@ export const installNativeTransitions = (
       disposed = true;
       Effect.runFork(cancelOverlay);
       removeHistory();
-      if (router.startViewTransition === start) {
-        router.startViewTransition = original;
-      }
+      removeCommitHook();
     },
   };
 };
