@@ -3,11 +3,33 @@ title: "Configure Google sign-in"
 description: "Obtain an identity token in Android and iOS shells."
 ---
 
-1. In Google Cloud, create a web OAuth client and an iOS OAuth client. Match the iOS client to your configured bundle identifier.
-2. For Android, configure the OAuth client with the package identifier and signing certificate fingerprint for your build.
-3. Install `@capawesome/capacitor-google-sign-in@0.1.4`.
-4. Set `internalPlugins.googleSignIn: true`.
-5. Read your public client identifiers from environment variables in Vite config:
+<Steps>
+
+<Step>
+
+### Create OAuth clients
+
+In Google Cloud, create a web OAuth client and an iOS OAuth client. Match the iOS client to your configured bundle identifier.
+
+For Android, configure the OAuth client with the package identifier and signing certificate fingerprint for your build.
+
+</Step>
+
+<Step>
+
+### Enable sign-in
+
+Install `@capawesome/capacitor-google-sign-in@0.1.4`.
+
+Set `internalPlugins.googleSignIn: true`.
+
+</Step>
+
+<Step>
+
+### Set public client identifiers
+
+Read your public client identifiers from environment variables in Vite config:
 
 ```ts
 pluginOptions: {
@@ -18,10 +40,30 @@ pluginOptions: {
 },
 ```
 
-6. Set both environment variables before generation. Use values ending in `.apps.googleusercontent.com`. Do not commit real identifiers in the example config.
-7. Regenerate both shells. Radical writes the iOS `GIDClientID` and reversed URL scheme.
-8. Call `useGoogleSignIn()` from `radical/react` and invoke `signIn()` from a button.
-9. After success, send `value.idToken` to your backend for verification and session creation. Do not treat an unverified token as an authenticated session.
-10. Handle `GoogleSignInCancelled` separately from configuration failures.
+Set both environment variables before generation. Use values ending in `.apps.googleusercontent.com`. Do not commit real identifiers in the example config.
+
+</Step>
+
+<Step>
+
+### Regenerate the shells
+
+Regenerate both shells. Radical writes the iOS `GIDClientID` and reversed URL scheme.
+
+</Step>
+
+<Step>
+
+### Sign in and verify the token
+
+Call `useGoogleSignIn()` from `radical/react` and invoke `signIn()` from a button.
+
+After success, send `value.idToken` to your backend for verification and session creation. Do not treat an unverified token as an authenticated session.
+
+Handle `GoogleSignInCancelled` separately from configuration failures.
+
+</Step>
+
+</Steps>
 
 The default browser implementation returns `GoogleSignInUnavailable`. For a browser flow, provide your own `BrowserGoogleSignIn` service. See [Google sign-in reference](/docs/reference/google-sign-in).

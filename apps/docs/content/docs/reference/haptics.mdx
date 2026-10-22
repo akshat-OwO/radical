@@ -13,10 +13,24 @@ Native enablement is `internalPlugins.haptics`. The dependency is `@capacitor/ha
 
 These Effects require `Bridge | BrowserHaptics`. `hapticsLive(effect)` supplies `BrowserHapticsLive`. `BrowserHaptics` provides injectable `vibrate(pattern)` behavior. `ImpactStyleSchema` and `NotificationTypeSchema` validate inputs. Their types are `ImpactStyle` and `NotificationType`.
 
-Browsers use approximate vibration patterns. Missing APIs and a false `navigator.vibrate` result are successful no-ops. A browser exception becomes `HapticFeedbackFailed`, which carries `cause`. Devices without a haptic engine can also complete without vibration.
+| Browser result | Behavior |
+| --- | --- |
+| Vibration available | Approximate patterns |
+| Missing API or `vibrate` returns false | Successful no-op |
+| Exception | `HapticFeedbackFailed` with `cause` |
+| Hardware support | Success does not prove vibration; also applies to native devices |
 
-`HapticError` is `BridgeError | HapticFeedbackFailed`. Invalid typed style or notification input at runtime becomes `BridgeDecodeError`.
+| Error | Meaning |
+| --- | --- |
+| `BridgeError` | Transport or schema failure; invalid style or notification input produces `BridgeDecodeError` |
+| `HapticFeedbackFailed` | Browser vibration exception; carries `cause` |
 
 `useHapticFeedback()` exposes `light`, `medium`, `heavy`, `success`, `warning`, `error`, `selection`, and `impact`, plus action state. The failure field is `failure`; `error()` is an action. A completed action sets `value` to `true`.
+
+## Platform support
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Feedback | Native haptics | Native haptics | Vibration API or successful no-op |
 
 Source: [haptics implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/haptics).

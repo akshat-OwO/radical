@@ -3,11 +3,32 @@ title: "Observe network connectivity"
 description: "Update your UI when the connection changes."
 ---
 
-1. Install `@capacitor/network@8.0.1`.
-2. Set `internalPlugins.network: true` and regenerate both shells.
-3. Call `useNetworkStatus()` from `radical/react`.
-4. While `loading` is true, display an unknown state.
-5. If `error` exists, handle its `_tag`.
-6. Otherwise, read `value.connected` and `value.connectionType`.
+<Steps>
+
+<Step>
+
+### Enable network status
+
+Install `@capacitor/network@8.0.1`.
+
+Set `internalPlugins.network: true` and regenerate both shells.
+
+</Step>
+
+<Step>
+
+### Read live connectivity
+
+Call `useNetworkStatus()` from `radical/react`.
+
+While `loading` is true, display an unknown state.
+
+If `error` exists, handle its `_tag`.
+
+Otherwise, read `value.connected` and `value.connectionType`.
+
+</Step>
+
+</Steps>
 
 For endpoint availability, make an application request and handle its result. `connected` describes local connectivity. See [Network reference](/docs/reference/network).

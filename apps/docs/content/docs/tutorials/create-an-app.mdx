@@ -5,6 +5,9 @@ description: "Build a Radical app from the repository example, then run its Andr
 
 You create a TanStack Start app from the working example and run the same UI in a browser and native shells. You need Node.js 22.18 or newer, pnpm, and Vite+. For Android, install Android Studio, its SDK, a compatible JDK, and an AVD. For iOS, use macOS with Xcode and an installed iPhone simulator.
 
+<Steps>
+<Step>
+
 ## Create your app from the example
 
 1. Clone Radical and install its workspace dependencies:
@@ -68,6 +71,9 @@ vp -C apps/my-app dev --host 0.0.0.0 --port 5173
 
 Open `http://localhost:5173`. You see **My Radical app** and browser device information. The Vite plugin records the server URL in `.radical/native.json`.
 
+</Step>
+<Step>
+
 ## Run Android
 
 1. For an Android emulator, make the host server reachable through adb:
@@ -85,6 +91,9 @@ pnpm exec radical android
 
 The CLI generates `.radical/android`, builds the debug APK, installs it, and opens the app. If no connected device exists, the CLI offers installed AVDs. You see the same heading with `platform: "android"` in device information.
 
+</Step>
+<Step>
+
 ## Run iOS
 
 1. On macOS, run the shell from `apps/my-app`:
@@ -96,5 +105,8 @@ pnpm exec radical ios
 The CLI selects a booted iPhone simulator or the first available iPhone, builds the app, and launches it. You see your heading and `platform: "ios"`. The simulator reaches the host's localhost server directly.
 
 2. After you finish, stop the dev server with Control-C.
+
+</Step>
+</Steps>
 
 For a physical Android device, follow [Run on a device](/docs/guides/run-on-a-device). To package the UI, follow [Switch to bundled mode](/docs/guides/bundled-mode). The [example source](https://github.com/akshat-OwO/radical/tree/main/apps/example) contains the complete integration with optional capabilities.

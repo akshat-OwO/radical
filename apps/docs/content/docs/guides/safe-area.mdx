@@ -3,11 +3,42 @@ title: "Keep content inside the safe area"
 description: "Apply initial insets and subscribe to later changes."
 ---
 
-1. Add `viewport-fit=cover` to the viewport meta tag.
-2. For remote mode, obtain `context.nativeContext` through the Radical request middleware and a server function in the root loader.
-3. Pass that context to `<RadicalProvider nativeContext={nativeContext}>`.
-4. Apply `safeAreaStyle(nativeContext, config.mode)` to `<html>`.
-5. Add the CSS variables to your content padding:
+<Steps>
+
+<Step>
+
+### Configure the document
+
+Add `viewport-fit=cover` to the viewport meta tag.
+
+</Step>
+
+<Step>
+
+### Provide initial context
+
+<Tabs items={["Remote", "Bundled"]}>
+<Tab value="Remote">
+
+Obtain `context.nativeContext` through Radical request middleware and a server function in the root loader. Pass it to `<RadicalProvider nativeContext={nativeContext}>`.
+
+</Tab>
+<Tab value="Bundled">
+
+Use `localNativeContext()` in the loader and `mountNativeContext()` after mount. Follow [Switch to bundled mode](/docs/guides/bundled-mode) for the complete setup.
+
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+
+### Apply inset styles
+
+Apply `safeAreaStyle(nativeContext, config.mode)` to `<html>`.
+
+Add the CSS variables to your content padding:
 
 ```css
 main {
@@ -18,7 +49,19 @@ main {
 }
 ```
 
-6. For component state, call `useSafeArea()` from `radical/react`.
-7. For bundled mode, follow the mount setup in [Switch to bundled mode](/docs/guides/bundled-mode).
+</Step>
 
-Do not add keyboard height to the safe-area insets. See the [safe-area model](/docs/reference/safe-area) for the keyboard contract.
+<Step>
+
+### Observe live insets
+
+For component state, call `useSafeArea()` from `radical/react`.
+
+</Step>
+
+</Steps>
+
+<Callout type="warning">
+  Do not add keyboard height to safe-area insets.
+</Callout>
+See the [safe-area model](/docs/reference/safe-area) for the keyboard contract.

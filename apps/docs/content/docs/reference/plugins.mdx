@@ -25,11 +25,15 @@ Native error mapping decodes `{ ...cause.data, _tag: cause.code }`. An undeclare
 
 ## Native metadata
 
-Each source entry is `{ file, source }`: destination filename and source path relative to the manifest module. Android `className` can be a qualified Java name. Android dependencies map Gradle `group:artifact` to version requirements.
-
-The iOS `className` is an identifier. iOS dependencies are `{ url, version, product }` entries. URLs must be HTTPS; `product` is an identifier. Generation adds sources, registration, npm dependencies, Gradle dependencies, and SPM products only for enabled manifests.
-
-Custom config entries use `{ manifest, selector? }` in the main config. `selector` chooses a named export; otherwise the module's default export is selected.
+| Field | Contract |
+| --- | --- |
+| Source entry | `{ file, source }`: destination filename and source path relative to manifest module |
+| Android `className` | May be a qualified Java name |
+| Android dependencies | Gradle `group:artifact` to version requirements |
+| iOS `className` | Identifier |
+| iOS dependencies | `{ url, version, product }`; HTTPS URL; product identifier |
+| Enabled output | Sources, registration, npm requirements, Gradle dependencies, SPM products |
+| Config `plugins` entry | `{ manifest, selector? }`; selector chooses named export, omitted selects default |
 
 ## Internal manifest exports
 
@@ -37,6 +41,12 @@ Custom config entries use `{ manifest, selector? }` in the main config. `selecto
 
 These use the same manifest contract as custom plugins. The internal registry owns defaults and capability implications.
 
-Generation errors are `InvalidPlugin`, `PluginDependencyConflict`, or `InvalidConfig`. Disabled plugins contribute no native sources or configuration.
+| Generation failure | Meaning |
+| --- | --- |
+| `InvalidPlugin` | Invalid manifest or plugin dependency |
+| `PluginDependencyConflict` | Incompatible enabled dependency requirements |
+| `InvalidConfig` | Invalid generated contributions or configuration |
+
+Disabled plugins contribute no native sources or configuration.
 
 Source: [manifest implementation](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/plugins/plugins.ts).

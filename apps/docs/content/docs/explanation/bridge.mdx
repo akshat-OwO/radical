@@ -3,20 +3,36 @@ title: "The bridge"
 description: "Why native commands use services and schemas."
 ---
 
-The WebView and the native shell run in different runtimes. Capacitor supplies the transport between JavaScript calls and registered native plugins. Radical wraps that transport in the `Bridge` Effect service.
+The WebView and native shell run in different runtimes. Capacitor transports calls; Radical's `Bridge` service gives those calls an Effect error contract.
 
-A command crosses two validation boundaries. Its argument schema encodes the input before the native call. Its result schema decodes the returned value. Invalid data becomes `BridgeDecodeError`, while a rejected native call becomes `BridgeCallFailed`.
+<Mermaid
+  title="A manifest command across the bridge"
+  chart={`sequenceDiagram
+    participant App as App Effect
+    participant Client as callPlugin
+    participant Bridge as BridgeLive
+    participant Native as Capacitor native plugin
+    App->>Client: Command arguments
+    Client->>Client: Encode args schema and validate object
+    Client->>Bridge: call(plugin, method, options)
+    Bridge->>Native: nativePromise(plugin, method, options)
+    alt Native resolves
+        Native-->>Client: Unknown result
+        Client->>Client: Decode result schema
+        Client-->>App: Typed result or BridgeDecodeError
+    else Native rejects
+        Native-->>Bridge: Rejection
+        Bridge-->>Client: BridgeCallFailed
+        Client->>Client: Decode declared code and error data
+        Client-->>App: Declared tagged error or BridgeCallFailed
+    end
+`}
+/>
 
-## Errors remain part of the command contract
+Invalid arguments fail before transport. A missing native bridge produces `BridgeUnavailable`. Unknown rejection codes and invalid error data remain `BridgeCallFailed`, so an unexpected failure cannot masquerade as a declared capability error.
 
-A manifest can declare native rejection codes and tagged error schemas. Radical maps a known code and valid error data to the declared error. That lets your application handle a specific failure with `Effect.catchTag`.
+## Runtime selection stays replaceable
 
-Unknown rejection codes stay bridge failures. Radical does not pretend that an unexpected native error matches a declared capability error. The [bridge reference in the repository](https://github.com/akshat-OwO/radical/blob/main/docs/reference/bridge.md) records the transport details.
+Capability operations select native commands or browser services when the Effect runs. Browser services use web APIs; default Google sign-in and native push have no browser equivalent.
 
-## Browser behavior stays replaceable
-
-The bridge detects `browser`, `android`, or `ios` when the Effect runs. Capability operations choose native commands or browser services based on that runtime. Browser services provide file inputs, media access, network events, and other web behavior. Some capabilities, such as default Google sign-in and native push, have no default browser equivalent.
-
-Effect layers make the boundary testable. An app can provide an in-memory bridge and browser service without a native project, network request, or device. React hooks own those Effects after mount and release pending work on unmount.
-
-The [plugin decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0003-native-plugin-manifests.md) explains the shared manifest contract. [Client reference](/docs/reference/client) lists the public bridge APIs.
+Injectable layers let tests replace the bridge and browser services without a native project. React hooks start Effects after mount and release owned work on unmount. See [Client reference](/docs/reference/client) for services and errors, or [Plugin manifests](/docs/reference/plugins) for command schemas.

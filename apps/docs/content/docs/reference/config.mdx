@@ -45,9 +45,12 @@ Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGene
 | `pluginOptions` | Record of unknown values | Decoded by each enabled manifest's config schema, keyed by its config selector. |
 | `internalPlugins` | Object of optional booleans | Enables internal capabilities. Implications take precedence over explicit false values. |
 
-`device` and `transitions` default to true. These flags default to false: `camera`, `videoStream`, `filePicker`, `intents`, `haptics`, `network`, `googleSignIn`, `notifications`, `pushNotifications`, and `dataProtection`.
-
-`pushNotifications` implies `notifications`. `notifications` implies `network`.
+| Internal flag | Default | Implication |
+| --- | --- | --- |
+| `device`, `transitions` | `true` | None |
+| `camera`, `videoStream`, `filePicker`, `intents`, `haptics`, `network`, `googleSignIn`, `dataProtection` | `false` | None |
+| `notifications` | `false` | Enables `network` |
+| `pushNotifications` | `false` | Enables `notifications`, then `network` |
 
 ## Internal plugin options
 

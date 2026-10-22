@@ -3,8 +3,15 @@ title: "Handle notification taps"
 description: "Own notification navigation in the app scope."
 ---
 
-1. In your root component, obtain the router with `useRouter()`.
-2. In a mount effect, start a scoped watcher:
+<Steps>
+
+<Step>
+
+### Mount the app watcher
+
+In your root component, obtain the router with `useRouter()`.
+
+In a mount effect, start a scoped watcher:
 
 ```ts
 const fiber = Effect.runFork(
@@ -22,9 +29,49 @@ const fiber = Effect.runFork(
 );
 ```
 
-3. In the effect cleanup, interrupt the fiber with `Effect.runFork(Fiber.interrupt(fiber))`.
-4. If you use only local notifications, omit `push: true`.
-5. Put an app-relative path in a local notification's `route` or a push notification's `data.route`.
-6. For an offline destination, mark the route offline and visit its exact URL after worker activation.
+</Step>
+
+<Step>
+
+### Release the watcher on unmount
+
+In the effect cleanup, interrupt the fiber with `Effect.runFork(Fiber.interrupt(fiber))`.
+
+</Step>
+
+<Step>
+
+### Configure notification routes
+
+If you use only local notifications, omit `push: true`.
+
+Put an app-relative path in a local notification's `route` or a push notification's `data.route`.
+
+For an offline destination, mark the route offline and visit its exact URL after worker activation.
+
+</Step>
+
+</Steps>
 
 Keep the watcher mounted when you leave the notification screen. Import watcher services from `radical/client` and `tanstackStartAdapterLayer` from `radical/tanstack-start-client`. The [example root](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) has the complete imports and lifecycle.
+
+## Check tap routing
+
+<Mermaid
+  title="Validated taps select a stored document or router navigation"
+  chart={`flowchart TD
+    Local[LocalNotifications action] --> Queue[App-scoped watcher queue]
+    Push[FirebaseMessaging action when push: true] --> Queue
+    Browser[radical-notification browser event] --> Queue
+    Queue --> Valid{actionId is tap and route is valid?}
+    Valid -->|No| Ignore[Ignore event]
+    Valid -->|Yes| Network{getNetworkStatus}
+    Network -->|Connected| Router[Adapter navigation.navigate]
+    Network -->|Disconnected or status failure| Cache{Exact URL in app snapshot cache?}
+    Cache -->|Yes| Document[location.assign: full document navigation]
+    Cache -->|No or restore error| Router
+    Router -->|Failure| Error[onError callback; watcher continues]
+`}
+/>
+
+Test invalid routes, an online tap, and an offline tap to a visited URL. Keep query strings identical to the stored snapshot.

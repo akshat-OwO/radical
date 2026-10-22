@@ -14,7 +14,12 @@ Resolves the current config and generates `.radical/android`. In bundled mode, b
 | `--generate-only` | Boolean | `false`. Generates without building or launching the native app. Bundled UI still builds. |
 | `--target` | String | Empty. An adb serial or installed AVD name. |
 
-With no target, Android selects a connected emulator before another connected device. If none is connected, the CLI prompts for an installed AVD. An explicit AVD name can start that AVD. Boot readiness has a 120-second timeout. The CLI does not restart the shared adb server.
+| Android target rule | Behavior |
+| --- | --- |
+| No `--target` | Connected emulator first, then another connected device; otherwise prompt for an installed AVD |
+| AVD name | Can start that AVD |
+| Boot readiness | 120-second timeout |
+| adb lifecycle | Does not restart shared adb server |
 
 The SDK path resolves from `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Otherwise `adb` and `emulator` resolve through `PATH`.
 
@@ -27,7 +32,11 @@ Resolves the config and generates `.radical/ios`. In bundled mode, builds the UI
 | `--generate-only` | Boolean | `false`. Generates without building or launching the native app. Bundled UI still builds. |
 | `--target` | String | Empty. A simulator UDID. |
 
-With no target, iOS selects a booted available iPhone simulator or the first available iPhone simulator. The CLI does not select physical iOS devices. macOS and Xcode are required for simulator builds.
+| iOS target rule | Behavior |
+| --- | --- |
+| No `--target` | Booted available iPhone simulator, then first available iPhone |
+| Physical iOS device | Not selected by CLI |
+| Build host | macOS with Xcode |
 
 ## `radical typegen`
 

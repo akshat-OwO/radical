@@ -3,10 +3,25 @@ title: "Preview the camera and scan QR codes"
 description: "Mount a viewfinder and control a live video session."
 ---
 
-1. Install `@capgo/camera-preview@8.14.2`.
-2. Set `internalPlugins.videoStream: true` and `pluginOptions.VideoStream.usageDescription` to your camera purpose.
-3. Regenerate both shells.
-4. Create a ref for a mounted viewfinder element. Give the element a nonzero size:
+<Steps>
+
+<Step>
+
+### Enable video preview
+
+Install `@capgo/camera-preview@8.14.2`.
+
+Set `internalPlugins.videoStream: true` and `pluginOptions.VideoStream.usageDescription` to your camera purpose.
+
+Regenerate both shells.
+
+</Step>
+
+<Step>
+
+### Mount the viewfinder
+
+Create a ref for a mounted viewfinder element. Give the element a nonzero size:
 
 ```tsx
 const viewfinder = useRef<HTMLDivElement>(null);
@@ -15,11 +30,38 @@ const stream = useVideoStream({ viewfinder, onDetect: setLastQR });
 <div ref={viewfinder} style={{ width: "100%", height: "40vh" }} />;
 ```
 
-5. For native preview, keep the viewfinder transparent and the surrounding UI opaque. Use the [example layout](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/video.tsx) for the cut-out.
-6. From user actions, call `stream.start()` and `stream.stop()`.
-7. To change cameras, call `stream.switchCamera()`.
-8. If `stream.value.zoom` exists, constrain `setZoom(level)` to its `min` and `max`.
-9. If `stream.value.torchAvailable` is true, call `stream.setTorch(true)` to enable the torch.
-10. Check `detectionAvailable` before presenting QR scanning as available. Browser detection needs `BarcodeDetector`.
+</Step>
+
+<Step>
+
+### Prepare native transparency
+
+For native preview, keep the viewfinder transparent and the surrounding UI opaque. Use the [example layout](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/video.tsx) for the cut-out.
+
+</Step>
+
+<Step>
+
+### Start and stop the camera
+
+From user actions, call `stream.start()` and `stream.stop()`.
+
+</Step>
+
+<Step>
+
+### Expose supported controls
+
+To change cameras, call `stream.switchCamera()`.
+
+If `stream.value.zoom` exists, constrain `setZoom(level)` to its `min` and `max`.
+
+If `stream.value.torchAvailable` is true, call `stream.setTorch(true)` to enable the torch.
+
+Check `detectionAvailable` before presenting QR scanning as available. Browser detection needs `BarcodeDetector`.
+
+</Step>
+
+</Steps>
 
 Handle `stream.error` and stop the stream when your task ends. Unmount also releases the camera. See [Video stream reference](/docs/reference/video-stream).

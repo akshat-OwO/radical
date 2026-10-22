@@ -3,14 +3,50 @@ title: "Pick and open files"
 description: "Select attachments and hand native files or URLs to other apps."
 ---
 
-1. For the picker, install `@capawesome/capacitor-file-picker@8.1.1` and set `internalPlugins.filePicker: true`.
-2. For external apps, install `@capacitor/app-launcher@8.0.1` and `@capacitor-community/file-opener@8.0.1`. Set `internalPlugins.intents: true`.
-3. Regenerate both shells.
-4. Call `useFilePicker()` and `useIntent()` from `radical/react` in your component.
-5. To select PDFs, call `picker.pick({ types: ["application/pdf"], multiple: true })` from a button.
-6. Read each file's bytes through `picker.value[i].blob`. Avoid very large files because Radical reads each selection into memory.
-7. To open a selected native file, call `intent.openFile(file)`.
-8. To offer the system chooser, call `intent.openFile(file, { chooser: true })`.
-9. To open a URL, call `intent.openUrl("https://example.com/help")`.
+<Steps>
+
+<Step>
+
+### Enable native file capabilities
+
+For the picker, install `@capawesome/capacitor-file-picker@8.1.1` and set `internalPlugins.filePicker: true`.
+
+For external apps, install `@capacitor/app-launcher@8.0.1` and `@capacitor-community/file-opener@8.0.1`. Set `internalPlugins.intents: true`.
+
+</Step>
+
+<Step>
+
+### Regenerate and connect hooks
+
+Regenerate both shells.
+
+Call `useFilePicker()` and `useIntent()` from `radical/react` in your component.
+
+</Step>
+
+<Step>
+
+### Pick attachments
+
+To select PDFs, call `picker.pick({ types: ["application/pdf"], multiple: true })` from a button.
+
+Read each file's bytes through `picker.value[i].blob`. Avoid very large files because Radical reads each selection into memory.
+
+</Step>
+
+<Step>
+
+### Open a file or URL
+
+To open a selected native file, call `intent.openFile(file)`.
+
+To offer the system chooser, call `intent.openFile(file, { chooser: true })`.
+
+To open a URL, call `intent.openUrl("https://example.com/help")`.
+
+</Step>
+
+</Steps>
 
 Handle `picker.error` and `intent.error` separately. Browser files have no native URI, so external file opening returns `Unavailable`. See [Files reference](/docs/reference/files).

@@ -3,13 +3,52 @@ title: "Send haptic feedback"
 description: "Add feedback to a completed action or selection."
 ---
 
-1. Install `@capacitor/haptics@8.0.2`.
-2. Set `internalPlugins.haptics: true` and regenerate both shells.
-3. Call `useHapticFeedback()` from `radical/react` in your component.
-4. After a successful action, call `feedback.success()`.
-5. For a selection, call `feedback.selection()`.
-6. For an impact, call `feedback.light()`, `feedback.medium()`, `feedback.heavy()`, or `feedback.impact("HEAVY")`.
-7. For a warning or error, call `feedback.warning()` or `feedback.error()`.
-8. To handle failures, read `feedback.failure`, not `feedback.error`. The `error` property is the feedback action.
+<Steps>
 
-Do not treat `value: true` as proof that the hardware vibrated. Unsupported browsers complete without vibration. See [Haptics reference](/docs/reference/haptics).
+<Step>
+
+### Enable haptics
+
+Install `@capacitor/haptics@8.0.2`.
+
+Set `internalPlugins.haptics: true` and regenerate both shells.
+
+</Step>
+
+<Step>
+
+### Connect the hook
+
+Call `useHapticFeedback()` from `radical/react` in your component.
+
+</Step>
+
+<Step>
+
+### Choose feedback
+
+After a successful action, call `feedback.success()`.
+
+For a selection, call `feedback.selection()`.
+
+For an impact, call `feedback.light()`, `feedback.medium()`, `feedback.heavy()`, or `feedback.impact("HEAVY")`.
+
+For a warning or error, call `feedback.warning()` or `feedback.error()`.
+
+</Step>
+
+<Step>
+
+### Handle failure
+
+To handle failures, read `feedback.failure`, not `feedback.error`. The `error` property is the feedback action.
+
+</Step>
+
+</Steps>
+
+<Callout type="warning">
+  A successful action does not prove that hardware vibrated.
+</Callout>
+
+See [Haptics reference](/docs/reference/haptics).

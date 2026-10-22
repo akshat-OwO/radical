@@ -9,9 +9,14 @@ description: "Build-time plugins, virtual modules, and framework integration."
 
 The plugin resolves enabled manifests, validates options, generates typed plugin declarations, and maintains native metadata. Its dev-server integration records the actual protocol and port with the selected `devHost`.
 
-In bundled mode, the plugin sets `server.cors.origin` only when `server.cors` is undefined. Its callback returns `false` for the exact origins `https://localhost` and `capacitor://localhost`, bypassing Vite's CORS middleware so `withBundledRequests` handles preflights and credentials. All other origins use Vite's `defaultAllowedOrigins` policy. Remote mode keeps Vite's defaults.
-
-`preview.cors` takes precedence over `server.cors`. When `preview.cors` is undefined, preview inherits `server.cors`. Explicit settings, including `true`, `false`, and objects, remain unchanged. Custom policies must pass bundled preflights through to the API handler, for example with `cors: false` or an origin callback returning `false` for the bundled origins.
+| CORS configuration | Behavior |
+| --- | --- |
+| Bundled, `server.cors` undefined | Returns false for the two exact bundled origins so the API handler owns preflights and credentials |
+| Other origins | Vite `defaultAllowedOrigins` |
+| Remote mode | Vite defaults |
+| Explicit `server.cors` or `preview.cors` | Preserved, including booleans and objects |
+| Preview precedence | `preview.cors`, then inherited `server.cors` |
+| Custom policy for bundled requests | `cors: false` or an origin callback returning false for bundled origins; API handler owns CORS |
 
 Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `InvalidConfig`, `InvalidPlugin`, `PluginDependencyConflict`, `AdapterUnavailable`, and `RadicalAdapter`. Adapter types are `RadicalCore`, `RadicalRoute`, `RadicalNavigation`, and `AdapterOutputs`.
 
@@ -34,13 +39,16 @@ Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `Inval
 
 ## `radical/tanstack-start`
 
-`radical(config)` returns the core plugin with `TanStackStartAdapter`, plus the remote-mode offline build plugin. Bundled mode omits the worker build.
-
-`tanstackStartOptions(config)` returns `{ spa: { enabled: config.mode === "bundled" } }`. The adapter's outputs are `clientDir: "dist/client"`, `spaShell: "_shell.html"`, and `exposedHeaders: ["x-tss-serialized", "x-tss-raw", "x-tss-error"]`.
-
-`TanStackStartAdapter` supplies request context and outputs. Its navigation methods fail with `AdapterUnavailable`. The implemented adapter's `routes` Effect returns an empty list. Offline eligibility comes from the selected route at request time, not a build-time route list.
-
-`RadicalRouteOptions` augments `staticData.radical` with optional `offline: boolean` and `transition: "slide" | "fade"`.
+| Adapter export or behavior | Contract |
+| --- | --- |
+| `radical(config)` | Core plugin with `TanStackStartAdapter`; remote offline build plugin omitted in bundled mode |
+| `tanstackStartOptions(config)` | `{ spa: { enabled: config.mode === "bundled" } }` |
+| `clientDir` | `"dist/client"` |
+| `spaShell` | `"_shell.html"` |
+| `exposedHeaders` | `["x-tss-serialized", "x-tss-raw", "x-tss-error"]` |
+| `TanStackStartAdapter` | Provides request context and outputs; navigation fails with `AdapterUnavailable` |
+| `routes` | Effect returns empty list; offline eligibility uses selected route at request time |
+| `RadicalRouteOptions` | `staticData.radical` with optional `offline: boolean` and `transition: "slide" \| "fade"` |
 
 ## `radical/tanstack-start-server`
 
@@ -63,8 +71,12 @@ Exports `browserTransitions`, `BrowserTransitionOptions`, `tanstackStartAdapterL
 
 ## Generated offline output
 
-The remote build emits `radical-sw.js` and `radical-manifest.json` into the client output. The manifest contains `buildId`, `cachePrefix`, `assets`, and `fallback`. The fallback is `${base}offline.html`. There is no public `cachePattern` config field.
-
-`radical/offline-entry` exposes the worker installation entry for the build. It is not a React lifecycle API.
+| Remote output or export | Contract |
+| --- | --- |
+| `radical-sw.js` | Worker in client output |
+| `radical-manifest.json` | `buildId`, `cachePrefix`, `assets`, `fallback` |
+| Fallback | `${base}offline.html` |
+| `cachePattern` | No public config field |
+| `radical/offline-entry` | Build-side worker installation entry; no React lifecycle API |
 
 Source: [Vite implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/vite), [TanStack adapter](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/adapters/tanstack-start).
