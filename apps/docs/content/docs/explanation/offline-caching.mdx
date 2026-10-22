@@ -31,19 +31,47 @@ A `/reports?page=1` snapshot cannot satisfy `/reports?page=2`. HTTP error respon
 <Mermaid
   title="Remote shell startup recovery"
   chart={`flowchart TD
-    Android[Android launch gate] --> Control[Restore service-worker control]
-    Control --> Target[Load configured URL, or saved URL when disconnected]
-    iOS[iOS starts configured URL] --> Failure{Launch fails or worker returns fallback?}
-    Failure -->|Yes, distinct saved URL available| Retry[Try saved snapshot URL once]
-    Failure -->|No| Ready[Document ready]
-    Target --> Worker[Worker network-first snapshot lookup]
-    Retry --> Worker
-    Worker -->|Snapshot or network document| Ready
-    Worker -->|No stored document| WebFallback[Worker offline.html]
-    Target -->|Main-frame load error| NativeFallback[Packaged offline fallback]
-    Retry -->|Recovery fails| NativeFallback
+    subgraph Android
+      Start[Android launch gate] --> Connected{Internet capability present?}
+      Connected -->|Yes| Config[Select configured URL]
+      Connected -->|No| Saved{Allowed saved app URL?}
+      Saved -->|Yes| Select[Select saved URL]
+      Saved -->|No| Config
+      Config --> Gate{Service worker API available?}
+      Select --> Gate
+      Gate -->|Yes| Lookup[Wait for getRegistration: fulfillment or rejection]
+      Gate -->|No| Load[Load selected URL]
+      Lookup --> Load
+      Load --> Outcome{Navigation outcome}
+      Outcome -->|Network or snapshot response| Ready[Show document]
+      Outcome -->|Worker fallback response| WebFallback[Show worker offline.html]
+      Outcome -->|Main-frame load error| NativeFallback[Show packaged offline HTML]
+    end
+    subgraph iOS
+      Initial[Load configured URL] --> Result{Navigation outcome}
+      Result -->|Network or snapshot response| Document[Show document]
+      Result -->|Worker fallback header| Header[Recovery requested by response]
+      Result -->|Load failure| Error[Recovery requested by load error]
+      Header --> Launching{Still launching?}
+      Error --> Launching
+      Launching -->|Yes| Attempted{Snapshot already attempted?}
+      Attempted -->|No| Exists{Saved URL exists and parses?}
+      Exists -->|Yes| Allowed{Saved origin allowed?}
+      Allowed -->|Yes| Distinct{Saved URL differs from current URL?}
+      Distinct -->|Yes| Retry[Mark attempted and load saved URL once]
+      Retry --> Result
+      Launching -->|No| Reason{Recovery trigger}
+      Attempted -->|Yes| Reason
+      Exists -->|No| Reason
+      Allowed -->|No| Reason
+      Distinct -->|No| Reason
+      Reason -->|Worker fallback header| WorkerHTML[Allow worker offline.html]
+      Reason -->|Load failure| Packaged[Load packaged offline HTML]
+    end
 `}
 />
+
+The iOS flow covers allowed main-frame startup navigations. Recovery cancellation callbacks are consumed; unrelated cancellations go to Capacitor.
 
 Android stores `lastOfflineUrl`; iOS stores `radical.lastOfflineURL`. The saved URL records a confirmed snapshot; it does not contain HTML. Clearing web data deletes snapshots and worker registrations, so a saved URL cannot restore deleted data. Bundled mode omits this recovery path.
 

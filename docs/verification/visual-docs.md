@@ -12,10 +12,10 @@ Counts exclude frontmatter, fenced code, Markdown tables, and component markup, 
 | Tutorial     |    374 |   173 |
 | Guides       |   2548 |  1222 |
 | Reference    |   4066 |  2315 |
-| Explanation  |   1634 |   812 |
-| Total        |   8842 |  4610 |
+| Explanation  |   1634 |   830 |
+| Total        |   8842 |  4628 |
 
-Prose decreases by 4,232 words, or 47.9%.
+Prose decreases by 4,214 words, or 47.7%.
 
 ### Second pass
 
@@ -25,7 +25,7 @@ The same counter compares first-pass commit `c46e01d` with this revision. Counts
 | -------- | ---------: | ----------: | --------: |
 | Guides   |       2514 |        1222 |     51.4% |
 | Tutorial |        374 |         173 |     53.7% |
-| Total    |       6103 |        4610 |     24.5% |
+| Total    |       6103 |        4628 |     24.2% |
 
 To compare against the first pass, replace `754e2f7` with `c46e01d` in the counter below.
 
@@ -37,7 +37,7 @@ To compare against the first pass, replace `754e2f7` with `c46e01d` in the count
 | `explanation/delivery-modes.mdx`     |    393 |   178 |
 | `explanation/native-context.mdx`     |    274 |   125 |
 | `explanation/native-shells.mdx`      |    237 |   149 |
-| `explanation/offline-caching.mdx`    |    286 |   117 |
+| `explanation/offline-caching.mdx`    |    286 |   135 |
 | `explanation/plugin-model.mdx`       |    201 |   120 |
 | `guides/app-assets.mdx`              |    109 |    42 |
 | `guides/bundled-mode.mdx`            |    323 |   127 |
@@ -103,7 +103,7 @@ PY
 
 ## Diagram source checks
 
-Source paths below are relative to `packages/radical/`. All diagram contracts were checked against the base source.
+Source paths below are relative to `packages/radical/`. All diagram contracts were checked against the base source. Review fixes rechecked all ten diagrams against the current source, including every decision and alternate branch. No other compound-condition branch errors were found.
 
 | Page | Diagrams | Source |
 | --- | --- | --- |
@@ -111,10 +111,20 @@ Source paths below are relative to `packages/radical/`. All diagram contracts we
 | `explanation/delivery-modes` | Remote and bundled requests | `src/core/bundled/bundled-request.ts`, `src/core/bundled/bundled-server.ts`, `src/adapters/tanstack-start/tanstack-middleware.ts`, `src/adapters/tanstack-start/tanstack-start-server.ts`, `src/adapters/tanstack-start/tanstack-outputs.ts` |
 | `explanation/bridge` | Manifest command sequence | `src/core/bridge/bridge.ts`, `src/core/plugins/plugins.ts` |
 | `explanation/native-context` | Context transport and mount handoff | `src/core/context/native-context.ts`, `src/core/bundled/bundled-request.ts`, `src/entry/server.ts`, `src/capabilities/safe-area/safe-area.ts`, `src/capabilities/safe-area/safe-area-style.ts` |
-| `explanation/offline-caching` | Snapshot lifecycle; shell startup recovery | `src/core/offline/offline-worker.ts`, `src/core/offline/offline-entry.ts`, `src/core/offline/native-offline.ts`, `src/core/offline/offline-protocol.ts`, `templates/android/MainActivity.java`, `templates/ios/RadicalViewController.swift` |
+| `explanation/offline-caching` | Snapshot lifecycle; shell startup recovery | `src/core/offline/offline-worker.ts`, `src/core/offline/offline-entry.ts`, `src/core/offline/native-offline.ts`, `src/core/offline/offline-protocol.ts`, `templates/android/MainActivity.java`, `templates/android/launch.html`, `templates/ios/RadicalViewController.swift` |
 | `explanation/plugin-model` | Manifest resolution and internal implications | `src/core/plugins/plugins.ts`, `src/core/plugins/internal-plugin-registry.ts`, `src/vite/plugins/plugin-plan.ts`, `src/vite/native-contributions.ts` |
 | `guides/transitions` | Cover, commit, reveal, remove with overlay IDs | `src/capabilities/transitions/native-transitions.ts`, `src/adapters/tanstack-start/tanstack-native-transitions.ts`, `templates/android/RadicalTransitionsPlugin.java`, `templates/ios/RadicalTransitionsPlugin.swift` |
 | `guides/notification-navigation` | Tap validation and snapshot navigation | `src/capabilities/notifications/notification-navigation.ts`, `src/capabilities/notifications/notification-schema.ts` |
+
+## Review-fix verification
+
+- Startup recovery now separates Android target selection, registration lookup, and navigation outcomes. The lookup navigates after fulfillment or rejection, including when no registration exists.
+- iOS checks launch state, prior attempt, saved URL parsing, origin allowance, and URL inequality separately. Ineligible recovery preserves worker `offline.html` for a fallback response and loads packaged HTML for a load failure. A saved-URL retry goes through the same outcome checks.
+- Rechecked snapshot eligibility and storage failures, bundled request/CORS branches, CLI mode and generate-only branches, bridge resolve/reject paths, context fallback, plugin implications, transition capture failure, and notification validation/network/cache paths against their implementations.
+- Browser verification used the T3 Chromium preview on the production server at `127.0.0.1:4317`. Both offline diagrams stayed visible through light → dark → light, received fresh SVG IDs and changed theme styles. A mutation observer recorded no missing SVGs; console error, page error, and unhandled rejection listeners recorded no errors. Eight rapid theme flips also finished in the requested theme without missing diagrams. Rapid clicks produced seven `AbortError: Transition was skipped` rejections from the theme toggle's View Transitions; ordinary toggles produced no errors.
+- Mermaid 12.2.0 requires document layout, so rendering uses a hidden staging container outside the mounted figure. Effect finalization removes that container. Fully detached rendering was tried and failed because Mermaid looks up elements in the document.
+- `pnpm --filter @radical/docs build`, `pnpm exec ultracite fix`, `pnpm exec ultracite check`, and `vp run ready`: passed.
+- The verification server was stopped. No native builds or emulators ran.
 
 ## Second-pass verification
 

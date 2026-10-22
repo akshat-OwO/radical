@@ -3,7 +3,7 @@
 /* oxlint-disable typescript/promise-function-async -- Effect owns Promise boundaries. */
 import { Effect, Fiber, Schema, Semaphore } from "effect";
 import { useTheme } from "next-themes";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 // oxlint-disable-next-line unicorn/throw-new-error -- Schema.TaggedError is an Effect class factory.
 class MermaidRenderFailed extends Schema.TaggedError<
@@ -30,10 +30,29 @@ const renderChart = (id: string, chart: string, theme: string | undefined) =>
         theme: theme === "dark" ? "dark" : "default",
       });
 
-      return yield* Effect.tryPromise({
-        try: () => mermaid.render(`mermaid-${id}`, chart),
-        catch: (cause) => new MermaidRenderFailed({ cause }),
-      });
+      // Mermaid needs document layout. Stage outside the visible diagram and
+      // always remove the staging tree, including after failed renders.
+      return yield* Effect.acquireUseRelease(
+        Effect.sync(() => {
+          const container = document.createElement("div");
+          container.style.position = "fixed";
+          container.style.visibility = "hidden";
+          container.style.pointerEvents = "none";
+          container.setAttribute("aria-hidden", "true");
+          document.body.append(container);
+
+          return container;
+        }),
+        (container) =>
+          Effect.tryPromise({
+            try: () => mermaid.render(`mermaid-${id}`, chart, container),
+            catch: (cause) => new MermaidRenderFailed({ cause }),
+          }),
+        (container) =>
+          Effect.sync(() => {
+            container.remove();
+          })
+      );
     }).pipe(Effect.uninterruptible)
   );
 
@@ -41,29 +60,43 @@ const renderChart = (id: string, chart: string, theme: string | undefined) =>
 export const Mermaid = ({ chart, title }: { chart: string; title: string }) => {
   const id = useId().replaceAll(":", "");
   const { resolvedTheme } = useTheme();
+  const renderSequence = useRef(0);
   const [result, setResult] = useState({ svg: "", failed: false, theme: "" });
 
   useEffect(() => {
+    let active = true;
+    renderSequence.current += 1;
+    const renderId = `${id}-${renderSequence.current}`;
+
     const fiber = Effect.runFork(
-      renderChart(id, chart, resolvedTheme).pipe(
+      renderChart(renderId, chart, resolvedTheme).pipe(
         Effect.tap(({ svg }) =>
           Effect.sync(() => {
-            setResult({ svg, failed: false, theme: resolvedTheme ?? "light" });
+            if (active) {
+              setResult({
+                svg,
+                failed: false,
+                theme: resolvedTheme ?? "light",
+              });
+            }
           })
         ),
         Effect.catchTag("MermaidRenderFailed", () =>
           Effect.sync(() => {
-            setResult({
-              svg: "",
-              failed: true,
-              theme: resolvedTheme ?? "light",
-            });
+            if (active) {
+              setResult({
+                svg: "",
+                failed: true,
+                theme: resolvedTheme ?? "light",
+              });
+            }
           })
         )
       )
     );
 
     return () => {
+      active = false;
       Effect.runFork(Fiber.interrupt(fiber));
     };
   }, [chart, id, resolvedTheme]);
