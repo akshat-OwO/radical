@@ -17,7 +17,7 @@ iOS launch images are encoded directly at 2048×2048, rather than encoding 2732p
 - `pnpm exec ultracite fix` and `pnpm exec ultracite check` pass.
 - `pnpm install` regenerated the lockfile, removing 971 lines. `pnpm install --frozen-lockfile` passes. The catalog, Radical package, generator code, error messages, and lockfile contain no removed asset-tool dependency. The lockfile contains no `@pnpm/exe` entries.
 - `pnpm exec vp run ready` passes build, example type generation, Ultracite, `vp check`, Effect type checks, and all tests.
-- `packages/radical/tests/native-assets.test.ts` uses `it.effect`, `assert`, and test-local in-memory filesystems. It compares file sets, PNG sizes, and catalog metadata with the independently captured baseline; checks the absence of night launcher rasters, content-derived iOS names and stale-catalog removal, adaptive and monochrome references, transparency, padding, round masks, square system artwork, distinct dark artwork, optional inputs, and typed encoding and filesystem failures. Tests do not invoke a CLI, network, timer, or device.
+- `packages/radical/tests/native/assets/native-assets.test.ts` uses `it.effect`, `assert`, and test-local in-memory filesystems. It compares file sets, PNG sizes, and catalog metadata with the independently captured baseline; checks the absence of night launcher rasters, content-derived iOS names and stale-catalog removal, adaptive and monochrome references, transparency, padding, round masks, square system artwork, distinct dark artwork, optional inputs, and typed encoding and filesystem failures. Tests do not invoke a CLI, network, timer, or device.
 
 ## Native builds
 

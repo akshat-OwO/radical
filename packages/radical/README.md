@@ -31,7 +31,7 @@ After changing config or source images, start dev to refresh `.radical/native.js
 
 `getNativeContext(request)` from `radical/server` returns an Effect containing the platform, safe-area insets, and shell version. Requests without a valid shell cookie receive browser context.
 
-The [cookie contract](src/native-context.ts) is documented alongside its schemas in one module, exported as `radical/native-context`. The server and shell generators share that module.
+The [cookie contract](src/core/context/native-context.ts) is documented alongside its schemas in one module, exported as `radical/native-context`. The server and shell generators share that module.
 
 For TanStack Start, register `radicalRequestMiddleware` in `src/start.ts`:
 
