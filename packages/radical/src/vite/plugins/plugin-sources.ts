@@ -86,7 +86,7 @@ export const composePluginSources = (
               .readFileString(path.resolve(manifestDirectory, source.source))
               .pipe(
                 Effect.flatMap((content) =>
-                  module === "radical/internal-plugins" &&
+                  module === "@akshatowo/radical/internal-plugins" &&
                   content.includes("__OFFLINE_SAVED_URL_KEY__")
                     ? replaceAnchor(
                         source.file,

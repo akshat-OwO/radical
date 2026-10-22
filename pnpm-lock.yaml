@@ -257,6 +257,9 @@ importers:
 
   apps/example:
     dependencies:
+      '@akshatowo/radical':
+        specifier: workspace:*
+        version: link:../../packages/radical
       '@tanstack/react-router':
         specifier: 1.170.45
         version: 1.170.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -266,9 +269,6 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.5
-      radical:
-        specifier: workspace:*
-        version: link:../../packages/radical
       react:
         specifier: 19.3.1
         version: 19.3.1

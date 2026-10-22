@@ -1,5 +1,5 @@
+import { useDataProtection } from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useDataProtection } from "radical/react";
 
 const DataProtection = () => {
   const protection = useDataProtection();

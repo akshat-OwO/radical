@@ -151,7 +151,7 @@ const compose = (platform: "android" | "ios", plugins = [entry(nativeEcho)]) =>
 
 describe("native plugin manifests", () => {
   for (const module of [
-    "radical/internal-plugins",
+    "@akshatowo/radical/internal-plugins",
     "another-package/manifests",
   ]) {
     it.effect(`copies sources from an explicit root for ${module}`, () =>

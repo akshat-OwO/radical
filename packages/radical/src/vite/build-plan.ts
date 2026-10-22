@@ -31,7 +31,7 @@ const optionsFor = <S extends Schema.Top>(
 ): S["Type"] | undefined =>
   plugins.find(
     (entry) =>
-      entry.module === "radical/internal-plugins" &&
+      entry.module === "@akshatowo/radical/internal-plugins" &&
       entry.manifest.id === manifest.id
   )?.options;
 

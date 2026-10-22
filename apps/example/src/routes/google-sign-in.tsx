@@ -1,5 +1,5 @@
+import { useGoogleSignIn } from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useGoogleSignIn } from "radical/react";
 
 const GoogleSignIn = () => {
   const google = useGoogleSignIn();

@@ -22,7 +22,7 @@ pnpm add @capacitor/local-notifications@8.3.1 @capawesome/capacitor-badge@8.0.4 
 Connect a user action to:
 
 ```ts
-const permission = useNotificationPermission(); // radical/react
+const permission = useNotificationPermission(); // @akshatowo/radical/react
 const notifications = useNotifications();
 permission.request();
 ```
@@ -77,7 +77,7 @@ Keep the page open for browser reminders. See [inputs and errors](/docs/referenc
 After the initial check, offer a separate request button only for `"denied"`:
 
 ```ts
-const exactAlarms = useExactAlarmPermission(); // radical/react
+const exactAlarms = useExactAlarmPermission(); // @akshatowo/radical/react
 // Request button:
 exactAlarms.request();
 // Refresh after external settings changes:

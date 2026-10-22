@@ -1,5 +1,5 @@
+import { useHapticFeedback } from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useHapticFeedback } from "radical/react";
 
 const Haptics = () => {
   const feedback = useHapticFeedback();

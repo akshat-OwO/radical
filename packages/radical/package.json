@@ -1,8 +1,14 @@
 {
-  "name": "radical",
+  "name": "@akshatowo/radical",
   "version": "0.0.0",
   "description": "Run server-rendered web apps inside native Android and iOS WebView shells.",
+  "bugs": "https://github.com/akshat-OwO/radical/issues",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akshat-OwO/radical.git",
+    "directory": "packages/radical"
+  },
   "bin": {
     "radical": "./dist/cli.mjs"
   },
@@ -160,5 +166,8 @@
     "@capawesome/capacitor-badge": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

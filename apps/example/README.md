@@ -16,9 +16,9 @@ pnpm exec vp dev
 
 Build the example with `pnpm exec vp build` in the same directory.
 
-`vite.config.ts` registers `radical/tanstack-start` next to `tanstackStart()`. Change `appId` to `invalid` to see config validation reject dev and build with an error naming `appId`. Restore `dev.radical.example` to run the app again.
+`vite.config.ts` registers `@akshatowo/radical/tanstack-start` next to `tanstackStart()`. Change `appId` to `invalid` to see config validation reject dev and build with an error naming `appId`. Restore `dev.radical.example` to run the app again.
 
-The root wraps the app in the optional `RadicalProvider`, which defaults to `BridgeLive`. Pass a stable custom `layer` there to replace the bridge for all hooks. The home page displays `useDeviceInfo` from `radical/react` after mount. Browsers show browser-derived info. Generated shells call the official Device native plugin and show its model and OS version. See the [bridge reference](../../docs/reference/bridge.md) for the Effect service, typed errors, and hook state.
+The root wraps the app in the optional `RadicalProvider`, which defaults to `BridgeLive`. Pass a stable custom `layer` there to replace the bridge for all hooks. The home page displays `useDeviceInfo` from `@akshatowo/radical/react` after mount. Browsers show browser-derived info. Generated shells call the official Device native plugin and show its model and OS version. See the [bridge reference](../../docs/reference/bridge.md) for the Effect service, typed errors, and hook state.
 
 The root reads native context through the request middleware in remote mode and from the shell in bundled mode. The home page's **Call server function** button reads it from the server in either mode. To check server rendering, run these commands while the dev server is running:
 

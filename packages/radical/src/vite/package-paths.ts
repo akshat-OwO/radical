@@ -3,7 +3,9 @@ import path from "node:path";
 
 /** Self-resolution works from source and from any flat packed entry or chunk. */
 export const resolvePackageRoot = (moduleUrl: string) =>
-  path.dirname(createRequire(moduleUrl).resolve("radical/package.json"));
+  path.dirname(
+    createRequire(moduleUrl).resolve("@akshatowo/radical/package.json")
+  );
 
 export const resolveOfflineEntry = (moduleUrl: string) =>
   path.join(

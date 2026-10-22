@@ -26,7 +26,7 @@ export const pluginVirtualSource = (
   plugins: readonly EnabledPlugin[]
 ) =>
   [
-    'import { createPluginClient } from "radical/plugins";',
+    'import { createPluginClient } from "@akshatowo/radical/plugins";',
     ...plugins.map(
       (entry, index) =>
         `import { ${entry.selector} as manifest${index} } from ${JSON.stringify(modulePath(root, entry.module))};`
@@ -44,7 +44,7 @@ export const pluginTypeSource = (
     "  export const plugins: {",
     ...plugins.map(
       (entry) =>
-        `    readonly ${JSON.stringify(entry.manifest.id)}: import("radical/plugins").PluginClient<typeof import(${JSON.stringify(modulePath(root, entry.module))})[${JSON.stringify(entry.selector)}]>;`
+        `    readonly ${JSON.stringify(entry.manifest.id)}: import("@akshatowo/radical/plugins").PluginClient<typeof import(${JSON.stringify(modulePath(root, entry.module))})[${JSON.stringify(entry.selector)}]>;`
     ),
     "  };",
     "}",
