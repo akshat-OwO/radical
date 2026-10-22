@@ -54,6 +54,7 @@
     "@capacitor/device": "catalog:",
     "@capacitor/haptics": "catalog:",
     "@capacitor/ios": "catalog:",
+    "@capacitor/network": "catalog:",
     "@capawesome/capacitor-file-picker": "catalog:",
     "@capgo/camera-preview": "catalog:",
     "@effect/tsgo": "catalog:",
@@ -83,6 +84,7 @@
     "@capacitor/device": "^8.0.3",
     "@capacitor/haptics": "8.0.2",
     "@capacitor/ios": "^8.5.3",
+    "@capacitor/network": "8.0.1",
     "@capawesome/capacitor-file-picker": "8.1.1",
     "@capgo/camera-preview": "8.14.2",
     "@tanstack/react-router": "^1.170.45",
@@ -134,6 +136,9 @@
       "optional": true
     },
     "@capacitor/haptics": {
+      "optional": true
+    },
+    "@capacitor/network": {
       "optional": true
     }
   }

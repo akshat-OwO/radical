@@ -159,3 +159,15 @@ export {
   NotificationTypeSchema,
 } from "./haptics.ts";
 export type { HapticError, ImpactStyle, NotificationType } from "./haptics.ts";
+
+export {
+  getNetworkStatus,
+  watchNetworkStatus,
+  networkLive,
+  BrowserNetwork,
+  BrowserNetworkLive,
+  browserNetworkLayer,
+  NetworkStatusSchema,
+  NetworkTypeSchema,
+} from "./network.ts";
+export type { NetworkStatus, NetworkType } from "./network.ts";

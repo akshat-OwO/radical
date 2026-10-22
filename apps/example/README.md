@@ -102,3 +102,7 @@ Build radical before generating or building either shell because this app import
 ## Haptics
 
 Open `/haptics` from the home page. The example enables `internalPlugins.haptics`. The buttons exercise light, medium, and heavy impacts, success, warning, and error notifications, selection feedback, and the default medium impact. `Sent` confirms completion, and failures display their typed tag. Unsupported browsers do nothing. Use a physical device to assess vibration strength and notification patterns; simulators only verify plugin dispatch. See [verification](../../docs/verification/haptics.md).
+
+## Network status
+
+Open `/network` from **Network status** on the home page. The example enables `internalPlugins.network` and displays connected state and connection type, updating on native or browser events. Disable and restore connectivity while the page remains mounted. Use bundled mode for offline checks so the UI does not depend on a running preview server. Build radical before building the example or generating shells. See [network verification](../../docs/verification/network.md) for commands, observations, and iOS simulator limits.

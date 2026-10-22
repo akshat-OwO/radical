@@ -61,6 +61,9 @@ catalogs:
     '@capacitor/ios':
       specifier: ^8.5.3
       version: 8.5.3
+    '@capacitor/network':
+      specifier: 8.0.1
+      version: 8.0.1
     '@capawesome/capacitor-file-picker':
       specifier: 8.1.1
       version: 8.1.1
@@ -228,6 +231,9 @@ importers:
       '@capacitor/ios':
         specifier: 'catalog:'
         version: 8.5.3(@capacitor/core@8.5.3)
+      '@capacitor/network':
+        specifier: 'catalog:'
+        version: 8.0.1(@capacitor/core@8.5.3)
       '@capawesome/capacitor-file-picker':
         specifier: 'catalog:'
         version: 8.1.1(@capacitor/core@8.5.3)
@@ -406,6 +412,11 @@ packages:
     resolution: {integrity: sha512-HnnV92Jl8+3x0JUloXUMjFcUsQI8wHFVsKwkLn72DfRZXYGZW11tQbmNOWOnRTljaU18FdI1b9ipT09SzzPDNw==}
     peerDependencies:
       '@capacitor/core': ^8.5.0
+
+  '@capacitor/network@8.0.1':
+    resolution: {integrity: sha512-9xK/FHFmzKGanB6BdoSZOzXk8vF0OFVQSQ4PAsIrzAzLuXHryO317qy8dcHVpgxYeuZq2noI0My9z1DvVDi/9w==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capawesome/capacitor-file-picker@8.1.1':
     resolution: {integrity: sha512-4zDRca+uQbhFkbASoRbMpvXRbuCVhmVATDYLL9MG5UvILer01uUcN7oQhuxpltVir2YnP+1O8LasnwYlqlLM5g==}
@@ -3508,6 +3519,10 @@ snapshots:
       '@capacitor/core': 8.5.3
 
   '@capacitor/ios@8.5.3(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
+  '@capacitor/network@8.0.1(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
 
