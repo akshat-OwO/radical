@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Ref } from "effect";
 
 import { Bridge } from "../../core/bridge/bridge.ts";
 import { transitionsPlugin } from "../../core/plugins/internal-plugins.ts";
@@ -9,6 +9,7 @@ import { TransitionFailed, TransitionTimeout } from "./errors.ts";
 export class NativeTransitions extends Context.Service<
   NativeTransitions,
   {
+    readonly nextId: Effect.Effect<string>;
     readonly cover: (id: string) => Effect.Effect<void, TransitionFailed>;
     readonly reveal: (
       id: string,
@@ -51,6 +52,12 @@ const frame = Effect.callback<number>((resume) => {
   });
 });
 
+// The native plugin has one overlay slot across routers and layer rebuilds.
+const overlaySequence = Ref.makeUnsafe(0n);
+const nextOverlayId = Ref.updateAndGet(overlaySequence, (id) => id + 1n).pipe(
+  Effect.map(String)
+);
+
 export const NativeTransitionsLive = Layer.effect(
   NativeTransitions,
   Effect.gen(function* () {
@@ -62,6 +69,7 @@ export const NativeTransitionsLive = Layer.effect(
     ) =>
       command(method, id, options).pipe(Effect.provideService(Bridge, bridge));
     return {
+      nextId: nextOverlayId,
       cover: (id: string) => invoke("cover", id),
       reveal: (id: string, transition: Transition) =>
         invoke("reveal", id, {
