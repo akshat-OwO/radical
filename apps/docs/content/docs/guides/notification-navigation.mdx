@@ -1,0 +1,30 @@
+---
+title: "Handle notification taps"
+description: "Own notification navigation in the app scope."
+---
+
+1. In your root component, obtain the router with `useRouter()`.
+2. In a mount effect, start a scoped watcher:
+
+```ts
+const fiber = Effect.runFork(
+  Effect.scoped(
+    watchNotificationNavigation({ appId: config.appId, push: true })
+  ).pipe(
+    Effect.provide(
+      Layer.mergeAll(
+        BridgeLive,
+        NotificationSnapshotsLive.pipe(Layer.provide(BridgeLive)),
+        tanstackStartAdapterLayer(router)
+      )
+    )
+  )
+);
+```
+
+3. In the effect cleanup, interrupt the fiber with `Effect.runFork(Fiber.interrupt(fiber))`.
+4. If you use only local notifications, omit `push: true`.
+5. Put an app-relative path in a local notification's `route` or a push notification's `data.route`.
+6. For an offline destination, mark the route offline and visit its exact URL after worker activation.
+
+Keep the watcher mounted when you leave the notification screen. Import watcher services from `radical/client` and `tanstackStartAdapterLayer` from `radical/tanstack-start-client`. The [example root](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) has the complete imports and lifecycle.

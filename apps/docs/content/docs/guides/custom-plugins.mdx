@@ -1,0 +1,34 @@
+---
+title: "Add a typed native plugin"
+description: "Enable a Schema-defined manifest and call its commands."
+---
+
+1. Create a manifest module with `definePlugin` from `radical/plugins`. Use the [Echo manifest](https://github.com/akshat-OwO/radical/blob/main/apps/example/plugins/echo.ts) as a working starting point.
+2. Declare the bridge name, dependency versions, native sources, and each command's `args`, `result`, and `errors` schemas.
+3. For a declared native error, create a `Schema.TaggedError` whose tag matches the native rejection code.
+4. Enable the manifest in Vite config:
+
+```ts
+plugins: [{ manifest: "./plugins/echo.ts" }],
+pluginOptions: { Echo: { prefix: "Native: " } },
+```
+
+5. Include `.radical/plugins.d.ts` in your app's `tsconfig.json`.
+6. Run `pnpm exec radical typegen` from the app directory.
+7. Regenerate both shells after changing manifests or native sources.
+8. Call the generated command from the virtual module:
+
+```ts
+import { Effect } from "effect";
+import { BridgeLive } from "radical/client";
+import { plugins } from "virtual:radical/plugins";
+
+const echo = plugins.echo.echo({ text: "hello" }).pipe(
+  Effect.catchTag("EchoRejected", (error) =>
+    Effect.succeed({ text: error.reason })
+  ),
+  Effect.provide(BridgeLive)
+);
+```
+
+Run the Effect from your app lifecycle or event handler. See [Plugin manifest reference](/docs/reference/plugins) for the contract.

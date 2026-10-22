@@ -1,0 +1,34 @@
+---
+title: "Transitions API"
+description: "Router installation and the lower-level transition services."
+---
+
+`internalPlugins.transitions` defaults to true. Radical supplies the native transition overlay plugin. `radical/transitions.css` contains the browser transition styles.
+
+## TanStack installer
+
+`browserTransitions(router, options?, browserLayer?)` from `radical/tanstack-start-client` installs once per router. Returns `{ cancel(), dispose() }`. SSR returns no-op methods.
+
+| Option | Meaning |
+| --- | --- |
+| `timeoutMs` | Overlay and animation wait timeout. Defaults to 1000 milliseconds in the installer. Never bounds the router commit. |
+| `direction` | Callback mapping history-derived `"forward"` or `"back"` to the selected direction. |
+
+The optional third argument replaces `BrowserTransitionsLive`. Destination `staticData.radical.transition` accepts `"slide"` or `"fade"`. Shells use native overlays; capable browsers use typed view transitions. Unsupported browsers use plain navigation.
+
+## Client exports
+
+| Export | Contract |
+| --- | --- |
+| `TransitionSchema`, `Transition` | `{ kind: "slide" \| "fade", direction: "forward" \| "back" }` |
+| `BrowserTransitions`, `BrowserTransitionsLive` | Service for typed-transition support and active transition state. |
+| `BrowserTransition` | `finished` Effect and `skip` Effect. |
+| `cancelBrowserTransition` | Effect requiring `BrowserTransitions`. Skips the active transition. |
+| `watchBrowserTransition(timeoutMs)` | Effect requiring `BrowserTransitions`. Skips on timeout; completion does not gate Router's DOM update. |
+| `NativeTransitions`, `NativeTransitionsLive` | Service with `cover(id)`, `reveal(id, transition)`, `remove(id)`, and `painted`. The live layer requires `Bridge`. |
+| `nativeTransition(id, transition, commit, timeoutMs?)` | Effect requiring `NativeTransitions`. Runs the commit once even if capture fails. Default timeout 1000 milliseconds. |
+| `transitionStrategy` | Effect requiring `Bridge \| BrowserTransitions`. Returns `"native"`, `"browser"`, or `"plain"`. |
+
+`TransitionFailed` and `TransitionTimeout` carry `cause`. The adapter exports `NavigationFailed` for navigation failures. Overlay capture failure falls back to plain commit. Both shells honor reduced motion and remove stale overlays after three seconds. Slide transitions use 30% background parallax; history back reverses direction.
+
+Source: [transition implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/transitions), [protocol details](https://github.com/akshat-OwO/radical/blob/main/packages/radical/docs/transitions.md).

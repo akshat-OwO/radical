@@ -1,0 +1,30 @@
+---
+title: "Data protection API"
+description: "Native capture protection and local web data deletion."
+---
+
+Native enablement is `internalPlugins.dataProtection`. Radical supplies the native implementation without an extra capability package.
+
+`setDataProtection(enabled)` returns an Effect of `DataProtectionStatus` requiring `Bridge`. `DataProtectionStatusSchema` validates four booleans: `enabled`, `screenshots`, `recording`, and `appSwitcher`.
+
+| Runtime | Protection |
+| --- | --- |
+| Android | Secure-window protection blocks screenshots and recording and protects the app switcher. |
+| iOS | Obscures active capture and the app switcher. Cannot block screenshots. |
+| Browser | Returns all fields false. Does not protect the screen. |
+
+Protection persists until explicitly disabled, including after hook unmount. Status reports supported behavior; it does not prove that no capture occurred.
+
+## `clearWebData`
+
+An Effect of void requiring `Bridge | BrowserDataProtection`. Clears accessible browser storage before native WebView data. Browser clearing pauses Radical snapshot writes, unregisters service workers, deletes Cache Storage, deletes enumerated IndexedDB databases, clears local and session storage, and expires accessible cookies. HttpOnly cookies are inaccessible to browser JavaScript. Native clearing covers native WebView data too.
+
+IndexedDB deletion requires closed connections. Browser database enumeration depends on `indexedDB.databases` support. Browser clearing can fail after partial deletion. It does not reload the document or stop application writes by itself.
+
+`dataProtectionLive(effect)` provides `BrowserDataProtectionLive`. `BrowserDataProtection` exposes the injectable clear operation.
+
+`DataProtectionError` is `BridgeError | WebDataClearFailed`. `WebDataClearFailed` carries `cause`. Invalid enabled values produce `BridgeDecodeError`.
+
+`useDataProtection()` exposes `setEnabled(enabled)` and `clearWebData()` with action state. Its value is the protection status or `true` after successful clearing.
+
+Source: [data protection implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/data-protection).

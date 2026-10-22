@@ -1,0 +1,54 @@
+---
+title: "Notifications API"
+description: "Local reminders, native push, topic state, badges, and tap navigation."
+---
+
+`internalPlugins.notifications` enables local notifications, badges, and network. `internalPlugins.pushNotifications` also enables Firebase messaging and topic storage. Dependencies are `@capacitor/local-notifications@8.3.1`, `@capawesome/capacitor-badge@8.0.4`, `@capacitor/network@8.0.1`, and, for push, `@capacitor-firebase/messaging@8.5.2`.
+
+## Client operations
+
+| Export | Input | Success value |
+| --- | --- | --- |
+| `checkNotificationPermission` | Effect value | `"granted"`, `"denied"`, or `"prompt"` |
+| `requestNotificationPermission` | Effect value | Same permission union |
+| `scheduleNotification(notification)` | `LocalNotification` | Void |
+| `cancelNotification(id)` | Notification ID | Void |
+| `registerPush` | Effect value | FCM token string |
+| `subscribeToTopic(topic)` | Topic string | Void |
+| `unsubscribeFromTopic(topic)` | Topic string | Void |
+| `getNotificationTopics` | Effect value | Confirmed topic list on this installation |
+| `isSubscribedToTopic(topic)` | Topic string | Boolean |
+| `setNotificationBadge(count)` | Nonnegative integer | Void |
+| `clearNotificationBadge` | Effect value | Void, equivalent to count zero |
+
+Permission, scheduling, cancellation, and push registration depend on `Bridge | BrowserNotifications`. Topic and badge operations depend on `Bridge`. `notificationsLive(effect)` provides `BrowserNotificationsLive`. `browserNotificationsLayer` and `BrowserNotifications` support injected browser behavior.
+
+## Input schemas
+
+`LocalNotificationSchema` has required `id`, `title`, and `delaySeconds`, plus optional `body` and `route`.
+
+| Field | Constraint |
+| --- | --- |
+| `id` | Integer from 1 through 2147483647 |
+| `title` | Nonempty string |
+| `body` | Optional string |
+| `delaySeconds` | Finite number greater than zero |
+| `route` | Optional app-relative path starting with one `/`; no backslash, whitespace, or control characters |
+
+`NotificationRouteSchema` validates the route. `TopicSchema` accepts 1 to 900 characters matching letters, digits, `_`, `.`, `~`, `%`, or `-`. The `/topics/` prefix is not part of this input. `NotificationPermissionSchema` validates the permission union.
+
+Native scheduling requests permission when it is prompt. A denied permission fails with `PermissionDenied`. Browsers schedule only while the page remains open. Native push and topics are unavailable in browsers. Topic lookup reports local confirmed state, not an FCM server query. Badges depend on native platform and launcher support.
+
+## Navigation watcher
+
+`watchNotificationNavigation({ appId, push?, onError? })` is a scoped, long-lived Effect requiring `Bridge`, `RadicalAdapter`, and `NotificationSnapshots`. It listens for tap actions, validates the route, and tries an exact stored snapshot when offline. Otherwise it uses adapter navigation. `push` defaults to false.
+
+`NotificationSnapshotsLive` provides the browser cache implementation and browser network service but still requires `Bridge`. The service's `restore(route, appId)` returns whether a snapshot restoration started. Browser tap events use `radical-notification`.
+
+## Errors and React hooks
+
+`NotificationError` includes `PermissionDenied`, `Unavailable`, `MissingPushConfiguration`, and bridge errors. Invalid IDs, routes, topic names, counts, and out-of-range scheduled dates produce `Unavailable`. `MissingPushConfiguration` carries `reason` when the native shell lacks Firebase setup. Unknown native failures remain `BridgeCallFailed`; malformed results remain `BridgeDecodeError`.
+
+`useNotificationPermission()` exposes `check()` and `request()`. `useNotifications()` exposes schedule, cancel, badge, push, and topic actions. Topic actions return the updated confirmed list in `value`.
+
+Source: [notification implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/notifications).

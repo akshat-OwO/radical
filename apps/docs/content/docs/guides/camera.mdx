@@ -1,0 +1,26 @@
+---
+title: "Capture or choose a photo"
+description: "Enable still-camera capture and a single-image library picker."
+---
+
+1. Install `@capacitor/camera@8.2.6` in your app.
+2. Set `internalPlugins.camera: true`.
+3. Add both usage descriptions to your config:
+
+```ts
+pluginOptions: {
+	Camera: {
+		usageDescription: "Take a photo to attach to your report.",
+		photoLibraryUsageDescription: "Choose a photo to attach to your report.",
+	},
+},
+```
+
+4. Regenerate both shells.
+5. In a component, call `useCamera()` and `useCameraPermission()` from `radical/react`.
+6. To request permission from a user action, call `permission.request()`.
+7. To capture, call `camera.capture()`. To choose one image, call `camera.choose()`.
+8. While `camera.loading` is true, disable the action button. On success, display `<img src={camera.value.dataUrl} alt="Selected attachment" />`.
+9. If the user returns from system settings, call `permission.check()` to refresh the state.
+
+Keep the camera hook mounted until a native picker closes. Interruption cannot dismiss the native picker. See [Camera reference](/docs/reference/camera) for error handling and browser behavior.

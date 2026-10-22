@@ -1,0 +1,24 @@
+---
+title: "Offline caching"
+description: "Why snapshots require an online visit and an exact URL."
+---
+
+Remote offline support stores successful HTML responses for eligible routes. The server adapter marks the deepest selected route through `x-radical-offline`. The worker stores only successful, non-redirected HTML with that marker.
+
+A snapshot belongs to an exact URL, including its query string. A visit to `/reports?page=1` does not create a snapshot for `/reports?page=2`. Document navigation uses the network first. When the network request rejects, the worker uses a stored snapshot or its cached offline fallback.
+
+## Assets and snapshots have separate roles
+
+The build produces an asset list and a content-derived build ID. Worker installation precaches those assets and `offline.html`. Activation deletes older cache namespaces for the app. The worker handles same-origin GET navigations and known assets. It does not cache arbitrary API responses.
+
+A snapshot contains rendered HTML, which can include user data. It is not a database or a guarantee that an application action works offline. Data protection and sign-out flows need an explicit local-data policy.
+
+## Native startup adds recovery
+
+Android's remote shell uses a launch gate to restore worker control before the first remote navigation. Both native shells can recover to a previously confirmed snapshot URL. Without usable web data, a packaged offline fallback still offers recovery.
+
+iOS remote mode enables App-Bound Domains and persistent website data. Generation limits the distinct server and allowlist hostnames to ten. The recorded WebKit experiment also found a ceiling of three worker origins, so one stable app origin avoids that constraint.
+
+Removing web data deletes snapshots and worker registrations. A saved native URL alone cannot restore deleted HTML. [Data protection](/docs/reference/data-protection) describes the public clear operation.
+
+The [iOS caching decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0002-ios-offline-caching-with-app-bound-domains.md) records the platform evidence and its limits. [Keep visited routes available offline](/docs/guides/offline-routes) contains setup steps.

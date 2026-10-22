@@ -1,0 +1,18 @@
+---
+title: "Animate route navigation"
+description: "Enable slide or fade transitions with TanStack Router."
+---
+
+1. In `src/router.tsx`, import `radical/transitions.css`.
+2. After creating the router, call `browserTransitions(router)` from `radical/tanstack-start-client` once.
+3. On each destination route, set a transition:
+
+```ts
+staticData: { radical: { transition: "slide" } },
+```
+
+4. To use a fade, set `transition: "fade"` instead.
+5. If you disabled `internalPlugins.transitions`, enable it and regenerate both shells.
+6. Navigate through Router links or `router.navigate` to check the transition. Use history back to check the reverse slide.
+
+For cancellation and teardown, retain the installer's returned `cancel()` and `dispose()` methods. See [Transitions reference](/docs/reference/transitions).

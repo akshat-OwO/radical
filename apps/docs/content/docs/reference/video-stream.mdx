@@ -1,0 +1,43 @@
+---
+title: "Video stream API"
+description: "Scoped camera preview, controls, and QR detection."
+---
+
+Native enablement is `internalPlugins.videoStream`. The dependency is `@capgo/camera-preview@8.14.2`. `pluginOptions.VideoStream.usageDescription` is required.
+
+## Session contract
+
+`startVideoStream(options)` returns `Effect<VideoStreamSession, VideoStreamError, Bridge | BrowserVideoStream | Scope>`. The caller's scope owns preview presentation, camera resources, and listeners. Closing the scope stops the session.
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `viewfinder` | `HTMLElement`, required | Mounted element with nonzero size. |
+| `facing` | `"front"` or `"rear"` | `"rear"` |
+| `onDetect` | Callback receiving a string | Omitted. Receives QR values. |
+
+The session exposes Effect values `info` and `switchCamera`, plus `setZoom(level)` and `setTorch(enabled)` returning Effects. Controls require `Bridge`.
+
+`videoStreamLive(effect)` provides `BrowserVideoStreamLive`. `BrowserVideoStream` is the injectable browser service.
+
+## Status fields
+
+`VideoStreamInfoSchema` validates `VideoStreamInfo`:
+
+| Field                | Type                                                 |
+| -------------------- | ---------------------------------------------------- |
+| `facing`             | `"front"` or `"rear"`                                |
+| `zoom`               | Optional `{ min, max, current }`, all finite numbers |
+| `torch`              | Boolean                                              |
+| `torchAvailable`     | Boolean                                              |
+| `frameRate`          | Optional finite number                               |
+| `detectionAvailable` | Boolean                                              |
+
+Browser preview uses `getUserMedia`; QR detection requires `BarcodeDetector`. Native preview sits behind a transparent WebView cut-out. Capture is a preview and QR API; it does not record a video file.
+
+## Errors and hook
+
+`VideoStreamError` is `BridgeError | PermissionDenied | Unavailable`. Native code `cameraPermissionDenied` maps to `PermissionDenied`. A missing mounted viewfinder produces `Unavailable` in the hook. Native sessions require listener support.
+
+`useVideoStream({ viewfinder, facing?, onDetect? })` accepts a React ref rather than an element. It returns `start`, `stop`, `switchCamera`, `setZoom`, `setTorch`, `running`, `loading`, `value`, and `error`. Unmount and provider replacement release the session.
+
+Source: [video implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/video-stream).

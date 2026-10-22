@@ -1,0 +1,19 @@
+---
+title: "Set app identity, icon, and splash"
+description: "Configure generated Android and iOS names and images."
+---
+
+1. Set a shared `appId` and `name` in your Radical config.
+2. If a platform needs another identity, set `android.packageId`, `android.name`, `ios.bundleId`, or `ios.name`.
+3. Add a square PNG or JPEG icon of at least 1024 pixels per side.
+4. Add a square PNG or JPEG splash image of at least 2732 pixels per side.
+5. Configure paths relative to the app root:
+
+```ts
+icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
+splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
+```
+
+6. Regenerate both shells with `radical android --generate-only` and `radical ios --generate-only` from the app directory.
+
+Use opaque six-digit RGB hex colors. Keep generated resources in `.radical/`; put future changes in the source config and images. See [Config reference](/docs/reference/config) for validation rules.

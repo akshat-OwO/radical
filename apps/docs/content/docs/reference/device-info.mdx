@@ -1,0 +1,23 @@
+---
+title: "Device info API"
+description: "The shared native and browser device result."
+---
+
+`internalPlugins.device` defaults to true. The native dependency is `@capacitor/device`, with the package's declared compatible version range `^8.0.3`.
+
+`getDeviceInfo` is an Effect of `DeviceInfo` requiring `Bridge`, with `BridgeError` failures. `DeviceInfoSchema` validates the common result.
+
+| Field | Values |
+| --- | --- |
+| `platform` | `"android"`, `"ios"`, or `"web"` |
+| `model` | String |
+| `operatingSystem` | `"android"`, `"ios"`, `"windows"`, `"mac"`, `"linux"`, or `"unknown"` |
+| `osVersion` | String |
+| `manufacturer` | String |
+| `isVirtual` | Boolean |
+
+`browserDeviceInfo({ userAgent, userAgentData? })` synchronously derives browser information. Browser `platform` is `"web"`, unlike native context's `"browser"`. Browser model and manufacturer are `"unknown"`, and `isVirtual` is false because user-agent data cannot reliably identify emulators. Reduced user-agent information can leave OS version unknown.
+
+`useDeviceInfo()` returns `DeviceInfoState` with loading, value, and error fields. The effect starts after mount. Native failures use bridge error tags.
+
+Source: [device info implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/device-info).

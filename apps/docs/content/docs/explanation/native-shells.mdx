@@ -1,0 +1,22 @@
+---
+title: "Native shell generation"
+description: "Why native projects live under .radical."
+---
+
+Radical treats the native projects as generated output. Your Vite config, assets, manifests, and source files are the inputs. `.radical/android` and `.radical/ios` hold the generated Capacitor projects.
+
+This keeps native configuration in one place, but it changes how you maintain a customization. A manual edit inside a generated project can disappear on regeneration. A lasting change belongs in a plugin manifest, a supported config field, or Radical's generator.
+
+## Generation shares one resolved plan
+
+The Vite plugin and CLI resolve enabled capabilities, validate their options, and compose platform contributions before writing a project. Generation checks installed dependency versions and copies only enabled native sources. Conflicting contributions fail instead of silently overriding each other.
+
+The CLI reads `.radical/native.json` for the current URL and framework output paths. Bundled generation builds the web UI before copying assets. Remote generation records the UI origin and document navigation allowlist.
+
+Radical owns the remote loading behavior, context setup, safe area, offline recovery, and transition overlays. Capacitor supplies the bridge and plugin ABI. The [architecture decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0001-framework-agnostic-native-shell-plugin.md) explains that split.
+
+## Images stay generated too
+
+The asset writer uses `sharp` directly. It validates source images and writes Android launcher resources and iOS asset catalogs. It derives the iOS splash resource name from its content and retains the splash until the initial document or fallback finishes loading.
+
+The [native asset decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0013-native-assets-with-sharp.md) records the writer design. [Set app identity, icon, and splash](/docs/guides/app-assets) contains configuration steps.

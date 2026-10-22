@@ -1,0 +1,35 @@
+---
+title: "Files and intents API"
+description: "File selection, URL opening, and native file handoff."
+---
+
+`internalPlugins.filePicker` enables `@capawesome/capacitor-file-picker@8.1.1`. `internalPlugins.intents` enables `@capacitor/app-launcher@8.0.1` and `@capacitor-community/file-opener@8.0.1`. Neither capability adds runtime permissions. Native pickers use system document UI.
+
+## File selection
+
+`pickFiles(options?)` returns an Effect of `readonly PickedFile[]` requiring `Bridge | BrowserFiles`. Options are `types?: readonly string[]` and `multiple?: boolean`. Types are MIME types or patterns such as `image/*`. Omitted types allow all files. Omitted `multiple` selects one file.
+
+| `PickedFile` field | Type | Meaning |
+| --- | --- | --- |
+| `name` | `string` | File name, or the last URI segment when native name is missing. |
+| `mimeType` | `string` | Reported type, blob type, or `application/octet-stream`. |
+| `size` | `number` | Number of bytes in `blob`. |
+| `lastModified` | Optional number | Reported modification time. |
+| `blob` | `Blob` | Complete file contents in memory. |
+| `uri` | Optional string | Native URI. Absent for browser selections. |
+
+`FilePickerError` is `Cancelled | Unavailable | BridgeError`. An empty native selection is `Cancelled`. Missing native paths fail with `Unavailable`.
+
+`filesLive(effect)` provides `BrowserFilesLive`. `BrowserFiles` isolates picker and native-file reads. `useFilePicker()` exposes `pick(options?)`, loading state, selected files, and errors.
+
+## External apps
+
+`openUrl(url)` accepts a parseable URL and returns an Effect of void requiring `Bridge | BrowserIntents`. Native shells use the registered handler. Browsers open a new tab with `noopener,noreferrer`; blocked browser popups cannot be detected by this API.
+
+`openFile(file, options?)` accepts `OpenableFile` with optional `uri` and `mimeType`. `OpenFileOptions.chooser` defaults to false. Browser calls and files without a native URI fail with `Unavailable`. Android's chooser and iOS Open In menu are selected by `chooser: true`. iOS's default is a Quick Look preview, which settles when the preview closes.
+
+`IntentError` is `NoHandler | Unavailable | BridgeError`. `NoHandler` carries `target` when no app accepts the operation. Invalid URLs and missing files produce `Unavailable`.
+
+`intentsLive(effect)` provides `BrowserIntentsLive`. `BrowserIntents` replaces browser URL opening. `useIntent()` exposes `openUrl`, `openFile`, and action state. Its success value is `true`.
+
+Source: [files implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/files).

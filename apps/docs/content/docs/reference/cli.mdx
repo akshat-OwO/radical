@@ -1,0 +1,63 @@
+---
+title: "CLI commands and flags"
+description: "The radical executable and native target selection."
+---
+
+The `radical` executable runs in the app directory and resolves that directory's Vite config. The CLI has three public subcommands.
+
+## `radical android`
+
+Resolves the current config and generates `.radical/android`. In bundled mode, builds the UI before generation. Without `--generate-only`, builds with Gradle, installs the debug APK, and launches it with adb.
+
+| Flag | Type | Default |
+| --- | --- | --- |
+| `--generate-only` | Boolean | `false`. Generates without building or launching the native app. Bundled UI still builds. |
+| `--target` | String | Empty. An adb serial or installed AVD name. |
+
+With no target, Android selects a connected emulator before another connected device. If none is connected, the CLI prompts for an installed AVD. An explicit AVD name can start that AVD. Boot readiness has a 120-second timeout. The CLI does not restart the shared adb server.
+
+The SDK path resolves from `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Otherwise `adb` and `emulator` resolve through `PATH`.
+
+## `radical ios`
+
+Resolves the config and generates `.radical/ios`. In bundled mode, builds the UI before generation. Without `--generate-only`, builds a Debug simulator app with `xcodebuild`, installs it through `simctl`, and launches it.
+
+| Flag | Type | Default |
+| --- | --- | --- |
+| `--generate-only` | Boolean | `false`. Generates without building or launching the native app. Bundled UI still builds. |
+| `--target` | String | Empty. A simulator UDID. |
+
+With no target, iOS selects a booted available iPhone simulator or the first available iPhone simulator. The CLI does not select physical iOS devices. macOS and Xcode are required for simulator builds.
+
+## `radical typegen`
+
+Resolves Vite config in build mode and writes `.radical/plugins.d.ts`. Does not build the UI, generate native projects, or launch a device. Has no Radical-specific flags.
+
+## Framework flags and failures
+
+The Effect CLI supplies these global flags on every command. The executable uses `Command.run` with version `0.0.0`.
+
+| Flag | Values and behavior |
+| --- | --- |
+| `--help`, `-h` | Prints command usage. |
+| `--version`, `-v` | Prints version information. |
+| `--wizard` | Starts interactive wizard mode for a command. |
+| `--completions` | Prints a completion script for `bash`, `zsh`, `fish`, `powershell`, `sh`, or `pwsh`. |
+| `--log-level` | Minimum log level: `all`, `trace`, `debug`, `info`, `warn`, `warning`, `error`, `fatal`, or `none`. |
+
+The global flag list matches `radical --help` and `radical android --help`.
+
+Native generation requires the Radical Vite plugin. Remote generation requires a configured `origin` or a recorded dev-server URL. The generated metadata lives in `.radical/native.json`.
+
+| Failure tag | Meaning |
+| --- | --- |
+| `InvalidConfig` | Invalid config, identity, or generated contributions. |
+| `InvalidPlugin` | Invalid manifest, unavailable dependency, or Vite resolution failure. |
+| `PluginDependencyConflict` | Enabled manifests have incompatible dependency requirements. |
+| `AndroidDeviceUnavailable` | No connected device or installed AVD matches. |
+| `AndroidBootTimeout` | The selected target does not finish booting within the timeout. |
+| `IosSimulatorUnavailable` | No available iPhone simulator exists for automatic selection. |
+| `ShellCommandError` | A native tool command fails. |
+| `InvalidAsset` or `AssetGenerationFailed` | Invalid source image or image-generation failure. |
+
+Source: [CLI definitions](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/entry/cli.ts).

@@ -1,0 +1,23 @@
+{
+  "pages": [
+    "bundled-mode",
+    "offline-routes",
+    "run-on-a-device",
+    "app-assets",
+    "safe-area",
+    "device-info",
+    "transitions",
+    "camera",
+    "video-stream",
+    "files",
+    "haptics",
+    "network",
+    "google-sign-in",
+    "notifications",
+    "firebase",
+    "notification-navigation",
+    "data-protection",
+    "custom-plugins"
+  ],
+  "title": "How-to guides"
+}

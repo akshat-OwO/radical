@@ -1,0 +1,42 @@
+---
+title: "React provider and hooks"
+description: "Public exports from radical/react."
+---
+
+## `RadicalProvider`
+
+Accepts `children?`, `nativeContext?`, and `layer?: Layer<Bridge>`. The default layer is `BridgeLive`. A stable custom layer replaces the bridge for all hooks in the subtree. Native context supplies the initial safe-area state.
+
+Hooks do not invoke browser APIs during render. Effects start after commit. Unmount and provider replacement interrupt pending work and remove owned listeners. Action hooks suppress overlapping actions. A native picker can remain visible after interruption.
+
+## Hook contracts
+
+| Hook | Actions and result |
+| --- | --- |
+| `useDeviceInfo()` | Starts after mount. `{ loading, value, error }`. Value is `DeviceInfo`. |
+| `useSafeArea()` | Returns `SafeArea` directly. Initial provider insets, then live updates. |
+| `useCamera()` | `capture()`, `choose()`, `loading`, `value?: Photo`, `error`. |
+| `useCameraPermission()` | `check()`, `request()`, `loading`, `value?: CameraPermission`, `error`. Checks after mount. |
+| `useFilePicker()` | `pick(options?)`, `loading`, `value?: readonly PickedFile[]`, `error`. |
+| `useIntent()` | `openUrl(url)`, `openFile(file, options?)`, `loading`, `value?: true`, `error`. |
+| `useVideoStream(options)` | `start()`, `stop()`, `switchCamera()`, `setZoom(level)`, `setTorch(enabled)`, `running`, `loading`, `value?: VideoStreamInfo`, `error`. |
+| `useHapticFeedback()` | `light()`, `medium()`, `heavy()`, `success()`, `warning()`, `error()`, `selection()`, `impact(style?)`, `loading`, `value?: true`, `failure`. |
+| `useNetworkStatus()` | Live `{ loading, value?: NetworkStatus, error }`. |
+| `useGoogleSignIn()` | `signIn()`, `cancel()`, `loading`, `value?: GoogleIdentity`, `error`. |
+| `useNotificationPermission()` | `check()`, `request()`, `loading`, `value?: NotificationPermission`, `error`. Checks after mount. |
+| `useNotifications()` | `schedule(notification)`, `cancel(id)`, `setBadge(count)`, `clearBadge()`, `registerPush()`, `subscribe(topic)`, `unsubscribe(topic)`, `lookupTopics()`, `loading`, `value`, `error`. |
+| `useDataProtection()` | `setEnabled(enabled)`, `clearWebData()`, `loading`, `value?: DataProtectionStatus \| true`, `error`. |
+
+The video hook accepts `{ viewfinder: RefObject<HTMLElement | null>, facing?, onDetect? }`. Its `loading` represents startup. `running` represents an acquired session.
+
+`useNotifications().cancel(id)` cancels a scheduled reminder. Its `value` is a push-token string, a readonly topic list, or `true` for other completed actions. Haptics uses `failure` because `error()` sends feedback.
+
+Device and network hooks start with `loading: true`, undefined `value`, and undefined `error` during SSR and initial hydration. Action hooks start idle.
+
+## Exported types and errors
+
+Each hook exports its named state type, such as `CameraState`, `NetworkStatusState`, and `DataProtectionState`. `DeviceInfo`, `SafeArea`, `BridgeError`, camera types, file types, video result types, haptic types, network types, Google identity types, and data-protection types are re-exported here.
+
+`PermissionDenied`, `Cancelled`, `Unavailable`, `NoHandler`, `GoogleSignInCancelled`, `GoogleSignInMisconfigured`, and `GoogleSignInUnavailable` are exported error classes. Notification schemas and error types are available from `radical/client` rather than `radical/react`.
+
+Source: [React exports](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/react/react.ts).
