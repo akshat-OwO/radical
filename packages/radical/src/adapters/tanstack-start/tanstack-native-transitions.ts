@@ -17,7 +17,6 @@ export const installNativeTransitions = (
   options: BrowserTransitionOptions,
   native: Layer.Layer<NativeTransitions>
 ) => {
-  let overlaySequence = 0;
   let direction: Transition["direction"] = "forward";
   let stop = Effect.void;
   let cancelOverlay = Effect.void;
@@ -53,16 +52,15 @@ export const installNativeTransitions = (
         ) {
           return yield* update;
         }
-        overlaySequence += 1;
-        const id = String(overlaySequence);
-        cancelOverlay = Effect.gen(function* () {
-          const transitions = yield* NativeTransitions;
-          yield* transitions.remove(id);
-        }).pipe(
-          Effect.timeout(options.timeoutMs ?? 1000),
-          Effect.ignore,
-          Effect.provide(native)
-        );
+        const transitions = yield* NativeTransitions;
+        const id = yield* transitions.nextId;
+        cancelOverlay = transitions
+          .remove(id)
+          .pipe(
+            Effect.timeout(options.timeoutMs ?? 1000),
+            Effect.ignore,
+            Effect.provide(native)
+          );
         return yield* nativeTransition(
           id,
           { kind, direction: selectedDirection },

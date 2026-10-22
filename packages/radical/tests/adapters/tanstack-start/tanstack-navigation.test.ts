@@ -14,8 +14,13 @@ import {
   browserTransitions,
   tanstackStartAdapterLayer,
 } from "../../../src/adapters/tanstack-start/tanstack-start-client.ts";
-import { NativeTransitions } from "../../../src/capabilities/transitions/native-transitions.ts";
+import {
+  NativeTransitions,
+  NativeTransitionsLive,
+} from "../../../src/capabilities/transitions/native-transitions.ts";
 import { RadicalAdapter } from "../../../src/core/adapter/adapter.ts";
+import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
+import type { Bridge } from "../../../src/core/bridge/bridge.ts";
 import { BrowserTransitions } from "../../../src/entry/client.ts";
 
 /** A browser with typed view-transition selectors and no active transition. */
@@ -24,6 +29,20 @@ const typedBrowser = (supportsTypes = true) =>
     supportsTypes: Effect.succeed(supportsTypes),
     active: Effect.succeed(Option.none()),
   });
+
+/** Keep live id allocation and command decoding without browser paint frames. */
+const nativeTestLayer = (call: Bridge["Service"]["call"]) =>
+  Layer.effect(
+    NativeTransitions,
+    Effect.gen(function* () {
+      const service = yield* NativeTransitions;
+      return { ...service, painted: Effect.void };
+    })
+  ).pipe(
+    Layer.provide(
+      NativeTransitionsLive.pipe(Layer.provide(bridgeTestLayer("ios", call)))
+    )
+  );
 
 const makeRouter = () => {
   const root = createRootRoute();
@@ -332,6 +351,7 @@ it.effect(
         router,
         {},
         Layer.succeed(NativeTransitions, {
+          nextId: Effect.succeed("one"),
           cover: () =>
             Effect.sync(() => {
               calls.push(`cover:${router.state.resolvedLocation?.pathname}`);
@@ -417,15 +437,14 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
           {},
           Layer.merge(
             Layer.succeed(Clock.Clock, clock),
-            Layer.succeed(NativeTransitions, {
-              cover: (id) =>
-                Effect.sync(() => {
-                  ids.push(id);
-                }),
-              painted: Effect.void,
-              reveal: () => Effect.void,
-              remove: () => Effect.void,
-            })
+            nativeTestLayer((_plugin, method, options) =>
+              Effect.sync(() => {
+                if (method === "cover") {
+                  ids.push(String(options.id));
+                }
+                return { id: options.id };
+              })
+            )
           )
         );
         yield* Effect.promise(async () => {
@@ -465,28 +484,40 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
   )
 );
 
-it.effect("keeps native overlay sequences independent for each router", () =>
+it.effect("keeps overlay ids unique across routers and reinstallations", () =>
   Effect.gen(function* () {
     const first = makeRouter();
     const second = makeRouter();
-    const firstIds: string[] = [];
-    const secondIds: string[] = [];
-    const install = (router: ReturnType<typeof makeRouter>, ids: string[]) =>
+    const ids = yield* Ref.make<string[]>([]);
+    const staleId = yield* Ref.make("");
+    const removing = yield* Deferred.make<boolean>();
+    const releaseRemove = yield* Deferred.make<boolean>();
+    const removed = yield* Deferred.make<boolean>();
+    const clock = yield* Effect.clockWith(Effect.succeed);
+    const native = nativeTestLayer((_plugin, method, options) =>
+      Effect.gen(function* () {
+        if (method === "cover") {
+          yield* Ref.update(ids, (values) => [...values, String(options.id)]);
+        }
+        if (method === "remove" && options.id === (yield* Ref.get(staleId))) {
+          yield* Deferred.succeed(removing, true);
+          yield* Deferred.await(releaseRemove);
+          yield* Deferred.succeed(removed, true);
+        }
+        return { id: options.id };
+      })
+    );
+    const install = (router: ReturnType<typeof makeRouter>) =>
       installNativeTransitions(
         router,
         {},
-        Layer.succeed(NativeTransitions, {
-          cover: (id) =>
-            Effect.sync(() => {
-              ids.push(id);
-            }),
-          painted: Effect.void,
-          reveal: () => Effect.void,
-          remove: () => Effect.void,
-        })
+        Layer.merge(native, Layer.succeed(Clock.Clock, clock))
       );
+    const controllers: ReturnType<typeof install>[] = [];
     yield* Effect.acquireUseRelease(
-      Effect.sync(() => [install(first, firstIds), install(second, secondIds)]),
+      Effect.sync(() => {
+        controllers.push(install(first), install(second));
+      }),
       () =>
         Effect.gen(function* () {
           yield* Effect.promise(async () => {
@@ -509,11 +540,29 @@ it.effect("keeps native overlay sequences independent for each router", () =>
               await navigation;
             });
           }
-          assert.deepStrictEqual(firstIds, ["1", "2"]);
-          assert.deepStrictEqual(secondIds, ["1", "2"]);
+          const beforeReinstall = yield* Ref.get(ids);
+          assert.strictEqual(new Set(beforeReinstall).size, 4);
+          yield* Ref.set(staleId, beforeReinstall[2]);
+          controllers[0].dispose();
+          yield* Deferred.await(removing);
+          controllers.push(install(first));
+          const navigation = first.navigate({ to: "/details" });
+          yield* Effect.promise(async () => {
+            await first.load();
+          });
+          yield* Effect.promise(async () => {
+            await navigation;
+          });
+          const captured = yield* Ref.get(ids);
+          assert.strictEqual(captured.length, 5);
+          assert.strictEqual(new Set(captured).size, 5);
+          assert.isFalse(yield* Deferred.isDone(removed));
+          yield* Deferred.succeed(releaseRemove, true);
+          yield* Deferred.await(removed);
         }),
-      (controllers) =>
-        Effect.sync(() => {
+      () =>
+        Effect.gen(function* () {
+          yield* Deferred.succeed(releaseRemove, true);
           for (const controller of controllers) {
             controller.dispose();
           }

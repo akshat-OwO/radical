@@ -19,6 +19,7 @@ const fixture = Effect.gen(function* () {
   const record = (name: string) =>
     Ref.update(calls, (values) => [...values, name]);
   const service: NativeTransitions["Service"] = {
+    nextId: Effect.succeed("one"),
     cover: () => record("cover"),
     painted: record("painted"),
     reveal: (_id, value) => record(`${value.kind}:${value.direction}`),
@@ -186,6 +187,38 @@ describe("native snapshot transitions", () => {
         "commit",
         "remove",
       ]);
+    })
+  );
+
+  it.effect("mints unique overlay ids across live layer rebuilds", () =>
+    Effect.gen(function* () {
+      const calls = yield* Ref.make<string[]>([]);
+      const bridge = bridgeTestLayer("ios", (_plugin, method, options) =>
+        Ref.update(calls, (values) => [
+          ...values,
+          `${method}:${String(options.id)}`,
+        ]).pipe(Effect.as({ id: options.id }))
+      );
+      const layer = NativeTransitionsLive.pipe(Layer.provide(bridge));
+      const overlay = Effect.gen(function* () {
+        const native = yield* NativeTransitions;
+        const id = yield* native.nextId;
+        yield* native.cover(id);
+        yield* native.reveal(id, transition);
+        yield* native.remove(id);
+        return id;
+      });
+      const ids: string[] = [];
+      for (let index = 0; index < 3; index += 1) {
+        ids.push(yield* overlay.pipe(Effect.provide(layer)));
+      }
+      assert.strictEqual(new Set(ids).size, 3);
+      assert.strictEqual(BigInt(ids[1]), BigInt(ids[0]) + 1n);
+      assert.strictEqual(BigInt(ids[2]), BigInt(ids[1]) + 1n);
+      assert.deepStrictEqual(
+        yield* Ref.get(calls),
+        ids.flatMap((id) => [`cover:${id}`, `reveal:${id}`, `remove:${id}`])
+      );
     })
   );
 
