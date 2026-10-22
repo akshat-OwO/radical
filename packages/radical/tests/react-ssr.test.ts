@@ -11,6 +11,7 @@ import {
   useCameraPermission,
   useFilePicker,
   useIntent,
+  useHapticFeedback,
   useVideoStream,
 } from "../src/react.ts";
 import { useBridgeEffect } from "../src/use-bridge-effect.ts";
@@ -142,6 +143,35 @@ it.effect("guards video stream actions during server rendering", () =>
         createElement(RadicalProvider, { layer }, createElement(VideoProbe))
       ),
       "<p>video idle</p>"
+    );
+  })
+);
+
+const HapticsProbe = () => {
+  const feedback = useHapticFeedback();
+  assert.isFalse(feedback.loading);
+  assert.isUndefined(feedback.failure);
+  assert.isUndefined(feedback.value);
+  feedback.light();
+  feedback.medium();
+  feedback.heavy();
+  feedback.success();
+  feedback.warning();
+  feedback.error();
+  feedback.selection();
+  feedback.impact();
+  return createElement("p", null, "haptics idle");
+};
+it.effect("guards every haptic helper during server rendering", () =>
+  Effect.sync(() => {
+    const layer = bridgeLayer(() =>
+      assert.fail("Haptics read bridge during SSR")
+    );
+    assert.strictEqual(
+      renderToString(
+        createElement(RadicalProvider, { layer }, createElement(HapticsProbe))
+      ),
+      "<p>haptics idle</p>"
     );
   })
 );

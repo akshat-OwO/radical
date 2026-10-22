@@ -146,3 +146,16 @@ export type {
   VideoStreamError,
   CameraFacing,
 } from "./video-stream.ts";
+
+export {
+  hapticImpact,
+  hapticNotification,
+  hapticSelection,
+  hapticsLive,
+  BrowserHaptics,
+  BrowserHapticsLive,
+  HapticFeedbackFailed,
+  ImpactStyleSchema,
+  NotificationTypeSchema,
+} from "./haptics.ts";
+export type { HapticError, ImpactStyle, NotificationType } from "./haptics.ts";

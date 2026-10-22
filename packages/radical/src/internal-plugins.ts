@@ -2,6 +2,7 @@ import { Schema } from "effect";
 
 import { CameraConfigSchema } from "./camera-schema.ts";
 import { DeviceInfoSchema } from "./device-info-schema.ts";
+import { ImpactStyleSchema, NotificationTypeSchema } from "./haptics-schema.ts";
 import { definePlugin } from "./plugins.ts";
 
 export const devicePlugin = definePlugin({
@@ -222,5 +223,27 @@ export const videoStreamPlugin = definePlugin({
       ...videoCommand,
       result: Schema.Struct({ frameRate: Schema.Finite }),
     },
+  },
+});
+
+// Haptics 8.0.2 has no plugin-specific rejection codes or result payloads.
+const hapticCompletion = { result: Schema.Unknown, errors: {} };
+const selectionCommand = { ...hapticCompletion, args: Schema.Struct({}) };
+export const hapticsPlugin = definePlugin({
+  id: "haptics",
+  bridge: "Haptics",
+  dependencies: { "@capacitor/haptics": "8.0.2" },
+  commands: {
+    impact: {
+      ...hapticCompletion,
+      args: Schema.Struct({ style: ImpactStyleSchema }),
+    },
+    notification: {
+      ...hapticCompletion,
+      args: Schema.Struct({ type: NotificationTypeSchema }),
+    },
+    selectionStart: selectionCommand,
+    selectionChanged: selectionCommand,
+    selectionEnd: selectionCommand,
   },
 });

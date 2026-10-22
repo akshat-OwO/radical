@@ -20,6 +20,7 @@ const config = {
     videoStream: true,
     filePicker: true,
     intents: true,
+    haptics: true,
   },
   pluginOptions: {
     VideoStream: {

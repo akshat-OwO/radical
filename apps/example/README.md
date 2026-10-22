@@ -98,3 +98,7 @@ Open `/files` from the home page. The example enables `internalPlugins.filePicke
 Open `/video` from the home page. Press **Start** to show the native camera through the bordered cut-out, **Switch camera** to select the other camera, and **Stop** to release it. The page shows the last QR value and frame rate. Zoom uses the camera's reported range; torch is disabled when unavailable. Browsers use a media stream and report when QR detection is unavailable. The example enables `internalPlugins.videoStream` with its own camera explanation.
 
 Build radical before generating or building either shell because this app imports the package's built dist. See [video verification](../../docs/verification/video.md) for commands, device evidence, and simulator limits.
+
+## Haptics
+
+Open `/haptics` from the home page. The example enables `internalPlugins.haptics`. The buttons exercise light, medium, and heavy impacts, success, warning, and error notifications, selection feedback, and the default medium impact. `Sent` confirms completion, and failures display their typed tag. Unsupported browsers do nothing. Use a physical device to assess vibration strength and notification patterns; simulators only verify plugin dispatch. See [verification](../../docs/verification/haptics.md).

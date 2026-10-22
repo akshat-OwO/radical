@@ -1,0 +1,9 @@
+# 0008: Haptic feedback
+
+Use the official `@capacitor/haptics@8.0.2`, pinned in the opt-in `haptics` manifest, catalog, and optional peer. It supports Capacitor 8 and adds no runtime permission prompt. Commands have Schema-defined arguments, no meaningful result payload, and no plugin-specific rejection codes. Bridge errors stay typed and unchanged.
+
+Expose capability Effects with an injectable `BrowserHaptics` service and a `BrowserHapticsLive` layer. The browser uses Vibration API timings to approximate each style: impacts 10, 20, and 30 milliseconds; success `[10, 50, 10]`; warning `[30, 50, 30]`; error `[50, 50, 50, 50, 50]`; selection 10 milliseconds. Missing APIs and rejected vibration requests returning false are successful no-ops, as required by #20. Exceptions become `HapticFeedbackFailed`. Completion cannot guarantee hardware feedback, including in native simulators.
+
+Reuse `useBridgeAction` despite haptics having no picker UI. Its one-fiber policy prevents duplicate actions while native acknowledgements are pending and provides typed failures, SSR guards, and interruption on unmount or provider replacement. A callback-only hook would hide native failures or need a second lifecycle implementation. All helpers are stable while the provider layer stays unchanged. The hook exposes `failure` instead of the shared state's `error` so `error()` can trigger an error notification. `impact()` explicitly defaults to medium rather than inheriting the upstream heavy default.
+
+`selection()` represents one discrete change. It calls `selectionStart`, then `selectionChanged`, then best-effort `selectionEnd` on success, failure, or interruption. This prepares and releases the iOS selection generator without making apps manage a gesture lifecycle. Start and change failures remain bridge errors; release failures do not replace the action result. Native interruption abandons pending acknowledgements and cannot undo feedback already dispatched.

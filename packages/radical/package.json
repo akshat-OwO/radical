@@ -52,6 +52,7 @@
     "@capacitor/cli": "catalog:",
     "@capacitor/core": "catalog:",
     "@capacitor/device": "catalog:",
+    "@capacitor/haptics": "catalog:",
     "@capacitor/ios": "catalog:",
     "@capawesome/capacitor-file-picker": "catalog:",
     "@capgo/camera-preview": "catalog:",
@@ -80,6 +81,7 @@
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@capacitor/device": "^8.0.3",
+    "@capacitor/haptics": "8.0.2",
     "@capacitor/ios": "^8.5.3",
     "@capawesome/capacitor-file-picker": "8.1.1",
     "@capgo/camera-preview": "8.14.2",
@@ -129,6 +131,9 @@
       "optional": true
     },
     "@capgo/camera-preview": {
+      "optional": true
+    },
+    "@capacitor/haptics": {
       "optional": true
     }
   }

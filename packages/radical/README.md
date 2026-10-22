@@ -155,3 +155,7 @@ Mount one hook per camera session. Keep the viewfinder's ancestors transparent w
 Unmount and provider replacement release the session. Stop also cancels pending startup; native cleanup waits for startup to settle before sending stop. Browser media tracks that arrive after cancellation are stopped. Browsers require a secure context and camera access. QR detection requires the browser's `BarcodeDetector` API or an application-supplied polyfill; preview still works without it. Native Android detection can wait for Google Play Services to download its model on first use. Physical torch and zoom behavior depends on the camera hardware.
 
 Effect callers import `startVideoStream`, `videoStreamLive`, `BrowserVideoStream`, and `BrowserVideoStreamLive` from `radical/client`. Run `startVideoStream({ viewfinder, onDetect })` inside `Effect.scoped`, provide a Bridge layer and BrowserVideoStream layer, and keep the scope open for the preview's lifetime. The returned session has `info`, `switchCamera`, `setZoom`, and `setTorch` Effects. Tests inject browser and bridge layers instead of accessing devices. Failures include `PermissionDenied`, `Unavailable`, and bridge errors.
+
+## Haptics
+
+`radical/react` exports `useHapticFeedback`; `radical/client` exports the haptic Effects, `BrowserHaptics`, and `BrowserHapticsLive`. Install `@capacitor/haptics@8.0.2`, enable `internalPlugins.haptics`, and regenerate shells. See [haptic feedback](../../README.md#haptic-feedback) for helpers, state, typed failures, browser no-ops, and lifecycle behavior.

@@ -11,6 +11,7 @@ import {
   devicePlugin,
   fileOpenerPlugin,
   filePickerPlugin,
+  hapticsPlugin,
   transitionsPlugin,
   videoStreamPlugin,
 } from "./internal-plugins.ts";
@@ -173,29 +174,24 @@ export const validatePlugins = (
       return plugins;
     }
   );
+const optInPlugins = [
+  ["videoStream", videoStreamPlugin],
+  ["camera", cameraPlugin],
+  ["filePicker", filePickerPlugin],
+  ["haptics", hapticsPlugin],
+] as const;
+
 export const resolvePlugins = (config: RadicalConfig) =>
   Effect.gen(function* () {
     const plugins: EnabledPlugin[] = [];
-    if (config.internalPlugins?.videoStream === true) {
-      plugins.push({
-        manifest: videoStreamPlugin,
-        module: "radical/internal-plugins",
-        selector: "videoStreamPlugin",
-      });
-    }
-    if (config.internalPlugins?.camera === true) {
-      plugins.push({
-        manifest: cameraPlugin,
-        module: "radical/internal-plugins",
-        selector: "cameraPlugin",
-      });
-    }
-    if (config.internalPlugins?.filePicker === true) {
-      plugins.push({
-        manifest: filePickerPlugin,
-        module: "radical/internal-plugins",
-        selector: "filePickerPlugin",
-      });
+    for (const [flag, manifest] of optInPlugins) {
+      if (config.internalPlugins?.[flag] === true) {
+        plugins.push({
+          manifest,
+          module: "radical/internal-plugins",
+          selector: `${flag}Plugin`,
+        });
+      }
     }
     if (config.internalPlugins?.intents === true) {
       plugins.push(
