@@ -17,8 +17,8 @@ describe("package paths", () => {
     () =>
       Effect.sync(() => {
         for (const module of [
-          "src/native/android/android.ts",
-          "src/native/ios/ios.ts",
+          "src/native/android/generate.ts",
+          "src/native/ios/generate.ts",
           "src/vite/offline-build.ts",
           "dist/cli.mjs",
           "dist/vite.mjs",

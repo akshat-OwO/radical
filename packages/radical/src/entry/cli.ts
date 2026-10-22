@@ -4,9 +4,11 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { Command, Flag } from "effect/cli";
 
-import { generateAndroid, runAndroid } from "../native/android/android.ts";
+import { generateAndroid } from "../native/android/generate.ts";
+import { runAndroid } from "../native/android/run.ts";
 import { assetGeneratorLayer } from "../native/assets/native-assets.ts";
-import { generateIos, runIos } from "../native/ios/ios.ts";
+import { generateIos } from "../native/ios/generate.ts";
+import { runIos } from "../native/ios/run.ts";
 import { InvalidPlugin } from "../vite/plugins/errors.ts";
 import { pluginModulesLayer } from "../vite/plugins/plugin-plan.ts";
 import { prepareNative } from "./prepare-native.ts";

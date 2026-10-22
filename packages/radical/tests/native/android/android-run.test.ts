@@ -17,7 +17,7 @@ import {
 import { ChildProcessSpawner } from "effect/process";
 import { TestClock } from "effect/testing";
 
-import { runAndroid } from "../../../src/native/android/android.ts";
+import { runAndroid } from "../../../src/native/android/run.ts";
 
 const project = "/app/.radical/android";
 const memory = (

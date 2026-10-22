@@ -3,7 +3,7 @@ import vm from "node:vm";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { navigationGuardScript } from "../../../src/native/android/android.ts";
+import { navigationGuardScript } from "../../../src/native/android/generate.ts";
 
 /** Run the guard in a sandboxed document and report whether it stopped loading. */
 const runGuard = (origin: string, topLevel = true) => {
