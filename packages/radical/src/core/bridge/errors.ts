@@ -9,6 +9,7 @@ export class BridgeCallFailed extends Schema.TaggedError<
   method: Schema.String,
   cause: Schema.Unknown,
 }) {}
+
 export class BridgeDecodeError extends Schema.TaggedError<
   BridgeDecodeError,
   { readonly brand: unique symbol }
@@ -17,6 +18,7 @@ export class BridgeDecodeError extends Schema.TaggedError<
   method: Schema.String,
   cause: Schema.Unknown,
 }) {}
+
 export class BridgeUnavailable extends Schema.TaggedError<
   BridgeUnavailable,
   { readonly brand: unique symbol }

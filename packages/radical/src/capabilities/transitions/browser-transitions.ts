@@ -36,6 +36,7 @@ export const BrowserTransitionsLive = Layer.succeed(BrowserTransitions, {
       typeof document === "undefined"
         ? undefined
         : document.activeViewTransition;
+
     return handle === undefined || handle === null
       ? Option.none()
       : Option.some({
@@ -53,6 +54,7 @@ export const BrowserTransitionsLive = Layer.succeed(BrowserTransitions, {
 export const cancelBrowserTransition = Effect.gen(function* () {
   const browser = yield* BrowserTransitions;
   const active = yield* browser.active;
+
   if (Option.isSome(active)) {
     yield* active.value.skip;
   }
@@ -63,9 +65,11 @@ export const watchBrowserTransition = (timeoutMs: number) =>
   Effect.gen(function* () {
     const browser = yield* BrowserTransitions;
     const active = yield* browser.active;
+
     if (Option.isNone(active)) {
       return;
     }
+
     const result = yield* active.value.finished.pipe(
       Effect.as(true),
       Effect.timeoutOption(timeoutMs),
@@ -73,6 +77,7 @@ export const watchBrowserTransition = (timeoutMs: number) =>
         Effect.succeed(Option.some(true))
       )
     );
+
     if (Option.isNone(result)) {
       yield* active.value.skip;
     }

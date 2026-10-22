@@ -34,10 +34,12 @@ import {
 class EchoRejected extends Schema.TaggedError<EchoRejected>()("EchoRejected", {
   reason: Schema.String,
 }) {}
+
 class TagOnlyRejected extends Schema.TaggedError<
   TagOnlyRejected,
   { readonly brand: unique symbol }
 >()("EchoRejected", {}) {}
+
 const echo = definePlugin({
   id: "echo",
   bridge: "Echo",
@@ -50,20 +52,26 @@ const echo = definePlugin({
     },
   },
 });
+
 const entry = (manifest: PluginManifest = echo): EnabledPlugin => ({
   manifest,
   module: "./plugins/echo.ts",
   selector: "default",
 });
-const modules = (exports: Record<string, unknown>) =>
-  Layer.succeed(PluginModules, { load: () => Effect.succeed(exports) });
+
+const modules = (
+  exports: Effect.Success<ReturnType<PluginModules["Service"]["load"]>>
+) => Layer.succeed(PluginModules, { load: () => Effect.succeed(exports) });
+
 const config = {
   appId: "dev.radical.test",
   internalPlugins: { device: false, transitions: false },
   plugins: [{ manifest: "./plugins/echo.ts" }],
 };
+
 const range = (id: string, value: string) =>
   entry({ ...echo, id, bridge: id, dependencies: { pkg: value } });
+
 const failedCall = (cause: unknown) =>
   bridgeTestLayer("ios", (plugin, method) =>
     Effect.fail(new BridgeCallFailed({ plugin, method, cause }))
@@ -93,10 +101,12 @@ const memory = () => {
       '    dependencies: [\n], targets: [.target(dependencies: [.product(name: "Cordova", package: "capacitor-swift-pm")])]',
     ],
   ]);
+
   const layer = FileSystem.layerNoop({
     readFileString: (file) =>
       Effect.sync(() => {
         assert.isTrue(files.has(file), file);
+
         return files.get(file) ?? "";
       }),
     writeFileString: (file, content) =>
@@ -105,8 +115,10 @@ const memory = () => {
       }),
     makeDirectory: () => Effect.void,
   });
+
   return { files, layer };
 };
+
 const nativeEcho = definePlugin({
   ...echo,
   android: {
@@ -126,6 +138,7 @@ const nativeEcho = definePlugin({
     ],
   },
 });
+
 const compose = (platform: "android" | "ios", plugins = [entry(nativeEcho)]) =>
   composePluginSources(
     "/out",
@@ -158,6 +171,7 @@ describe("native plugin manifests", () => {
       })
     );
   }
+
   it.effect(
     "rejects qualified iOS class names because Swift sources stay in the app module",
     () =>
@@ -168,6 +182,7 @@ describe("native plugin manifests", () => {
             ios: { ...nativeEcho.ios, className: "OtherModule.Echo" },
           }),
         ]).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "InvalidPlugin");
         assert.include(error.message, "className");
       })
@@ -181,6 +196,7 @@ describe("native plugin manifests", () => {
           ...config,
           plugins: [{ manifest: "./plugins/echo.ts", selector: "named" }],
         }).pipe(Effect.provide(modules({ named: echo })));
+
         assert.strictEqual(plugins.length, 1);
         assert.strictEqual(
           plugins[0].manifest.commands.echo.args,
@@ -193,6 +209,7 @@ describe("native plugin manifests", () => {
       const plugins = yield* resolvePlugins({ appId: "dev.radical.test" }).pipe(
         Effect.provide(modules({}))
       );
+
       assert.deepStrictEqual(
         plugins.map(({ manifest }) => manifest.id),
         ["device", "transitions"]
@@ -201,6 +218,7 @@ describe("native plugin manifests", () => {
       assert.strictEqual(plugins[1].manifest, transitionsPlugin);
     })
   );
+
   for (const flag of ["notifications", "pushNotifications"] as const) {
     it.effect(`includes network when only ${flag} is enabled`, () =>
       Effect.gen(function* () {
@@ -208,9 +226,11 @@ describe("native plugin manifests", () => {
           appId: "dev.radical.test",
           internalPlugins: { network: false, [flag]: true },
         }).pipe(Effect.provide(modules({})));
+
         const network = plugins.filter(
           ({ manifest }) => manifest.id === "network"
         );
+
         assert.strictEqual(network.length, 1);
         assert.strictEqual(
           network[0].manifest.dependencies["@capacitor/network"],
@@ -219,11 +239,13 @@ describe("native plugin manifests", () => {
       })
     );
   }
+
   it.effect("does not load or emit disabled plugins", () =>
     Effect.gen(function* () {
       const plugins = yield* resolvePlugins({ ...config, plugins: [] }).pipe(
         Effect.provide(modules({}))
       );
+
       assert.isEmpty(plugins);
       assert.strictEqual(pluginRegistration(plugins, "ios"), "");
       assert.notInclude(pluginVirtualSource("/app", plugins), '"echo"');
@@ -236,6 +258,7 @@ describe("native plugin manifests", () => {
         Effect.provide(modules({ wrong: echo })),
         Effect.flip
       );
+
       assert.strictEqual(error._tag, "InvalidPlugin");
       assert.include(error.message, "selector default");
     })
@@ -254,6 +277,7 @@ describe("native plugin manifests", () => {
             Effect.provide(modules({ default: invalid })),
             Effect.flip
           );
+
           assert.strictEqual(error._tag, "InvalidPlugin");
           assert.include(error.message, "./plugins/echo.ts");
         }
@@ -265,6 +289,7 @@ describe("native plugin manifests", () => {
         const error = yield* validatePlugins([entry(), entry(other)]).pipe(
           Effect.flip
         );
+
         assert.strictEqual(error._tag, "InvalidPlugin");
         assert.include(error.message, "Duplicate");
       }
@@ -281,10 +306,12 @@ describe("native plugin manifests", () => {
           },
         },
       ];
+
       for (const manifest of manifests) {
         const error = yield* validatePlugins([entry(manifest)]).pipe(
           Effect.flip
         );
+
         assert.strictEqual(error._tag, "InvalidPlugin");
       }
     })
@@ -298,13 +325,16 @@ describe("native plugin manifests", () => {
           schema: Schema.Struct({ prefix: Schema.String }),
         },
       });
+
       for (const options of [{}, { Echo: { prefix: 1 } }]) {
         const error = yield* validatePlugins([plugin], options).pipe(
           Effect.flip
         );
+
         assert.strictEqual(error._tag, "InvalidPlugin");
         assert.include(error.message, "Echo");
       }
+
       assert.strictEqual(
         (yield* validatePlugins([plugin], { Echo: { prefix: "Hello" } }))
           .length,
@@ -333,6 +363,7 @@ describe("native plugin manifests", () => {
           ],
         },
       };
+
       const cases = [
         [
           entry({ ...echo, dependencies: { pkg: "^1" } }),
@@ -349,6 +380,7 @@ describe("native plugin manifests", () => {
           entry({ ...other, android: undefined }),
         ],
       ];
+
       for (const plugins of cases) {
         const error = yield* validatePlugins(plugins).pipe(Effect.flip);
         assert.strictEqual(error._tag, "PluginDependencyConflict");
@@ -365,12 +397,15 @@ describe("native plugin manifests", () => {
           range("one", "^1 || ^3"),
           range("two", ">=3.2 <4"),
         ]);
+
         assert.strictEqual(resolved.get("npm:pkg"), "3.2.0");
+
         const error = yield* validatePlugins([
           range("one", "1 || 2"),
           range("two", "2 || 3"),
           range("three", "1 || 3"),
         ]).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "PluginDependencyConflict");
       })
   );
@@ -393,6 +428,7 @@ describe("native plugin manifests", () => {
           },
         }),
       ]).pipe(Effect.flip);
+
       assert.strictEqual(error._tag, "PluginDependencyConflict");
       assert.include(error.message, "core");
       assert.include(error.message, "other");
@@ -455,7 +491,7 @@ describe("native plugin manifests", () => {
 
 describe("plugin bridge commands", () => {
   it.effect(
-    "preserves BridgeCallFailed for null rejection data including tag-only errors",
+    "preserves BridgeCallFailed for invalid rejection data including tag-only errors",
     () =>
       Effect.gen(function* () {
         const emptyPlugin = definePlugin({
@@ -469,14 +505,20 @@ describe("plugin bridge commands", () => {
             },
           },
         });
-        const cause = { code: "EchoRejected", data: null };
-        for (const manifest of [echo, emptyPlugin]) {
-          const error = yield* createPluginClient(manifest)
-            .echo({ text: "deny" })
-            .pipe(Effect.provide(failedCall(cause)), Effect.flip);
-          assert.strictEqual(error._tag, "BridgeCallFailed");
-          if (error._tag === "BridgeCallFailed") {
-            assert.strictEqual(error.cause, cause);
+
+        for (const data of [null, undefined, [], "invalid"]) {
+          const cause = { code: "EchoRejected", data };
+
+          for (const manifest of [echo, emptyPlugin]) {
+            const error = yield* createPluginClient(manifest)
+              .echo({ text: "deny" })
+              .pipe(Effect.provide(failedCall(cause)), Effect.flip);
+
+            assert.strictEqual(error._tag, "BridgeCallFailed");
+
+            if (error._tag === "BridgeCallFailed") {
+              assert.strictEqual(error.cause, cause);
+            }
           }
         }
       })
@@ -487,16 +529,19 @@ describe("plugin bridge commands", () => {
     () =>
       Effect.gen(function* () {
         const client = createPluginClient(echo);
+
         const result = yield* client.echo({ text: "hello" }).pipe(
           Effect.provide(
             bridgeTestLayer("ios", (plugin, method, args) => {
               assert.strictEqual(plugin, "Echo");
               assert.strictEqual(method, "echo");
               assert.deepStrictEqual(args, { text: "hello" });
+
               return Effect.succeed({ text: "Native: hello" });
             })
           )
         );
+
         assert.deepStrictEqual(result, { text: "Native: hello" });
       })
   );
@@ -512,7 +557,9 @@ describe("plugin bridge commands", () => {
             ),
             Effect.flip
           );
+
         assert.instanceOf(error, EchoRejected);
+
         if (error._tag === "EchoRejected") {
           assert.strictEqual(error.reason, "Denied");
         }
@@ -531,7 +578,9 @@ describe("plugin bridge commands", () => {
           const error = yield* createPluginClient(echo)
             .echo({ text: "deny" })
             .pipe(Effect.provide(failedCall(cause)), Effect.flip);
+
           assert.strictEqual(error._tag, "BridgeCallFailed");
+
           if (error._tag === "BridgeCallFailed") {
             assert.strictEqual(error.cause, cause);
           }
@@ -548,6 +597,7 @@ describe("plugin bridge commands", () => {
           ),
           Effect.flip
         );
+
       assert.strictEqual(error._tag, "BridgeDecodeError");
     })
   );
@@ -575,6 +625,7 @@ describe("plugin bridge commands", () => {
             Effect.flip,
             Effect.forkChild
           );
+
         yield* TestClock.adjust("1 second");
         assert.instanceOf(yield* Fiber.join(fiber), EchoRejected);
       })
@@ -586,24 +637,30 @@ describe("native plugin source composition", () => {
     "requires fully qualified Android classes when sources are dependency-provided",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         const android = { className: "Echo", sources: [], dependencies: {} };
+
         const error = yield* compose("android", [
           entry({ ...echo, android }),
         ]).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "InvalidPlugin");
+
         if (error._tag === "InvalidPlugin") {
           assert.include(
             error.message,
             "fully qualified dependency-provided class"
           );
         }
+
         const plugins = [
           entry({
             ...echo,
             android: { ...android, className: "com.example.Echo" },
           }),
         ];
+
         yield* compose("android", plugins);
         assert.strictEqual(
           pluginRegistration(plugins, "android"),
@@ -628,20 +685,25 @@ describe("native plugin source composition", () => {
           "dev.test.app.Missing",
         ]) {
           const state = memory();
+
           const plugin = entry({
             ...nativeEcho,
             android: { ...nativeEcho.android, className },
           });
+
           const error = yield* compose("android", [plugin]).pipe(
             Effect.provide(state.layer),
             Effect.flip
           );
+
           assert.strictEqual(error._tag, "InvalidPlugin");
+
           if (error._tag === "InvalidPlugin") {
             assert.include(error.message, "Plugin echo: android class");
             assert.include(error.message, className);
             assert.include(error.message, "dev.test.app.Echo");
           }
+
           assert.isFalse(
             state.files.has(
               "/out/android/app/src/main/java/dev/test/app/Echo.java"
@@ -661,15 +723,18 @@ describe("native plugin source composition", () => {
             "@PluginMethod(returnType = PluginMethod.RETURN_PROMISE)",
           ]) {
             const state = memory();
+
             const method =
               extension === "java"
                 ? "public void hidden(PluginCall call) {}"
                 : "fun hidden(call: PluginCall) {}";
+
             const file = `/app/plugins/Echo.${extension}`;
             state.files.set(
               file,
               `${state.files.get(file)} ${annotation} ${method}`
             );
+
             const plugin = entry({
               ...nativeEcho,
               android: {
@@ -679,11 +744,14 @@ describe("native plugin source composition", () => {
                 ],
               },
             });
+
             const error = yield* compose("android", [plugin]).pipe(
               Effect.provide(state.layer),
               Effect.flip
             );
+
             assert.strictEqual(error._tag, "InvalidPlugin");
+
             if (error._tag === "InvalidPlugin") {
               assert.include(error.message, "command hidden is not declared");
             }
@@ -703,14 +771,17 @@ describe("native plugin source composition", () => {
             "@PluginMethod(returnType = PluginMethod.RETURN_PROMISE)",
           ]) {
             const state = memory();
+
             const method =
               extension === "java"
                 ? "public void echo(PluginCall call) {}"
                 : "public fun echo(call: PluginCall) {}";
+
             state.files.set(
               `/app/plugins/Echo.${extension}`,
               `${annotation} ${method}`
             );
+
             const plugin = entry({
               ...nativeEcho,
               android: {
@@ -720,6 +791,7 @@ describe("native plugin source composition", () => {
                 ],
               },
             });
+
             yield* compose("android", [plugin]).pipe(
               Effect.provide(state.layer)
             );
@@ -738,6 +810,7 @@ describe("native plugin source composition", () => {
     "copies Java sources with the app package and shared Gradle versions",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* compose("android", [
           entry(nativeEcho),
@@ -767,6 +840,7 @@ describe("native plugin source composition", () => {
   );
   it.effect("copies Kotlin sources", () => {
     const state = memory();
+
     return Effect.gen(function* () {
       yield* compose("android", [
         entry({
@@ -795,14 +869,17 @@ describe("native plugin source composition", () => {
   });
   it.effect("adds Swift sources and SPM package products", () => {
     const state = memory();
+
     return Effect.gen(function* () {
       yield* compose("ios");
       assert.include(
         state.files.get("/out/ios/App/App/AppDelegate.swift") ?? "",
         'CAPPluginMethod(name: "echo"'
       );
+
       const spm =
         state.files.get("/out/ios/App/CapApp-SPM/Package.swift") ?? "";
+
       assert.include(
         spm,
         '.package(url: "https://example.test/Core.git", exact: "1.0.0")'
@@ -826,11 +903,14 @@ describe("native plugin source composition", () => {
               `/app/plugins/Echo.${platform === "android" ? "java" : "swift"}`,
               content
             );
+
             const error = yield* compose(platform).pipe(
               Effect.provide(state.layer),
               Effect.flip
             );
+
             assert.strictEqual(error._tag, "InvalidPlugin");
+
             if (error._tag === "InvalidPlugin") {
               assert.include(error.message, "command");
             }
@@ -840,6 +920,7 @@ describe("native plugin source composition", () => {
   );
   it.effect("omits disabled sources and native dependencies", () => {
     const state = memory();
+
     return Effect.gen(function* () {
       yield* compose("android", []);
       yield* compose("ios", []);

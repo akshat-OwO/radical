@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Schema, flow } from "effect";
 import { map as mapRecord } from "effect/Record";
 
 import { internalPluginRegistry } from "../core/plugins/internal-plugin-registry.ts";
@@ -8,7 +8,9 @@ export const HttpOriginSchema = Schema.String.check(
     if (!URL.canParse(value)) {
       return false;
     }
+
     const url = new URL(value);
+
     return (
       (url.protocol === "http:" || url.protocol === "https:") &&
       url.origin === value &&
@@ -22,21 +24,26 @@ const javaKeywords = new Set(
     " "
   )
 );
+
 export const AndroidPackageIdSchema = Schema.String.check(
   Schema.makeFilter((value) => {
     const invalid = (reason: string) =>
       `Invalid android package id ${JSON.stringify(value)}: ${reason}. Set android.packageId to a valid package id.`;
+
     if (!/^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/u.test(value)) {
       return invalid(
         "use at least two dot-separated segments starting with a letter and containing only letters, digits and underscores"
       );
     }
+
     if (value.split(".").some((part) => javaKeywords.has(part))) {
       return invalid("segments must not be a Java keyword");
     }
+
     return true;
   })
 );
+
 export const IosBundleIdSchema = Schema.String.check(
   Schema.makeFilter((value) =>
     /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u.test(value)
@@ -44,6 +51,7 @@ export const IosBundleIdSchema = Schema.String.check(
       : `Invalid ios bundle id ${JSON.stringify(value)}: use at least two dot-separated segments containing only letters, digits and hyphens. Set ios.bundleId to a valid bundle id.`
   )
 );
+
 export const SplashColorSchema = Schema.String.check(
   Schema.isPattern(/^#[A-Fa-f0-9]{6}$/u)
 );
@@ -147,12 +155,12 @@ export class InvalidConfig extends Schema.TaggedError<
   { readonly brand: unique symbol }
 >()("InvalidConfig", { message: Schema.String }) {}
 
-export const validateConfig = (input: unknown) =>
-  Schema.decodeUnknownEffect(RadicalConfigSchema)(input).pipe(
-    Effect.mapError(
-      (error) =>
-        new InvalidConfig({
-          message: `Invalid radical config: ${error.message}`,
-        })
-    )
-  );
+export const validateConfig = flow(
+  Schema.decodeUnknownEffect(RadicalConfigSchema),
+  Effect.mapError(
+    (error) =>
+      new InvalidConfig({
+        message: `Invalid radical config: ${error.message}`,
+      })
+  )
+);

@@ -29,6 +29,7 @@ const loadVite = Effect.tryPromise({
   try: () => import("vite"),
   catch: (cause) => new InvalidPlugin({ message: String(cause) }),
 });
+
 /** Both resolution and builds use Vite's cwd config lookup without overriding root. */
 export const makeCliViteLayer = (
   vite: Effect.Effect<
@@ -37,7 +38,7 @@ export const makeCliViteLayer = (
         ...args: Parameters<typeof resolveConfig>
       ) => Promise<Pick<ResolvedConfig, "root" | "plugins">>;
       readonly createBuilder: (config: InlineConfig) => Promise<{
-        readonly buildApp: () => Promise<unknown>;
+        readonly buildApp: () => Promise<void>;
       }>;
     },
     InvalidPlugin
@@ -88,18 +89,23 @@ export const cliViteLayer = makeCliViteLayer(loadVite);
 export const prepareNative = Effect.gen(function* () {
   const vite = yield* CliVite;
   const resolved = yield* vite.resolve(false);
+
   const api: unknown = resolved.plugins.find(
     (plugin) => plugin.name === "radical:config"
   )?.api;
+
   if (!(api instanceof BuildPlanApi)) {
     return yield* new InvalidPlugin({
       message:
         "Vite config must enable radical before generating a native project",
     });
   }
+
   const plan = yield* api.resolve(resolved.root);
+
   if (plan.config.mode === "bundled") {
     yield* vite.build;
   }
+
   return plan;
 });

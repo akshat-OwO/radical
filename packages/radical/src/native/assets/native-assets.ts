@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 
-import { Context, Effect, FileSystem, Layer } from "effect";
+import { Context, Effect, FileSystem, Layer, Predicate } from "effect";
 import sharp from "sharp";
 
 import type { RadicalConfig } from "../../vite/config.ts";
@@ -17,8 +17,11 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const assets: NativeAsset[] = [];
-    const icon =
-      typeof config.icon === "string" ? { image: config.icon } : config.icon;
+
+    const icon = Predicate.isString(config.icon)
+      ? { image: config.icon }
+      : config.icon;
+
     for (const entry of [
       ...(icon === undefined
         ? []
@@ -28,13 +31,16 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
         : []),
     ]) {
       const source = path.resolve(root, entry.source);
+
       const invalid = (reason: string) =>
         new InvalidAsset({
           message: `${entry.kind} asset ${source}: ${reason}`,
         });
+
       if (!/\.(?:png|jpe?g)$/iu.test(source)) {
         return yield* invalid("unsupported format; use PNG or JPEG");
       }
+
       const input = yield* fs
         .readFile(source)
         .pipe(
@@ -42,17 +48,21 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
             invalid(`cannot read file: ${cause.message}`)
           )
         );
+
       const image = yield* Effect.try({
         try: () => sharp(input, { failOn: "warning" }),
         catch: (cause) => invalid(`invalid image: ${String(cause)}`),
       });
+
       const metadata = yield* Effect.tryPromise({
         try: () => image.metadata(),
         catch: (cause) => invalid(`invalid image: ${String(cause)}`),
       });
+
       if (metadata.format !== "png" && metadata.format !== "jpeg") {
         return yield* invalid("unsupported image content; use PNG or JPEG");
       }
+
       if (
         (metadata.width ?? 0) < entry.size ||
         (metadata.height ?? 0) < entry.size ||
@@ -62,20 +72,24 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
           `must be square and at least ${entry.size}×${entry.size}px; got ${metadata.width}×${metadata.height}px`
         );
       }
+
       const background =
         entry.kind === "splash"
           ? (config.splash?.backgroundColor ?? "#ffffff")
           : (icon?.backgroundColor ?? "#ffffff");
+
       const bytes = yield* Effect.tryPromise({
         try: () => image.clone().flatten({ background }).png().toBuffer(),
         catch: (cause) => invalid(`cannot decode image: ${String(cause)}`),
       });
+
       if (entry.kind === "icon") {
         const foreground = yield* Effect.tryPromise({
           try: () => image.clone().png().toBuffer(),
           catch: (cause) =>
             invalid(`cannot decode foreground: ${String(cause)}`),
         });
+
         const solid = yield* Effect.tryPromise({
           try: () =>
             sharp({
@@ -91,6 +105,7 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
           catch: (cause) =>
             invalid(`cannot create background: ${String(cause)}`),
         });
+
         assets.push(
           { file: "icon-only.png", bytes },
           { file: "icon-foreground.png", bytes: foreground },
@@ -103,12 +118,14 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
         );
       }
     }
+
     return assets;
   });
 
 /** Change UIKit's launch-image cache key whenever the prepared splash changes. */
 export const iosSplashResourceName = (assets: readonly NativeAsset[]) => {
   const splash = assets.find(({ file }) => file === "splash.png");
+
   return splash
     ? `RadicalSplash${createHash("sha256").update(splash.bytes).digest("hex").slice(0, 16)}`
     : "";
@@ -141,6 +158,7 @@ interface ImageOutput {
 
 const androidRes = "android/app/src/main/res";
 const iosCatalog = "ios/App/App/Assets.xcassets";
+
 const densities = [
   { name: "ldpi", icon: 36, land: [320, 240], port: [240, 320] },
   { name: "mdpi", icon: 48, land: [480, 320], port: [320, 480] },
@@ -174,6 +192,7 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
   const outputs: ImageOutput[] = [];
   const icon = input.assets.some(({ file }) => file === "icon-only.png");
   const splash = input.assets.some(({ file }) => file === "splash.png");
+
   if (input.platform === "ios") {
     if (icon) {
       outputs.push({
@@ -183,6 +202,7 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
         height: 1024,
       });
     }
+
     if (splash) {
       for (const theme of ["", "-dark"]) {
         outputs.push({
@@ -197,8 +217,10 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
         });
       }
     }
+
     return outputs;
   }
+
   if (icon) {
     for (const density of densities) {
       for (const [name, source, style] of [
@@ -218,6 +240,7 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
       }
     }
   }
+
   if (splash) {
     outputs.push({
       files: [`${androidRes}/drawable-nodpi/radical_splash_icon.png`],
@@ -225,6 +248,7 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
       width: 1024,
       height: 1024,
     });
+
     for (const theme of ["", "-night"]) {
       const source = theme === "" ? "splash.png" : "splash-dark.png";
       outputs.push({
@@ -233,6 +257,7 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
         width: 320,
         height: theme === "" ? 480 : 240,
       });
+
       for (const orientation of ["land", "port"] as const) {
         for (const density of densities) {
           const [width, height] = density[orientation];
@@ -248,12 +273,14 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
       }
     }
   }
+
   return outputs;
 };
 
 const encodeImage = (bytes: Uint8Array, output: ImageOutput) =>
   Effect.gen(function* () {
     const { width, height, style } = output;
+
     if (style === "legacy") {
       // Preserve the baseline's eight-pixel transparent border at each density.
       return yield* Effect.tryPromise({
@@ -275,6 +302,7 @@ const encodeImage = (bytes: Uint8Array, output: ImageOutput) =>
           }),
       });
     }
+
     const resized = yield* Effect.tryPromise({
       try: () => sharp(bytes).resize(width, height).png().toBuffer(),
       catch: (cause) =>
@@ -282,9 +310,11 @@ const encodeImage = (bytes: Uint8Array, output: ImageOutput) =>
           message: `Cannot resize ${output.files[0]}: ${String(cause)}`,
         }),
     });
+
     if (style === undefined) {
       return resized;
     }
+
     return yield* Effect.tryPromise({
       try: () =>
         style === "round"
@@ -316,6 +346,7 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
   generate: (input) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+
       const write = (file: string, bytes: Uint8Array) =>
         Effect.gen(function* () {
           const destination = path.join(input.project, file);
@@ -324,14 +355,19 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
           });
           yield* fs.writeFile(destination, bytes);
         });
+
       const text = (file: string, contents: string) =>
         write(file, new TextEncoder().encode(contents));
+
       const icon = input.assets.some(({ file }) => file === "icon-only.png");
       const splash = input.assets.some(({ file }) => file === "splash.png");
+
       if (input.platform === "ios" && splash) {
         const catalog = path.join(input.project, iosCatalog);
+
         if (yield* fs.exists(catalog)) {
           const current = `${iosSplashResourceName(input.assets)}.imageset`;
+
           for (const name of yield* fs.readDirectory(catalog)) {
             if (
               /^RadicalSplash[0-9a-f]+\.imageset$/u.test(name) &&
@@ -342,6 +378,7 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
           }
         }
       }
+
       yield* Effect.forEach(
         imageOutputs(input),
         (output) =>
@@ -352,19 +389,23 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
                 ({ file }) =>
                   file === "splash.png" && output.source === "splash-dark.png"
               );
+
             if (!source) {
               return yield* new AssetGenerationFailed({
                 message: `Missing native asset source ${output.source}`,
               });
             }
+
             const bytes = yield* encodeImage(source.bytes, output);
             yield* Effect.forEach(output.files, (file) => write(file, bytes), {
               discard: true,
             });
+
             return yield* Effect.void;
           }),
         { concurrency: 4, discard: true }
       );
+
       if (input.platform === "android" && icon) {
         for (const version of [26, 33]) {
           for (const name of ["ic_launcher", "ic_launcher_round"]) {
@@ -375,8 +416,10 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
           }
         }
       }
+
       if (input.platform === "ios") {
         const info = { author: "xcode", version: 1 };
+
         if (icon) {
           yield* text(
             `${iosCatalog}/AppIcon.appiconset/Contents.json`,
@@ -393,23 +436,27 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
             })
           );
         }
+
         if (splash) {
           yield* text(
             `${iosCatalog}/${iosSplashResourceName(input.assets)}.imageset/Contents.json`,
             JSON.stringify({
               images: ["", "-dark"].flatMap((theme) =>
-                [1, 2, 3].map((scale) => ({
-                  idiom: "universal",
-                  filename: `Default@${scale}x~universal~anyany${theme}.png`,
-                  scale: `${scale}x`,
-                  ...(theme
-                    ? {
-                        appearances: [
-                          { appearance: "luminosity", value: "dark" },
-                        ],
-                      }
-                    : {}),
-                }))
+                [1, 2, 3].map((scale) => {
+                  const image: SplashImage = {
+                    idiom: "universal",
+                    filename: `Default@${scale}x~universal~anyany${theme}.png`,
+                    scale: `${scale}x`,
+                  };
+
+                  if (theme) {
+                    image.appearances = [
+                      { appearance: "luminosity", value: "dark" },
+                    ];
+                  }
+
+                  return image;
+                })
               ),
               info,
             })
@@ -425,3 +472,10 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
       )
     ),
 });
+
+interface SplashImage {
+  idiom: string;
+  filename: string;
+  scale: string;
+  appearances?: { appearance: string; value: string }[];
+}

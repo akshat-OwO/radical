@@ -32,20 +32,25 @@ export const offlineCompilerLayer = Layer.succeed(OfflineCompiler, {
   compile: (config) =>
     Effect.gen(function* () {
       const { build } = yield* Effect.try({
+        // SAFETY: Node resolves the installed Vite module whose API is declared by typeof Vite.
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node loads the installed Vite module with its declared types.
         try: () => createRequire(import.meta.url)("vite") as typeof Vite,
         catch: (cause) => new OfflineBuildError({ cause }),
       });
+
       const result = yield* attempt(() => build(config));
       const outputs = Array.isArray(result) ? result : [result];
+
       const source = outputs
         .flatMap((output) => ("output" in output ? output.output : []))
         .find((item) => item.type === "chunk");
+
       if (!source || source.type !== "chunk") {
         return yield* new OfflineBuildError({
           cause: "Worker build produced no entry",
         });
       }
+
       return source.code;
     }),
 });
@@ -57,6 +62,7 @@ export const offlineBuild = (
 ): Plugin => {
   let base = "/";
   let clientDir = "";
+
   return {
     name: "radical:offline",
     apply: "build",
@@ -80,19 +86,23 @@ export const offlineBuild = (
         ) {
           return Promise.resolve();
         }
+
         return Effect.runPromise(
           Effect.gen(function* () {
             const compiler = yield* OfflineCompiler;
             const fs = yield* FileSystem.FileSystem;
+
             const entries = Object.values(bundle).toSorted((a, b) =>
               a.fileName.localeCompare(b.fileName)
             );
+
             const manifest = {
               buildId: "RADICAL_BUILD_CONTENT_HASH",
               cachePrefix: offlineCachePrefix(config.appId, base),
               assets: entries.map((item) => `${base}${item.fileName}`),
               fallback: `${base}offline.html`,
             };
+
             const source = yield* compiler.compile({
               configFile: false,
               publicDir: false,
@@ -107,12 +117,15 @@ export const offlineBuild = (
                 },
               },
             });
+
             const hash = createHash("sha256").update(source);
+
             for (const entry of entries) {
               hash
                 .update(entry.fileName)
                 .update(entry.type === "chunk" ? entry.code : entry.source);
             }
+
             hash.update(
               yield* fs.readFile(path.resolve(clientDir, "offline.html"))
             );
@@ -121,6 +134,7 @@ export const offlineBuild = (
               path.resolve(clientDir, "radical-manifest.json"),
               JSON.stringify(manifest)
             );
+
             return yield* fs.writeFileString(
               path.resolve(clientDir, "radical-sw.js"),
               source.replaceAll("RADICAL_BUILD_CONTENT_HASH", manifest.buildId)

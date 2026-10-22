@@ -12,8 +12,10 @@ export const offlineMessageLiterals = [
   offlineMessages.clearFailed,
   offlineMessages.snapshotReady,
 ] as const;
+
 export type OfflineMessage = (typeof offlineMessageLiterals)[number];
 
+// Native worker payloads are deliberately decoded here without loading the Effect runtime.
 export const decodeWorkerMessage = (
   input: unknown
 ): OfflineMessage | undefined =>
@@ -21,10 +23,13 @@ export const decodeWorkerMessage = (
 
 export const snapshotSuffix = ":snapshots";
 export const offlineAppCachePrefix = (appId: string) => `radical:${appId}:`;
+
 export const offlineCachePrefix = (appId: string, base: string) =>
   `${offlineAppCachePrefix(appId)}${base}:`;
+
 export const snapshotCacheName = (cachePrefix: string, buildId: string) =>
   `${cachePrefix}${buildId}${snapshotSuffix}`;
+
 export const isSnapshotCache = (name: string, appId: string) =>
   name.startsWith(offlineAppCachePrefix(appId)) &&
   name.endsWith(snapshotSuffix);
@@ -33,5 +38,6 @@ export const isSnapshotCache = (name: string, appId: string) =>
 export const snapshotKey = (url: string, base?: string) => {
   const key = new URL(url, base);
   key.hash = "";
+
   return key.href;
 };

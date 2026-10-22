@@ -3,6 +3,7 @@ import { useState } from "react";
 
 const OfflineRoute = () => {
   const [count, setCount] = useState(0);
+
   return (
     <main>
       <h1>Offline route</h1>

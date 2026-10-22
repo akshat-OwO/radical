@@ -2,7 +2,7 @@ import path from "node:path";
 
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect, FileSystem, Layer } from "effect";
-import type { Plugin } from "vite";
+import type { Plugin, UserConfig } from "vite";
 import { defaultAllowedOrigins } from "vite";
 
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
@@ -20,6 +20,7 @@ import type { EnabledPlugin, PluginModules } from "./plugin-plan.ts";
 
 const modulePath = (root: string, module: string) =>
   module.startsWith(".") ? path.resolve(root, module) : module;
+
 export const pluginVirtualSource = (
   root: string,
   plugins: readonly EnabledPlugin[]
@@ -32,6 +33,7 @@ export const pluginVirtualSource = (
     ),
     `export const plugins = {${plugins.map((entry, index) => `${JSON.stringify(entry.manifest.id)}: createPluginClient(manifest${index})`).join(",")}};`,
   ].join("\n");
+
 export const pluginTypeSource = (
   root: string,
   plugins: readonly EnabledPlugin[]
@@ -48,6 +50,7 @@ export const pluginTypeSource = (
     "}",
     "",
   ].join("\n");
+
 export const nativePlugins = (
   config: RadicalConfig,
   adapterLayer?: Layer.Layer<RadicalAdapter>,
@@ -55,6 +58,7 @@ export const nativePlugins = (
 ): Plugin => {
   let source = "";
   let plan: BuildPlan | undefined;
+
   const resolvePlan = (root: string) =>
     Effect.suspend(() =>
       plan === undefined
@@ -68,41 +72,50 @@ export const nativePlugins = (
           )
         : Effect.succeed(plan)
     );
+
   const browserConfig = JSON.stringify({
     appId: config.appId,
     mode: config.mode ?? "remote",
     origin: config.origin,
   });
+
   return {
     name: "radical:plugins",
     api: new BuildPlanApi(resolvePlan),
     config: (user) =>
       Effect.runPromise(
         resolvePlan(user.root ?? process.cwd()).pipe(
-          Effect.map((value) => ({
-            define: value.defines,
-            server: {
-              host: user.server?.host ?? "0.0.0.0",
-              watch: { ignored: ["**/.radical/**"] },
-              ...(config.mode === "bundled" && user.server?.cors === undefined
-                ? {
-                    cors: {
-                      origin: (origin, callback) => {
-                        // A false callback result skips Vite's CORS middleware entirely.
-                        // Preview inherits server.cors unless preview.cors is explicit.
-                        const policy = bundledOrigins.some(
-                          (bundled) => bundled === origin
-                        )
-                          ? false
-                          : defaultAllowedOrigins;
-                        // @ts-expect-error Vite's callback type omits the valid null success argument.
-                        callback(null, policy);
-                      },
-                    },
-                  }
-                : {}),
-            },
-          }))
+          Effect.map((value) => {
+            const result: UserConfig = {
+              define: value.defines,
+              server: {
+                host: user.server?.host ?? "0.0.0.0",
+                watch: { ignored: ["**/.radical/**"] },
+              },
+            };
+
+            if (
+              config.mode === "bundled" &&
+              user.server?.cors === undefined &&
+              result.server
+            ) {
+              result.server.cors = {
+                origin: (origin, callback) => {
+                  // False skips Vite's CORS middleware; preview inherits this policy.
+                  const policy = bundledOrigins.some(
+                    (bundled) => bundled === origin
+                  )
+                    ? false
+                    : defaultAllowedOrigins;
+
+                  // @ts-expect-error Vite's callback type omits the valid null success argument.
+                  callback(null, policy);
+                },
+              };
+            }
+
+            return result;
+          })
         )
       ),
     configResolved: (resolved) =>
@@ -112,18 +125,21 @@ export const nativePlugins = (
           source = pluginVirtualSource(resolved.root, plugins);
           const fs = yield* FileSystem.FileSystem;
           const metadata = yield* NativeMetadata;
+
           const outputs = adapterLayer
             ? yield* RadicalAdapter.pipe(
                 Effect.flatMap((adapter) => adapter.outputs),
                 Effect.provide(adapterLayer)
               )
             : undefined;
+
           yield* metadata.update(resolved.root, config, undefined, outputs);
           yield* fs.makeDirectory(path.join(resolved.root, ".radical"), {
             recursive: true,
           });
           const file = path.join(resolved.root, ".radical/plugins.d.ts");
           const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string }; }\n`;
+
           // Preserve mtime to avoid restarting Vite's watcher on identical config.
           if (
             (yield* fs
@@ -155,6 +171,7 @@ export const nativePlugins = (
       if (id === "\0virtual:radical/config") {
         return `export const config = ${browserConfig};`;
       }
+
       return id === "\0virtual:radical/plugins" ? source : undefined;
     },
   };

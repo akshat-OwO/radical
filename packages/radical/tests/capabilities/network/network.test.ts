@@ -21,16 +21,19 @@ const PluginModulesLive = Layer.succeed(PluginModules, {
 
 const online: NetworkStatus = { connected: true, connectionType: "wifi" };
 const offline: NetworkStatus = { connected: false, connectionType: "none" };
+
 const unusedBrowser = Layer.succeed(BrowserNetwork, {
   current: Effect.die("Unexpected browser read"),
   listen: () => Effect.die("Unexpected browser subscription"),
 });
+
 const fixture = (
   runtime: "android" | "ios",
   current = Effect.succeed<unknown>(online)
 ) => {
-  let receive: ((value: unknown) => void) | undefined;
+  let receive: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
   let removed = 0;
+
   const layer = Layer.merge(
     unusedBrowser,
     Layer.succeed(Bridge, {
@@ -39,6 +42,7 @@ const fixture = (
       call: (plugin, method) => {
         assert.strictEqual(plugin, "Network");
         assert.strictEqual(method, "getStatus");
+
         return current;
       },
       listen: (plugin, event, listener) =>
@@ -46,15 +50,19 @@ const fixture = (
           assert.strictEqual(plugin, "Network");
           assert.strictEqual(event, "networkStatusChange");
           receive = listener;
+
           return Effect.sync(() => {
             removed += 1;
           });
         }),
     })
   );
+
   return {
     layer,
-    emit: (value: unknown) => {
+    emit: (
+      value: Parameters<Parameters<Bridge["Service"]["observe"]>[1]>[0]
+    ) => {
       receive?.(value);
     },
     removed: () => removed,
@@ -74,6 +82,7 @@ for (const runtime of ["android", "ios"] as const) {
         const first = yield* Deferred.make<boolean>();
         const second = yield* Deferred.make<boolean>();
         const values: NetworkStatus[] = [];
+
         const fiber = yield* watchNetworkStatus.pipe(
           Stream.runForEach((value) =>
             Effect.gen(function* () {
@@ -87,6 +96,7 @@ for (const runtime of ["android", "ios"] as const) {
           Effect.provide(fake.layer),
           Effect.forkChild
         );
+
         yield* Deferred.await(first);
         fake.emit(online);
         yield* TestClock.adjust("1 second");
@@ -104,18 +114,22 @@ it.effect("keeps an event newer than a delayed initial response", () =>
   Effect.gen(function* () {
     const requested = yield* Deferred.make<boolean>();
     const response = yield* Deferred.make<unknown>();
+
     const fake = fixture(
       "android",
       Deferred.succeed(requested, true).pipe(
         Effect.andThen(Deferred.await(response))
       )
     );
+
     const received = yield* Deferred.make<NetworkStatus>();
+
     const fiber = yield* watchNetworkStatus.pipe(
       Stream.runForEach((value) => Deferred.succeed(received, value)),
       Effect.provide(fake.layer),
       Effect.forkChild
     );
+
     yield* Deferred.await(requested);
     fake.emit(offline);
     yield* Deferred.succeed(response, online);
@@ -129,12 +143,14 @@ it.effect("fails malformed native events and releases the listener", () =>
   Effect.gen(function* () {
     const fake = fixture("ios");
     const started = yield* Deferred.make<boolean>();
+
     const fiber = yield* watchNetworkStatus.pipe(
       Stream.runForEach(() => Deferred.succeed(started, true)),
       Effect.flip,
       Effect.provide(fake.layer),
       Effect.forkChild
     );
+
     yield* Deferred.await(started);
     fake.emit({ connected: "invalid" });
     assert.strictEqual((yield* Fiber.join(fiber))._tag, "BridgeDecodeError");
@@ -150,10 +166,12 @@ it.effect(
         unusedBrowser,
         bridgeTestLayer("android", () => Effect.succeed(online))
       );
+
       const error = yield* Stream.runCollect(watchNetworkStatus).pipe(
         Effect.provide(layer),
         Effect.flip
       );
+
       assert.strictEqual(error._tag, "BridgeUnavailable");
     })
 );
@@ -165,21 +183,26 @@ it.effect(
       const events = new EventTarget();
       const connection = Object.assign(new EventTarget(), { type: "wifi" });
       const navigator = { onLine: true, connection };
+
       const layer = Layer.merge(
         browserNetworkLayer(() => ({ events, navigator })),
         bridgeTestLayer("browser", () => Effect.die("Unexpected native call"))
       );
+
       const service = yield* Effect.service(BrowserNetwork).pipe(
         Effect.provide(layer)
       );
+
       assert.deepStrictEqual(
         yield* getNetworkStatus.pipe(Effect.provide(layer)),
         online
       );
       const values: NetworkStatus[] = [];
+
       const remove = yield* service.listen((value) => {
         values.push(value);
       });
+
       navigator.onLine = false;
       events.dispatchEvent(new Event("offline"));
       navigator.onLine = true;
@@ -204,9 +227,11 @@ it.effect("uses unknown for browsers without Network Information API", () =>
       events: new EventTarget(),
       navigator: { onLine: true },
     }));
+
     const service = yield* Effect.service(BrowserNetwork).pipe(
       Effect.provide(layer)
     );
+
     assert.deepStrictEqual(yield* service.current, {
       connected: true,
       connectionType: "unknown",
@@ -223,6 +248,7 @@ it.effect(
       const first = yield* Deferred.make<boolean>();
       const changed = yield* Deferred.make<boolean>();
       const values: NetworkStatus[] = [];
+
       const layer = Layer.merge(
         bridgeTestLayer("browser", () => Effect.die("Unexpected native call")),
         Layer.succeed(BrowserNetwork, {
@@ -230,12 +256,14 @@ it.effect(
           listen: (receive) =>
             Effect.sync(() => {
               emit = receive;
+
               return () => {
                 removed = true;
               };
             }),
         })
       );
+
       const fiber = yield* watchNetworkStatus.pipe(
         Stream.runForEach((value) =>
           Effect.gen(function* () {
@@ -249,6 +277,7 @@ it.effect(
         Effect.provide(layer),
         Effect.forkChild
       );
+
       yield* Deferred.await(first);
       emit?.(offline);
       yield* Deferred.await(changed);
@@ -264,14 +293,17 @@ it.effect("enables the pinned native network plugin only when requested", () =>
       appId: "dev.test.app",
       internalPlugins: { device: false, transitions: false },
     };
+
     assert.deepStrictEqual(
       yield* resolvePlugins(config).pipe(Effect.provide(PluginModulesLive)),
       []
     );
+
     const plugins = yield* resolvePlugins({
       ...config,
       internalPlugins: { ...config.internalPlugins, network: true },
     }).pipe(Effect.provide(PluginModulesLive));
+
     assert.strictEqual(plugins.length, 1);
     assert.deepStrictEqual(plugins[0]?.manifest.dependencies, {
       "@capacitor/network": "8.0.1",
@@ -284,14 +316,17 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const requested = yield* Deferred.make<boolean>();
+
       const fake = fixture(
         "android",
         Deferred.succeed(requested, true).pipe(Effect.andThen(Effect.never))
       );
+
       const fiber = yield* Stream.runDrain(watchNetworkStatus).pipe(
         Effect.provide(fake.layer),
         Effect.forkChild
       );
+
       yield* Deferred.await(requested);
       yield* Fiber.interrupt(fiber);
       assert.strictEqual(fake.removed(), 1);
@@ -306,10 +341,12 @@ it.effect(
         "ios",
         Effect.succeed({ connected: true, connectionType: 42 })
       );
+
       const error = yield* Stream.runDrain(watchNetworkStatus).pipe(
         Effect.provide(fake.layer),
         Effect.flip
       );
+
       assert.strictEqual(error._tag, "BridgeDecodeError");
       assert.strictEqual(fake.removed(), 1);
     })

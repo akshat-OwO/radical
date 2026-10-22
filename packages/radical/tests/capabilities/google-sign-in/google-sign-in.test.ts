@@ -23,11 +23,14 @@ const config = {
   webClientId: "test-web.apps.googleusercontent.com",
   iosClientId: "test-ios.apps.googleusercontent.com",
 };
+
 const unexpected = () =>
   Effect.sync(() => assert.fail("Unexpected native call"));
+
 const configuration = Layer.succeed(GoogleSignInConfiguration, {
   read: Effect.succeed(config),
 });
+
 const run = (
   runtime: "ios" | "android",
   call: Parameters<typeof bridgeTestLayer>[1]
@@ -48,14 +51,17 @@ for (const runtime of ["ios", "android"] as const) {
     () =>
       Effect.gen(function* () {
         const calls: unknown[] = [];
+
         const identity = yield* run(runtime, (plugin, method, options) =>
           Effect.sync(() => {
             calls.push({ plugin, method, options });
+
             return method === "signIn"
               ? { idToken: "identity", email: "ignored" }
               : undefined;
           })
         );
+
         assert.deepStrictEqual(identity, { idToken: "identity" });
         assert.deepStrictEqual(calls, [
           {
@@ -84,8 +90,10 @@ for (const runtime of ["ios", "android"] as const) {
                   new BridgeCallFailed({ plugin, method, cause: { code } })
                 )
           ).pipe(Effect.flip);
+
           assert.strictEqual(error._tag, tag);
         }
+
         const error = yield* run(runtime, (plugin, method) =>
           Effect.fail(
             new BridgeCallFailed({
@@ -95,6 +103,7 @@ for (const runtime of ["ios", "android"] as const) {
             })
           )
         ).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "GoogleSignInMisconfigured");
       })
   );
@@ -104,11 +113,13 @@ for (const runtime of ["ios", "android"] as const) {
         const error = yield* run(runtime, (_plugin, method) =>
           Effect.succeed(method === "signIn" ? value : undefined)
         ).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "BridgeDecodeError");
       }
     })
   );
 }
+
 it.effect(
   "rejects missing runtime configuration before calling native code",
   () =>
@@ -123,35 +134,43 @@ it.effect(
         ),
         Effect.flip
       );
+
       assert.strictEqual(error._tag, "GoogleSignInMisconfigured");
     })
 );
+
 it.effect(
   "uses an injectable browser flow and reports unavailable by default",
   () =>
     Effect.gen(function* () {
       const bridge = bridgeTestLayer("browser", unexpected);
+
       const error = yield* googleSignIn.pipe(
         Effect.provide(
           Layer.mergeAll(bridge, configuration, BrowserGoogleSignInLive)
         ),
         Effect.flip
       );
+
       assert.strictEqual(error._tag, "GoogleSignInUnavailable");
+
       const identity = yield* googleSignIn.pipe(
         Effect.provide(Layer.merge(bridge, configuration)),
         Effect.provideService(BrowserGoogleSignIn, {
           signIn: Effect.succeed({ idToken: "browser" }),
         })
       );
+
       assert.deepStrictEqual(identity, { idToken: "browser" });
     })
 );
+
 it.effect(
   "interrupts a pending native response without starting another call",
   () =>
     Effect.gen(function* () {
       const calls: string[] = [];
+
       const fiber = yield* run("android", (_plugin, method) =>
         Effect.sync(() => {
           calls.push(method);
@@ -163,6 +182,7 @@ it.effect(
           )
         )
       ).pipe(Effect.forkChild);
+
       yield* TestClock.adjust("1 second");
       assert.deepStrictEqual(calls, ["initialize", "signIn"]);
       yield* Fiber.interrupt(fiber);
@@ -170,6 +190,7 @@ it.effect(
       assert.deepStrictEqual(calls, ["initialize", "signIn"]);
     })
 );
+
 it.effect("opts in the pinned plugin and validates client IDs", () =>
   Effect.gen(function* () {
     for (const enabled of [undefined, false]) {
@@ -177,21 +198,25 @@ it.effect("opts in the pinned plugin and validates client IDs", () =>
         appId: "dev.test.app",
         internalPlugins: { googleSignIn: enabled },
       });
+
       assert.isFalse(
         plugins.some(({ manifest }) => manifest.id === "googleSignIn")
       );
     }
+
     const enabled = {
       appId: "dev.test.app",
       internalPlugins: { googleSignIn: true },
       pluginOptions: { GoogleSignIn: config },
     };
+
     const plugins = yield* resolvePlugins(enabled);
     assert.deepStrictEqual(
       plugins.find(({ manifest }) => manifest.id === "googleSignIn")?.manifest
         .dependencies,
       { "@capawesome/capacitor-google-sign-in": "0.1.4" }
     );
+
     for (const GoogleSignIn of [
       undefined,
       {},
@@ -208,6 +233,7 @@ it.effect("opts in the pinned plugin and validates client IDs", () =>
     }
   }).pipe(Effect.provideService(PluginModules, { load: unexpected }))
 );
+
 it.effect(
   "generates iOS Google client ID and reversed URL scheme only when enabled",
   () =>
@@ -216,11 +242,13 @@ it.effect(
         yield* googleSignInDeclarations({ appId: "dev.test.app" }),
         ""
       );
+
       const enabled = {
         appId: "dev.test.app",
         internalPlugins: { googleSignIn: true },
         pluginOptions: { GoogleSignIn: config },
       };
+
       assert.strictEqual(
         yield* googleSignInDeclarations(enabled),
         "<key>GIDClientID</key><string>test-ios.apps.googleusercontent.com</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>com.googleusercontent.apps.test-ios</string></array></dict></array>"

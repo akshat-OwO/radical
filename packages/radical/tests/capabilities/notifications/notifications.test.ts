@@ -38,6 +38,7 @@ const reminder: LocalNotification = {
   delaySeconds: 5,
   route: "/offline-route?from=notification",
 };
+
 const unusedBrowser = browserNotificationsLayer(() => {});
 
 for (const runtime of ["android", "ios"] as const) {
@@ -46,20 +47,24 @@ for (const runtime of ["android", "ios"] as const) {
     () =>
       Effect.gen(function* () {
         const calls: unknown[] = [];
+
         const layer = Layer.merge(
           unusedBrowser,
           bridgeTestLayer(runtime, (plugin, method, args) =>
             Effect.sync(() => {
               calls.push([plugin, method, args]);
+
               if (method === "checkPermissions") {
                 return { display: "granted" };
               }
+
               return method === "schedule"
                 ? { notifications: [{ id: 22 }] }
                 : undefined;
             })
           )
         );
+
         yield* TestClock.setTime(1000);
         yield* scheduleNotification(reminder).pipe(Effect.provide(layer));
         yield* cancelNotification(22).pipe(Effect.provide(layer));
@@ -91,6 +96,7 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const delivered: string[] = [];
+
       const layer = Layer.merge(
         browserNotificationsLayer(() => ({
           permission: "granted",
@@ -102,6 +108,7 @@ it.effect(
         })),
         bridgeTestLayer("browser", () => Effect.die("Unexpected native call"))
       );
+
       yield* Effect.gen(function* () {
         assert.deepStrictEqual(yield* scheduleNotification(reminder), {
           notifications: [{ id: 22 }],
@@ -126,17 +133,20 @@ it.effect(
   () =>
     Effect.gen(function* () {
       let requests = 0;
+
       const layer = Layer.merge(
         browserNotificationsLayer(() => ({
           permission: "prompt",
           request: async () => {
             requests += 1;
+
             return await Effect.runPromise(Effect.succeed("granted" as const));
           },
           show: () => {},
         })),
         bridgeTestLayer("browser", () => Effect.die("Unexpected native call"))
       );
+
       assert.strictEqual(
         yield* checkNotificationPermission.pipe(Effect.provide(layer)),
         "prompt"
@@ -163,6 +173,7 @@ it.effect("reports missing browser APIs and unsupported badges and push", () =>
       unusedBrowser,
       bridgeTestLayer("browser", () => Effect.die("Unexpected native call"))
     );
+
     const operations: readonly Effect.Effect<
       unknown,
       { readonly _tag: string },
@@ -174,6 +185,7 @@ it.effect("reports missing browser APIs and unsupported badges and push", () =>
       registerPush,
       setNotificationBadge(1),
     ];
+
     for (const operation of operations) {
       assert.strictEqual(
         (yield* operation.pipe(Effect.provide(layer), Effect.flip))._tag,
@@ -191,6 +203,7 @@ it.effect("rejects invalid inputs before calling native plugins", () =>
         Effect.die("Invalid input reached native")
       )
     );
+
     const operations: readonly Effect.Effect<
       unknown,
       { readonly _tag: string },
@@ -204,6 +217,7 @@ it.effect("rejects invalid inputs before calling native plugins", () =>
       subscribeToTopic("bad topic"),
       unsubscribeFromTopic(""),
     ];
+
     for (const operation of operations) {
       assert.strictEqual(
         (yield* operation.pipe(Effect.provide(layer), Effect.flip))._tag,
@@ -220,9 +234,11 @@ it.effect("returns a typed error when Firebase configuration is missing", () =>
       bridgeTestLayer("ios", (plugin, method) => {
         assert.strictEqual(plugin, "RadicalNotificationTopics");
         assert.strictEqual(method, "status");
+
         return Effect.succeed({ configured: false });
       })
     );
+
     const operations: readonly Effect.Effect<
       unknown,
       { readonly _tag: string },
@@ -233,6 +249,7 @@ it.effect("returns a typed error when Firebase configuration is missing", () =>
       unsubscribeFromTopic("demo"),
       getNotificationTopics,
     ];
+
     for (const operation of operations) {
       assert.strictEqual(
         (yield* operation.pipe(Effect.provide(layer), Effect.flip))._tag,
@@ -248,6 +265,7 @@ it.effect(
     Effect.gen(function* () {
       const memberships = new Set<string>();
       let badge = 0;
+
       const layer = Layer.merge(
         unusedBrowser,
         bridgeTestLayer("android", (plugin, method, args) =>
@@ -255,33 +273,43 @@ it.effect(
             if (plugin === "LocalNotifications") {
               return { display: "granted" };
             }
+
             if (plugin === "FirebaseMessaging") {
               return { token: "fcm-token" };
             }
+
             if (plugin === "Badge") {
               if (method === "isSupported") {
                 return { isSupported: true };
               }
+
               assert.isNumber(args.count);
               badge = Number(args.count);
+
               return {};
             }
+
             if (method === "status") {
               return { configured: true };
             }
+
             if (method === "list") {
               return { topics: [...memberships].toSorted() };
             }
+
             const topic = String(args.topic);
+
             if (method === "subscribe") {
               memberships.add(topic);
             } else {
               memberships.delete(topic);
             }
+
             return {};
           })
         )
       );
+
       yield* Effect.gen(function* () {
         assert.strictEqual(yield* registerPush, "fcm-token");
         yield* subscribeToTopic("demo");
@@ -307,11 +335,13 @@ it.effect("denies native scheduling and push without permission", () =>
         )
       )
     );
+
     const operations: readonly Effect.Effect<
       unknown,
       { readonly _tag: string },
       Bridge | BrowserNotifications
     >[] = [scheduleNotification(reminder), registerPush];
+
     for (const operation of operations) {
       assert.strictEqual(
         (yield* operation.pipe(Effect.provide(layer), Effect.flip))._tag,
@@ -328,22 +358,27 @@ it.effect(
       const modules = Layer.succeed(PluginModules, {
         load: () => Effect.die("Unexpected module load"),
       });
+
       const config = {
         appId: "dev.test.app",
         internalPlugins: { device: false, transitions: false },
       };
+
       assert.deepStrictEqual(
         yield* resolvePlugins(config).pipe(Effect.provide(modules)),
         []
       );
+
       const local = yield* resolvePlugins({
         ...config,
         internalPlugins: { ...config.internalPlugins, notifications: true },
       }).pipe(Effect.provide(modules));
+
       assert.deepStrictEqual(
         local.map((value) => value.selector),
         ["networkPlugin", "localNotificationsPlugin", "badgePlugin"]
       );
+
       const push = yield* resolvePlugins({
         ...config,
         internalPlugins: {
@@ -354,6 +389,7 @@ it.effect(
           haptics: true,
         },
       }).pipe(Effect.provide(modules));
+
       assert.deepStrictEqual(
         push.map((value) => value.manifest.id).toSorted(),
         [
@@ -384,26 +420,33 @@ for (const runtime of ["android", "ios"] as const) {
               { readonly _tag: string },
               Bridge | BrowserNotifications
             >[] = [scheduleNotification(reminder), registerPush];
+
             for (const operation of operations) {
               const calls: string[] = [];
+
               const layer = Layer.merge(
                 unusedBrowser,
                 bridgeTestLayer(runtime, (_plugin, method) =>
                   Effect.sync(() => {
                     calls.push(method);
+
                     switch (method) {
                       case "status": {
                         return { configured: true };
                       }
+
                       case "checkPermissions": {
                         return { display: initial };
                       }
+
                       case "requestPermissions": {
                         return { display: response };
                       }
+
                       case "getToken": {
                         return { token: "fcm-token" };
                       }
+
                       default: {
                         return { notifications: [{ id: 22 }] };
                       }
@@ -411,14 +454,17 @@ for (const runtime of ["android", "ios"] as const) {
                   })
                 )
               );
+
               const result = yield* operation.pipe(
                 Effect.provide(layer),
                 Effect.result
               );
+
               assert.deepStrictEqual(
                 calls.filter((method) => method.includes("Permissions")),
                 ["checkPermissions", "requestPermissions"]
               );
+
               if (response === "granted") {
                 assert.strictEqual(result._tag, "Success");
                 assert.isTrue(
@@ -426,9 +472,11 @@ for (const runtime of ["android", "ios"] as const) {
                 );
               } else {
                 assert.strictEqual(result._tag, "Failure");
+
                 if (result._tag === "Failure") {
                   assert.strictEqual(result.failure._tag, "PermissionDenied");
                 }
+
                 assert.isFalse(calls.includes("schedule"));
                 assert.isFalse(calls.includes("getToken"));
               }
@@ -447,6 +495,7 @@ for (const runtime of ["browser", "ios"] as const) {
         const layer = bridgeTestLayer(runtime, () =>
           Effect.die("Unexpected native call")
         );
+
         assert.strictEqual(
           yield* checkExactAlarmPermission.pipe(Effect.provide(layer)),
           "not-required"
@@ -458,20 +507,24 @@ for (const runtime of ["browser", "ios"] as const) {
       })
   );
 }
+
 for (const status of ["granted", "denied"] as const) {
   it.effect(
     `checks and requests Android exact alarms with ${status} consent`,
     () =>
       Effect.gen(function* () {
         const calls: string[] = [];
+
         const layer = bridgeTestLayer("android", (plugin, method, args) =>
           Effect.sync(() => {
             assert.strictEqual(plugin, "LocalNotifications");
             assert.deepStrictEqual(args, {});
             calls.push(method);
+
             return { exact_alarm: status };
           })
         );
+
         assert.strictEqual(
           yield* checkExactAlarmPermission.pipe(Effect.provide(layer)),
           status
@@ -487,6 +540,7 @@ for (const status of ["granted", "denied"] as const) {
       })
   );
 }
+
 it.effect(
   "rejects malformed exact-alarm settings with a typed decode error",
   () =>
@@ -503,10 +557,12 @@ it.effect(
           ),
           Effect.flip
         );
+
         assert.strictEqual(error._tag, "BridgeDecodeError");
       }
     })
 );
+
 it.effect("preserves native exact-alarm request failures", () =>
   Effect.gen(function* () {
     const failure = new BridgeCallFailed({
@@ -514,13 +570,16 @@ it.effect("preserves native exact-alarm request failures", () =>
       method: "changeExactNotificationSetting",
       cause: "Settings unavailable",
     });
+
     const error = yield* requestExactAlarmPermission.pipe(
       Effect.provide(bridgeTestLayer("android", () => Effect.fail(failure))),
       Effect.flip
     );
+
     assert.strictEqual(error, failure);
   })
 );
+
 it.effect(
   "returns native schedule warnings and IDs without losing future warning codes",
   () =>
@@ -528,15 +587,17 @@ it.effect(
       for (const code of ["OS-PLUG-LNOT-0017", "future-warning", undefined]) {
         const result = {
           notifications: [{ id: 22 }],
-          ...(code === undefined
-            ? {}
-            : {
-                warning: {
-                  code,
-                  message: "Scheduled as an inexact alarm instead.",
-                },
-              }),
         };
+
+        if (code !== undefined) {
+          Object.assign(result, {
+            warning: {
+              code,
+              message: "Scheduled as an inexact alarm instead.",
+            },
+          });
+        }
+
         const layer = Layer.merge(
           unusedBrowser,
           bridgeTestLayer("android", (_plugin, method) =>
@@ -545,6 +606,7 @@ it.effect(
             )
           )
         );
+
         assert.deepStrictEqual(
           yield* scheduleNotification(reminder).pipe(Effect.provide(layer)),
           result
@@ -552,6 +614,7 @@ it.effect(
       }
     })
 );
+
 it.effect("rejects malformed schedule warnings with a typed decode error", () =>
   Effect.gen(function* () {
     const layer = Layer.merge(
@@ -567,10 +630,12 @@ it.effect("rejects malformed schedule warnings with a typed decode error", () =>
         )
       )
     );
+
     const error = yield* scheduleNotification(reminder).pipe(
       Effect.provide(layer),
       Effect.flip
     );
+
     assert.strictEqual(error._tag, "BridgeDecodeError");
   })
 );

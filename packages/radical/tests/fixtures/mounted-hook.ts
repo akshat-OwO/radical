@@ -15,16 +15,20 @@ export const mountHook = <A>(
 ) =>
   Effect.gen(function* () {
     let state: A | undefined;
+
     const Probe = () => {
       const value = hook();
       useLayoutEffect(() => {
         state = value;
         committed?.(value);
       }, [value]);
+
       return null;
     };
+
     const root = createRoot(document.createElement("div"));
     let mounted = true;
+
     const unmount = () => {
       if (mounted) {
         mounted = false;
@@ -33,7 +37,9 @@ export const mountHook = <A>(
         });
       }
     };
+
     yield* Effect.addFinalizer(() => Effect.sync(unmount));
+
     const render = (next = layer) => {
       flushSync(() => {
         root.render(
@@ -41,10 +47,13 @@ export const mountHook = <A>(
         );
       });
     };
+
     render();
+
     return {
       state: () => {
         assert.isDefined(state);
+
         return state;
       },
       render,

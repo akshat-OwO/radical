@@ -17,8 +17,9 @@ const nativeFixture = (
     connectionType: "wifi",
   })
 ) => {
-  let receive: ((value: unknown) => void) | undefined;
+  let receive: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
   let removed = 0;
+
   const layer = Layer.succeed(Bridge, {
     runtime: Effect.succeed(runtime),
     observe: () => Effect.succeed(() => {}),
@@ -26,11 +27,13 @@ const nativeFixture = (
     listen: (_plugin, _event, listener) =>
       Effect.sync(() => {
         receive = listener;
+
         return Effect.sync(() => {
           removed += 1;
         });
       }),
   });
+
   return {
     layer,
     emit: (value: NetworkStatus) => {
@@ -52,24 +55,29 @@ it.effect(
         const replaced = yield* Deferred.make<boolean>();
         let owner = first;
         let state: NetworkStatusState | undefined;
+
         const Probe = () => {
           const status = useNetworkStatus();
           useLayoutEffect(() => {
             state = status;
             let signal = initial;
+
             if (owner === second) {
               signal = replaced;
             } else if (status.value?.connected === false) {
               signal = offline;
             }
+
             if (!status.loading) {
               queueMicrotask(() => {
                 Effect.runSync(Deferred.succeed(signal, true));
               });
             }
           }, [status]);
+
           return null;
         };
+
         const root = createRoot(document.createElement("div"));
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
@@ -78,6 +86,7 @@ it.effect(
             });
           })
         );
+
         const render = () => {
           flushSync(() => {
             root.render(
@@ -89,6 +98,7 @@ it.effect(
             );
           });
         };
+
         render();
         yield* Deferred.await(initial);
         assert.strictEqual(state?.value?.connectionType, "wifi");
@@ -120,8 +130,10 @@ it.effect(
           method: "getStatus",
           cause: "failed",
         });
+
         const fake = nativeFixture("ios", Effect.fail(failure));
         const failed = yield* Deferred.make<boolean>();
+
         const Probe = () => {
           const state = useNetworkStatus();
           useLayoutEffect(() => {
@@ -133,8 +145,10 @@ it.effect(
               });
             }
           }, [state]);
+
           return null;
         };
+
         const root = createRoot(document.createElement("div"));
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {

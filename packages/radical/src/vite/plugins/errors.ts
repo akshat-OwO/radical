@@ -5,6 +5,7 @@ export class InvalidPlugin extends Schema.TaggedError<
   InvalidPlugin,
   { readonly brand: unique symbol }
 >()("InvalidPlugin", { message: Schema.String }) {}
+
 export class PluginDependencyConflict extends Schema.TaggedError<
   PluginDependencyConflict,
   { readonly brand: unique symbol }

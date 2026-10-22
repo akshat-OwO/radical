@@ -5,10 +5,12 @@ export class GoogleSignInCancelled extends Schema.TaggedError<GoogleSignInCancel
   "GoogleSignInCancelled",
   {}
 ) {}
+
 export class GoogleSignInMisconfigured extends Schema.TaggedError<GoogleSignInMisconfigured>()(
   "GoogleSignInMisconfigured",
   { cause: Schema.Unknown }
 ) {}
+
 export class GoogleSignInUnavailable extends Schema.TaggedError<GoogleSignInUnavailable>()(
   "GoogleSignInUnavailable",
   {}

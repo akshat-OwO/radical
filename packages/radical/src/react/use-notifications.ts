@@ -33,17 +33,22 @@ export interface NotificationPermissionState extends ActionState<
   readonly check: () => void;
   readonly request: () => void;
 }
+
 const check = notificationsLive(checkNotificationPermission);
 const request = notificationsLive(requestNotificationPermission);
+
 export const useNotificationPermission = (): NotificationPermissionState => {
   const { run, ...state } = useBridgeAction<
     NotificationPermission,
     NotificationError
   >();
+
   const refresh = useCallback(() => {
     run(check);
   }, [run]);
+
   useEffect(refresh, [refresh]);
+
   return {
     ...state,
     check: refresh,
@@ -52,6 +57,7 @@ export const useNotificationPermission = (): NotificationPermissionState => {
     }, [run]),
   };
 };
+
 export interface NotificationsState extends ActionState<
   string | readonly string[] | true | NotificationScheduleResult,
   NotificationError
@@ -65,11 +71,13 @@ export interface NotificationsState extends ActionState<
   readonly unsubscribe: (topic: string) => void;
   readonly lookupTopics: () => void;
 }
+
 export const useNotifications = (): NotificationsState => {
   const { run, ...state } = useBridgeAction<
     string | readonly string[] | true | NotificationScheduleResult,
     NotificationError
   >();
+
   return {
     ...state,
     schedule: useCallback(
@@ -131,15 +139,19 @@ export interface ExactAlarmPermissionState extends ActionState<
   readonly check: () => void;
   readonly request: () => void;
 }
+
 export const useExactAlarmPermission = (): ExactAlarmPermissionState => {
   const { run, ...state } = useBridgeAction<
     ExactAlarmPermission,
     NotificationError
   >();
+
   const refresh = useCallback(() => {
     run(checkExactAlarmPermission);
   }, [run]);
+
   useEffect(refresh, [refresh]);
+
   return {
     ...state,
     check: refresh,

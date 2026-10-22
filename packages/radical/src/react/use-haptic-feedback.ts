@@ -36,33 +36,42 @@ export const useHapticFeedback = (): HapticFeedbackState => {
     error: failure,
     ...state
   } = useBridgeAction<true, HapticError>();
+
   const impact = useCallback(
     (style?: ImpactStyle) => {
       run(hapticsLive(hapticImpact(style)).pipe(Effect.as(true)));
     },
     [run]
   );
+
   const light = useCallback(() => {
     impact("LIGHT");
   }, [impact]);
+
   const medium = useCallback(() => {
     impact("MEDIUM");
   }, [impact]);
+
   const heavy = useCallback(() => {
     impact("HEAVY");
   }, [impact]);
+
   const success = useCallback(() => {
     run(hapticsLive(hapticNotification("SUCCESS")).pipe(Effect.as(true)));
   }, [run]);
+
   const warning = useCallback(() => {
     run(hapticsLive(hapticNotification("WARNING")).pipe(Effect.as(true)));
   }, [run]);
+
   const error = useCallback(() => {
     run(hapticsLive(hapticNotification("ERROR")).pipe(Effect.as(true)));
   }, [run]);
+
   const selection = useCallback(() => {
     run(hapticsLive(hapticSelection).pipe(Effect.as(true)));
   }, [run]);
+
   return {
     ...state,
     failure,

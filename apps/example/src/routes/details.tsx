@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 
 const Details = () => {
   const router = useRouter();
+
   return (
     <main>
       <h1>Details</h1>

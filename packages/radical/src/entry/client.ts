@@ -18,6 +18,7 @@ export const registerOfflineEffect = (options: {
   Effect.suspend(() => {
     const browser =
       typeof window !== "undefined" && typeof navigator !== "undefined";
+
     if (
       options.mode === "bundled" ||
       !shouldRegister({
@@ -28,7 +29,9 @@ export const registerOfflineEffect = (options: {
     ) {
       return Effect.void;
     }
+
     const base = options.base ?? "/";
+
     return Effect.tryPromise({
       try: () =>
         navigator.serviceWorker.register(`${base}radical-sw.js`, {
@@ -51,6 +54,7 @@ export {
   TransitionSchema,
   TransitionFailed,
 } from "../capabilities/transitions/browser-transitions.ts";
+
 export type {
   BrowserTransition,
   Transition,
@@ -68,20 +72,25 @@ export {
   BridgeCallFailed,
   BridgeDecodeError,
 } from "../core/bridge/bridge.ts";
+
 export type {
   BridgeError,
   InjectedBridge,
   Runtime,
 } from "../core/bridge/bridge.ts";
+
 export {
   DeviceInfoSchema,
   browserDeviceInfo,
   getDeviceInfo,
 } from "../capabilities/device-info/device-info.ts";
+
 export type { DeviceInfo } from "../capabilities/device-info/device-info.ts";
 
 export { safeAreaStyle } from "../capabilities/safe-area/safe-area-style.ts";
+
 export type { SafeArea } from "../core/context/native-context.ts";
+
 export { watchSafeArea } from "../capabilities/safe-area/safe-area.ts";
 
 export {
@@ -116,6 +125,7 @@ export {
   Cancelled,
   Unavailable,
 } from "../capabilities/camera/camera.ts";
+
 export type {
   Photo,
   CameraPermission,
@@ -128,11 +138,13 @@ export {
   BrowserFiles,
   BrowserFilesLive,
 } from "../capabilities/files/file-picker.ts";
+
 export type {
   PickedFile,
   PickFilesOptions,
   FilePickerError,
 } from "../capabilities/files/file-picker.ts";
+
 export {
   openUrl,
   openFile,
@@ -141,6 +153,7 @@ export {
   BrowserIntentsLive,
   NoHandler,
 } from "../capabilities/files/intents.ts";
+
 export type {
   IntentError,
   OpenableFile,
@@ -154,6 +167,7 @@ export {
   BrowserVideoStreamLive,
   VideoStreamInfoSchema,
 } from "../capabilities/video-stream/video-stream.ts";
+
 export type {
   VideoStreamInfo,
   VideoStreamOptions,
@@ -173,6 +187,7 @@ export {
   ImpactStyleSchema,
   NotificationTypeSchema,
 } from "../capabilities/haptics/haptics.ts";
+
 export type {
   HapticError,
   ImpactStyle,
@@ -189,6 +204,7 @@ export {
   NetworkStatusSchema,
   NetworkTypeSchema,
 } from "../capabilities/network/network.ts";
+
 export type {
   NetworkStatus,
   NetworkType,
@@ -207,6 +223,7 @@ export {
   GoogleSignInMisconfigured,
   GoogleSignInUnavailable,
 } from "../capabilities/google-sign-in/google-sign-in.ts";
+
 export type {
   GoogleIdentity,
   GoogleSignInConfig,
@@ -240,6 +257,7 @@ export {
   TopicSchema,
   MissingPushConfiguration,
 } from "../capabilities/notifications/notifications.ts";
+
 export type {
   ExactAlarmPermission,
   NotificationScheduleResult,
@@ -248,6 +266,7 @@ export type {
   NotificationPermission,
   NotificationError,
 } from "../capabilities/notifications/notifications.ts";
+
 export {
   NotificationSnapshots,
   NotificationSnapshotsLive,
@@ -263,6 +282,7 @@ export {
   DataProtectionStatusSchema,
   WebDataClearFailed,
 } from "../capabilities/data-protection/data-protection.ts";
+
 export type {
   DataProtectionStatus,
   DataProtectionError,

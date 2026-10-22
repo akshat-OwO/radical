@@ -31,6 +31,7 @@ const Probe = () => {
     value: undefined,
     error: undefined,
   });
+
   return createElement("p", null, "loading");
 };
 
@@ -41,7 +42,8 @@ it.effect(
       const layer = bridgeLayer(() =>
         assert.fail("SSR read the injected bridge")
       );
-      assert.strictEqual(typeof window, "undefined");
+
+      assert.isFalse("window" in globalThis);
       assert.strictEqual(
         renderToString(
           createElement(RadicalProvider, { layer }, createElement(Probe))
@@ -56,6 +58,7 @@ it.effect(
   () =>
     Effect.sync(() => {
       const area = { top: 62, right: 0, bottom: 34, left: 0 };
+
       const html = renderToString(
         createElement(
           RadicalProvider,
@@ -69,6 +72,7 @@ it.effect(
           createElement(SafeAreaProbe)
         )
       );
+
       assert.strictEqual(
         html,
         renderToString(createElement("pre", null, JSON.stringify(area)))
@@ -84,8 +88,10 @@ const CameraProbe = () => {
   assert.isUndefined(permission.value);
   camera.capture();
   permission.request();
+
   return createElement("p", null, "camera idle");
 };
+
 it.effect(
   "guards camera actions during server rendering without reading the bridge",
   () =>
@@ -93,6 +99,7 @@ it.effect(
       const layer = bridgeLayer(() =>
         assert.fail("Camera read bridge during SSR")
       );
+
       assert.strictEqual(
         renderToString(
           createElement(RadicalProvider, { layer }, createElement(CameraProbe))
@@ -111,13 +118,16 @@ const FilesProbe = () => {
   picker.pick();
   intent.openUrl("https://example.test");
   intent.openFile({ uri: "file:///tmp/a" });
+
   return createElement("p", null, "files idle");
 };
+
 it.effect("guards file picker and intent actions during server rendering", () =>
   Effect.sync(() => {
     const layer = bridgeLayer(() =>
       assert.fail("Files read bridge during SSR")
     );
+
     assert.strictEqual(
       renderToString(
         createElement(RadicalProvider, { layer }, createElement(FilesProbe))
@@ -136,13 +146,16 @@ const VideoProbe = () => {
   stream.switchCamera();
   stream.setZoom(2);
   stream.setTorch(true);
+
   return createElement("p", null, "video idle");
 };
+
 it.effect("guards video stream actions during server rendering", () =>
   Effect.sync(() => {
     const layer = bridgeLayer(() =>
       assert.fail("Video read bridge during SSR")
     );
+
     assert.strictEqual(
       renderToString(
         createElement(RadicalProvider, { layer }, createElement(VideoProbe))
@@ -165,13 +178,16 @@ const HapticsProbe = () => {
   feedback.error();
   feedback.selection();
   feedback.impact();
+
   return createElement("p", null, "haptics idle");
 };
+
 it.effect("guards every haptic helper during server rendering", () =>
   Effect.sync(() => {
     const layer = bridgeLayer(() =>
       assert.fail("Haptics read bridge during SSR")
     );
+
     assert.strictEqual(
       renderToString(
         createElement(RadicalProvider, { layer }, createElement(HapticsProbe))
@@ -187,8 +203,10 @@ const NetworkProbe = () => {
     value: undefined,
     error: undefined,
   });
+
   return createElement("p", null, "network unknown");
 };
+
 it.effect(
   "renders network status as loading without accessing globals during SSR",
   () =>
@@ -196,6 +214,7 @@ it.effect(
       const layer = bridgeLayer(() =>
         assert.fail("Network read bridge during SSR")
       );
+
       assert.strictEqual(
         renderToString(
           createElement(RadicalProvider, { layer }, createElement(NetworkProbe))
@@ -212,13 +231,16 @@ const GoogleProbe = () => {
   assert.isUndefined(state.error);
   state.signIn();
   state.cancel();
+
   return createElement("p", null, "google idle");
 };
+
 it.effect("guards Google sign-in during server rendering", () =>
   Effect.sync(() => {
     const layer = bridgeLayer(() =>
       assert.fail("Google sign-in read bridge during SSR")
     );
+
     assert.strictEqual(
       renderToString(
         createElement(RadicalProvider, { layer }, createElement(GoogleProbe))
@@ -245,13 +267,16 @@ const NotificationsProbe = () => {
   notifications.subscribe("demo");
   notifications.unsubscribe("demo");
   notifications.lookupTopics();
+
   return createElement("p", null, "notifications idle");
 };
+
 it.effect("guards every notification action during server rendering", () =>
   Effect.sync(() => {
     const layer = bridgeLayer(() =>
       assert.fail("Notifications read bridge during SSR")
     );
+
     assert.strictEqual(
       renderToString(
         createElement(
@@ -272,13 +297,16 @@ const DataProtectionProbe = () => {
   protection.setEnabled(true);
   protection.setEnabled(false);
   protection.clearWebData();
+
   return createElement("p", null, "protection idle");
 };
+
 it.effect("guards data protection and clearing during server rendering", () =>
   Effect.sync(() => {
     const layer = bridgeLayer(() =>
       assert.fail("Data protection read bridge during SSR")
     );
+
     assert.strictEqual(
       renderToString(
         createElement(

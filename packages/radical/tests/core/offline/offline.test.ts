@@ -26,12 +26,14 @@ import {
 } from "../../../src/entry/client.ts";
 
 const origin = "https://example.test";
+
 const manifest: OfflineManifest = {
   buildId: "one",
   cachePrefix: "radical:example:",
   assets: ["/assets/app.js", "/assets/lazy.js", "/assets/app.css"],
   fallback: "/offline.html",
 };
+
 const html = (text: string, status = 200, offline = true) =>
   new Response(text, {
     status,
@@ -40,9 +42,11 @@ const html = (text: string, status = 200, offline = true) =>
       "x-radical-offline": offline ? "1" : "0",
     },
   });
+
 const navigation = (path: string) => {
   const request = new Request(new URL(path, origin));
   Object.defineProperty(request, "mode", { value: "navigate" });
+
   return request;
 };
 
@@ -51,30 +55,38 @@ const makeMemory = () => {
     string,
     Map<string, { request: Request; response: Response }>
   >();
+
   const responses = new Map<string, Response>();
   const requests: string[] = [];
   const state = { online: true, writable: true };
+
   for (const asset of manifest.assets) {
     responses.set(new URL(asset, origin).href, new Response(`asset:${asset}`));
   }
+
   responses.set(
     new URL(manifest.fallback, origin).href,
     html("offline fallback")
   );
+
   const services: WorkerServices = {
     origin,
     caches: {
       open: (name) => {
         let data = storage.get(name);
+
         if (!data) {
           data = new Map();
           storage.set(name, data);
         }
+
         const snapshots = data;
+
         return Promise.resolve({
           match: (request, options) => {
             const stored = snapshots.get(request.url);
             const vary = stored?.response.headers.get("vary")?.split(",") ?? [];
+
             const matches =
               options.ignoreVary ||
               vary.every(
@@ -82,6 +94,7 @@ const makeMemory = () => {
                   stored?.request.headers.get(header.trim()) ===
                   request.headers.get(header.trim())
               );
+
             return Promise.resolve(
               matches ? stored?.response.clone() : undefined
             );
@@ -90,10 +103,12 @@ const makeMemory = () => {
             if (!state.writable) {
               return Promise.reject(new Error("quota"));
             }
+
             snapshots.set(request.url, {
               request: request.clone(),
               response: response.clone(),
             });
+
             return Promise.resolve();
           },
         });
@@ -103,6 +118,7 @@ const makeMemory = () => {
     },
     fetch: (request) => {
       requests.push(request.url);
+
       return state.online
         ? Promise.resolve(
             responses.get(request.url)?.clone() ?? html("not found", 404)
@@ -110,14 +126,18 @@ const makeMemory = () => {
         : Promise.reject(new Error("offline"));
     },
   };
+
   const worker = createOfflineWorker(manifest, services);
+
   return { storage, responses, requests, state, services, worker };
 };
 
 class Memory extends Context.Service<Memory, ReturnType<typeof makeMemory>>()(
   "test/OfflineMemory"
 ) {}
+
 const memoryLayer = Layer.sync(Memory, makeMemory);
+
 const responseText = (response: Response) =>
   Effect.promise(() => response.text());
 
@@ -130,6 +150,7 @@ describe("offline worker", () => {
         const { worker, storage } = yield* Memory;
         yield* Effect.promise(worker.install);
         const names = [...storage.keys()];
+
         for (const input of [
           "unrelated",
           {},
@@ -140,6 +161,7 @@ describe("offline worker", () => {
         ]) {
           assert.isUndefined(worker.message(input));
         }
+
         assert.isTrue(worker.handles(navigation("/notes")));
         assert.deepStrictEqual([...storage.keys()], names);
         const response = worker.message(offlineMessages.clear);
@@ -158,6 +180,7 @@ describe("offline worker", () => {
     () =>
       Effect.gen(function* () {
         const { services } = yield* Memory;
+
         const worker = createOfflineWorker(manifest, {
           ...services,
           caches: {
@@ -165,6 +188,7 @@ describe("offline worker", () => {
             keys: () => Promise.reject(new Error("storage unavailable")),
           },
         });
+
         const response = worker.message(offlineMessages.clear);
         assert.isDefined(response);
         assert.strictEqual(
@@ -180,6 +204,7 @@ describe("offline worker", () => {
         const { worker, responses, state } = yield* Memory;
         yield* Effect.promise(worker.install);
         const root = createRootRoute();
+
         const routeTree = root.addChildren([
           createRoute({
             getParentRoute: () => root,
@@ -202,6 +227,7 @@ describe("offline worker", () => {
             staticData: { radical: { offline: true } },
           }),
         ]);
+
         const cases = [
           ["/posts/new", false],
           ["/posts/123", true],
@@ -209,18 +235,22 @@ describe("offline worker", () => {
           ["/categories/tech", true],
           ["/decorated/post-123", true],
         ] as const;
+
         for (const [path, eligible] of cases) {
           const router = createRouter({
             routeTree,
             history: createMemoryHistory({ initialEntries: [path] }),
             isServer: true,
           });
+
           yield* Effect.promise(() => router.load());
           const request = navigation(path);
           const responseHeaders = new Headers({ "content-type": "text/html" });
+
           const response = offlineHandler(
             ({ responseHeaders: headers }) => new Response(path, { headers })
           )({ request, router, responseHeaders });
+
           assert.strictEqual(
             response.headers.get("x-radical-offline"),
             eligible ? "1" : "0"
@@ -228,7 +258,9 @@ describe("offline worker", () => {
           responses.set(request.url, response);
           yield* Effect.promise(() => worker.respond(request));
         }
+
         state.online = false;
+
         for (const [path, eligible] of cases) {
           assert.strictEqual(
             yield* responseText(
@@ -244,6 +276,7 @@ describe("offline worker", () => {
     Effect.gen(function* () {
       const { worker, responses, state } = yield* Memory;
       yield* Effect.promise(worker.install);
+
       for (const platform of ["ios", "android"] as const) {
         const request = navigation(`/notes/${platform}`);
         request.headers.set(
@@ -254,6 +287,7 @@ describe("offline worker", () => {
             shellVersion: "1.0",
           })}`
         );
+
         const response = offlineHandler(
           ({ responseHeaders }) =>
             new Response("shell document", { headers: responseHeaders })
@@ -268,11 +302,14 @@ describe("offline worker", () => {
           },
           responseHeaders: new Headers({ "content-type": "text/html" }),
         });
+
         assert.strictEqual(response.headers.get("x-radical-offline"), "1");
         responses.set(request.url, response);
         yield* Effect.promise(() => worker.respond(request));
       }
+
       state.online = false;
+
       for (const platform of ["ios", "android"] as const) {
         assert.strictEqual(
           yield* responseText(
@@ -297,9 +334,11 @@ describe("offline worker", () => {
       state.online = false;
       const snapshot = yield* Effect.promise(() => worker.respond(request));
       assert.isNull(snapshot.headers.get("x-radical-offline-fallback"));
+
       const fallback = yield* Effect.promise(() =>
         worker.respond(navigation("/missing"))
       );
+
       assert.strictEqual(
         fallback.headers.get("x-radical-offline-fallback"),
         "1"
@@ -358,6 +397,7 @@ describe("offline worker", () => {
         responses.set(online.url, html("online document", 200, false));
         yield* Effect.promise(() => worker.respond(online));
         state.online = false;
+
         for (const path of [
           "/online",
           "/notes/1?unvisited=yes",
@@ -381,6 +421,7 @@ describe("offline worker", () => {
         yield* Effect.promise(worker.install);
         assert.lengthOf(requests, manifest.assets.length + 1);
         state.online = false;
+
         for (const path of manifest.assets) {
           const request = new Request(new URL(path, origin));
           assert.isTrue(worker.handles(request));
@@ -391,6 +432,7 @@ describe("offline worker", () => {
             `asset:${path}`
           );
         }
+
         assert.lengthOf(requests, manifest.assets.length + 1);
       }).pipe(Effect.provide(memoryLayer))
   );
@@ -405,10 +447,12 @@ describe("offline worker", () => {
         yield* Effect.promise(() =>
           services.caches.open("radical:example:one:snapshots")
         );
+
         const next = createOfflineWorker(
           { ...manifest, buildId: "two" },
           services
         );
+
         yield* Effect.promise(next.install);
         yield* Effect.promise(next.activate);
         assert.deepStrictEqual([...storage.keys()].toSorted(), [
@@ -450,15 +494,18 @@ describe("offline worker", () => {
         yield* Effect.promise(() => worker.respond(request));
         const redirected = html("redirected");
         Object.defineProperty(redirected, "redirected", { value: true });
+
         // Response.clone does not preserve the synthetic redirected property.
         for (const response of [html("error", 500), new Response("json")]) {
           responses.set(request.url, response);
           yield* Effect.promise(() => worker.respond(request));
         }
+
         const redirectWorker = createOfflineWorker(manifest, {
           ...(yield* Memory).services,
           fetch: () => Promise.resolve(redirected),
         });
+
         yield* Effect.promise(() => redirectWorker.respond(request));
         state.online = false;
         assert.strictEqual(
@@ -494,14 +541,17 @@ describe("offline worker", () => {
         const { worker, responses, services, storage } = yield* Memory;
         yield* Effect.promise(worker.install);
         responses.delete(new URL(manifest.assets[0], origin).href);
+
         const next = createOfflineWorker(
           { ...manifest, buildId: "two" },
           services
         );
+
         const failed = yield* Effect.tryPromise({
           try: next.install,
           catch: () => "install failed" as const,
         }).pipe(Effect.flip);
+
         assert.strictEqual(failed, "install failed");
         assert.isTrue(storage.has("radical:example:one:assets"));
       }).pipe(Effect.provide(memoryLayer))
@@ -573,6 +623,7 @@ describe("offline registration", () => {
           );
         }
       }
+
       yield* registerOfflineEffect({ production: true });
       yield* registerOfflineEffect({ production: false });
     })
@@ -588,9 +639,11 @@ it.effect(
         "radical:example:one:snapshots",
         "unrelated",
       ]);
+
       const missing: Response | undefined = undefined;
       const pending = yield* Deferred.make<boolean>();
       let writing = false;
+
       const worker = createOfflineWorker(manifest, {
         origin,
         fetch: () => Promise.resolve(html("private")),
@@ -602,6 +655,7 @@ it.effect(
               match: () => Promise.resolve(missing),
               put: () => {
                 writing = true;
+
                 return Effect.runPromise(Deferred.await(pending)).then(() => {
                   storage.add(key);
                 });
@@ -609,9 +663,11 @@ it.effect(
             }),
         },
       });
+
       const capture = yield* Effect.promise(() =>
         worker.capture(`${origin}/private`)
       ).pipe(Effect.forkChild);
+
       yield* TestClock.adjust("1 millis");
       assert.isTrue(writing);
       const clear = yield* Effect.promise(worker.clear).pipe(Effect.forkChild);
@@ -633,6 +689,7 @@ it.effect(
     Effect.gen(function* () {
       const fetched = yield* Deferred.make<Response, Error>();
       const opened: string[] = [];
+
       const worker = createOfflineWorker(manifest, {
         origin,
         fetch: () => Effect.runPromise(Deferred.await(fetched)),
@@ -641,6 +698,7 @@ it.effect(
           delete: () => Promise.resolve(false),
           open: (name) => {
             opened.push(name);
+
             return Promise.resolve({
               match: () => Promise.resolve(new Response("private snapshot")),
               put: () => Promise.resolve(),
@@ -648,9 +706,11 @@ it.effect(
           },
         },
       });
+
       const navigationFiber = yield* Effect.promise(() =>
         worker.respond(navigation("/private"))
       ).pipe(Effect.forkChild);
+
       yield* TestClock.adjust("1 millis");
       yield* Effect.promise(worker.clear);
       yield* Deferred.fail(fetched, new Error("offline"));

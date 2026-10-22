@@ -19,6 +19,7 @@ export const execute = (
 ) =>
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+
     if (options.capture === true) {
       return yield* Effect.scoped(
         Effect.gen(function* () {
@@ -29,6 +30,7 @@ export const execute = (
               stderr: "pipe",
             })
           );
+
           const [stdout, stderr, exitCode] = yield* Effect.all(
             [
               Stream.mkString(Stream.decodeText(process.stdout)),
@@ -37,6 +39,7 @@ export const execute = (
             ],
             { concurrency: "unbounded" }
           );
+
           if (
             exitCode !== 0 &&
             !(
@@ -48,10 +51,12 @@ export const execute = (
               new ShellCommandError({ command, exitCode })
             );
           }
+
           return stdout;
         })
       );
     }
+
     const exitCode = yield* spawner.exitCode(
       ChildProcess.make(command, args, {
         cwd,
@@ -60,9 +65,11 @@ export const execute = (
         stderr: "inherit",
       })
     );
+
     yield* exitCode === 0
       ? Effect.void
       : Effect.fail(new ShellCommandError({ command, exitCode }));
+
     return "";
   });
 
@@ -83,5 +90,6 @@ export const replaceProject = <A, E, R>(
     );
     yield* fs.remove(destination, { recursive: true, force: true });
     yield* fs.rename(staging, destination);
+
     return destination;
   });

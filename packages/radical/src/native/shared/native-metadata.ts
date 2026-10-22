@@ -19,7 +19,9 @@ const NativeMetadataSchema = Schema.Struct({
   url: HttpOriginSchema,
   outputs: Schema.optional(AdapterOutputsSchema),
 });
+
 type Metadata = typeof NativeMetadataSchema.Type;
+
 type MetadataError = InvalidConfig | PlatformError.PlatformError;
 
 const decode = (source: string) =>
@@ -31,6 +33,7 @@ const decode = (source: string) =>
         })
     )
   );
+
 export class NativeMetadata extends Context.Service<
   NativeMetadata,
   {
@@ -48,14 +51,17 @@ export const nativeMetadataLayer = Layer.effect(
   NativeMetadata,
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
+
     const read = (root: string) =>
       fs.readFileString(file(root)).pipe(Effect.flatMap(decode));
+
     return NativeMetadata.of({
       read,
       update: (root, config, listeningUrl, outputs) =>
         Effect.gen(function* () {
           // Config resolution can run before the dev server has selected a port.
           const selectedUrl = listeningUrl ?? config.origin;
+
           const previous =
             selectedUrl === undefined || outputs === undefined
               ? yield* read(root).pipe(
@@ -68,15 +74,19 @@ export const nativeMetadataLayer = Layer.effect(
                   )
                 )
               : undefined;
+
           const url = selectedUrl ?? previous?.url;
+
           if (url === undefined) {
             return;
           }
+
           const source = JSON.stringify({
             config,
             url,
             outputs: outputs ?? previous?.outputs,
           });
+
           yield* decode(source);
           yield* fs.makeDirectory(path.dirname(file(root)), {
             recursive: true,

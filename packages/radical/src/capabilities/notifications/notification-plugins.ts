@@ -5,6 +5,7 @@ import { NotificationScheduleResultSchema } from "./notification-schema.ts";
 
 const empty = Schema.Struct({});
 const voidCommand = { args: empty, result: Schema.Unknown, errors: {} };
+
 const permissions = Schema.Struct({
   display: Schema.Literals([
     "granted",
@@ -13,6 +14,7 @@ const permissions = Schema.Struct({
     "prompt-with-rationale",
   ]),
 });
+
 export const localNotificationsPlugin = definePlugin({
   id: "localNotifications",
   bridge: "LocalNotifications",
@@ -55,6 +57,7 @@ export const localNotificationsPlugin = definePlugin({
     },
   },
 });
+
 export const badgePlugin = definePlugin({
   id: "badge",
   bridge: "Badge",
@@ -68,6 +71,7 @@ export const badgePlugin = definePlugin({
     get: { ...voidCommand, result: Schema.Struct({ count: Schema.Int }) },
   },
 });
+
 export const firebaseMessagingPlugin = definePlugin({
   id: "firebaseMessaging",
   bridge: "FirebaseMessaging",
@@ -79,6 +83,7 @@ export const firebaseMessagingPlugin = definePlugin({
     },
   },
 });
+
 export const notificationTopicsPlugin = definePlugin({
   id: "notificationTopics",
   bridge: "RadicalNotificationTopics",

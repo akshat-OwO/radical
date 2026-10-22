@@ -26,6 +26,7 @@ export interface FilePickerState extends ActionState<
 > {
   readonly pick: (options?: PickFilesOptions) => void;
 }
+
 export interface IntentState extends ActionState<true, IntentError> {
   readonly openUrl: (url: string) => void;
   readonly openFile: (file: OpenableFile, options?: OpenFileOptions) => void;
@@ -36,6 +37,7 @@ export const useFilePicker = (): FilePickerState => {
     readonly PickedFile[],
     FilePickerError
   >();
+
   return {
     ...state,
     pick: useCallback(
@@ -48,9 +50,11 @@ export const useFilePicker = (): FilePickerState => {
 };
 
 const opened = true as const;
+
 /** `value` is `true` once the URL or file was handed to another app. */
 export const useIntent = (): IntentState => {
   const { run, ...state } = useBridgeAction<true, IntentError>();
+
   return {
     ...state,
     openUrl: useCallback(

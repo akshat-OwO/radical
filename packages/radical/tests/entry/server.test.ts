@@ -35,6 +35,7 @@ describe("native context", () => {
             safeArea: { top: 47.5, right: 1, bottom: 34, left: 2 },
             shellVersion: "1.0.0",
           };
+
           const cookie = yield* encodeNativeContextCookie(context);
           assert.deepStrictEqual(
             yield* getNativeContext(requestWithCookie(cookie)),
@@ -79,6 +80,7 @@ describe("native context", () => {
           safeArea: { top: 47, right: 0, bottom: 34, left: 0 },
           shellVersion: "1.0.0",
         };
+
         const invalid = [
           "",
           "{",
@@ -100,6 +102,7 @@ describe("native context", () => {
           JSON.stringify({ ...valid, safeArea: { top: 0 } }),
           '{"platform":"ios","safeArea":{"top":1e400,"right":0,"bottom":0,"left":0},"shellVersion":"1"}',
         ];
+
         for (const json of invalid) {
           assert.deepStrictEqual(
             yield* getNativeContext(requestWith(json)),
@@ -117,6 +120,7 @@ describe("native context", () => {
         safeArea: { top: 47, right: 0, bottom: 34, left: 0 },
         shellVersion: "1",
       };
+
       assert.deepStrictEqual(
         yield* getNativeContext(
           requestWith(JSON.stringify({ ...context, future: true }))

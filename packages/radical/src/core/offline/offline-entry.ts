@@ -13,6 +13,7 @@ export const installOfflineWorker = (
     fetch: (request) => scope.fetch(request),
     origin: scope.location.origin,
   });
+
   scope.addEventListener("install", (event) => {
     event.waitUntil(worker.install());
   });
@@ -41,6 +42,7 @@ export const installOfflineWorker = (
 
   scope.addEventListener("message", (event) => {
     const response = worker.message(event.data);
+
     if (response) {
       event.waitUntil(
         response.then((message) => {

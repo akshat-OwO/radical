@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Array, Effect } from "effect";
 
 import { Cancelled } from "../../core/errors.ts";
 
@@ -16,27 +16,34 @@ export const browserFileInput = (
   Effect.suspend(() => {
     const input = doc.createElement("input");
     input.type = "file";
+
     if (options.accept !== undefined) {
       input.accept = options.accept;
     }
+
     if (options.capture !== undefined) {
       input.setAttribute("capture", options.capture);
     }
+
     input.multiple = options.multiple === true;
     input.hidden = true;
+
     let complete:
-      | ((effect: Effect.Effect<readonly File[], Cancelled>) => void)
+      | ((effect: Effect.Effect<readonly [File, ...File[]], Cancelled>) => void)
       | undefined;
+
     const change = () => {
       const files = [...(input.files ?? [])];
       complete?.(
-        files.length > 0
+        Array.isReadonlyArrayNonEmpty(files)
           ? Effect.succeed(files)
           : Effect.fail(new Cancelled({}))
       );
     };
+
     const cancel = () => complete?.(Effect.fail(new Cancelled({})));
-    return Effect.callback<readonly File[], Cancelled>((receive) => {
+
+    return Effect.callback<readonly [File, ...File[]], Cancelled>((receive) => {
       complete = receive;
       input.addEventListener("change", change);
       input.addEventListener("cancel", cancel);

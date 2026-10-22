@@ -35,9 +35,10 @@ const mainActivity = `${destination}/android/app/src/main/java/dev/radical/examp
 
 /** Per-test files and command results, with no SDK, processes or real disk. */
 const defaultConfig = { appId: "dev.radical.example" };
+
 const memory = (
   fail = false,
-  config: unknown = defaultConfig,
+  config: Schema.Json = defaultConfig,
   manifest: PluginManifest = echo
 ) => {
   const files = new Map<string, string>([
@@ -61,7 +62,9 @@ const memory = (
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
     ["/package/templates/android/radical.gradle", gradle],
   ]);
+
   const require = createRequire(import.meta.url);
+
   for (const [name, version] of Object.entries({
     "@capacitor/core": "8.5.3",
     "@capacitor/android": "8.6.1",
@@ -72,14 +75,17 @@ const memory = (
       JSON.stringify({ version })
     );
   }
+
   const commands: string[][] = [];
   const binaries = new Map<string, Uint8Array>();
   const assetCalls: AssetGeneration[] = [];
   const control = { failAssets: false };
+
   const fs = FileSystem.layerNoop({
     readFile: (name) =>
       Effect.suspend(() => {
         const bytes = binaries.get(name);
+
         return bytes === undefined
           ? Effect.fail(
               PlatformError.systemError({
@@ -94,6 +100,7 @@ const memory = (
     readFileString: (name) =>
       Effect.suspend(() => {
         const content = files.get(name);
+
         return content === undefined
           ? Effect.fail(
               PlatformError.systemError({
@@ -140,11 +147,13 @@ const memory = (
         }
       }),
   });
+
   const spawner = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {
     ...ChildProcessSpawner.make(() => Effect.die("Unexpected spawn")),
     exitCode: (command) =>
       Effect.sync(() => {
         assert.strictEqual(command._tag, "StandardCommand");
+
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
           files.set(
@@ -164,9 +173,11 @@ const memory = (
             "Capacitor 8"
           );
         }
+
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
   });
+
   return {
     files,
     binaries,
@@ -180,6 +191,7 @@ const memory = (
         generate: (input) =>
           Effect.suspend(() => {
             assetCalls.push(input);
+
             return control.failAssets
               ? Effect.fail(
                   new AssetGenerationFailed({
@@ -213,12 +225,15 @@ describe("Android shell generation", () => {
           pushNotifications: false,
         },
       });
+
       return Effect.gen(function* () {
         yield* generate;
+
         const source =
           state.files.get(
             `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
           ) ?? "";
+
         assert.include(
           source,
           'getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()'
@@ -239,12 +254,15 @@ describe("Android shell generation", () => {
         ...defaultConfig,
         internalPlugins: { dataProtection: true, transitions: false },
       });
+
       return Effect.gen(function* () {
         yield* generate;
+
         const source =
           state.files.get(
             `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
           ) ?? "";
+
         assert.include(source, "class RadicalDataProtectionPlugin");
         assert.notInclude(source, "__OFFLINE_SAVED_URL_KEY__");
         assert.include(source, 'remove("lastOfflineUrl")');
@@ -278,11 +296,14 @@ describe("Android shell generation", () => {
             },
             { ...echo, android: { ...echo.android, className } }
           );
+
           yield* generate.pipe(Effect.provide(state.layer));
+
           const source =
             state.files.get(
               `${destination}/android/app/src/main/java/dev/radical/example/EchoPlugin.java`
             ) ?? "";
+
           assert.match(source, /^package dev\.radical\.example;/u);
           assert.include(source, "public class EchoPlugin extends Plugin");
           assert.include(
@@ -300,6 +321,7 @@ describe("Android shell generation", () => {
         ...defaultConfig,
         internalPlugins: { device: false, transitions: false },
       });
+
       return Effect.gen(function* () {
         yield* generate;
         assert.notInclude(
@@ -327,6 +349,7 @@ describe("Android shell generation", () => {
     "emits the transitions Java class and its registration call",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* generate;
         assert.include(
@@ -347,11 +370,14 @@ describe("Android shell generation", () => {
     "emits a Capacitor project with the native-context cookie and Java safe-area expressions",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         assert.strictEqual(yield* generate, destination);
         assert.strictEqual(state.commands.length, 1);
+
         const generatedPackage =
           state.files.get(`${destination}/package.json`) ?? "";
+
         const { dependencies } = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
@@ -359,6 +385,7 @@ describe("Android shell generation", () => {
             })
           )
         )(generatedPackage);
+
         assert.deepStrictEqual(dependencies, {
           "@capacitor/core": "8.5.3",
           "@capacitor/android": "8.6.1",
@@ -371,14 +398,18 @@ describe("Android shell generation", () => {
         );
         assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "android"]);
         const source = state.files.get(mainActivity) ?? "";
+
         const cookie = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(Schema.String)
         )(/COOKIE = (?<cookie>.+);/u.exec(source)?.groups?.cookie);
+
         const [name, value] = cookie.split("=");
         assert.strictEqual(name, NATIVE_CONTEXT_COOKIE);
+
         const context = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(ShellContextSchema)
         )(decodeURIComponent(value ?? ""));
+
         assert.deepStrictEqual(context, {
           platform: "android",
           shellVersion: "1.2.3",
@@ -399,6 +430,7 @@ describe("Android shell generation", () => {
         assert.notInclude(source, "v.setPadding(");
         assert.include(source, "if (!started)");
         assert.include(source, "window.__radical");
+
         const nativeConfig = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
@@ -411,6 +443,7 @@ describe("Android shell generation", () => {
             })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
+
         assert.isFalse(nativeConfig.android.resolveServiceWorkerRequests);
         assert.deepStrictEqual(nativeConfig.plugins.SystemBars, {
           insetsHandling: "disable",
@@ -442,6 +475,7 @@ describe("Android shell generation", () => {
           "https://secure.test:8443",
         ],
       });
+
       return Effect.gen(function* () {
         yield* generate;
         const source = state.files.get(mainActivity) ?? "";
@@ -464,6 +498,7 @@ describe("Android shell generation", () => {
       "/package/templates/android/MainActivity.java",
       activity.replace("__COOKIES__", "")
     );
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(generate);
       assert.strictEqual(error._tag, "NativeTemplateMismatch");
@@ -475,11 +510,14 @@ describe("Android shell generation", () => {
     "replaces stale files and produces identical project content on rerun",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* generate;
+
         const first = [...state.files].toSorted(([a], [b]) =>
           a.localeCompare(b)
         );
+
         state.files.set(`${destination}/stale.txt`, "old shell");
         state.files.set(
           `${destination}.next/abandoned.txt`,
@@ -500,6 +538,7 @@ describe("Android shell generation", () => {
     () => {
       const state = memory(true);
       state.files.set(`${destination}/previous.txt`, "usable shell");
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "ShellCommandError");
@@ -520,6 +559,7 @@ describe("Android shell generation", () => {
     "rejects invalid configuration before generating or executing commands",
     () => {
       const state = memory(false, { appId: "../outside" });
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "InvalidConfig");
@@ -540,9 +580,11 @@ describe("android app identity", () => {
           { ...defaultConfig, android: { packageId: "dev.class.app" } },
         ]) {
           const state = memory(false, config);
+
           const error = yield* Effect.flip(
             generate.pipe(Effect.provide(state.layer))
           );
+
           assert.strictEqual(error._tag, "InvalidConfig");
           assert.include(error.message, "android");
           assert.include(error.message, "dev.class.app");
@@ -550,10 +592,12 @@ describe("android app identity", () => {
           assert.include(error.message, "Java keyword");
           assert.isEmpty(state.commands);
         }
+
         const state = memory(false, {
           appId: "dev.class.app",
           android: { packageId: "dev.valid.app" },
         });
+
         yield* generate.pipe(Effect.provide(state.layer));
         assert.include(
           state.files.get(`${destination}/capacitor.config.json`) ?? "",
@@ -573,16 +617,20 @@ describe("android app identity", () => {
         icon: "icon.png",
         splash: { image: "splash.png", backgroundColor: "#241044" },
       };
+
       const state = memory(false, config);
+
       return Effect.gen(function* () {
         state.binaries.set("/app/icon.png", yield* image(1024));
         state.binaries.set("/app/splash.png", yield* image(2732));
         yield* generate;
+
         const nativeConfig = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({ appId: Schema.String, appName: Schema.String })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+
         assert.deepStrictEqual(nativeConfig, {
           appId: "dev.custom.shell",
           appName: "Platform name",
@@ -647,6 +695,7 @@ describe("android app identity", () => {
 
   it.effect("keeps the previous shell when the asset generator fails", () => {
     const state = memory(false, { ...defaultConfig, icon: "icon.png" });
+
     return Effect.gen(function* () {
       state.binaries.set("/app/icon.png", yield* image(1024));
       state.files.set(`${destination}/previous.txt`, "usable shell");
@@ -667,6 +716,7 @@ describe("android app identity", () => {
 
   it.effect("rejects a missing icon before invoking any tool", () => {
     const state = memory(false, { ...defaultConfig, icon: "missing.png" });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(generate);
       assert.strictEqual(error._tag, "InvalidAsset");
@@ -687,11 +737,13 @@ describe("bundled android shell", () => {
         origin: "https://api.example",
         allowlist: ["https://external.example"],
       });
+
       state.files.set(
         "/app/web/public/entry.html",
         "<!doctype html><title>SPA shell</title>"
       );
       state.files.set("/app/web/public/assets/app.js", "application code");
+
       return Effect.gen(function* () {
         const adapter = yield* RadicalAdapter;
         const outputs = yield* adapter.outputs;
@@ -711,6 +763,7 @@ describe("bundled android shell", () => {
           state.files.get(`${destination}/www/assets/app.js`),
           "application code"
         );
+
         const config = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
@@ -721,6 +774,7 @@ describe("bundled android shell", () => {
             })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+
         assert.isUndefined(config.server.url);
         assert.deepStrictEqual(config.server.allowNavigation, []);
         const source = state.files.get(mainActivity) ?? "";
@@ -746,6 +800,7 @@ describe("bundled android shell", () => {
       );
     }
   );
+
   for (const outputs of [undefined, { clientDir: "web/public" }]) {
     it.effect(
       `rejects ${outputs === undefined ? "missing adapter outputs" : "an adapter without a SPA shell"} before replacing a bundled project`,
@@ -755,6 +810,7 @@ describe("bundled android shell", () => {
           mode: "bundled",
           origin: "https://api.example",
         });
+
         state.files.set(
           "/app/.radical/native.json",
           JSON.stringify({
@@ -768,6 +824,7 @@ describe("bundled android shell", () => {
           })
         );
         state.files.set(`${destination}/previous.txt`, "usable shell");
+
         return Effect.gen(function* () {
           const error = yield* Effect.flip(generate);
           assert.strictEqual(error._tag, "InvalidConfig");
@@ -781,6 +838,7 @@ describe("bundled android shell", () => {
       }
     );
   }
+
   it.effect(
     "rejects missing SPA output before replacing an existing shell",
     () => {
@@ -789,7 +847,9 @@ describe("bundled android shell", () => {
         mode: "bundled",
         origin: "https://api.example",
       });
+
       state.files.set(`${destination}/previous.txt`, "usable shell");
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "InvalidConfig");

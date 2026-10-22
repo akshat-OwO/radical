@@ -36,6 +36,7 @@ export const AdapterOutputsSchema = Schema.Struct({
   /** Response headers exposed to bundled clients through CORS. */
   exposedHeaders: Schema.optional(Schema.Array(Schema.String)),
 });
+
 export type AdapterOutputs = typeof AdapterOutputsSchema.Type;
 
 /** Framework-specific operations, supplied through a Layer. */

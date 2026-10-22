@@ -12,6 +12,7 @@ import { PluginModules } from "../../src/vite/plugins/plugin-plan.ts";
 const modules = Layer.succeed(PluginModules, {
   load: () => Effect.sync(() => assert.fail("Unexpected manifest load")),
 });
+
 const options = {
   Camera: {
     usageDescription: "Take <photos> & preview",
@@ -23,7 +24,8 @@ const options = {
     iosClientId: "ios.apps.googleusercontent.com",
   },
 };
-const resolve = (input: unknown) =>
+
+const resolve = (input: Schema.Json) =>
   resolveBuildPlan(input).pipe(Effect.provide(modules));
 
 it.effect(
@@ -49,6 +51,7 @@ it.effect(
           },
         },
       });
+
       assert.deepStrictEqual(plan.capabilities, [
         "googleSignIn",
         "network",
@@ -128,6 +131,7 @@ it.effect(
         appId: "dev.test.app",
         pluginOptions: { Camera: false, VideoStream: null, GoogleSignIn: {} },
       });
+
       assert.deepStrictEqual(plan.capabilities, ["device", "transitions"]);
       assert.deepStrictEqual(plan.pluginConfig, {});
       assert.deepStrictEqual(plan.android.declarations, []);
@@ -154,6 +158,7 @@ it.effect("deduplicates identical shared camera purposes before escaping", () =>
         VideoStream: { usageDescription: options.Camera.usageDescription },
       },
     });
+
     assert.strictEqual(
       plan.ios.plist.NSCameraUsageDescription,
       "<string>Take &lt;photos&gt; &amp; preview</string>"
@@ -181,6 +186,7 @@ for (const [flag, selector, field] of [
             [selector]: { ...options[selector], [field]: "" },
           },
         }).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "InvalidPlugin");
         assert.include(error.message, selector);
         assert.include(error.message, field);
@@ -193,6 +199,7 @@ it.effect(
   () =>
     Effect.gen(function* () {
       let decodes = 0;
+
       const manifest = definePlugin({
         id: "custom",
         bridge: "Custom",
@@ -203,6 +210,7 @@ it.effect(
             count: Schema.NumberFromString.check(
               Schema.makeFilter(() => {
                 decodes += 1;
+
                 return true;
               })
             ),
@@ -212,6 +220,7 @@ it.effect(
           echo: { args: Schema.Struct({}), result: Schema.Unknown, errors: {} },
         },
       });
+
       const plan = yield* resolveBuildPlan({
         appId: "dev.test.app",
         plugins: [{ manifest: "./custom.ts" }],
@@ -221,6 +230,7 @@ it.effect(
           load: () => Effect.succeed({ default: manifest }),
         })
       );
+
       assert.strictEqual(decodes, 1);
       assert.deepStrictEqual(
         plan.plugins.find((entry) => entry.manifest.id === "custom")?.options,
@@ -242,9 +252,11 @@ it.effect(
           { key: "Usage", value: "same" },
           second,
         ]).pipe(Effect.flip);
+
         assert.strictEqual(error._tag, "InvalidConfig");
         assert.include(error.message, "Usage");
       }
+
       assert.deepStrictEqual(
         yield* composePlist([
           { key: "Usage", value: "same" },
@@ -266,11 +278,13 @@ it.effect(
         ]),
         { package: { symlink: true } }
       );
+
       for (const kind of ["Vite define", "SPM setting", "iOS entitlement"]) {
         const error = yield* composeSettings(kind, [
           { field: "one" },
           { field: "two" },
         ]).pipe(Effect.flip);
+
         assert.include(error.message, kind);
         assert.include(error.message, "field");
       }

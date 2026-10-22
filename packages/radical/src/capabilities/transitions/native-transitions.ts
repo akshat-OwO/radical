@@ -47,6 +47,7 @@ const frame = Effect.callback<number>((resume) => {
   const handle = requestAnimationFrame(() => {
     resume(Effect.succeed(0));
   });
+
   return Effect.sync(() => {
     cancelAnimationFrame(handle);
   });
@@ -54,6 +55,7 @@ const frame = Effect.callback<number>((resume) => {
 
 // The native plugin has one overlay slot across routers and layer rebuilds.
 const overlaySequence = Ref.makeUnsafe(0n);
+
 const nextOverlayId = Ref.updateAndGet(overlaySequence, (id) => id + 1n).pipe(
   Effect.map(String)
 );
@@ -62,12 +64,14 @@ export const NativeTransitionsLive = Layer.effect(
   NativeTransitions,
   Effect.gen(function* () {
     const bridge = yield* Bridge;
+
     const invoke = (
       method: keyof typeof transitionsPlugin.commands,
       id: string,
       options = {}
     ) =>
       command(method, id, options).pipe(Effect.provideService(Bridge, bridge));
+
     return {
       nextId: nextOverlayId,
       cover: (id: string) => invoke("cover", id),
@@ -93,6 +97,7 @@ export const nativeTransition = <A, E>(
 ) =>
   Effect.gen(function* () {
     const native = yield* NativeTransitions;
+
     const bounded = <B, F>(effect: Effect.Effect<B, F>) =>
       effect.pipe(
         Effect.timeout(timeoutMs),
@@ -100,17 +105,22 @@ export const nativeTransition = <A, E>(
           Effect.fail(new TransitionTimeout({ cause }))
         )
       );
+
     const remove = native
       .remove(id)
       .pipe(Effect.timeout(timeoutMs), Effect.ignore);
+
     const captured = yield* bounded(native.cover(id)).pipe(
       Effect.onInterrupt(() => remove),
       Effect.result
     );
+
     if (captured._tag === "Failure") {
       yield* remove;
+
       return yield* commit;
     }
+
     return yield* commit.pipe(
       Effect.tap(() =>
         bounded(

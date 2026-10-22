@@ -9,6 +9,7 @@ const videoCommand = {
   result: Schema.Unknown,
   errors: {},
 };
+
 export const videoStreamPlugin = definePlugin({
   id: "videoStream",
   bridge: "CameraPreview",

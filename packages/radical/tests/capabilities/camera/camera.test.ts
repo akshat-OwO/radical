@@ -24,6 +24,7 @@ import {
 import { cameraDeclarations } from "../../vite/camera-declarations.ts";
 
 const image = "data:image/jpeg;base64,aGVsbG8=";
+
 const browserLayer = (overrides: Partial<BrowserCamera["Service"]> = {}) =>
   Layer.succeed(BrowserCamera, {
     choose: Effect.succeed(new Blob(["hello"], { type: "image/jpeg" })),
@@ -36,6 +37,7 @@ const browserLayer = (overrides: Partial<BrowserCamera["Service"]> = {}) =>
     dimensions: () => Effect.succeedSome({ width: 480, height: 640 }),
     ...overrides,
   });
+
 const unexpected = () =>
   Effect.sync(() => assert.fail("Unexpected native call"));
 
@@ -46,9 +48,11 @@ describe("camera", () => {
       Effect.gen(function* () {
         for (const runtime of ["ios", "android"] as const) {
           const calls: unknown[] = [];
+
           const bridge = bridgeTestLayer(runtime, (plugin, method, options) =>
             Effect.sync(() => {
               calls.push({ plugin, method, options });
+
               return method === "requestPermissions"
                 ? { camera: "granted" }
                 : {
@@ -57,6 +61,7 @@ describe("camera", () => {
                   };
             })
           );
+
           const result = yield* capturePhoto.pipe(
             Effect.provide(
               Layer.merge(
@@ -65,12 +70,14 @@ describe("camera", () => {
                   readNative: (uri) =>
                     Effect.sync(() => {
                       assert.strictEqual(uri, "file:///photo.jpg");
+
                       return new Blob();
                     }),
                 })
               )
             )
           );
+
           assert.deepStrictEqual(result, {
             dataUrl: image,
             mimeType: "image/jpeg",
@@ -97,6 +104,7 @@ describe("camera", () => {
     () =>
       Effect.gen(function* () {
         const methods: string[] = [];
+
         const result = yield* choosePhoto.pipe(
           Effect.provide(
             Layer.merge(
@@ -108,6 +116,7 @@ describe("camera", () => {
                     allowMultipleSelection: false,
                     includeMetadata: true,
                   });
+
                   return {
                     results: [{ uri: "file:///library.jpg", metadata: {} }],
                   };
@@ -117,6 +126,7 @@ describe("camera", () => {
             )
           )
         );
+
         assert.deepStrictEqual(methods, ["chooseFromGallery"]);
         assert.deepStrictEqual(result, {
           dataUrl: image,
@@ -124,6 +134,7 @@ describe("camera", () => {
           width: 480,
           height: 640,
         });
+
         const cancelled = yield* choosePhoto.pipe(
           Effect.provide(
             Layer.merge(
@@ -133,6 +144,7 @@ describe("camera", () => {
           ),
           Effect.flip
         );
+
         assert.instanceOf(cancelled, Cancelled);
       })
   );
@@ -148,12 +160,14 @@ describe("camera", () => {
             )
           )
         );
+
         assert.deepStrictEqual(result, {
           dataUrl: image,
           mimeType: "image/jpeg",
           width: 480,
           height: 640,
         });
+
         const undecodable = yield* capturePhoto.pipe(
           Effect.provide(
             Layer.merge(
@@ -162,6 +176,7 @@ describe("camera", () => {
             )
           )
         );
+
         assert.deepStrictEqual(undecodable, {
           dataUrl: image,
           mimeType: "image/jpeg",
@@ -175,12 +190,15 @@ describe("camera", () => {
         const bridge = bridgeTestLayer("ios", (_plugin, method) =>
           Effect.sync(() => {
             assert.notStrictEqual(method, "takePhoto");
+
             return { camera: "denied" };
           })
         );
+
         const provide = <A, E>(
           effect: Effect.Effect<A, E, Bridge | BrowserCamera>
         ) => effect.pipe(Effect.provide(Layer.merge(bridge, browserLayer())));
+
         assert.strictEqual(yield* provide(checkCameraPermission), "denied");
         assert.instanceOf(
           yield* Effect.flip(provide(requestCameraPermission)),
@@ -221,6 +239,7 @@ describe("camera", () => {
             ),
             Effect.flip
           );
+
           assert.strictEqual(error._tag, tag);
         }
       })
@@ -236,6 +255,7 @@ describe("camera", () => {
         ),
         Effect.flip
       );
+
       assert.strictEqual(error._tag, "BridgeDecodeError");
     })
   );
@@ -263,12 +283,15 @@ describe("camera", () => {
         const bridge = bridgeTestLayer("android", (_plugin, method) =>
           Effect.sync(() => {
             assert.notStrictEqual(method, "takePhoto");
+
             return { camera: "prompt-with-rationale" };
           })
         );
+
         const provide = <A, E>(
           effect: Effect.Effect<A, E, Bridge | BrowserCamera>
         ) => effect.pipe(Effect.provide(Layer.merge(bridge, browserLayer())));
+
         assert.instanceOf(
           yield* Effect.flip(provide(requestCameraPermission)),
           PermissionDenied
@@ -284,6 +307,7 @@ describe("camera", () => {
     () =>
       Effect.gen(function* () {
         const bridge = bridgeTestLayer("browser", unexpected);
+
         const error = yield* capturePhoto.pipe(
           Effect.provide(
             Layer.merge(
@@ -293,7 +317,9 @@ describe("camera", () => {
           ),
           Effect.flip
         );
+
         assert.instanceOf(error, Cancelled);
+
         const invalid = yield* capturePhoto.pipe(
           Effect.provide(
             Layer.merge(
@@ -305,6 +331,7 @@ describe("camera", () => {
           ),
           Effect.flip
         );
+
         assert.instanceOf(invalid, Unavailable);
       })
   );
@@ -313,6 +340,7 @@ describe("camera", () => {
     () =>
       Effect.gen(function* () {
         let released = false;
+
         const fiber = yield* capturePhoto.pipe(
           Effect.provide(
             Layer.merge(
@@ -331,6 +359,7 @@ describe("camera", () => {
           ),
           Effect.forkChild
         );
+
         yield* TestClock.adjust("30 seconds");
         yield* Fiber.interrupt(fiber);
         yield* TestClock.adjust("1 minute");
@@ -343,9 +372,11 @@ describe("camera enablement", () => {
   it.effect("omits camera dependencies and declarations by default", () =>
     Effect.gen(function* () {
       const config = { appId: "dev.test.app" };
+
       const plugins = yield* resolvePlugins(config).pipe(
         Effect.provideService(PluginModules, { load: unexpected })
       );
+
       assert.isFalse(plugins.some(({ manifest }) => manifest.id === "camera"));
       assert.deepStrictEqual(yield* cameraDeclarations(config), {
         android: "",
@@ -361,6 +392,7 @@ describe("camera enablement", () => {
           appId: "dev.test.app",
           internalPlugins: { camera: true },
         };
+
         for (const usageDescription of [
           undefined,
           "",
@@ -376,6 +408,7 @@ describe("camera enablement", () => {
               },
             },
           };
+
           assert.strictEqual(
             (yield* Effect.flip(
               resolvePlugins(invalid).pipe(
@@ -389,6 +422,7 @@ describe("camera enablement", () => {
             "InvalidPlugin"
           );
         }
+
         for (const photoLibraryUsageDescription of [
           undefined,
           "",
@@ -404,11 +438,13 @@ describe("camera enablement", () => {
               },
             },
           };
+
           assert.strictEqual(
             (yield* cameraDeclarations(invalid).pipe(Effect.flip))._tag,
             "InvalidPlugin"
           );
         }
+
         const valid = {
           ...config,
           pluginOptions: {
@@ -418,9 +454,11 @@ describe("camera enablement", () => {
             },
           },
         };
+
         const plugins = yield* resolvePlugins(valid).pipe(
           Effect.provideService(PluginModules, { load: unexpected })
         );
+
         assert.deepStrictEqual(
           plugins.find(({ manifest }) => manifest.id === "camera")?.manifest
             .dependencies,

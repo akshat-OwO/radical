@@ -52,6 +52,7 @@ const startAvd = (
   Effect.scoped(
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+
       const child = yield* spawner.spawn(
         ChildProcess.make(emulator, ["-avd", name, "-port", String(port)], {
           cwd: project,
@@ -61,6 +62,7 @@ const startAvd = (
           stderr: "ignore",
         })
       );
+
       yield* Effect.asVoid(child.unref);
     })
   );
@@ -72,21 +74,28 @@ export const resolveAndroidTarget = (project: string, target: string) =>
       Config.orElse(() => Config.NonEmptyString("ANDROID_SDK_ROOT")),
       Config.withDefault("")
     );
+
     const adb =
       sdk.length === 0 ? "adb" : path.join(sdk, "platform-tools", "adb");
+
     const emulator =
       sdk.length === 0 ? "emulator" : path.join(sdk, "emulator", "emulator");
+
     const output = yield* execute(adb, ["devices"], project, { capture: true });
+
     const devices = lines(output).flatMap((line) => {
       const [serial, state] = line.split(/\s+/u);
+
       return state === "device" ||
         state === "offline" ||
         state === "unauthorized"
         ? [{ serial, state }]
         : [];
     });
+
     const connected = devices.filter((device) => device.state === "device");
     let serial = devices.find((device) => device.serial === target)?.serial;
+
     if (!target) {
       serial =
         connected.find((device) => device.serial.startsWith("emulator-"))
@@ -107,16 +116,19 @@ export const resolveAndroidTarget = (project: string, target: string) =>
             TimeoutError: () => Effect.succeed(""),
           })
         );
+
         if (lines(name)[0] === target) {
           ({ serial } = device);
           break;
         }
       }
     }
+
     if (serial === undefined) {
       const avds = lines(
         yield* execute(emulator, ["-list-avds"], project, { capture: true })
       );
+
       if (avds.length === 0 || (target.length > 0 && !avds.includes(target))) {
         return yield* new AndroidDeviceUnavailable({
           message:
@@ -125,6 +137,7 @@ export const resolveAndroidTarget = (project: string, target: string) =>
               : "No connected Android devices or installed AVDs. Create an AVD or connect a device.",
         });
       }
+
       const name =
         target ||
         (yield* Prompt.run(
@@ -133,6 +146,7 @@ export const resolveAndroidTarget = (project: string, target: string) =>
             choices: avds.map((avd) => ({ title: avd, value: avd })),
           })
         ));
+
       const port = Array.from(
         { length: 64 },
         (_, index) => 5554 + index * 2
@@ -140,16 +154,19 @@ export const resolveAndroidTarget = (project: string, target: string) =>
         (candidate) =>
           !devices.some((device) => device.serial === `emulator-${candidate}`)
       );
+
       if (port === undefined) {
         return yield* new AndroidDeviceUnavailable({
           message: "No free Android emulator serial port.",
         });
       }
+
       serial = `emulator-${port}`;
       yield* startAvd(emulator, project, name, port);
       yield* waitForBoot(adb, project, name, serial);
     } else {
       yield* waitForBoot(adb, project, target || serial, serial);
     }
+
     return { adb, serial };
   });

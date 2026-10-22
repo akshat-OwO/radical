@@ -24,13 +24,16 @@ import {
 
 const unexpected = () =>
   Effect.sync(() => assert.fail("Unexpected native call"));
+
 it.effect("sets and clears protection through both native bridges", () =>
   Effect.gen(function* () {
     for (const runtime of ["android", "ios"] as const) {
       const calls: unknown[] = [];
+
       const layer = bridgeTestLayer(runtime, (plugin, method, options) =>
         Effect.sync(() => {
           calls.push({ plugin, method, options });
+
           if (method === "setProtection") {
             return {
               enabled: options.enabled,
@@ -39,19 +42,23 @@ it.effect("sets and clears protection through both native bridges", () =>
               appSwitcher: options.enabled,
             };
           }
+
           return {};
         })
       );
+
       for (const enabled of [true, false]) {
         const status = yield* setDataProtection(enabled).pipe(
           Effect.provide(layer)
         );
+
         assert.strictEqual(status.enabled, enabled);
         assert.strictEqual(
           status.screenshots,
           runtime === "android" && enabled
         );
       }
+
       yield* clearWebData.pipe(
         Effect.provide(layer),
         Effect.provideService(BrowserDataProtection, {
@@ -118,6 +125,7 @@ it.effect(
         method: "setProtection",
         cause: "unavailable",
       });
+
       assert.strictEqual(
         yield* setDataProtection(true).pipe(
           Effect.provide(bridgeTestLayer("ios", () => Effect.fail(error))),
@@ -152,6 +160,7 @@ it.effect("clears every accessible cache, storage area and cookie path", () =>
   Effect.gen(function* () {
     const local = new Map([["secret", "local"]]);
     const session = new Map([["secret", "session"]]);
+
     const caches = new Set([
       "radical:app:build:snapshots",
       "radical:app:previous-build:snapshots",
@@ -160,6 +169,7 @@ it.effect("clears every accessible cache, storage area and cookie path", () =>
       "manifest",
       "other",
     ]);
+
     const cookies: string[] = [];
     let snapshotsDisabled = false;
     yield* clearBrowserWebData(() => ({
@@ -216,11 +226,13 @@ it.effect("clears every accessible cache, storage area and cookie path", () =>
 it.effect("times out an unresponsive offline worker with TestClock", () =>
   Effect.gen(function* () {
     const messages: unknown[] = [];
+
     const fiber = yield* pauseOfflineWorker({
-      postMessage: (value: unknown) => {
+      postMessage: (value: string) => {
         messages.push(value);
       },
     }).pipe(Effect.flip, Effect.forkChild);
+
     yield* TestClock.adjust("10 seconds");
     assert.deepStrictEqual(messages, ["radical-clear-web-data"]);
     assert.strictEqual((yield* Fiber.join(fiber))._tag, "WebDataClearFailed");
@@ -236,10 +248,13 @@ it.effect("enables only the opted-in radical-owned native templates", () =>
       }).pipe(
         Effect.provide(Layer.succeed(PluginModules, { load: unexpected }))
       );
+
       const plugin = plugins.find(
         ({ manifest }) => manifest.id === "dataProtection"
       );
+
       assert.strictEqual(plugin !== undefined, enabled === true);
+
       if (plugin) {
         assert.deepStrictEqual(plugin.manifest.dependencies, {});
         assert.strictEqual(
@@ -263,6 +278,7 @@ for (const event of ["success", "error", "blocked"]) {
         const names = new Set(["offline-manifest", "session"]);
         let request: (EventTarget & { error: unknown }) | undefined;
         const databaseError = new Error("database unavailable");
+
         const fiber = yield* clearBrowserWebData(() => ({
           localStorage: { clear: () => {} },
           sessionStorage: { clear: () => {} },
@@ -278,20 +294,25 @@ for (const event of ["success", "error", "blocked"]) {
               request.addEventListener("success", () => {
                 names.delete(name);
               });
+
               return request;
             },
           },
         })).pipe(Effect.result, Effect.forkChild);
+
         yield* TestClock.adjust("1 millis");
         assert.isDefined(request);
         assert.strictEqual(names.size, 2);
         request?.dispatchEvent(new Event(event));
         yield* TestClock.adjust("1 millis");
+
         if (event === "success") {
           assert.strictEqual(names.size, 1);
           request?.dispatchEvent(new Event("success"));
         }
+
         const result = yield* Fiber.join(fiber);
+
         if (event === "success") {
           assert.strictEqual(result._tag, "Success");
           assert.strictEqual(names.size, 0);
@@ -312,12 +333,13 @@ for (const acknowledgement of [
       Effect.gen(function* () {
         const result = yield* pauseOfflineWorker({
           postMessage: (
-            message: unknown,
+            message: string,
             transfer?: StructuredSerializeOptions | Transferable[]
           ) => {
             assert.strictEqual(message, "radical-clear-web-data");
             const port = Array.isArray(transfer) ? transfer[0] : undefined;
             assert.instanceOf(port, MessagePort);
+
             if (port instanceof MessagePort) {
               port.postMessage({ type: acknowledgement });
               port.postMessage("unrelated");
@@ -326,6 +348,7 @@ for (const acknowledgement of [
             }
           },
         }).pipe(Effect.result);
+
         assert.strictEqual(
           result._tag,
           acknowledgement === "radical-data-cleared" ? "Success" : "Failure"

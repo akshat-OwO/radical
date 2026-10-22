@@ -21,8 +21,10 @@ import { safeAreaStyle } from "../../../src/core/context/native-context.ts";
 it.effect("preserves Start's bundled CORS headers for both shells", () =>
   Effect.gen(function* () {
     let calls = 0;
+
     const handler = withBundledRequests(() => {
       calls += 1;
+
       return new Response(null, {
         status: 202,
         headers: {
@@ -32,6 +34,7 @@ it.effect("preserves Start's bundled CORS headers for both shells", () =>
         },
       });
     });
+
     for (const origin of bundledOrigins) {
       const request = (method: string) =>
         new Request("https://api.example/_serverFn/id", {
@@ -41,11 +44,14 @@ it.effect("preserves Start's bundled CORS headers for both shells", () =>
             "access-control-request-headers": "x-radical-context,content-type",
           },
         });
+
       const before = calls;
+
       const preflight = yield* Effect.tryPromise({
         try: async () => await handler(request("OPTIONS")),
         catch: (cause) => new RequestFailed({ cause }),
       });
+
       assert.strictEqual(calls, before);
       assert.strictEqual(preflight.status, 204);
       assert.deepStrictEqual(Object.fromEntries(preflight.headers), {
@@ -56,10 +62,12 @@ it.effect("preserves Start's bundled CORS headers for both shells", () =>
         "access-control-allow-origin": origin,
         vary: "Origin, Access-Control-Request-Headers",
       });
+
       const response = yield* Effect.tryPromise({
         try: async () => await handler(request("POST")),
         catch: (cause) => new RequestFailed({ cause }),
       });
+
       assert.strictEqual(calls, before + 1);
       assert.strictEqual(response.status, 202);
       assert.deepStrictEqual(Object.fromEntries(response.headers), {
@@ -89,12 +97,14 @@ it.effect(
             createElement("body", null, children)
           ),
       });
+
       const handler = withBundledRequests(
         async (request) =>
           await Effect.runPromise(
             Effect.gen(function* () {
               // Start supplies defaultSsr outside Router's constructor type.
               const startOptions = { defaultSsr: false as const };
+
               const router = createRouter({
                 ...startOptions,
                 routeTree: root,
@@ -103,11 +113,13 @@ it.effect(
                 }),
                 isServer: true,
               });
+
               yield* Effect.promise(async () => {
                 await router.load();
               });
               // Start still renders the root shell when SSR skips its loader.
               assert.isUndefined(router.state.matches[0]?.loaderData);
+
               return new Response(
                 renderToString(createElement(RouterServer, { router })),
                 {
@@ -117,12 +129,15 @@ it.effect(
             })
           )
       );
+
       const response = yield* Effect.tryPromise({
         try: async () => await handler(new Request("https://api.example/")),
         catch: (cause) => new RequestFailed({ cause }),
       });
+
       assert.strictEqual(response.status, 200);
       const html = yield* Effect.promise(async () => await response.text());
+
       for (const edge of ["top", "right", "bottom", "left"]) {
         assert.include(
           html,

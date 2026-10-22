@@ -17,11 +17,13 @@ export const checkPluginTypes = () => {
     EchoRejected | BridgeCallFailed | BridgeDecodeError | BridgeUnavailable,
     Bridge
   > = plugins.echo.echo({ text: "hello" });
+
   // @ts-expect-error Native commands require the manifest's argument type.
   plugins.echo.echo({ text: 1 });
   // @ts-expect-error Only declared commands exist.
   plugins.echo.missing({});
   // @ts-expect-error Only enabled plugins exist.
   plugins.disabled.echo({});
+
   return result;
 };

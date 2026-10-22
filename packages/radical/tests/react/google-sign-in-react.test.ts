@@ -16,21 +16,26 @@ it.effect(
       Effect.gen(function* () {
         let state: GoogleSignInState | undefined;
         const settled = yield* Deferred.make<boolean>();
+
         const layer = bridgeTestLayer("browser", () =>
           Effect.sync(() => assert.fail("Browser sign-in called native code"))
         );
+
         const Probe = () => {
           const google = useGoogleSignIn();
           useLayoutEffect(() => {
             state = google;
+
             if (google.error) {
               queueMicrotask(() => {
                 Effect.runSync(Deferred.succeed(settled, true));
               });
             }
           }, [google]);
+
           return null;
         };
+
         const root = createRoot(document.createElement("div"));
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {

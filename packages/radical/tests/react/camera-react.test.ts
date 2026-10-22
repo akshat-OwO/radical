@@ -31,6 +31,7 @@ const Probe = ({
   useLayoutEffect(() => {
     committed(camera, permission);
   }, [camera, permission, committed]);
+
   return null;
 };
 
@@ -40,6 +41,7 @@ const mount = (
 ) =>
   Effect.gen(function* () {
     const root = createRoot(document.createElement("div"));
+
     const render = (next = layer) => {
       flushSync(() => {
         root.render(
@@ -51,13 +53,16 @@ const mount = (
         );
       });
     };
+
     const unmount = () => {
       flushSync(() => {
         root.unmount();
       });
     };
+
     yield* Effect.addFinalizer(() => Effect.sync(unmount));
     render();
+
     return { render, unmount };
   });
 
@@ -76,26 +81,33 @@ it.effect(
           bridgeTestLayer("ios", (_plugin, method) =>
             Effect.sync(() => {
               methods.push(method);
+
               if (method === "requestPermissions") {
                 nativeGranted = true;
               }
+
               return { camera: nativeGranted ? "granted" : "prompt" };
             })
           ),
           (_camera, state) => {
             permission = state;
+
             if (state.loading) {
               return;
             }
+
             if (state.value === undefined) {
               return;
             }
+
             let signal = checked;
+
             if (state.value === "prompt") {
               signal = prompt;
             } else if (methods.length === 2) {
               signal = granted;
             }
+
             queueMicrotask(() => {
               Effect.runSync(Deferred.succeed(signal, true));
             });
@@ -125,12 +137,15 @@ it.effect("suppresses duplicate captures and interrupts work on unmount", () =>
       const interrupted = yield* Deferred.make<boolean>();
       let camera: CameraState | undefined;
       let captures = 0;
+
       const mounted = yield* mount(
         bridgeTestLayer("android", (_plugin, method) => {
           if (method === "checkPermissions") {
             return Effect.succeed({ camera: "granted" });
           }
+
           captures += 1;
+
           return Deferred.succeed(started, true).pipe(
             Effect.andThen(Effect.never),
             Effect.onInterrupt(() => Deferred.succeed(interrupted, true))
@@ -138,6 +153,7 @@ it.effect("suppresses duplicate captures and interrupts work on unmount", () =>
         }),
         (state, permission) => {
           camera = state;
+
           if (permission.value === "granted") {
             queueMicrotask(() => {
               Effect.runSync(Deferred.succeed(checked, true));
@@ -145,6 +161,7 @@ it.effect("suppresses duplicate captures and interrupts work on unmount", () =>
           }
         }
       );
+
       yield* Deferred.await(checked);
       camera?.capture();
       camera?.capture();
@@ -164,6 +181,7 @@ it.effect("interrupts the previous provider and ignores its old actions", () =>
       const done = yield* Deferred.make<boolean>();
       let oldAction: (() => void) | undefined;
       let calls = 0;
+
       const mounted = yield* mount(
         bridgeTestLayer("ios", () =>
           Deferred.succeed(started, true).pipe(
@@ -173,6 +191,7 @@ it.effect("interrupts the previous provider and ignores its old actions", () =>
         ),
         (_camera, permission) => {
           oldAction ??= permission.request;
+
           if (permission.value === "denied") {
             queueMicrotask(() => {
               Effect.runSync(Deferred.succeed(done, true));
@@ -180,11 +199,13 @@ it.effect("interrupts the previous provider and ignores its old actions", () =>
           }
         }
       );
+
       yield* Deferred.await(started);
       mounted.render(
         bridgeTestLayer("android", () =>
           Effect.sync(() => {
             calls += 1;
+
             return { camera: "denied" };
           })
         )

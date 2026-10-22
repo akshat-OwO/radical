@@ -6,6 +6,7 @@ import { Effect } from "effect";
 import type * as Vite from "vite";
 
 // Load the same Node build API as offlineBuild, outside Vitest's module runner.
+// SAFETY: The fixture supplies every field read by the invoked API.
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node loads Vite with its declared types.
 const { build } = createRequire(import.meta.url)("vite") as typeof Vite;
 
@@ -42,13 +43,17 @@ describe("offline worker bundle", () => {
             },
           })
       );
+
       const outputs = Array.isArray(result) ? result : [result];
+
       const chunks = outputs.flatMap((output) =>
         "output" in output
           ? output.output.filter((item) => item.type === "chunk")
           : []
       );
+
       assert.lengthOf(chunks, 1);
+
       for (const chunk of chunks) {
         assert.isBelow(Buffer.byteLength(chunk.code), 3000);
         assert.isEmpty(chunk.imports);

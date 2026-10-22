@@ -14,6 +14,7 @@ const sandbox = () => {
   const properties = new Map<string, string>();
   const writes: string[] = [];
   const parsed: (() => void)[] = [];
+
   const document = {
     readyState: "loading",
     documentElement: {
@@ -30,9 +31,11 @@ const sandbox = () => {
       parsed.push(apply);
     },
   };
+
   const run = (source: string) => {
     vm.runInNewContext(source, { window, document, CustomEvent });
   };
+
   return { window, document, properties, writes, parsed, run };
 };
 
@@ -41,6 +44,7 @@ describe("shell event scripts", () => {
     Effect.gen(function* () {
       const shell = sandbox();
       shell.run(`(${shellEventPublisher})("capabilityChanged", undefined)`);
+
       const bridge = yield* Bridge.pipe(
         Effect.provide(
           bridgeLayer(
@@ -49,10 +53,13 @@ describe("shell event scripts", () => {
           )
         )
       );
+
       const values: unknown[] = [];
+
       const remove = yield* bridge.observe("capabilityChanged", (value) => {
         values.push(value);
       });
+
       assert.deepStrictEqual(values, [undefined]);
       shell.run(`(${shellEventPublisher})("capabilityChanged", 42)`);
       assert.deepStrictEqual(values, [undefined, 42]);
@@ -72,9 +79,11 @@ describe("shell event scripts", () => {
           `${safeAreaUpdateScript}${JSON.stringify({ top: 62, right: 0, bottom: 34, left: 0 })});`
         );
         shell.document.readyState = "interactive";
+
         for (const apply of shell.parsed) {
           apply();
         }
+
         assert.deepStrictEqual(shell.writes, []);
         shell.run("window.__radicalMounted = true;");
         shell.run(
@@ -97,24 +106,30 @@ describe("shell event scripts", () => {
         const shell = sandbox();
         const initial = { top: 62, right: 0, bottom: 34, left: 0 };
         const rotated = { top: 0, right: 62, bottom: 21, left: 62 };
+
         for (const [edge, value] of Object.entries(initial)) {
           shell.properties.set(`--radical-safe-area-${edge}`, `${value}px`);
         }
+
         shell.run(`${safeAreaUpdateScript}${JSON.stringify(initial)});`);
         assert.deepStrictEqual(shell.writes, []);
         shell.document.readyState = "interactive";
+
         for (const apply of shell.parsed) {
           apply();
         }
+
         assert.deepStrictEqual(shell.writes, []);
         shell.run(`${safeAreaUpdateScript}${JSON.stringify(rotated)});`);
         assert.strictEqual(shell.writes.length, 4);
+
         for (const [edge, value] of Object.entries(rotated)) {
           assert.strictEqual(
             shell.properties.get(`--radical-safe-area-${edge}`),
             `${value}px`
           );
         }
+
         shell.run(`${safeAreaUpdateScript}${JSON.stringify(rotated)});`);
         assert.strictEqual(shell.writes.length, 4);
       })

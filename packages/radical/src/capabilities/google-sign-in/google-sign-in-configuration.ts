@@ -5,12 +5,14 @@ import type { GoogleSignInConfig } from "./google-sign-in-schema.ts";
 
 // Replaced by the Vite plugin. OAuth client IDs are public identifiers.
 declare const __RADICAL_GOOGLE_SIGN_IN__: GoogleSignInConfig | null;
+
 export class GoogleSignInConfiguration extends Context.Service<
   GoogleSignInConfiguration,
   {
     readonly read: Effect.Effect<GoogleSignInConfig, GoogleSignInMisconfigured>;
   }
 >()("radical/GoogleSignInConfiguration") {}
+
 export const GoogleSignInConfigurationLive = Layer.succeed(
   GoogleSignInConfiguration,
   {

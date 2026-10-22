@@ -1,18 +1,22 @@
 import { Effect, Schema } from "effect";
 
 import type { PluginManifest } from "../../core/plugins/plugins.ts";
+import type { RadicalConfig } from "../config.ts";
 import { InvalidPlugin } from "./errors.ts";
 
 /** The only decoding boundary for enabled plugin options. */
 export const decodePluginOptions = (
   manifest: PluginManifest,
-  options: Readonly<Record<string, unknown>>
+  options: NonNullable<RadicalConfig["pluginOptions"]>
 ) => {
   const { config } = manifest;
+
   if (!config) {
     return Effect.void;
   }
+
   const value = options[config.selector];
+
   if (!Object.hasOwn(options, config.selector) || value === undefined) {
     return Effect.fail(
       new InvalidPlugin({
@@ -20,6 +24,7 @@ export const decodePluginOptions = (
       })
     );
   }
+
   return Schema.decodeUnknownEffect(config.schema)(value).pipe(
     Effect.mapError(
       (error) =>

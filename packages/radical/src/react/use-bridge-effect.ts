@@ -72,6 +72,7 @@ export const useBridgeEffect = <A, E>(
   effect: Effect.Effect<A, E, Bridge>
 ): BridgeState<A, E> => {
   const layer = useContext(BridgeContext);
+
   const [snapshot, setSnapshot] = useState<{
     layer: Layer.Layer<Bridge>;
     effect: Effect.Effect<A, E, Bridge>;
@@ -81,6 +82,7 @@ export const useBridgeEffect = <A, E>(
     effect,
     state: initialState,
   }));
+
   useEffect(() => {
     const fiber = Effect.runFork(
       effect.pipe(
@@ -103,10 +105,12 @@ export const useBridgeEffect = <A, E>(
         })
       )
     );
+
     return () => {
       Effect.runFork(Fiber.interrupt(fiber));
     };
   }, [layer, effect]);
+
   return snapshot.layer === layer && snapshot.effect === effect
     ? snapshot.state
     : initialState;

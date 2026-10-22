@@ -16,11 +16,13 @@ import { getNativeContext } from "../../../src/entry/server.ts";
 import { fakeAdapter } from "../../fixtures/adapter.ts";
 
 const config = { mode: "bundled", origin: "https://api.example" } as const;
+
 const context = {
   platform: "android",
   shellVersion: "1.0",
   safeArea: { top: 24, left: 0, right: 0, bottom: 16 },
 } as const;
+
 const attempt = <A>(run: () => Promise<A>) =>
   Effect.tryPromise({
     try: run,
@@ -36,6 +38,7 @@ describe("bundled requests", () => {
     () =>
       Effect.gen(function* () {
         const styles = new Map<string, string>();
+
         const document = {
           __radicalNativeContext: context,
           __radicalMounted: false,
@@ -49,6 +52,7 @@ describe("bundled requests", () => {
             },
           },
         };
+
         assert.strictEqual(
           (yield* localNativeContext(() => document)).platform,
           "browser"
@@ -87,6 +91,7 @@ describe("bundled requests", () => {
               page,
               context
             );
+
             assert.strictEqual(request.url, config.origin + path);
             assert.strictEqual(request.credentials, "include");
             assert.strictEqual(request.method, "POST");
@@ -112,6 +117,7 @@ describe("bundled requests", () => {
             `${page}/api/catalog/`,
             context
           );
+
           assert.strictEqual(
             result.url,
             "https://api.example/api/catalog/items?limit=2"
@@ -125,6 +131,7 @@ describe("bundled requests", () => {
         method: "POST",
         body: "original",
       });
+
       const result = yield* routeBundledRequest(
         config,
         source,
@@ -132,6 +139,7 @@ describe("bundled requests", () => {
         "https://localhost",
         context
       );
+
       assert.strictEqual(result.url, "https://api.example/api/items");
       assert.strictEqual(result.headers.get("x-test"), "override");
       assert.strictEqual(
@@ -171,6 +179,7 @@ describe("bundled requests", () => {
             scenario.page,
             context
           );
+
           assert.strictEqual(request.url, scenario.url);
           assert.isNull(request.headers.get("x-radical-context"));
           assert.strictEqual(request.credentials, "same-origin");
@@ -233,6 +242,7 @@ describe("bundled API CORS", () => {
             }),
           outputs
         );
+
         const response = yield* attempt(
           async () =>
             await handler(
@@ -241,6 +251,7 @@ describe("bundled API CORS", () => {
               })
             )
         );
+
         assert.strictEqual(
           response.headers.get("access-control-expose-headers"),
           "x-existing"
@@ -255,8 +266,10 @@ describe("bundled API CORS", () => {
         let calls = 0;
         const adapter = yield* RadicalAdapter;
         const outputs = yield* adapter.outputs;
+
         const handler = withBundledRequests(() => {
           calls += 1;
+
           return new Response("ok", {
             headers: {
               "x-example-result": "true",
@@ -265,6 +278,7 @@ describe("bundled API CORS", () => {
             },
           });
         }, outputs);
+
         for (const origin of bundledOrigins) {
           const preflight = yield* attempt(
             async () =>
@@ -279,6 +293,7 @@ describe("bundled API CORS", () => {
                 })
               )
           );
+
           assert.strictEqual(preflight.status, 204);
           assert.strictEqual(calls, 0);
           assert.strictEqual(
@@ -294,6 +309,7 @@ describe("bundled API CORS", () => {
             "x-radical-context"
           );
         }
+
         const response = yield* attempt(
           async () =>
             await handler(
@@ -302,6 +318,7 @@ describe("bundled API CORS", () => {
               })
             )
         );
+
         assert.strictEqual(calls, 1);
         assert.strictEqual(
           response.headers.get("access-control-allow-origin"),
@@ -328,11 +345,14 @@ describe("bundled API CORS", () => {
         const source = new Response("remote", {
           headers: { vary: "Accept-Encoding" },
         });
+
         const adapter = yield* RadicalAdapter;
+
         const handler = withBundledRequests(
           () => source,
           yield* adapter.outputs
         );
+
         for (const origin of [
           "",
           config.origin,
@@ -349,6 +369,7 @@ describe("bundled API CORS", () => {
                 })
               )
           );
+
           assert.strictEqual(response.status, source.status);
           assert.include(response.headers.get("vary") ?? "", "Accept-Encoding");
           assert.include(response.headers.get("vary") ?? "", "Origin");

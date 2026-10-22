@@ -1,15 +1,21 @@
 // oxlint-disable promise/prefer-await-to-then -- Late browser permission results must release streams even after Effect interruption.
 import type { Option } from "effect";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Predicate } from "effect";
 
 import { readNativeFile } from "../../core/native-file.ts";
 import { browserFileInput } from "../files/browser-file-input.ts";
 import { PermissionDenied, Unavailable } from "./camera-schema.ts";
 import type { CameraPermission, Cancelled } from "./camera-schema.ts";
 
+const supportsUserMedia = (
+  devices: MediaDevices | undefined
+): devices is MediaDevices => typeof devices?.getUserMedia === "function";
+
 type BrowserCameraError = PermissionDenied | Cancelled | Unavailable;
+
 const unavailable = (cause: unknown) =>
   new Unavailable({ reason: String(cause) });
+
 const permissionError = (cause: unknown) =>
   cause instanceof DOMException &&
   (cause.name === "NotAllowedError" || cause.name === "SecurityError")
@@ -33,33 +39,45 @@ export class BrowserCamera extends Context.Service<
   }
 >()("radical/BrowserCamera") {}
 
-export const browserCapture = (doc: Document, camera = true) =>
-  browserFileInput(doc, {
+export const browserCapture = (doc: Document, camera = true) => {
+  const options: CaptureInputOptions = {
     accept: "image/*",
-    ...(camera ? { capture: "environment" as const } : {}),
-  }).pipe(Effect.map((files) => files[0] as Blob));
+  };
+
+  if (camera) {
+    options.capture = "environment";
+  }
+
+  return browserFileInput(doc, options).pipe(Effect.map((files) => files[0]));
+};
 
 const readDataUrl = (blob: Blob) =>
   Effect.suspend(() => {
     const reader = new FileReader();
+
     let complete:
       | ((effect: Effect.Effect<string, Unavailable>) => void)
       | undefined;
+
     const resume = (effect: Effect.Effect<string, Unavailable>) =>
       complete?.(effect);
+
     const load = () => {
       resume(
-        typeof reader.result === "string"
+        Predicate.isString(reader.result)
           ? Effect.succeed(reader.result)
           : Effect.fail(unavailable("Invalid file reader result"))
       );
     };
+
     const error = () => {
       resume(Effect.fail(unavailable(reader.error)));
     };
+
     const abort = () => {
       resume(Effect.fail(unavailable("File read aborted")));
     };
+
     return Effect.callback<string, Unavailable>((receive) => {
       complete = receive;
       reader.addEventListener("load", load);
@@ -72,6 +90,7 @@ const readDataUrl = (blob: Blob) =>
           reader.removeEventListener("load", load);
           reader.removeEventListener("error", error);
           reader.removeEventListener("abort", abort);
+
           if (reader.readyState === FileReader.LOADING) {
             reader.abort();
           }
@@ -83,11 +102,12 @@ const readDataUrl = (blob: Blob) =>
 // createImageBitmap applies EXIF orientation by default, matching how <img> renders the photo.
 // A bitmap that resolves after interruption is closed in the promise continuation.
 const decodedDimensions = (blob: Blob) =>
-  typeof createImageBitmap === "function"
+  Predicate.isFunction(globalThis.createImageBitmap)
     ? Effect.tryPromise(() =>
         createImageBitmap(blob).then((bitmap) => {
           const size = { width: bitmap.width, height: bitmap.height };
           bitmap.close();
+
           return size;
         })
       ).pipe(Effect.option)
@@ -108,9 +128,11 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
     if (typeof navigator === "undefined") {
       return Effect.fail(unavailable("Camera requires a browser"));
     }
+
     if (navigator.permissions === undefined) {
       return Effect.succeed("prompt" as const);
     }
+
     return Effect.tryPromise({
       try: () => navigator.permissions.query({ name: "camera" }),
       catch: unavailable,
@@ -122,12 +144,13 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
   request: Effect.suspend(() => {
     if (
       typeof navigator === "undefined" ||
-      typeof navigator.mediaDevices?.getUserMedia !== "function"
+      !supportsUserMedia(navigator.mediaDevices)
     ) {
       return Effect.fail(
         unavailable("Camera permission requests require getUserMedia")
       );
     }
+
     // A promise may resolve after interruption. Release its tracks in the promise
     // continuation too, rather than leaving an unobserved camera stream running.
     return Effect.tryPromise({
@@ -136,6 +159,7 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
           for (const track of stream.getTracks()) {
             track.stop();
           }
+
           return "granted" as const;
         }),
       catch: permissionError,
@@ -145,3 +169,8 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
   dataUrl: readDataUrl,
   dimensions: decodedDimensions,
 });
+
+interface CaptureInputOptions {
+  accept: string;
+  capture?: "environment";
+}

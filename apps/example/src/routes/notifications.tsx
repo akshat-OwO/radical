@@ -1,14 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Schema } from "effect";
+import { NotificationScheduleResultSchema } from "radical/client";
 import {
   useExactAlarmPermission,
   useNotificationPermission,
   useNotifications,
 } from "radical/react";
 
+const isScheduleResult = Schema.is(NotificationScheduleResultSchema);
+
 const Notifications = () => {
   const exactAlarms = useExactAlarmPermission();
   const permission = useNotificationPermission();
   const notifications = useNotifications();
+
   const actions = [
     [
       "Schedule in 5 seconds",
@@ -50,6 +55,7 @@ const Notifications = () => {
     ],
     ["Look up topics", notifications.lookupTopics],
   ] as const;
+
   return (
     <main>
       <h1>Notifications</h1>
@@ -97,8 +103,7 @@ const Notifications = () => {
         </button>
       )}
       <output>{exactAlarms.error?._tag}</output>
-      {typeof notifications.value === "object" &&
-        "warning" in notifications.value &&
+      {isScheduleResult(notifications.value) &&
         notifications.value.warning?.code === "OS-PLUG-LNOT-0017" && (
           <p>
             Android scheduled an inexact alarm. Allow exact alarms, then
@@ -138,6 +143,7 @@ const Notifications = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/notifications")({
   component: Notifications,
 });

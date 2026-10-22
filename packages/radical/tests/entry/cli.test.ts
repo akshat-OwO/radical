@@ -18,11 +18,14 @@ const fixture = (
   missingBuildPlan = false
 ) => {
   const calls: unknown[] = [];
-  const record = (call: unknown) =>
+
+  const record = (call: string | readonly (string | boolean)[]) =>
     Effect.sync(() => {
       calls.push(call);
     });
+
   const error = new InvalidPlugin({ message: "failed" });
+
   const memory = metadataMemory(
     JSON.stringify({
       config: {
@@ -33,6 +36,7 @@ const fixture = (
       url: "https://example.test",
     })
   );
+
   const plan = resolveBuildPlan({
     appId: "dev.test.app",
     mode: bundled ? "bundled" : "remote",
@@ -44,6 +48,7 @@ const fixture = (
       })
     )
   );
+
   const generate =
     (platform: string) =>
     (
@@ -54,12 +59,15 @@ const fixture = (
       Effect.gen(function* () {
         assert.deepStrictEqual(prepared, yield* plan);
         yield* record(["generate", platform, root]);
+
         return yield* failure === "generate"
           ? Effect.fail(error)
           : Effect.succeed(`/shell/${platform}`);
       });
+
   const run = (platform: string) => (project: string, target: string) =>
     record(["run", platform, project, target]).pipe(Effect.as(""));
+
   return {
     calls,
     error,
@@ -119,6 +127,7 @@ const fixture = (
     ),
   };
 };
+
 const command = Command.runWith(makeCli("/app"), {
   version: "0.0.0",
   renderErrors: false,
@@ -130,6 +139,7 @@ describe("CLI orchestration", () => {
       `resolves, generates and runs ${platform} with the requested target`,
       () => {
         const fake = fixture();
+
         return Effect.gen(function* () {
           yield* command([platform, "--target", "device"]);
           assert.deepStrictEqual(fake.calls, [
@@ -144,6 +154,7 @@ describe("CLI orchestration", () => {
       `generates ${platform} without launching for --generate-only`,
       () => {
         const fake = fixture();
+
         return Effect.gen(function* () {
           yield* command([platform, "--generate-only"]);
           assert.deepStrictEqual(fake.calls, [
@@ -157,6 +168,7 @@ describe("CLI orchestration", () => {
       `builds the bundled UI before generating ${platform}, including --generate-only`,
       () => {
         const fake = fixture(true);
+
         return Effect.gen(function* () {
           yield* command([platform, "--generate-only"]);
           assert.deepStrictEqual(fake.calls, [
@@ -168,10 +180,12 @@ describe("CLI orchestration", () => {
       }
     );
   }
+
   it.effect(
     "typegen resolves build config without reading metadata, building or generating shells",
     () => {
       const fake = fixture(true);
+
       return Effect.gen(function* () {
         yield* command(["typegen"]);
         assert.deepStrictEqual(fake.calls, [["resolve", true]]);
@@ -182,6 +196,7 @@ describe("CLI orchestration", () => {
     "builds bundled UI before generation and launch with the default target",
     () => {
       const fake = fixture(true);
+
       return Effect.gen(function* () {
         yield* command(["android"]);
         assert.deepStrictEqual(fake.calls, [
@@ -197,6 +212,7 @@ describe("CLI orchestration", () => {
     "stops before generation when the Vite build-plan API is absent",
     () => {
       const fake = fixture(false, undefined, true);
+
       return Effect.gen(function* () {
         assert.strictEqual(
           (yield* Effect.flip(command(["ios"])))._tag,
@@ -206,19 +222,23 @@ describe("CLI orchestration", () => {
       }).pipe(Effect.provide(fake.layer));
     }
   );
+
   for (const failure of ["resolve", "build", "generate"] as const) {
     it.effect(`stops orchestration after ${failure} fails`, () => {
       const fake = fixture(true, failure);
+
       return Effect.gen(function* () {
         assert.strictEqual(
           yield* Effect.flip(command(["android"])),
           fake.error
         );
+
         const expected = [
           ["resolve", false],
           ["build"],
           ["generate", "android", "/app"],
         ];
+
         assert.deepStrictEqual(
           fake.calls,
           expected.slice(0, { resolve: 1, build: 2, generate: 3 }[failure])

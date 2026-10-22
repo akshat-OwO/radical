@@ -6,6 +6,7 @@ export class EchoRejected extends Schema.TaggedError<EchoRejected>()(
   "EchoRejected",
   { reason: Schema.String }
 ) {}
+
 export default definePlugin({
   id: "echo",
   bridge: "Echo",

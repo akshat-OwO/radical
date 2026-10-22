@@ -20,18 +20,22 @@ it.effect("exposes stable helpers for every style and reports failures", () =>
       let settled = yield* Deferred.make<boolean>();
       const calls: unknown[] = [];
       let reject = false;
+
       const layer = bridgeTestLayer("android", (plugin, method, options) => {
         calls.push({ method, options });
+
         return reject
           ? Effect.fail(
               new BridgeCallFailed({ plugin, method, cause: "failed" })
             )
           : Effect.void;
       });
+
       const Probe = () => {
         const feedback = useHapticFeedback();
         useLayoutEffect(() => {
           state = feedback;
+
           if (feedback.value || feedback.failure) {
             const signal = settled;
             queueMicrotask(() => {
@@ -39,8 +43,10 @@ it.effect("exposes stable helpers for every style and reports failures", () =>
             });
           }
         }, [feedback]);
+
         return null;
       };
+
       const root = createRoot(document.createElement("div"));
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
@@ -56,6 +62,7 @@ it.effect("exposes stable helpers for every style and reports failures", () =>
       });
       const initial = state;
       assert.isDefined(initial);
+
       for (const helper of [
         "light",
         "medium",
@@ -74,6 +81,7 @@ it.effect("exposes stable helpers for every style and reports failures", () =>
         assert.strictEqual(state?.[helper], initial[helper]);
         assert.isUndefined(state?.failure);
       }
+
       assert.deepStrictEqual(calls, [
         ...["LIGHT", "MEDIUM", "HEAVY"].map((style) => ({
           method: "impact",
@@ -108,6 +116,7 @@ it.effect(
         let state: HapticFeedbackState | undefined;
         let calls = 0;
         let interrupted = 0;
+
         const layer = () =>
           bridgeTestLayer("ios", () =>
             Effect.sync(() => {
@@ -121,13 +130,16 @@ it.effect(
               )
             )
           );
+
         const Probe = () => {
           const feedback = useHapticFeedback();
           useLayoutEffect(() => {
             state = feedback;
           }, [feedback]);
+
           return null;
         };
+
         const root = createRoot(document.createElement("div"));
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
@@ -136,6 +148,7 @@ it.effect(
             });
           })
         );
+
         const render = () => {
           flushSync(() => {
             root.render(
@@ -147,6 +160,7 @@ it.effect(
             );
           });
         };
+
         render();
         const stale = state?.light;
         state?.light();

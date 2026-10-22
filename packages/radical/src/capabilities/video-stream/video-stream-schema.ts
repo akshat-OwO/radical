@@ -5,7 +5,9 @@ import type { Bridge, BridgeError } from "../../core/bridge/bridge.ts";
 import type { PermissionDenied, Unavailable } from "../../core/errors.ts";
 
 export type VideoStreamError = BridgeError | PermissionDenied | Unavailable;
+
 export type CameraFacing = "front" | "rear";
+
 export const VideoStreamInfoSchema = Schema.Struct({
   facing: Schema.Literals(["front", "rear"]),
   zoom: Schema.optional(
@@ -20,7 +22,9 @@ export const VideoStreamInfoSchema = Schema.Struct({
   frameRate: Schema.optional(Schema.Finite),
   detectionAvailable: Schema.Boolean,
 });
+
 export type VideoStreamInfo = typeof VideoStreamInfoSchema.Type;
+
 export interface VideoStreamSession {
   readonly info: Effect.Effect<VideoStreamInfo, VideoStreamError, Bridge>;
   readonly switchCamera: Effect.Effect<void, VideoStreamError, Bridge>;
@@ -31,6 +35,7 @@ export interface VideoStreamSession {
     enabled: boolean
   ) => Effect.Effect<void, VideoStreamError, Bridge>;
 }
+
 export interface VideoStreamOptions {
   /** A transparent hole in the app's overlay. Browser video is mounted here. */
   readonly viewfinder: HTMLElement;

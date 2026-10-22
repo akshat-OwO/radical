@@ -29,6 +29,7 @@ it.effect(
           Option.some("/offline-route?item=1")
         );
       }
+
       for (const route of [
         "//evil.test",
         "https://evil.test",
@@ -45,6 +46,7 @@ it.effect(
           )
         );
       }
+
       assert.isTrue(
         Option.isNone(
           yield* notificationRoute({
@@ -65,9 +67,15 @@ for (const runtime of ["browser", "android", "ios"] as const) {
         Effect.gen(function* () {
           const ready = yield* Deferred.make<boolean>();
           const finished = yield* Deferred.make<boolean>();
-          const listeners = new Map<string, (value: unknown) => void>();
+
+          const listeners = new Map<
+            string,
+            Parameters<Bridge["Service"]["observe"]>[1]
+          >();
+
           const order: string[] = [];
           let removed = 0;
+
           const layer = Layer.mergeAll(
             Layer.succeed(Bridge, {
               runtime: Effect.succeed(runtime),
@@ -76,6 +84,7 @@ for (const runtime of ["browser", "android", "ios"] as const) {
                 Effect.gen(function* () {
                   listeners.set(event, receive);
                   yield* Deferred.succeed(ready, true);
+
                   return () => {
                     removed += 1;
                   };
@@ -83,9 +92,11 @@ for (const runtime of ["browser", "android", "ios"] as const) {
               listen: (plugin, event, receive) =>
                 Effect.gen(function* () {
                   listeners.set(`${plugin}:${event}`, receive);
+
                   if (listeners.size === 2) {
                     yield* Deferred.succeed(ready, true);
                   }
+
                   return Effect.sync(() => {
                     removed += 1;
                   });
@@ -111,27 +122,34 @@ for (const runtime of ["browser", "android", "ios"] as const) {
                 Effect.gen(function* () {
                   assert.strictEqual(appId, "dev.test.app");
                   order.push(`snapshot:${route}`);
+
                   if (restoration === "failed") {
                     return yield* new Unavailable({
                       reason: "Cache unavailable",
                     });
                   }
+
                   if (restoration === "snapshot") {
                     yield* Deferred.succeed(finished, true);
                   }
+
                   return restoration === "snapshot";
                 }),
             })
           );
+
           const fiber = yield* Effect.scoped(
             watchNotificationNavigation({ appId: "dev.test.app", push: true })
           ).pipe(Effect.provide(layer), Effect.forkChild);
+
           yield* Deferred.await(ready);
+
           const receive = listeners.get(
             runtime === "browser"
               ? "radical-notification"
               : "FirebaseMessaging:notificationActionPerformed"
           );
+
           assert.isDefined(receive);
           receive?.(
             runtime === "browser"
@@ -162,14 +180,17 @@ for (const runtime of ["browser", "android", "ios"] as const) {
       () =>
         Effect.gen(function* () {
           const calls: string[] = [];
+
           const status = {
             connected,
             connectionType: connected ? "wifi" : "none",
           } as const;
+
           const dependencies = Layer.merge(
             bridgeTestLayer(runtime, (plugin, method) => {
               assert.strictEqual(plugin, "Network");
               assert.strictEqual(method, "getStatus");
+
               return Effect.succeed(status);
             }),
             Layer.succeed(BrowserNetwork, {
@@ -180,20 +201,25 @@ for (const runtime of ["browser", "android", "ios"] as const) {
               listen: () => Effect.die("Unexpected subscription"),
             })
           );
+
           const layer = notificationSnapshotsLayer({
             restore: (route, appId) =>
               Effect.sync(() => {
                 calls.push(`${appId}:${route}`);
+
                 return true;
               }),
           }).pipe(Layer.provide(dependencies));
+
           const restored = yield* Effect.gen(function* () {
             const snapshots = yield* NotificationSnapshots;
+
             return yield* snapshots.restore(
               "/offline-route?item=1#x",
               "dev.test.app"
             );
           }).pipe(Effect.provide(layer));
+
           assert.strictEqual(restored, !connected);
           assert.deepStrictEqual(
             calls,
@@ -211,10 +237,12 @@ for (const runtime of ["android", "ios"] as const) {
       () =>
         Effect.gen(function* () {
           const calls: string[] = [];
+
           const dependencies = Layer.merge(
             bridgeTestLayer(runtime, (plugin, method) => {
               assert.strictEqual(plugin, "Network");
               assert.strictEqual(method, "getStatus");
+
               return Effect.fail(new BridgeUnavailable({ plugin, method }));
             }),
             Layer.succeed(BrowserNetwork, {
@@ -222,20 +250,25 @@ for (const runtime of ["android", "ios"] as const) {
               listen: () => Effect.die("Unexpected subscription"),
             })
           );
+
           const layer = notificationSnapshotsLayer({
             restore: (route, appId) =>
               Effect.sync(() => {
                 calls.push(`${appId}:${route}`);
+
                 return found;
               }),
           }).pipe(Layer.provide(dependencies));
+
           const restored = yield* Effect.gen(function* () {
             const snapshots = yield* NotificationSnapshots;
+
             return yield* snapshots.restore(
               "/offline-route?item=1#x",
               "dev.test.app"
             );
           }).pipe(Effect.provide(layer));
+
           assert.strictEqual(restored, found);
           assert.deepStrictEqual(calls, [
             "dev.test.app:/offline-route?item=1#x",

@@ -38,6 +38,7 @@ for (const { name, internalPlugins, purpose, photoLibrary } of [
         internalPlugins,
         pluginOptions,
       });
+
       assert.strictEqual(
         declarations.android,
         '<uses-permission android:name="android.permission.CAMERA" /><uses-feature android:name="android.hardware.camera" android:required="false" />'
@@ -62,6 +63,7 @@ it.effect("deduplicates identical camera purposes before XML escaping", () =>
         },
       },
     });
+
     assert.strictEqual(
       declarations.ios,
       "<key>NSCameraUsageDescription</key><string>Take &lt;photos&gt; &amp; preview</string><key>NSPhotoLibraryUsageDescription</key><string>Choose &lt;photos&gt;</string>"

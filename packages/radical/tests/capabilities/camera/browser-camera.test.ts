@@ -17,6 +17,7 @@ it.effect(
         assert.strictEqual(input?.type, "file");
         assert.strictEqual(input?.accept, "image/*");
         assert.strictEqual(input?.getAttribute("capture"), "environment");
+
         if (cancel) {
           input?.dispatchEvent(new Event("cancel"));
           assert.strictEqual(
@@ -26,6 +27,7 @@ it.effect(
         } else {
           yield* Fiber.interrupt(fiber);
         }
+
         assert.isNull(doc.querySelector("input"));
       }
     })

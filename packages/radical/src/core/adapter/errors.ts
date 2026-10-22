@@ -6,6 +6,7 @@ export class AdapterUnavailable extends Schema.TaggedError<
   AdapterUnavailable,
   { readonly brand: unique symbol }
 >()("AdapterUnavailable", { operation: Schema.String }) {}
+
 export class NavigationFailed extends Schema.TaggedError<
   NavigationFailed,
   { readonly brand: unique symbol }

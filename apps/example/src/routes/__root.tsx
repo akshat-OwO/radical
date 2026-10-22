@@ -43,27 +43,33 @@ const NotificationNavigation = () => {
         )
       )
     );
+
     return () => {
       Effect.runFork(Fiber.interrupt(fiber));
     };
   }, [router]);
+
   return null;
 };
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
   const nativeContext = Route.useLoaderData();
+
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
     safeAreaStyle(nativeContext, config.mode);
+
   useEffect(() => {
     if (config.mode === "bundled") {
       Effect.runSync(mountNativeContext());
     }
+
     void registerOffline({
       mode: config.mode,
       production: import.meta.env.PROD,
       base: import.meta.env.BASE_URL,
     });
   }, []);
+
   return (
     <html lang="en" style={rootStyle}>
       <head>

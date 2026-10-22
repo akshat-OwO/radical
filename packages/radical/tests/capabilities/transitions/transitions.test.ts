@@ -13,6 +13,7 @@ import type { BrowserTransition } from "../../../src/entry/client.ts";
 const fixture = Effect.gen(function* () {
   const skips = yield* Ref.make(0);
   const started = yield* Deferred.make<boolean>();
+
   const layer = (finished: BrowserTransition["finished"]) =>
     Layer.succeed(BrowserTransitions, {
       supportsTypes: Effect.succeed(true),
@@ -22,6 +23,7 @@ const fixture = Effect.gen(function* () {
         )
       ),
     });
+
   return { skips, started, layer };
 });
 
@@ -55,11 +57,13 @@ describe("browser transition controls", () => {
   it.effect("skips a stalled animation only when its timeout expires", () =>
     Effect.gen(function* () {
       const state = yield* fixture;
+
       const fiber = yield* Effect.forkChild(
         watchBrowserTransition(100).pipe(
           Effect.provide(state.layer(Effect.never))
         )
       );
+
       yield* Deferred.await(state.started);
       yield* TestClock.adjust(99);
       assert.strictEqual(yield* Ref.get(state.skips), 0);
@@ -83,6 +87,7 @@ describe("browser transition controls", () => {
     Effect.gen(function* () {
       const state = yield* fixture;
       const finished = yield* Deferred.make<boolean>();
+
       const fiber = yield* Effect.forkChild(
         watchBrowserTransition(100).pipe(
           Effect.provide(
@@ -90,6 +95,7 @@ describe("browser transition controls", () => {
           )
         )
       );
+
       yield* Deferred.await(state.started);
       yield* TestClock.adjust(10);
       yield* Deferred.succeed(finished, true);

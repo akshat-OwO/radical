@@ -18,10 +18,13 @@ it.effect(
           url: "http://localhost:5173",
         })
       );
+
       const fs = yield* FileSystem.FileSystem.pipe(
         Effect.provide(memory.layer)
       );
+
       const writes: string[] = [];
+
       const services = Layer.merge(
         Layer.succeed(FileSystem.FileSystem, {
           ...fs,
@@ -36,16 +39,20 @@ it.effect(
         }),
         Layer.succeed(PluginModules, { load: () => Effect.succeed({ echo }) })
       );
+
       const config = {
         appId: "dev.test.app",
         pluginOptions: { Echo: { prefix: "test" } },
         plugins: [{ manifest: "./plugins/echo.ts", selector: "echo" }],
       };
+
       const plugin = nativePlugins(config, fakeAdapter, services);
       yield* resolvePlugin(plugin);
+
       const metadata: unknown = JSON.parse(
         memory.files.get(metadataFile) ?? "null"
       );
+
       assert.deepStrictEqual(metadata, {
         config,
         url: "http://localhost:5173",
@@ -58,11 +65,13 @@ it.effect(
       assert.include(declarations, 'declare module "virtual:radical/config"');
       yield* resolvePlugin(plugin);
       assert.strictEqual(writes.filter((name) => name === file).length, 1);
+
       const changed = nativePlugins(
         { appId: "dev.test.app" },
         fakeAdapter,
         services
       );
+
       yield* resolvePlugin(changed);
       assert.strictEqual(writes.filter((name) => name === file).length, 2);
       assert.notInclude(memory.files.get(file) ?? "", 'readonly "echo"');

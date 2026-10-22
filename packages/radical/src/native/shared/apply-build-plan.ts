@@ -13,6 +13,7 @@ export const applyBuildPlan = (
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
+
     for (const copy of plan.copies) {
       if (copy.platform === platform) {
         yield* fs.copyFile(
@@ -21,11 +22,13 @@ export const applyBuildPlan = (
         );
       }
     }
+
     for (const file of plan.files) {
       if (file.platform === platform) {
         yield* fs.writeFileString(path.join(staging, file.file), file.contents);
       }
     }
+
     for (const edit of plan.edits) {
       if (edit.platform === platform) {
         const file = path.join(staging, edit.file);

@@ -42,9 +42,11 @@ export const browserTransitions = (
       },
     };
   }
+
   const strategy = Effect.runSync(
     transitionStrategy.pipe(Effect.provide(Layer.merge(browser, BridgeLive)))
   );
+
   if (strategy === "native") {
     return installNativeTransitions(
       router,
@@ -52,6 +54,7 @@ export const browserTransitions = (
       NativeTransitionsLive.pipe(Layer.provide(BridgeLive))
     );
   }
+
   if (strategy === "plain") {
     return {
       cancel: () => {
@@ -62,15 +65,18 @@ export const browserTransitions = (
       },
     };
   }
+
   const original = router.options.defaultViewTransition;
   let direction: Transition["direction"] = "forward";
   let stop = Effect.void;
+
   const removeHistory = router.history.subscribe(({ action }) => {
     direction =
       action.type === "BACK" || (action.type === "GO" && action.index < 0)
         ? "back"
         : "forward";
   });
+
   router.update({
     defaultViewTransition: {
       types: ({ fromLocation, toLocation }) => {
@@ -80,17 +86,21 @@ export const browserTransitions = (
         ) {
           return false;
         }
+
         const kind = router
           .matchRoutes(toLocation.pathname)
           .findLast((match) => match.staticData.radical?.transition)?.staticData
           .radical?.transition;
+
         if (!kind) {
           return false;
         }
+
         const transition: Transition = {
           kind,
           direction: options.direction?.(direction) ?? direction,
         };
+
         return [
           `radical-${transition.kind}`,
           `radical-${transition.direction}`,
@@ -98,18 +108,23 @@ export const browserTransitions = (
       },
     },
   });
+
   const removeResolved = router.subscribe("onResolved", () => {
     Effect.runFork(stop);
+
     const fiber = Effect.runFork(
       watchBrowserTransition(options.timeoutMs ?? 1000).pipe(
         Effect.provide(browser)
       )
     );
+
     stop = Fiber.interrupt(fiber).pipe(Effect.asVoid);
   });
+
   const cancel = () => {
     Effect.runFork(cancelBrowserTransition.pipe(Effect.provide(browser)));
   };
+
   return {
     cancel,
     dispose: () => {
@@ -134,6 +149,7 @@ export const tanstackNavigation = (
         const searchIndex = path.indexOf("?");
         const pathname = searchIndex === -1 ? path : path.slice(0, searchIndex);
         const query = searchIndex === -1 ? "" : path.slice(searchIndex);
+
         return router.navigate({
           to: pathname,
           search: (router.options.parseSearch ?? defaultParseSearch)(query),

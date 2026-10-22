@@ -15,6 +15,17 @@ export interface BrowserDeviceSource {
   };
 }
 
+const hintSystems = new Map<string, DeviceInfo["operatingSystem"]>(
+  Object.entries({
+    android: "android",
+    ios: "ios",
+    macos: "mac",
+    windows: "windows",
+    linux: "linux",
+    "chrome os": "linux",
+  } as const)
+);
+
 /** Unknown values stay explicit. UA data does not reliably identify a model or emulator. */
 export const browserDeviceInfo = (source: BrowserDeviceSource): DeviceInfo => {
   const ua = source.userAgent;
@@ -23,25 +34,21 @@ export const browserDeviceInfo = (source: BrowserDeviceSource): DeviceInfo => {
   const mac = /Mac OS X\s(?<version>[\d_]+)/u.exec(ua);
   const windows = /Windows NT\s(?<version>[\d.]+)/u.exec(ua);
   const parsed = android ?? ios ?? mac ?? windows;
+
   const candidates = [
     [android, "android"],
     [ios, "ios"],
     [mac, "mac"],
     [windows, "windows"],
   ] as const;
+
   const hint = source.userAgentData?.platform.toLowerCase();
-  const hintSystems: Readonly<Record<string, DeviceInfo["operatingSystem"]>> = {
-    android: "android",
-    ios: "ios",
-    macos: "mac",
-    windows: "windows",
-    linux: "linux",
-    "chrome os": "linux",
-  };
+
   const operatingSystem =
-    (hint === undefined ? undefined : hintSystems[hint]) ??
+    (hint === undefined ? undefined : hintSystems.get(hint)) ??
     candidates.find(([match]) => match !== null)?.[1] ??
     (/Linux/u.test(ua) ? "linux" : "unknown");
+
   return {
     platform: "web",
     model: "unknown",
@@ -59,6 +66,7 @@ export const browserDeviceInfo = (source: BrowserDeviceSource): DeviceInfo => {
 export const getDeviceInfo = Effect.gen(function* () {
   const bridge = yield* Bridge;
   const runtime = yield* bridge.runtime;
+
   if (runtime !== "browser") {
     return yield* callPlugin(
       devicePlugin.bridge,
@@ -67,6 +75,7 @@ export const getDeviceInfo = Effect.gen(function* () {
       {}
     );
   }
+
   return yield* Effect.sync(() =>
     browserDeviceInfo(
       typeof navigator === "undefined" ? { userAgent: "" } : navigator

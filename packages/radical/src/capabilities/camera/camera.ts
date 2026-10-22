@@ -19,13 +19,18 @@ export {
   Cancelled,
   Unavailable,
 } from "./camera-schema.ts";
+
 export type { Photo, CameraPermission } from "./camera-schema.ts";
+
 export { BrowserCamera, BrowserCameraLive } from "./browser-camera.ts";
+
 export type CameraError =
   | PermissionDenied
   | Cancelled
   | Unavailable
   | BridgeError;
+
+const hasErrorCode = Schema.is(Schema.Struct({ code: Schema.Unknown }));
 
 /** Only known Capacitor Camera codes are translated. Other bridge failures survive. */
 const nativeError = <A, R>(
@@ -36,32 +41,37 @@ const nativeError = <A, R>(
       "BridgeCallFailed",
       (error): Effect.Effect<never, CameraError> => {
         const { cause } = error;
-        const code =
-          typeof cause === "object" && cause !== null && "code" in cause
-            ? cause.code
-            : undefined;
+        const code = hasErrorCode(cause) ? cause.code : undefined;
+
         if (code === "OS-PLUG-CAMR-0003" || code === "OS-PLUG-CAMR-0005") {
           return Effect.fail(new PermissionDenied({}));
         }
+
         if (code === "OS-PLUG-CAMR-0006" || code === "OS-PLUG-CAMR-0020") {
           return Effect.fail(new Cancelled({}));
         }
+
         if (code === "OS-PLUG-CAMR-0007") {
           return Effect.fail(
             new Unavailable({ reason: "No camera available" })
           );
         }
+
         return Effect.fail(error);
       }
     )
   );
+
 const permission = (request: boolean) =>
   Effect.gen(function* () {
     const bridge = yield* Bridge;
+
     if ((yield* bridge.runtime) === "browser") {
       const browser = yield* BrowserCamera;
+
       return yield* request ? browser.request : browser.check;
     }
+
     const result = yield* request
       ? nativeError(
           callPlugin(
@@ -79,14 +89,17 @@ const permission = (request: boolean) =>
             {}
           )
         );
+
     // Android reports a first decline as prompt-with-rationale; any non-grant after a request is a denial.
     if (request && result.camera !== "granted") {
       return yield* new PermissionDenied({});
     }
+
     return result.camera === "prompt-with-rationale"
       ? ("prompt" as const)
       : result.camera;
   });
+
 export const checkCameraPermission = permission(false);
 export const requestCameraPermission = permission(true);
 
@@ -96,6 +109,7 @@ const photoEffect = (source: "camera" | "photos") =>
     const browser = yield* BrowserCamera;
     const runtime = yield* bridge.runtime;
     const browserPhoto = source === "camera" ? browser.capture : browser.choose;
+
     const blob = yield* runtime === "browser"
       ? browserPhoto
       : Effect.gen(function* () {
@@ -130,14 +144,18 @@ const photoEffect = (source: "camera" | "photos") =>
                     : Effect.fail(new Cancelled({}))
                 )
               );
+
           return yield* browser.readNative(photo.uri);
         });
+
     const dataUrl = yield* browser.dataUrl(blob);
     // Native resolution metadata is sensor-oriented; decode instead so portrait photos report portrait sizes.
     const size = yield* browser.dimensions(blob);
+
     const mimeType =
       /^data:(?<mimeType>image\/[a-zA-Z0-9.+-]+);base64,/u.exec(dataUrl)?.groups
         ?.mimeType ?? "";
+
     return yield* Schema.decodeUnknownEffect(PhotoSchema)({
       dataUrl,
       mimeType,
