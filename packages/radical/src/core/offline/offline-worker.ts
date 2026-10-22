@@ -126,7 +126,9 @@ export const createOfflineWorker = (
 
   return {
     clear,
-    message: (input: unknown): Promise<OfflineMessage> | undefined => {
+    message: (
+      input: Parameters<typeof decodeWorkerMessage>[0]
+    ): Promise<OfflineMessage> | undefined => {
       const message = decodeWorkerMessage(input);
       if (message !== offlineMessages.clear) {
         return undefined;
@@ -136,10 +138,10 @@ export const createOfflineWorker = (
         () => offlineMessages.clearFailed
       );
     },
-    capture: (url: string): Promise<unknown> =>
+    capture: (url: string): Promise<Response | undefined> =>
       new URL(url).origin === services.origin
         ? document(new Request(url, { headers: { accept: "text/html" } }))
-        : Promise.resolve(),
+        : Promise.resolve(missing),
     install: () =>
       Promise.all(
         [...manifest.assets, manifest.fallback].map((path) => {

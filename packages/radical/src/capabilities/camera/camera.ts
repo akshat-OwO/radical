@@ -26,6 +26,7 @@ export type CameraError =
   | Cancelled
   | Unavailable
   | BridgeError;
+const hasErrorCode = Schema.is(Schema.Struct({ code: Schema.Unknown }));
 
 /** Only known Capacitor Camera codes are translated. Other bridge failures survive. */
 const nativeError = <A, R>(
@@ -36,10 +37,7 @@ const nativeError = <A, R>(
       "BridgeCallFailed",
       (error): Effect.Effect<never, CameraError> => {
         const { cause } = error;
-        const code =
-          typeof cause === "object" && cause !== null && "code" in cause
-            ? cause.code
-            : undefined;
+        const code = hasErrorCode(cause) ? cause.code : undefined;
         if (code === "OS-PLUG-CAMR-0003" || code === "OS-PLUG-CAMR-0005") {
           return Effect.fail(new PermissionDenied({}));
         }

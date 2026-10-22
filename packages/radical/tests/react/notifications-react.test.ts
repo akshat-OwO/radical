@@ -88,7 +88,11 @@ it.effect(
       Effect.gen(function* () {
         let settled = yield* Deferred.make<boolean>();
         let failed = false;
-        const calls: unknown[] = [];
+        const calls: {
+          plugin: string;
+          method: string;
+          options: Parameters<Parameters<typeof bridgeTestLayer>[1]>[2];
+        }[] = [];
         yield* TestClock.setTime(1000);
         const clock = yield* Clock.Clock;
         const layer = Layer.merge(
@@ -100,21 +104,18 @@ it.effect(
                 new BridgeCallFailed({ plugin, method, cause: "failed" })
               );
             }
-            const results: Record<string, unknown> = {
-              checkPermissions: { display: "granted" },
-              schedule: {
+            const results = new Map([
+              ["checkPermissions", { display: "granted" }],
+              ["schedule", {
                 notifications: [{ id: 1 }],
-                warning: {
-                  code: "OS-PLUG-LNOT-0017",
-                  message: "Inexact alarm",
-                },
-              },
-              isSupported: { isSupported: true },
-              status: { configured: true },
-              getToken: { token: "token" },
-              list: { topics: ["news"] },
-            };
-            return Effect.succeed(results[method]);
+                warning: { code: "OS-PLUG-LNOT-0017", message: "Inexact alarm" },
+              }],
+              ["isSupported", { isSupported: true }],
+              ["status", { configured: true }],
+              ["getToken", { token: "token" }],
+              ["list", { topics: ["news"] }],
+            ]);
+            return Effect.succeed(results.get(method));
           })
         );
         const mounted = yield* mountHook(useNotifications, layer, (state) => {
@@ -178,11 +179,7 @@ it.effect(
         }
         assert.deepStrictEqual(mounted.state().value, ["news"]);
         assert.deepStrictEqual(
-          calls.map((call) =>
-            call !== null && typeof call === "object" && "method" in call
-              ? call.method
-              : undefined
-          ),
+          calls.map((call) => call.method),
           [
             "checkPermissions",
             "schedule",

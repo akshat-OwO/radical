@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Layer, Schema, Predicate } from "effect";
 
 import {
   createRadicalRequestMiddleware,
@@ -57,6 +57,7 @@ describe("TanStack Start adapter", () => {
         };
         // Start composes heterogeneous middleware at runtime; its next() generic
         // cannot express the context added by a subsequent middleware.
+        // SAFETY: Each next continuation returns the context supplied by the middleware under test.
         /* oxlint-disable typescript/no-unsafe-type-assertion -- Model Start's runtime middleware composition across context types. */
         const next = (async () =>
           await provideContext({
@@ -220,14 +221,17 @@ describe("TanStack Start adapter", () => {
             pluginOptions: { GoogleSignIn: googleSignIn },
           });
           assert(
-            plugin !== null && typeof plugin === "object" && "config" in plugin
+            plugin !== null &&
+              Predicate.isObjectKeyword(plugin) &&
+              "config" in plugin
           );
           const hook = plugin.config;
-          assert(typeof hook === "function");
+          assert.isDefined(hook);
+          const handler = "handler" in hook ? hook.handler : hook;
           for (const host of [undefined, "localhost"]) {
             const resolved = yield* Effect.promise(
               async () =>
-                await hook.call(
+                await handler.call(
                   {
                     meta: {
                       viteVersion: "8.0.0",
@@ -281,10 +285,14 @@ describe("bundled server-function CSRF opt-in", () => {
           "https://localhost:444",
         ]) {
           for (const metadata of [true, false]) {
+            const fetchSite: Record<string, string> = {};
+            if (metadata) {
+              fetchSite["sec-fetch-site"] = "cross-site";
+            }
             const request = new Request("https://api.test/_serverFn/id", {
               headers: {
                 origin,
-                ...(metadata ? { "sec-fetch-site": "cross-site" } : {}),
+                ...fetchSite,
               },
             });
             const options = {
@@ -294,6 +302,7 @@ describe("bundled server-function CSRF opt-in", () => {
               handlerType: "serverFn" as const,
             };
             // Start composes generic middleware contexts at runtime.
+            // SAFETY: The fixture supplies every field read by the invoked API.
             // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Model Start's continuation boundary.
             const next = (async () =>
               await Promise.resolve({

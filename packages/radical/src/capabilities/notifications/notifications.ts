@@ -46,7 +46,7 @@ const local = createPluginClient(localNotificationsPlugin);
 const badge = createPluginClient(badgePlugin);
 const messaging = createPluginClient(firebaseMessagingPlugin);
 const topics = createPluginClient(notificationTopicsPlugin);
-const validate = <A, I>(schema: Schema.Codec<A, I>, value: unknown) =>
+const validate = <A, I>(schema: Schema.Codec<A, I>, value: I) =>
   Schema.decodeUnknownEffect(schema)(value).pipe(
     Effect.mapError((cause) => new Unavailable({ reason: cause.message }))
   );

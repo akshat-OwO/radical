@@ -7,7 +7,7 @@ import { offlineMessages } from "../../../src/core/offline/offline-protocol.ts";
 
 const origin = "https://example.test";
 const fixture = () => {
-  const listeners = new Map<string, (event: unknown) => void>();
+  const listeners = new Map<string, (event: FakeWorkerEvent) => void>();
   const storage = new Map<string, Map<string, Response>>([
     ["radical:test:old:assets", new Map()],
     ["other:assets", new Map()],
@@ -18,7 +18,10 @@ const fixture = () => {
   let online = true;
   const scope = {
     location: { origin },
-    addEventListener: (type: string, listener: (event: unknown) => void) => {
+    addEventListener: (
+      type: string,
+      listener: (event: FakeWorkerEvent) => void
+    ) => {
       listeners.set(type, listener);
     },
     caches: {
@@ -56,13 +59,13 @@ const fixture = () => {
         events.push("claim");
         return Promise.resolve();
       },
-      matchAll: (options: unknown) => {
+      matchAll: (options: ClientQueryOptions) => {
         assert.deepStrictEqual(options, { type: "window" });
         events.push("matchAll");
         return Promise.resolve([
           {
             url: `${origin}/notes?q=1`,
-            postMessage: (message: unknown, transfer: unknown) => {
+            postMessage: (message: string, transfer: Transferable[]) => {
               assert.deepStrictEqual(transfer, []);
               events.push("snapshotReady");
               messages.push(message);
@@ -72,20 +75,24 @@ const fixture = () => {
       },
     },
   };
+  // SAFETY: The fixture implements all scope APIs consumed by installOfflineWorker; unused host fields are never read.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Fake scope implements precisely the APIs consumed by the listener installer.
-  installOfflineWorker(scope as unknown as ServiceWorkerGlobalScope, {
+  installOfflineWorker(scope as ServiceWorkerGlobalScope & typeof scope, {
     buildId: "new",
     cachePrefix: "radical:test:",
     assets: ["/app.js"],
     fallback: "/offline.html",
   });
-  const dispatch = (type: string, fields: object = {}) =>
+  const dispatch = (type: string, fields: Partial<FakeWorkerEvent> = {}) =>
     Effect.gen(function* () {
       const pending: Promise<unknown>[] = [];
       let response: Promise<Response> | undefined;
       const listener = listeners.get(type);
       assert.isDefined(listener);
       listener({
+        request: new Request(origin),
+        data: "",
+        ports: [],
         ...fields,
         waitUntil: (promise: Promise<unknown>) => {
           pending.push(promise);
@@ -196,7 +203,7 @@ it.effect(
       const replies: unknown[] = [];
       const ports = [
         {
-          postMessage: (message: unknown) => {
+          postMessage: (message: string) => {
             replies.push(message);
           },
         },
@@ -232,3 +239,12 @@ it.effect(
       );
     })
 );
+interface FakeWorkerEvent {
+  readonly request: Request;
+  readonly data: string;
+  readonly ports: readonly {
+    readonly postMessage: (message: string) => void;
+  }[];
+  readonly waitUntil: (promise: Promise<unknown>) => void;
+  readonly respondWith: (promise: Promise<Response>) => void;
+}

@@ -13,10 +13,12 @@ const makeMemory = () => {
   const entries = new Map<string, Set<string>>();
   const messages: string[] = [];
   const state = { href: url, fail: false, listeners: 0 };
-  const window: { caches: boolean; __radicalDataCleared?: boolean } = {
+  const window: OfflineWindow = {
     caches: true,
   };
-  let listener: ((event: { data: unknown }) => unknown) | undefined;
+  let listener:
+    | ((event: { data: string | { type: string } }) => Promise<void>)
+    | undefined;
   const run = () => {
     const result: unknown = vm.runInNewContext(
       `(${offlineSnapshotCheckScript("dev.example")})(${JSON.stringify(url)})`,
@@ -57,8 +59,9 @@ const makeMemory = () => {
     );
     return Effect.promise(() => Promise.resolve(result));
   };
-  const activate = (data: unknown = "radical-snapshot-ready") =>
-    Effect.promise(() => Promise.resolve(listener?.({ data })));
+  const activate = (
+    data: string | { type: string } = "radical-snapshot-ready"
+  ) => Effect.promise(() => Promise.resolve(listener?.({ data })));
   return { entries, messages, state, window, run, activate };
 };
 class Memory extends Context.Service<Memory, ReturnType<typeof makeMemory>>()(
@@ -186,3 +189,7 @@ describe("Android launch gate", () => {
     })
   );
 });
+interface OfflineWindow {
+  caches: boolean;
+  __radicalDataCleared?: boolean;
+}

@@ -55,8 +55,9 @@ const entry = (manifest: PluginManifest = echo): EnabledPlugin => ({
   module: "./plugins/echo.ts",
   selector: "default",
 });
-const modules = (exports: Record<string, unknown>) =>
-  Layer.succeed(PluginModules, { load: () => Effect.succeed(exports) });
+const modules = (
+  exports: Effect.Success<ReturnType<PluginModules["Service"]["load"]>>
+) => Layer.succeed(PluginModules, { load: () => Effect.succeed(exports) });
 const config = {
   appId: "dev.radical.test",
   internalPlugins: { device: false, transitions: false },
@@ -455,7 +456,7 @@ describe("native plugin manifests", () => {
 
 describe("plugin bridge commands", () => {
   it.effect(
-    "preserves BridgeCallFailed for null rejection data including tag-only errors",
+    "preserves BridgeCallFailed for invalid rejection data including tag-only errors",
     () =>
       Effect.gen(function* () {
         const emptyPlugin = definePlugin({
@@ -469,14 +470,16 @@ describe("plugin bridge commands", () => {
             },
           },
         });
-        const cause = { code: "EchoRejected", data: null };
-        for (const manifest of [echo, emptyPlugin]) {
-          const error = yield* createPluginClient(manifest)
-            .echo({ text: "deny" })
-            .pipe(Effect.provide(failedCall(cause)), Effect.flip);
-          assert.strictEqual(error._tag, "BridgeCallFailed");
-          if (error._tag === "BridgeCallFailed") {
-            assert.strictEqual(error.cause, cause);
+        for (const data of [null, undefined, [], "invalid"]) {
+          const cause = { code: "EchoRejected", data };
+          for (const manifest of [echo, emptyPlugin]) {
+            const error = yield* createPluginClient(manifest)
+              .echo({ text: "deny" })
+              .pipe(Effect.provide(failedCall(cause)), Effect.flip);
+            assert.strictEqual(error._tag, "BridgeCallFailed");
+            if (error._tag === "BridgeCallFailed") {
+              assert.strictEqual(error.cause, cause);
+            }
           }
         }
       })

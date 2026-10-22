@@ -21,7 +21,7 @@ it.effect(
       const files = [
         new File(["a"], "a.pdf", { type: "application/pdf" }),
         new File(["b"], "b.png", { type: "image/png" }),
-      ];
+      ] satisfies readonly [File, ...File[]];
       Object.defineProperty(input, "files", { value: files });
       input?.dispatchEvent(new Event("change"));
       assert.deepStrictEqual(yield* Fiber.join(fiber), files);

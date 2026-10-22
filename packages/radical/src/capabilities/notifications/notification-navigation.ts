@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Queue, Schema } from "effect";
+import { Context, Effect, Layer, Queue, Schema, flow } from "effect";
 
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { Bridge } from "../../core/bridge/bridge.ts";
@@ -97,21 +97,25 @@ const actionSchema = Schema.Struct({
     ),
   }),
 });
-export const notificationRoute = (value: unknown) =>
-  Effect.gen(function* () {
-    const action = yield* Schema.decodeUnknownEffect(actionSchema)(value);
-    if (action.actionId !== "tap") {
-      return yield* new Unavailable({ reason: "Not a notification tap" });
-    }
-    return yield* Schema.decodeUnknownEffect(NotificationRouteSchema)(
-      action.notification.extra?.route ?? action.notification.data?.route
-    );
-  }).pipe(Effect.option);
+export const notificationRoute = flow(
+  Schema.decodeUnknownEffect(actionSchema),
+  Effect.flatMap((action) =>
+    Effect.gen(function* () {
+      if (action.actionId !== "tap") {
+        return yield* new Unavailable({ reason: "Not a notification tap" });
+      }
+      return yield* Schema.decodeUnknownEffect(NotificationRouteSchema)(
+        action.notification.extra?.route ?? action.notification.data?.route
+      );
+    })
+  ),
+  Effect.option
+);
 /** Own this watcher in an app/router scope, not in the notification example route. */
 export const watchNotificationNavigation = (options: {
   readonly appId: string;
   readonly push?: boolean;
-  readonly onError?: (error: unknown) => void;
+  readonly onError?: (cause: unknown) => void;
 }) =>
   Effect.gen(function* () {
     const bridge = yield* Bridge;
@@ -119,7 +123,7 @@ export const watchNotificationNavigation = (options: {
     const navigation = yield* adapter.navigation;
     const snapshots = yield* NotificationSnapshots;
     const queue = yield* Queue.unbounded<unknown>();
-    const receive = (value: unknown) => {
+    const receive: Parameters<Bridge["Service"]["observe"]>[1] = (value) => {
       Queue.offerUnsafe(queue, value);
     };
     const runtime = yield* bridge.runtime;

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
 
 import { Bridge } from "../../core/bridge/bridge.ts";
 import type { BridgeError } from "../../core/bridge/bridge.ts";
@@ -45,6 +45,7 @@ export const BrowserGoogleSignInLive = Layer.succeed(BrowserGoogleSignIn, {
   signIn: Effect.fail(new GoogleSignInUnavailable({})),
 });
 
+const hasErrorCode = Schema.is(Schema.Struct({ code: Schema.Unknown }));
 export const googleSignIn = Effect.gen(function* () {
   const bridge = yield* Bridge;
   if ((yield* bridge.runtime) === "browser") {
@@ -65,10 +66,7 @@ export const googleSignIn = Effect.gen(function* () {
       "BridgeCallFailed",
       (error): Effect.Effect<never, GoogleSignInError> => {
         const { cause } = error;
-        const code =
-          typeof cause === "object" && cause !== null && "code" in cause
-            ? cause.code
-            : undefined;
+        const code = hasErrorCode(cause) ? cause.code : undefined;
         if (code === "SIGN_IN_CANCELED") {
           return Effect.fail(new GoogleSignInCancelled({}));
         }

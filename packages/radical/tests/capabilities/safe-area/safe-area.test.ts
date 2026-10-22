@@ -81,7 +81,7 @@ describe("safe area", () => {
       Effect.gen(function* () {
         const values: SafeArea[] = [];
         let removed = false;
-        let publish: ((value: unknown) => void) | undefined;
+        let publish: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
         const layer = Layer.succeed(Bridge, {
           runtime: Effect.succeed("ios" as const),
           call: () => Effect.never,

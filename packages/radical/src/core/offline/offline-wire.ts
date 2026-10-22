@@ -14,6 +14,7 @@ export const offlineMessageLiterals = [
 ] as const;
 export type OfflineMessage = (typeof offlineMessageLiterals)[number];
 
+// Native worker payloads are deliberately decoded here without loading the Effect runtime.
 export const decodeWorkerMessage = (
   input: unknown
 ): OfflineMessage | undefined =>

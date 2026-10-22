@@ -217,7 +217,7 @@ it.effect("times out an unresponsive offline worker with TestClock", () =>
   Effect.gen(function* () {
     const messages: unknown[] = [];
     const fiber = yield* pauseOfflineWorker({
-      postMessage: (value: unknown) => {
+      postMessage: (value: string) => {
         messages.push(value);
       },
     }).pipe(Effect.flip, Effect.forkChild);
@@ -312,7 +312,7 @@ for (const acknowledgement of [
       Effect.gen(function* () {
         const result = yield* pauseOfflineWorker({
           postMessage: (
-            message: unknown,
+            message: string,
             transfer?: StructuredSerializeOptions | Transferable[]
           ) => {
             assert.strictEqual(message, "radical-clear-web-data");

@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Schema, flow } from "effect";
 
 import { safeAreaStyle } from "../../capabilities/safe-area/safe-area-style.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
@@ -33,10 +33,10 @@ interface BundledDocument {
 
 const shellDocument = (): BundledDocument | undefined =>
   typeof window === "undefined" ? undefined : window;
-const injectedNativeContext = (value: unknown) =>
-  Schema.decodeUnknownEffect(NativeContextSchema)(value).pipe(
-    Effect.orElseSucceed(browserContext)
-  );
+const injectedNativeContext = flow(
+  Schema.decodeUnknownEffect(NativeContextSchema),
+  Effect.orElseSucceed(browserContext)
+);
 
 /** Keep prerender and hydration stable; live reads begin only after the mount handoff. */
 export const localNativeContext = (

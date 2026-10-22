@@ -37,7 +37,7 @@ export const makeCliViteLayer = (
         ...args: Parameters<typeof resolveConfig>
       ) => Promise<Pick<ResolvedConfig, "root" | "plugins">>;
       readonly createBuilder: (config: InlineConfig) => Promise<{
-        readonly buildApp: () => Promise<unknown>;
+        readonly buildApp: () => Promise<void>;
       }>;
     },
     InvalidPlugin

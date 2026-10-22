@@ -9,6 +9,7 @@ import {
   requestVideoMedia,
 } from "../../../src/capabilities/video-stream/browser-video-stream.ts";
 import { startVideoStream } from "../../../src/capabilities/video-stream/video-stream.ts";
+import type { InjectedBridge } from "../../../src/core/bridge/bridge.ts";
 import {
   Bridge,
   BridgeCallFailed,
@@ -22,9 +23,11 @@ const presentation = Layer.succeed(BrowserVideoStream, {
   present: presentVideoStream,
 });
 const nativeFixture = () => {
-  const calls: { method: string; args: Readonly<Record<string, unknown>> }[] =
-    [];
-  let receive: ((value: unknown) => void) | undefined;
+  const calls: {
+    method: string;
+    args: Parameters<Bridge["Service"]["call"]>[2];
+  }[] = [];
+  let receive: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
   let removed = false;
   const layer = Layer.succeed(Bridge, {
     runtime: Effect.succeed("android" as const),
@@ -60,7 +63,8 @@ const nativeFixture = () => {
   return {
     layer,
     calls,
-    emit: (value: unknown) => receive?.(value),
+    emit: (value: Parameters<Parameters<Bridge["Service"]["observe"]>[1]>[0]) =>
+      receive?.(value),
     removed: () => removed,
   };
 };
@@ -385,7 +389,11 @@ it.effect(
     Effect.gen(function* () {
       const methods: string[] = [];
       const values: unknown[] = [];
-      let emit: ((value: unknown, error?: unknown) => void) | undefined;
+      let emit:
+        | NonNullable<
+            Parameters<NonNullable<InjectedBridge["nativeCallback"]>>[3]
+          >
+        | undefined;
       const layer = bridgeLayer(() => ({
         getPlatform: () => "android",
         nativePromise: () =>

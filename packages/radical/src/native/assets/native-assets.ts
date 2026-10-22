@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 
-import { Context, Effect, FileSystem, Layer } from "effect";
+import { Context, Effect, FileSystem, Layer, Predicate } from "effect";
 import sharp from "sharp";
 
 import type { RadicalConfig } from "../../vite/config.ts";
@@ -17,8 +17,9 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const assets: NativeAsset[] = [];
-    const icon =
-      typeof config.icon === "string" ? { image: config.icon } : config.icon;
+    const icon = Predicate.isString(config.icon)
+      ? { image: config.icon }
+      : config.icon;
     for (const entry of [
       ...(icon === undefined
         ? []
@@ -398,18 +399,19 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
             `${iosCatalog}/${iosSplashResourceName(input.assets)}.imageset/Contents.json`,
             JSON.stringify({
               images: ["", "-dark"].flatMap((theme) =>
-                [1, 2, 3].map((scale) => ({
-                  idiom: "universal",
-                  filename: `Default@${scale}x~universal~anyany${theme}.png`,
-                  scale: `${scale}x`,
-                  ...(theme
-                    ? {
-                        appearances: [
-                          { appearance: "luminosity", value: "dark" },
-                        ],
-                      }
-                    : {}),
-                }))
+                [1, 2, 3].map((scale) => {
+                  const image: SplashImage = {
+                    idiom: "universal",
+                    filename: `Default@${scale}x~universal~anyany${theme}.png`,
+                    scale: `${scale}x`,
+                  };
+                  if (theme) {
+                    image.appearances = [
+                      { appearance: "luminosity", value: "dark" },
+                    ];
+                  }
+                  return image;
+                })
               ),
               info,
             })
@@ -425,3 +427,9 @@ export const assetGeneratorLayer = Layer.succeed(AssetGenerator, {
       )
     ),
 });
+interface SplashImage {
+  idiom: string;
+  filename: string;
+  scale: string;
+  appearances?: { appearance: string; value: string }[];
+}

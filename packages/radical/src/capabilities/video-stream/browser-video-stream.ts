@@ -1,5 +1,5 @@
 // oxlint-disable promise/prefer-await-to-then -- Release getUserMedia results that arrive after interruption.
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Predicate } from "effect";
 import type { Scope } from "effect";
 
 import { PermissionDenied, Unavailable } from "../../core/errors.ts";
@@ -8,6 +8,9 @@ import type {
   VideoStreamOptions,
   VideoStreamSession,
 } from "./video-stream-schema.ts";
+const supportsUserMedia = (
+  devices: MediaDevices | undefined
+): devices is MediaDevices => typeof devices?.getUserMedia === "function";
 
 export class BrowserVideoStream extends Context.Service<
   BrowserVideoStream,
@@ -90,6 +93,7 @@ interface Detector {
   ) => Promise<readonly { rawValue: string }[]>;
 }
 type DetectorConstructor = new (options: { formats: string[] }) => Detector;
+// SAFETY: BarcodeDetector is an optional browser extension with the API used by Detector.
 const detectorConstructor = () =>
   (globalThis as typeof globalThis & { BarcodeDetector?: DetectorConstructor })
     .BarcodeDetector;
@@ -98,7 +102,7 @@ const browserStart = (options: VideoStreamOptions) =>
   Effect.gen(function* () {
     if (
       typeof navigator === "undefined" ||
-      typeof navigator.mediaDevices?.getUserMedia !== "function"
+      !supportsUserMedia(navigator.mediaDevices)
     ) {
       return yield* unavailable("getUserMedia is unavailable");
     }
@@ -214,7 +218,7 @@ const browserStart = (options: VideoStreamOptions) =>
           !current ||
           (key === "zoom"
             ? !state.zoom ||
-              typeof value !== "number" ||
+              !Predicate.isNumber(value) ||
               !Number.isFinite(value) ||
               value < state.zoom.min ||
               value > state.zoom.max

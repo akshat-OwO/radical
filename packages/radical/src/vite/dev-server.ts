@@ -1,7 +1,7 @@
 import os from "node:os";
 
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Predicate } from "effect";
 import type { ViteDevServer } from "vite";
 
 import {
@@ -37,7 +37,7 @@ export const configureServer = (
     if (
       address === null ||
       address === undefined ||
-      typeof address === "string"
+      Predicate.isString(address)
     ) {
       return;
     }

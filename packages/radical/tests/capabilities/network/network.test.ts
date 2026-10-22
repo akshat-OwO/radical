@@ -29,7 +29,7 @@ const fixture = (
   runtime: "android" | "ios",
   current = Effect.succeed<unknown>(online)
 ) => {
-  let receive: ((value: unknown) => void) | undefined;
+  let receive: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
   let removed = 0;
   const layer = Layer.merge(
     unusedBrowser,
@@ -54,7 +54,9 @@ const fixture = (
   );
   return {
     layer,
-    emit: (value: unknown) => {
+    emit: (
+      value: Parameters<Parameters<Bridge["Service"]["observe"]>[1]>[0]
+    ) => {
       receive?.(value);
     },
     removed: () => removed,

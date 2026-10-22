@@ -17,7 +17,7 @@ const nativeFixture = (
     connectionType: "wifi",
   })
 ) => {
-  let receive: ((value: unknown) => void) | undefined;
+  let receive: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
   let removed = 0;
   const layer = Layer.succeed(Bridge, {
     runtime: Effect.succeed(runtime),

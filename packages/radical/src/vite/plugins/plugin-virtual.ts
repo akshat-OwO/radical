@@ -2,7 +2,7 @@ import path from "node:path";
 
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect, FileSystem, Layer } from "effect";
-import type { Plugin } from "vite";
+import type { Plugin, UserConfig } from "vite";
 import { defaultAllowedOrigins } from "vite";
 
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
@@ -79,30 +79,34 @@ export const nativePlugins = (
     config: (user) =>
       Effect.runPromise(
         resolvePlan(user.root ?? process.cwd()).pipe(
-          Effect.map((value) => ({
-            define: value.defines,
-            server: {
-              host: user.server?.host ?? "0.0.0.0",
-              watch: { ignored: ["**/.radical/**"] },
-              ...(config.mode === "bundled" && user.server?.cors === undefined
-                ? {
-                    cors: {
-                      origin: (origin, callback) => {
-                        // A false callback result skips Vite's CORS middleware entirely.
-                        // Preview inherits server.cors unless preview.cors is explicit.
-                        const policy = bundledOrigins.some(
-                          (bundled) => bundled === origin
-                        )
-                          ? false
-                          : defaultAllowedOrigins;
-                        // @ts-expect-error Vite's callback type omits the valid null success argument.
-                        callback(null, policy);
-                      },
-                    },
-                  }
-                : {}),
-            },
-          }))
+          Effect.map((value) => {
+            const result: UserConfig = {
+              define: value.defines,
+              server: {
+                host: user.server?.host ?? "0.0.0.0",
+                watch: { ignored: ["**/.radical/**"] },
+              },
+            };
+            if (
+              config.mode === "bundled" &&
+              user.server?.cors === undefined &&
+              result.server
+            ) {
+              result.server.cors = {
+                origin: (origin, callback) => {
+                  // False skips Vite's CORS middleware; preview inherits this policy.
+                  const policy = bundledOrigins.some(
+                    (bundled) => bundled === origin
+                  )
+                    ? false
+                    : defaultAllowedOrigins;
+                  // @ts-expect-error Vite's callback type omits the valid null success argument.
+                  callback(null, policy);
+                },
+              };
+            }
+            return result;
+          })
         )
       ),
     configResolved: (resolved) =>

@@ -2,19 +2,19 @@
 import { createHash } from "node:crypto";
 
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, FileSystem, Layer } from "effect";
+import { Effect, FileSystem, Layer, Schema, Predicate } from "effect";
 import type { InlineConfig, Plugin } from "vite";
 
 import { OfflineBuildError } from "../../src/vite/offline-build-error.ts";
 import { OfflineCompiler, offlineBuild } from "../../src/vite/offline-build.ts";
 import { fakeAdapter } from "../fixtures/adapter.ts";
-import { resolvePlugin } from "../fixtures/vite-hooks.ts";
+import { hookHandler, resolvePlugin } from "../fixtures/vite-hooks.ts";
 
 type Hook<T> = T extends { handler: infer H } ? H : T;
 type WriteHook = Hook<NonNullable<Plugin["writeBundle"]>>;
 type OutputBundle = Parameters<WriteHook>[1];
-type OutputChunk = Extract<OutputBundle[string], { type: "chunk" }>;
 type OutputAsset = Extract<OutputBundle[string], { type: "asset" }>;
+type OutputChunk = Extract<OutputBundle[string], { type: "chunk" }>;
 type PluginContext = ThisParameterType<WriteHook>;
 
 const placeholder = "RADICAL_BUILD_CONTENT_HASH";
@@ -22,11 +22,13 @@ const write = (plugin: Plugin, bundle: OutputBundle, outDir = "web/public") =>
   Effect.promise(async () => {
     const hook = plugin.writeBundle;
     assert.isDefined(hook);
-    const handler = typeof hook === "function" ? hook : hook.handler;
+    const handler = hookHandler(hook);
+    // SAFETY: The fixture supplies every field read by the invoked API.
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The hook only reads environment.config.root and build.outDir.
     const context = {
       environment: { config: { root: "/app", build: { outDir } } },
-    } as unknown as PluginContext;
+    } as PluginContext;
+    // SAFETY: The write hook reads only the environment directory and bundle fields provided by this fixture.
     await handler.call(context, {} as Parameters<WriteHook>[0], bundle);
   });
 const fixture = (
@@ -69,33 +71,28 @@ const fixture = (
 };
 const bundle = (
   script = "app",
-  asset: string | Uint8Array = "css"
+  asset: string | Uint8Array<ArrayBuffer> = "css"
 ): OutputBundle => ({
+  // SAFETY: The fixture supplies every field read by the invoked API.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Hashing reads only type, fileName and code from a chunk.
   "z.js": { type: "chunk", fileName: "z.js", code: script } as OutputChunk,
+  // SAFETY: The hook reads only type, fileName and source; Rolldown's private native handle is never accessed.
   "a.css": {
     type: "asset",
     fileName: "a.css",
     source: asset,
-    names: [],
-    originalFileNames: [],
-  } as unknown as OutputAsset,
+    names: ["a.css"],
+    originalFileNames: ["a.css"],
+  } as OutputAsset,
 });
 
 const buildId = (files: Map<string, string>) => {
   const manifest: unknown = JSON.parse(
     files.get("/app/web/public/radical-manifest.json") ?? "null"
   );
-  assert.isNotNull(manifest);
-  assert.isObject(manifest);
-  if (
-    typeof manifest !== "object" ||
-    manifest === null ||
-    !("buildId" in manifest)
-  ) {
-    return assert.fail("Missing build ID");
-  }
-  return manifest.buildId;
+  return Schema.decodeUnknownSync(Schema.Struct({ buildId: Schema.String }))(
+    manifest
+  ).buildId;
 };
 
 describe("offline build hook", () => {
@@ -148,13 +145,15 @@ describe("offline build hook", () => {
         }
         assert.deepStrictEqual(lib.formats, ["iife"]);
         assert.isString(lib.entry);
-        if (typeof lib.entry === "string") {
+        if (Predicate.isString(lib.entry)) {
           assert.include(lib.entry, "offline-main.ts");
         }
         const defined: unknown = config.define?.__RADICAL_MANIFEST__;
         assert.isString(defined);
         assert.deepStrictEqual(
-          typeof defined === "string" ? JSON.parse(defined) : undefined,
+          Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(
+            defined
+          ),
           {
             buildId: placeholder,
             cachePrefix: "radical:dev.test.app:/app/:",
@@ -199,6 +198,7 @@ describe("offline build hook", () => {
             fixture(),
             {
               ...bundle(),
+              // SAFETY: The hook reads only type, fileName and source; Rolldown's private native handle is never accessed.
               "a.css": { ...bundle()["a.css"], fileName: "renamed.css" },
             },
           ],

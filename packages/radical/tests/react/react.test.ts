@@ -241,7 +241,7 @@ it.effect(
         const initial = { top: 62, right: 0, bottom: 34, left: 0 };
         const rotated = { top: 0, right: 62, bottom: 21, left: 62 };
         const updated = yield* Deferred.make<boolean>();
-        let publish: ((value: unknown) => void) | undefined;
+        let publish: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
         let removed = false;
         const layer = Layer.succeed(Bridge, {
           runtime: Effect.succeed("ios" as const),

@@ -8,7 +8,7 @@ import { navigationGuardScript } from "../../../src/native/android/generate.ts";
 /** Run the guard in a sandboxed document and report whether it stopped loading. */
 const runGuard = (origin: string, topLevel = true) => {
   const calls: string[] = [];
-  const window: Record<string, unknown> = {
+  const window: GuardWindow = {
     stop: () => {
       calls.push("stop");
     },
@@ -45,3 +45,7 @@ describe("Android navigation guard", () => {
     })
   );
 });
+interface GuardWindow {
+  stop: () => void;
+  top?: GuardWindow | Record<string, never>;
+}

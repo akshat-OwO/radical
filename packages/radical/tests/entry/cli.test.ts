@@ -18,7 +18,7 @@ const fixture = (
   missingBuildPlan = false
 ) => {
   const calls: unknown[] = [];
-  const record = (call: unknown) =>
+  const record = (call: string | readonly (string | boolean)[]) =>
     Effect.sync(() => {
       calls.push(call);
     });

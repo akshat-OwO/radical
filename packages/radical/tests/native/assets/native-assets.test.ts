@@ -2,7 +2,7 @@
 import path from "node:path";
 
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, FileSystem, Layer, PlatformError } from "effect";
+import { Effect, FileSystem, Layer, PlatformError, Predicate } from "effect";
 import sharp from "sharp";
 
 import baseline from "../../../../../docs/verification/native-assets-baseline.json" with { type: "json" };
@@ -63,9 +63,11 @@ const filesystem = (files: Map<string, Uint8Array>) =>
     readDirectory: (name) =>
       Effect.sync(() => [
         ...new Set(
-          [...files.keys()]
-            .filter((file) => file.startsWith(`${name}/`))
-            .map((file) => file.slice(name.length + 1).split("/")[0])
+          [...files.keys()].flatMap((file) =>
+            file.startsWith(`${name}/`)
+              ? [file.slice(name.length + 1).split("/")[0]]
+              : []
+          )
         ),
       ]),
     remove: (name) =>
@@ -195,7 +197,8 @@ describe("native asset validation", () => {
             icon,
           }).pipe(Effect.provide(filesystem(files)));
           const colour =
-            typeof icon === "object" && icon.backgroundColor !== undefined
+            Predicate.isObjectKeyword(icon) &&
+            icon.backgroundColor !== undefined
               ? [0x12, 0x34, 0x56]
               : [255, 255, 255];
           for (const asset of assets) {

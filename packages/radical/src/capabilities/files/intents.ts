@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
 
 import { Bridge } from "../../core/bridge/bridge.ts";
 import type { BridgeError } from "../../core/bridge/bridge.ts";
@@ -67,6 +67,7 @@ export const openUrl = (url: string) =>
   });
 
 /** Opens a native file in an external app. Browser files have no URI and fail with Unavailable. */
+const hasErrorCode = Schema.is(Schema.Struct({ code: Schema.Unknown }));
 export const openFile = (file: OpenableFile, options: OpenFileOptions = {}) =>
   Effect.gen(function* () {
     const bridge = yield* Bridge;
@@ -76,24 +77,24 @@ export const openFile = (file: OpenableFile, options: OpenFileOptions = {}) =>
       });
     }
     const target = file.uri;
+    const args: OpenFileArgs = {
+      filePath: target,
+      openWithDefault: options.chooser !== true,
+    };
+    if (file.mimeType !== undefined) {
+      args.contentType = file.mimeType;
+    }
     return yield* callPlugin(
       fileOpenerPlugin.bridge,
       "open",
       fileOpenerPlugin.commands.open,
-      {
-        filePath: target,
-        ...(file.mimeType === undefined ? {} : { contentType: file.mimeType }),
-        openWithDefault: options.chooser !== true,
-      }
+      args
     ).pipe(
       Effect.catchTag(
         "BridgeCallFailed",
         (error): Effect.Effect<never, IntentError> => {
           const { cause } = error;
-          const code =
-            typeof cause === "object" && cause !== null && "code" in cause
-              ? cause.code
-              : undefined;
+          const code = hasErrorCode(cause) ? cause.code : undefined;
           // File opener 8.0.1 codes: 8 no activity or preview, 9 missing file.
           if (code === "8") {
             return Effect.fail(new NoHandler({ target }));
@@ -114,3 +115,8 @@ export const openFile = (file: OpenableFile, options: OpenFileOptions = {}) =>
 export const intentsLive = <A, E, R>(
   effect: Effect.Effect<A, E, R | BrowserIntents>
 ) => effect.pipe(Effect.provide(BrowserIntentsLive));
+interface OpenFileArgs {
+  filePath: string;
+  contentType?: string;
+  openWithDefault: boolean;
+}

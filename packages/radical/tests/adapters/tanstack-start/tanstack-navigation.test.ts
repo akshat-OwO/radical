@@ -5,7 +5,7 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { Clock, Deferred, Effect, Layer, Option, Ref } from "effect";
+import { Clock, Deferred, Effect, Layer, Option, Ref, Predicate } from "effect";
 import { TestClock } from "effect/testing";
 
 import { installNativeTransitions } from "../../../src/adapters/tanstack-start/tanstack-native-transitions.ts";
@@ -79,12 +79,12 @@ const transitionTypes = (
 ) => {
   const option = router.options.defaultViewTransition;
   assert.isObject(option);
-  assert.isTrue(typeof option === "object");
-  if (typeof option !== "object") {
+  assert.isTrue(Predicate.isObjectKeyword(option));
+  if (!Predicate.isObjectKeyword(option)) {
     return false;
   }
   assert.isFunction(option.types);
-  if (typeof option.types !== "function") {
+  if (option.types === undefined || Array.isArray(option.types)) {
     return false;
   }
   return option.types({
@@ -428,7 +428,10 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
     }),
     () =>
       Effect.gen(function* () {
-        assert.isUndefined(Reflect.get(globalThis.crypto, "randomUUID"));
+        assert.isFalse(
+          "randomUUID" in globalThis.crypto &&
+            globalThis.crypto.randomUUID !== undefined
+        );
         const router = makeRouter();
         const ids: string[] = [];
         const clock = yield* Effect.clockWith(Effect.succeed);

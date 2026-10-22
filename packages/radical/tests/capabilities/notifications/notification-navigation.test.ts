@@ -65,7 +65,10 @@ for (const runtime of ["browser", "android", "ios"] as const) {
         Effect.gen(function* () {
           const ready = yield* Deferred.make<boolean>();
           const finished = yield* Deferred.make<boolean>();
-          const listeners = new Map<string, (value: unknown) => void>();
+          const listeners = new Map<
+            string,
+            Parameters<Bridge["Service"]["observe"]>[1]
+          >();
           const order: string[] = [];
           let removed = 0;
           const layer = Layer.mergeAll(

@@ -1,7 +1,14 @@
 import { createServer } from "node:http";
 
 import { assert, describe, it } from "@effect/vitest";
-import { Deferred, Effect, FileSystem, Layer, PlatformError } from "effect";
+import {
+  Deferred,
+  Effect,
+  FileSystem,
+  Layer,
+  PlatformError,
+  Predicate,
+} from "effect";
 
 import {
   NativeMetadata,
@@ -46,7 +53,7 @@ const serverFixture = (
   const server = {
     httpServer: Object.assign(events, {
       address: () =>
-        typeof address === "object" && address !== null
+        Predicate.isObjectKeyword(address)
           ? { address: "127.0.0.1", family: "IPv4", ...address }
           : address,
     }),

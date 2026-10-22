@@ -39,7 +39,7 @@ const readConfig = (name: string) =>
     const url = new URL(name, new URL("../../../", import.meta.url)).href;
     const module = yield* Effect.tryPromise({
       // oxlint-disable-next-line typescript/promise-function-async -- Effect owns the Promise boundary.
-      try: (): Promise<unknown> => import(url),
+      try: () => import(url).then(Schema.decodeUnknownSync(Schema.Unknown)),
       catch: (cause) => new DirectoryScanError({ cause }),
     });
     const configSchema: Schema.Codec<IgnoreConfig> = Schema.Struct({
@@ -85,9 +85,9 @@ const scanFolders = (workspaces: readonly string[]) =>
         }
       };
       const includes = workspaces.filter((pattern) => !pattern.startsWith("!"));
-      const excludes = workspaces
-        .filter((pattern) => pattern.startsWith("!"))
-        .map((pattern) => pattern.slice(1));
+      const excludes = workspaces.flatMap((pattern) =>
+        pattern.startsWith("!") ? [pattern.slice(1)] : []
+      );
       for (const workspace of globSync(includes, {
         cwd: root,
         exclude: [...excludes, "**/node_modules/**", "**/.radical/**"],
@@ -146,8 +146,10 @@ it.effect("respects ordered negation and root-relative ignore patterns", () =>
 it.effect("keeps workspace source and test folders visible to Ultracite", () =>
   Effect.gen(function* () {
     const document = yield* Effect.try({
-      try: (): unknown =>
-        parse(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf-8")),
+      try: () =>
+        Schema.decodeUnknownSync(Schema.Unknown)(
+          parse(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf-8"))
+        ),
       catch: (cause) => new DirectoryScanError({ cause }),
     });
     const workspace =

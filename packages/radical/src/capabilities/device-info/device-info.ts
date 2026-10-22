@@ -15,6 +15,16 @@ export interface BrowserDeviceSource {
   };
 }
 
+const hintSystems = new Map<string, DeviceInfo["operatingSystem"]>(
+  Object.entries({
+    android: "android",
+    ios: "ios",
+    macos: "mac",
+    windows: "windows",
+    linux: "linux",
+    "chrome os": "linux",
+  } as const)
+);
 /** Unknown values stay explicit. UA data does not reliably identify a model or emulator. */
 export const browserDeviceInfo = (source: BrowserDeviceSource): DeviceInfo => {
   const ua = source.userAgent;
@@ -30,16 +40,8 @@ export const browserDeviceInfo = (source: BrowserDeviceSource): DeviceInfo => {
     [windows, "windows"],
   ] as const;
   const hint = source.userAgentData?.platform.toLowerCase();
-  const hintSystems: Readonly<Record<string, DeviceInfo["operatingSystem"]>> = {
-    android: "android",
-    ios: "ios",
-    macos: "mac",
-    windows: "windows",
-    linux: "linux",
-    "chrome os": "linux",
-  };
   const operatingSystem =
-    (hint === undefined ? undefined : hintSystems[hint]) ??
+    (hint === undefined ? undefined : hintSystems.get(hint)) ??
     candidates.find(([match]) => match !== null)?.[1] ??
     (/Linux/u.test(ua) ? "linux" : "unknown");
   return {

@@ -17,11 +17,11 @@ export const replaceAnchor = (
   replacement: string
 ) =>
   Effect.suspend(() =>
-    (typeof anchor === "string" ? source.includes(anchor) : anchor.test(source))
+    (anchor instanceof RegExp ? anchor.test(source) : source.includes(anchor))
       ? Effect.succeed(
-          typeof anchor === "string"
-            ? source.replaceAll(anchor, () => replacement)
-            : source.replace(anchor, () => replacement)
+          anchor instanceof RegExp
+            ? source.replace(anchor, () => replacement)
+            : source.replaceAll(anchor, () => replacement)
         )
       : Effect.fail(
           new NativeTemplateMismatch({ file, anchor: String(anchor) })

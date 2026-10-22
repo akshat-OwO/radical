@@ -130,7 +130,7 @@ it.effect(
         const running = yield* Deferred.make<boolean>();
         const stopped = yield* Deferred.make<boolean>();
         let state: VideoStreamState | undefined;
-        let emit: ((event: unknown) => void) | undefined;
+        let emit: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
         let starts = 0;
         const codes: string[] = [];
         const layer = Layer.succeed(Bridge, {

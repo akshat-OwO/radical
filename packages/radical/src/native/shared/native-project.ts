@@ -253,31 +253,30 @@ export const generateNativeProject = <E, R>(
               ),
             })
           );
+          const platformConfig: CapacitorPlatformConfig = {};
+          if (platform === "android") {
+            // Radical serves packaged worker requests before Capacitor's client.
+            platformConfig.android = {
+              resolveServiceWorkerRequests: false,
+              allowMixedContent:
+                native.bundled && config.origin?.startsWith("http:") === true,
+            };
+          } else {
+            platformConfig.ios = {
+              limitsNavigationsToAppBoundDomains: !native.bundled,
+            };
+          }
+          const serverUrl: CapacitorServerUrl = {};
+          if (!native.bundled) {
+            serverUrl.url = url;
+          }
           yield* fs.writeFileString(
             path.join(staging, "capacitor.config.json"),
             JSON.stringify({
               appId: native.identity.appId,
               appName: native.identity.name,
               webDir: "www",
-              // Radical serves packaged startup/fallback pages to worker fetches.
-              // Capacitor's default client would replace it during bridge setup.
-              ...(platform === "android"
-                ? {
-                    android: {
-                      resolveServiceWorkerRequests: false,
-                      allowMixedContent:
-                        native.bundled &&
-                        config.origin?.startsWith("http:") === true,
-                    },
-                  }
-                : {}),
-              ...(platform === "ios"
-                ? {
-                    ios: {
-                      limitsNavigationsToAppBoundDomains: !native.bundled,
-                    },
-                  }
-                : {}),
+              ...platformConfig,
               experimental: {
                 ios: {
                   spm: {
@@ -290,7 +289,7 @@ export const generateNativeProject = <E, R>(
                 ...native.plan.pluginConfig,
               },
               server: {
-                ...(native.bundled ? {} : { url }),
+                ...serverUrl,
                 cleartext: (config.origin ?? url).startsWith("http:"),
                 allowNavigation:
                   platform === "android" || native.bundled
@@ -314,3 +313,13 @@ export const generateNativeProject = <E, R>(
         })
     );
   });
+interface CapacitorPlatformConfig {
+  android?: {
+    resolveServiceWorkerRequests: boolean;
+    allowMixedContent: boolean;
+  };
+  ios?: { limitsNavigationsToAppBoundDomains: boolean };
+}
+interface CapacitorServerUrl {
+  url?: string;
+}

@@ -17,6 +17,25 @@ export default defineConfig({
   options: { typeAware: true },
   overrides: [
     {
+      // This wire decoder validates arbitrary worker messages without bundling Effect into native scripts.
+      files: ["packages/radical/src/core/offline/offline-wire.ts"],
+      rules: { "anti-slop/no-unknown-parameters": "off" },
+    },
+    {
+      // The transport carries arbitrary plugin payloads; each capability decodes its own codec.
+      files: ["packages/radical/src/core/bridge/bridge.ts"],
+      rules: {
+        "anti-slop/no-unknown-parameters": "off",
+        "anti-slop/no-unknown-returns": "off",
+        "anti-slop/no-unsafe-dictionary-type": "off",
+      },
+    },
+    {
+      // Module exports remain opaque until the selected manifest is decoded by PluginManifestSchema.
+      files: ["packages/radical/src/vite/plugins/plugin-modules.ts"],
+      rules: { "anti-slop/no-unsafe-dictionary-type": "off" },
+    },
+    {
       // Only the plugin manifest and shell generators may depend on Capacitor.
       // Keep this exact allowlist in sync with ADR 0003; tests need no exception.
       files: capacitorAllowedFiles,

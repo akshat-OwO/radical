@@ -18,6 +18,9 @@ export {
 } from "./haptics-schema.ts";
 export type { ImpactStyle, NotificationType } from "./haptics-schema.ts";
 export type HapticError = BridgeError | HapticFeedbackFailed;
+const supportsVibration = (
+  source: Navigator | undefined
+): source is Navigator => typeof source?.vibrate === "function";
 
 export class BrowserHaptics extends Context.Service<
   BrowserHaptics,
@@ -33,10 +36,7 @@ export const BrowserHapticsLive = Layer.succeed(BrowserHaptics, {
   vibrate: (pattern) =>
     Effect.try({
       try: () => {
-        if (
-          typeof navigator !== "undefined" &&
-          typeof navigator.vibrate === "function"
-        ) {
+        if (typeof navigator !== "undefined" && supportsVibration(navigator)) {
           navigator.vibrate([...pattern]);
         }
       },

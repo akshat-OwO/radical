@@ -32,6 +32,7 @@ export const offlineCompilerLayer = Layer.succeed(OfflineCompiler, {
   compile: (config) =>
     Effect.gen(function* () {
       const { build } = yield* Effect.try({
+        // SAFETY: Node resolves the installed Vite module whose API is declared by typeof Vite.
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Node loads the installed Vite module with its declared types.
         try: () => createRequire(import.meta.url)("vite") as typeof Vite,
         catch: (cause) => new OfflineBuildError({ cause }),

@@ -1,12 +1,15 @@
 // oxlint-disable promise/prefer-await-to-then -- Late browser permission results must release streams even after Effect interruption.
 import type { Option } from "effect";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Predicate } from "effect";
 
 import { readNativeFile } from "../../core/native-file.ts";
 import { browserFileInput } from "../files/browser-file-input.ts";
 import { PermissionDenied, Unavailable } from "./camera-schema.ts";
 import type { CameraPermission, Cancelled } from "./camera-schema.ts";
 
+const supportsUserMedia = (
+  devices: MediaDevices | undefined
+): devices is MediaDevices => typeof devices?.getUserMedia === "function";
 type BrowserCameraError = PermissionDenied | Cancelled | Unavailable;
 const unavailable = (cause: unknown) =>
   new Unavailable({ reason: String(cause) });
@@ -33,11 +36,15 @@ export class BrowserCamera extends Context.Service<
   }
 >()("radical/BrowserCamera") {}
 
-export const browserCapture = (doc: Document, camera = true) =>
-  browserFileInput(doc, {
+export const browserCapture = (doc: Document, camera = true) => {
+  const options: CaptureInputOptions = {
     accept: "image/*",
-    ...(camera ? { capture: "environment" as const } : {}),
-  }).pipe(Effect.map((files) => files[0] as Blob));
+  };
+  if (camera) {
+    options.capture = "environment";
+  }
+  return browserFileInput(doc, options).pipe(Effect.map((files) => files[0]));
+};
 
 const readDataUrl = (blob: Blob) =>
   Effect.suspend(() => {
@@ -49,7 +56,7 @@ const readDataUrl = (blob: Blob) =>
       complete?.(effect);
     const load = () => {
       resume(
-        typeof reader.result === "string"
+        Predicate.isString(reader.result)
           ? Effect.succeed(reader.result)
           : Effect.fail(unavailable("Invalid file reader result"))
       );
@@ -83,7 +90,7 @@ const readDataUrl = (blob: Blob) =>
 // createImageBitmap applies EXIF orientation by default, matching how <img> renders the photo.
 // A bitmap that resolves after interruption is closed in the promise continuation.
 const decodedDimensions = (blob: Blob) =>
-  typeof createImageBitmap === "function"
+  Predicate.isFunction(globalThis.createImageBitmap)
     ? Effect.tryPromise(() =>
         createImageBitmap(blob).then((bitmap) => {
           const size = { width: bitmap.width, height: bitmap.height };
@@ -122,7 +129,7 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
   request: Effect.suspend(() => {
     if (
       typeof navigator === "undefined" ||
-      typeof navigator.mediaDevices?.getUserMedia !== "function"
+      !supportsUserMedia(navigator.mediaDevices)
     ) {
       return Effect.fail(
         unavailable("Camera permission requests require getUserMedia")
@@ -145,3 +152,7 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
   dataUrl: readDataUrl,
   dimensions: decodedDimensions,
 });
+interface CaptureInputOptions {
+  accept: string;
+  capture?: "environment";
+}

@@ -24,7 +24,7 @@ const nativeInfo = {
 describe("injected bridge", () => {
   it.effect("detects SSR as browser without a window", () =>
     Effect.sync(() => {
-      assert.strictEqual(typeof window, "undefined");
+      assert.isFalse("window" in globalThis);
       assert.strictEqual(detectRuntime(), "browser");
     })
   );
@@ -57,7 +57,7 @@ describe("injected bridge", () => {
           async nativePromise(
             plugin: string,
             method: string,
-            options: Readonly<Record<string, unknown>>
+            options: Parameters<Bridge["Service"]["call"]>[2]
           ) {
             assert.strictEqual(this, injected);
             assert.strictEqual(plugin, "Device");

@@ -43,7 +43,7 @@ const strip = (files: readonly PickedFile[]) =>
 
 const androidIntents = (call: Parameters<typeof bridgeTestLayer>[1]) =>
   Layer.merge(bridgeTestLayer("android", call), intentsLayer());
-const ids = (config: object) =>
+const ids = (config: Partial<Parameters<typeof resolvePlugins>[0]>) =>
   resolvePlugins({ appId: "dev.test.app", ...config }).pipe(
     Effect.provideService(PluginModules, { load: unexpected }),
     Effect.map((plugins) => plugins.map(({ manifest }) => manifest.id))

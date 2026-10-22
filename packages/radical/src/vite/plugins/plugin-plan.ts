@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Layer, Predicate, Schema } from "effect";
 
 import { resolveInternalPlugins } from "../../core/plugins/internal-plugin-registry.ts";
 import { PluginManifestSchema } from "../../core/plugins/plugins.ts";
@@ -37,14 +37,14 @@ export const pluginModulesLayer = (root: string) =>
 
 const hasErrorTag = (schema: Schema.Codec<unknown, unknown>, code: string) => {
   if (
-    typeof schema !== "function" ||
+    !Predicate.isFunction(schema) ||
     !(schema.prototype instanceof Error) ||
     !("fields" in schema)
   ) {
     return false;
   }
   const { fields } = schema;
-  if (typeof fields !== "object" || fields === null || !("_tag" in fields)) {
+  if (!Schema.is(Schema.Struct({ _tag: Schema.Unknown }))(fields)) {
     return false;
   }
   return Schema.isSchema(fields._tag) && Schema.is(fields._tag)(code);
@@ -63,7 +63,7 @@ export interface EnabledPlugin {
 // oxlint-disable-next-line eslint/complexity -- Validate all manifest constraints before touching a project.
 export const validatePlugins = (
   plugins: readonly EnabledPlugin[],
-  options: Readonly<Record<string, unknown>> = {}
+  options: NonNullable<RadicalConfig["pluginOptions"]> = {}
 ) =>
   Effect.gen(
     // oxlint-disable-next-line eslint/complexity -- Validate all manifest constraints before touching a project.

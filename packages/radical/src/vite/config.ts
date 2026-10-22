@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Schema, flow } from "effect";
 import { map as mapRecord } from "effect/Record";
 
 import { internalPluginRegistry } from "../core/plugins/internal-plugin-registry.ts";
@@ -147,12 +147,12 @@ export class InvalidConfig extends Schema.TaggedError<
   { readonly brand: unique symbol }
 >()("InvalidConfig", { message: Schema.String }) {}
 
-export const validateConfig = (input: unknown) =>
-  Schema.decodeUnknownEffect(RadicalConfigSchema)(input).pipe(
-    Effect.mapError(
-      (error) =>
-        new InvalidConfig({
-          message: `Invalid radical config: ${error.message}`,
-        })
-    )
-  );
+export const validateConfig = flow(
+  Schema.decodeUnknownEffect(RadicalConfigSchema),
+  Effect.mapError(
+    (error) =>
+      new InvalidConfig({
+        message: `Invalid radical config: ${error.message}`,
+      })
+  )
+);

@@ -38,7 +38,9 @@ export const watchNetworkStatus: Stream.Stream<
     Effect.gen(function* () {
       const bridge = yield* Bridge;
       let changed = false;
-      const receive = (status: unknown) => {
+      const receive: Parameters<NonNullable<Bridge["Service"]["listen"]>>[2] = (
+        status
+      ) => {
         changed = true;
         Queue.offerUnsafe(queue, status);
       };

@@ -29,16 +29,16 @@ export {
   BrowserVideoStreamLive,
 } from "./browser-video-stream.ts";
 const native = createPluginClient(videoStreamPlugin);
+const isPermissionDenied = Schema.is(
+  Schema.Struct({ code: Schema.Literal("cameraPermissionDenied") })
+);
 const nativeError = <A, R>(effect: Effect.Effect<A, BridgeError, R>) =>
   effect.pipe(
     Effect.catchTag(
       "BridgeCallFailed",
       (error): Effect.Effect<never, VideoStreamError> => {
         const { cause } = error;
-        return typeof cause === "object" &&
-          cause !== null &&
-          "code" in cause &&
-          cause.code === "cameraPermissionDenied"
+        return isPermissionDenied(cause)
           ? Effect.fail(new PermissionDenied({}))
           : Effect.fail(error);
       }

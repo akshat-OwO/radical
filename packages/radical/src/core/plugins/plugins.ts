@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 
 import type { BridgeError } from "../bridge/bridge.ts";
 import { Bridge, BridgeDecodeError } from "../bridge/bridge.ts";
@@ -78,6 +78,12 @@ type ClientCommand<C extends Command> = (
 export type PluginClient<M extends PluginManifest> = {
   readonly [K in keyof M["commands"]]: ClientCommand<M["commands"][K]>;
 };
+const decodeRejection = Schema.decodeUnknownOption(
+  Schema.Struct({
+    code: Schema.String,
+    data: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+  })
+);
 
 export const callPlugin = <C extends Command>(
   plugin: string,
@@ -106,27 +112,15 @@ export const callPlugin = <C extends Command>(
       )
       .pipe(
         Effect.catchTag("BridgeCallFailed", (error) => {
-          const { cause } = error;
-          const code =
-            typeof cause === "object" && cause !== null && "code" in cause
-              ? cause.code
-              : undefined;
-          const schema =
-            typeof code === "string" && Object.hasOwn(command.errors, code)
-              ? command.errors[code]
-              : undefined;
-          if (!schema) {
+          const envelope = decodeRejection(error.cause);
+          if (Option.isNone(envelope)) {
             return Effect.fail(error);
           }
-          const data =
-            typeof cause === "object" && cause !== null && "data" in cause
-              ? cause.data
-              : {};
-          if (
-            typeof data !== "object" ||
-            data === null ||
-            Array.isArray(data)
-          ) {
+          const { code, data = {} } = envelope.value;
+          const schema = Object.hasOwn(command.errors, code)
+            ? command.errors[code]
+            : undefined;
+          if (!schema) {
             return Effect.fail(error);
           }
           return Schema.decodeUnknownEffect(schema)({
@@ -147,6 +141,7 @@ export const callPlugin = <C extends Command>(
     );
   });
 
+// SAFETY: Every command key maps to a closure with its original args, result and error codecs.
 // oxlint-disable typescript/no-unsafe-type-assertion -- Object entries preserve command keys and their codecs.
 export const createPluginClient = <M extends PluginManifest>(
   manifest: M
@@ -154,6 +149,7 @@ export const createPluginClient = <M extends PluginManifest>(
   Object.fromEntries(
     Object.entries(manifest.commands).map(([name, command]) => [
       name,
-      (args: unknown) => callPlugin(manifest.bridge, name, command, args),
+      (args: typeof command.args.Type) =>
+        callPlugin(manifest.bridge, name, command, args),
     ])
   ) as PluginClient<M>;

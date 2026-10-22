@@ -23,7 +23,7 @@ const options = {
     iosClientId: "ios.apps.googleusercontent.com",
   },
 };
-const resolve = (input: unknown) =>
+const resolve = (input: Schema.Json) =>
   resolveBuildPlan(input).pipe(Effect.provide(modules));
 
 it.effect(

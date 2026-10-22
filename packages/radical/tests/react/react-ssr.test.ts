@@ -41,7 +41,7 @@ it.effect(
       const layer = bridgeLayer(() =>
         assert.fail("SSR read the injected bridge")
       );
-      assert.strictEqual(typeof window, "undefined");
+      assert.isFalse("window" in globalThis);
       assert.strictEqual(
         renderToString(
           createElement(RadicalProvider, { layer }, createElement(Probe))

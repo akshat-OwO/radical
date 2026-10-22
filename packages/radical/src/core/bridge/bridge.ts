@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Predicate, Schema } from "effect";
 
 import {
   BridgeCallFailed,
@@ -33,10 +33,16 @@ export interface InjectedBridge {
     options: Readonly<Record<string, unknown>>
   ) => Promise<unknown>;
 }
-export const injectedBridge = (): InjectedBridge | undefined =>
-  typeof window === "undefined"
-    ? undefined
-    : (window as Window & { Capacitor?: InjectedBridge }).Capacitor;
+interface BridgeWindow extends Window {
+  readonly Capacitor?: InjectedBridge;
+}
+export const injectedBridge = (): InjectedBridge | undefined => {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  const browserWindow: BridgeWindow = window;
+  return browserWindow.Capacitor;
+};
 
 /** SSR reports browser. Detection reads globals only when called. */
 const runtimeOf = (bridge: InjectedBridge | undefined): Runtime => {
@@ -149,7 +155,7 @@ export const bridgeLayer = (
           if (
             !bridge ||
             runtimeOf(bridge) === "browser" ||
-            typeof bridge.nativePromise !== "function"
+            !Predicate.isFunction(bridge.nativePromise)
           ) {
             return Effect.fail(new BridgeUnavailable({ plugin, method }));
           }
