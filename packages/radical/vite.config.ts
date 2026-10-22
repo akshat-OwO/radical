@@ -6,14 +6,14 @@ export default defineConfig({
       vite: "src/vite/vite.ts",
       plugins: "src/core/plugins/plugins.ts",
       "internal-plugins": "src/core/plugins/internal-plugins.ts",
-      cli: "src/entry/cli.ts",
+      cli: "src/entry/cli-main.ts",
       "tanstack-start": "src/adapters/tanstack-start/tanstack-start.ts",
       "tanstack-start-client":
         "src/adapters/tanstack-start/tanstack-start-client.ts",
       server: "src/entry/server.ts",
       client: "src/entry/client.ts",
       react: "src/react/react.ts",
-      "offline-entry": "src/core/offline/offline-entry.ts",
+      "offline-entry": "src/core/offline/offline-main.ts",
       "tanstack-start-server":
         "src/adapters/tanstack-start/tanstack-start-server.ts",
       "native-context": "src/core/context/native-context.ts",

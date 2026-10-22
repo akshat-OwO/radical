@@ -1,7 +1,16 @@
+// oxlint-disable typescript/promise-function-async -- Fake Vite implements the Promise boundary owned by Effect.
 import { assert, describe, it } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 
-import { readCliMetadata } from "../../src/entry/prepare-native.ts";
+import {
+  CliVite,
+  makeCliViteLayer,
+  prepareNative,
+  readCliMetadata,
+} from "../../src/entry/prepare-native.ts";
+import { BuildPlanApi } from "../../src/vite/build-plan-api.ts";
+import { resolveBuildPlan } from "../../src/vite/build-plan.ts";
+import { PluginModules } from "../../src/vite/plugins/plugin-modules.ts";
 import { metadataMemory } from "../fixtures/native-metadata.ts";
 
 describe("CLI metadata read", () => {
@@ -34,4 +43,80 @@ describe("CLI metadata read", () => {
       );
     }).pipe(Effect.provide(metadataMemory().layer))
   );
+});
+
+describe("CLI Vite root resolution", () => {
+  for (const mode of ["remote", "bundled"] as const) {
+    for (const configuredRoot of ["/workspace/client", undefined]) {
+      it.effect(
+        `uses ${configuredRoot ?? "cwd"} for ${mode} plans, builds and typegen`,
+        () =>
+          Effect.gen(function* () {
+            const cwd = "/workspace";
+            const expectedRoot = configuredRoot ?? cwd;
+            const planRoots: string[] = [];
+            const buildRoots: string[] = [];
+            const resolutions: unknown[] = [];
+            const plan = yield* resolveBuildPlan({
+              appId: "dev.test.app",
+              mode,
+              origin: "https://example.test",
+            }).pipe(
+              Effect.provide(
+                Layer.succeed(PluginModules, {
+                  load: () => Effect.die("Unexpected plugin"),
+                })
+              )
+            );
+            const layer = makeCliViteLayer(
+              Effect.succeed({
+                resolveConfig: (inline, ...args) => {
+                  resolutions.push([inline, ...args]);
+                  return Promise.resolve({
+                    root: inline.root ?? configuredRoot ?? cwd,
+                    plugins: [
+                      {
+                        name: "radical:config",
+                        api: new BuildPlanApi((root) =>
+                          Effect.sync(() => {
+                            planRoots.push(root);
+                            return plan;
+                          })
+                        ),
+                      },
+                    ],
+                  });
+                },
+                createBuilder: (inline) => {
+                  assert.deepStrictEqual(inline, {});
+                  return Promise.resolve({
+                    buildApp: () => {
+                      buildRoots.push(inline.root ?? configuredRoot ?? cwd);
+                      return Promise.resolve();
+                    },
+                  });
+                },
+              })
+            );
+            yield* Effect.gen(function* () {
+              assert.strictEqual(yield* prepareNative, plan);
+              const vite = yield* CliVite;
+              assert.strictEqual(
+                (yield* vite.resolve(true)).root,
+                expectedRoot
+              );
+            }).pipe(Effect.provide(layer));
+            assert.deepStrictEqual(planRoots, [expectedRoot]);
+            assert.deepStrictEqual(
+              buildRoots,
+              mode === "bundled" ? [expectedRoot] : []
+            );
+            assert.deepStrictEqual(resolutions, [
+              [{}, "build", "production", "production"],
+              [{}, "build"],
+            ]);
+          })
+      );
+    }
+  }
 });

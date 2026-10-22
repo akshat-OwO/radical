@@ -28,6 +28,7 @@
           "effect/cli",
           "@effect/platform-node",
           "effect/Terminal",
+          "effect/Stdio",
           "effect/Path"
         ]
       }

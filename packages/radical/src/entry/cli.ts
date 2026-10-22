@@ -1,74 +1,83 @@
 #!/usr/bin/env node
-import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Command, Flag } from "effect/cli";
 
 import { generateAndroid } from "../native/android/generate.ts";
 import { runAndroid } from "../native/android/run.ts";
-import { assetGeneratorLayer } from "../native/assets/native-assets.ts";
 import { generateIos } from "../native/ios/generate.ts";
 import { runIos } from "../native/ios/run.ts";
-import { InvalidPlugin } from "../vite/plugins/errors.ts";
-import { pluginModulesLayer } from "../vite/plugins/plugin-plan.ts";
-import { prepareNative } from "./prepare-native.ts";
+import { CliVite, prepareNative } from "./prepare-native.ts";
 
-const android = Command.make(
-  "android",
+/** Native generation and launch retain their filesystem and process requirements. */
+export class CliNative extends Context.Service<
+  CliNative,
   {
-    generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
-    target: Flag.String("target").pipe(Flag.withDefault("")),
-  },
-  ({ generateOnly, target }) =>
-    prepareNative.pipe(
-      Effect.flatMap((plan) => generateAndroid(process.cwd(), undefined, plan)),
-      Effect.flatMap((project) =>
-        generateOnly ? Effect.void : runAndroid(project, target)
-      )
-    )
-);
-const ios = Command.make(
-  "ios",
-  {
-    generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
-    target: Flag.String("target").pipe(Flag.withDefault("")),
-  },
-  ({ generateOnly, target }) =>
-    prepareNative.pipe(
-      Effect.flatMap((plan) => generateIos(process.cwd(), undefined, plan)),
-      Effect.flatMap((project) =>
-        generateOnly ? Effect.void : runIos(project, target)
-      )
-    )
-);
-const typegen = Command.make("typegen", {}, () =>
-  Effect.tryPromise({
-    try: () => import("vite"),
-    catch: (cause) => new InvalidPlugin({ message: String(cause) }),
-  }).pipe(
-    Effect.flatMap(({ resolveConfig }) =>
-      Effect.tryPromise({
-        try: () => resolveConfig({}, "build"),
-        catch: (cause) =>
-          new InvalidPlugin({
-            message: `Cannot generate plugin types: ${String(cause)}`,
-          }),
-      })
-    )
-  )
-);
-const cli = Command.make("radical").pipe(
-  Command.withSubcommands([android, ios, typegen])
-);
-Command.run(cli, { version: "0.0.0" }).pipe(
-  Effect.provide(
-    Layer.mergeAll(
-      pluginModulesLayer(process.cwd()),
-      assetGeneratorLayer,
-      NodeServices.layer
-    )
-  ),
-  (program) => {
-    NodeRuntime.runMain(program);
+    readonly generateAndroid: typeof generateAndroid;
+    readonly generateIos: typeof generateIos;
+    readonly runAndroid: typeof runAndroid;
+    readonly runIos: typeof runIos;
   }
-);
+>()("radical/CliNative") {}
+export const cliNativeLayer = Layer.succeed(CliNative, {
+  generateAndroid,
+  generateIos,
+  runAndroid,
+  runIos,
+});
+
+export const makeCli = (root: string) => {
+  const android = Command.make(
+    "android",
+    {
+      generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
+      target: Flag.String("target").pipe(Flag.withDefault("")),
+    },
+    ({ generateOnly, target }) =>
+      prepareNative.pipe(
+        Effect.flatMap((plan) =>
+          CliNative.pipe(
+            Effect.flatMap((native) =>
+              native.generateAndroid(root, undefined, plan)
+            )
+          )
+        ),
+        Effect.flatMap((project) =>
+          generateOnly
+            ? Effect.void
+            : CliNative.pipe(
+                Effect.flatMap((native) => native.runAndroid(project, target))
+              )
+        )
+      )
+  );
+  const ios = Command.make(
+    "ios",
+    {
+      generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
+      target: Flag.String("target").pipe(Flag.withDefault("")),
+    },
+    ({ generateOnly, target }) =>
+      prepareNative.pipe(
+        Effect.flatMap((plan) =>
+          CliNative.pipe(
+            Effect.flatMap((native) =>
+              native.generateIos(root, undefined, plan)
+            )
+          )
+        ),
+        Effect.flatMap((project) =>
+          generateOnly
+            ? Effect.void
+            : CliNative.pipe(
+                Effect.flatMap((native) => native.runIos(project, target))
+              )
+        )
+      )
+  );
+  const typegen = Command.make("typegen", {}, () =>
+    CliVite.pipe(Effect.flatMap((vite) => vite.resolve(true)))
+  );
+  return Command.make("radical").pipe(
+    Command.withSubcommands([android, ios, typegen])
+  );
+};

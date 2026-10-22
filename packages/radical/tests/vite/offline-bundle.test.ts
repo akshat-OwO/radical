@@ -32,7 +32,7 @@ describe("offline worker bundle", () => {
               lib: {
                 entry: fileURLToPath(
                   new URL(
-                    "../../src/core/offline/offline-entry.ts",
+                    "../../src/core/offline/offline-main.ts",
                     import.meta.url
                   )
                 ),

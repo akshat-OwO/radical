@@ -301,23 +301,26 @@ describe("iOS shell generation", () => {
     }
   );
 
-  it.effect("registers and includes the internal transitions source", () => {
-    const state = memory();
-    return Effect.gen(function* () {
-      yield* generate;
-      assert.include(
-        state.files.get(appDelegate) ?? "",
-        "registerPluginInstance(RadicalTransitionsPlugin())"
-      );
-      assert.include(
-        state.files.get(appDelegate) ?? "",
-        "class RadicalTransitionsPlugin"
-      );
-    }).pipe(Effect.provide(state.layer));
-  });
+  it.effect(
+    "emits the transitions Swift class and its registration call",
+    () => {
+      const state = memory();
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.include(
+          state.files.get(appDelegate) ?? "",
+          "registerPluginInstance(RadicalTransitionsPlugin())"
+        );
+        assert.include(
+          state.files.get(appDelegate) ?? "",
+          "class RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
 
   it.effect(
-    "generates a Capacitor project with the encoded shared native context",
+    "emits a Capacitor project with the native-context cookie and Swift window and safe-area guards",
     () => {
       const state = memory();
       return Effect.gen(function* () {
@@ -424,7 +427,7 @@ describe("iOS shell generation", () => {
   );
 
   it.effect(
-    "deduplicates exact origins and omits ATS exceptions for HTTPS",
+    "emits deduplicated Swift origins and an HTTPS plist without ATS exceptions",
     () => {
       const state = memory(
         false,
@@ -510,31 +513,37 @@ describe("iOS shell generation", () => {
       })
   );
 
-  it.effect("renders one cookie per host with the shared Secure policy", () => {
-    const state = memory(
-      false,
-      {
-        ...defaultConfig,
-        allowlist: [
-          "https://app.test",
-          "https://secure.test",
-          "https://secure.test:8443",
-        ],
-      },
-      "http://app.test:3000"
-    );
-    return Effect.gen(function* () {
-      yield* generate;
-      const source = state.files.get(appDelegate) ?? "";
-      assert.include(
-        source,
-        'for (hostname, origin, secure) in [("app.test", "http://app.test:3000", false), ("secure.test", "https://secure.test", true)]'
+  it.effect(
+    "emits one Swift cookie tuple per host and the conditional Secure attribute",
+    () => {
+      const state = memory(
+        false,
+        {
+          ...defaultConfig,
+          allowlist: [
+            "https://app.test",
+            "https://secure.test",
+            "https://secure.test:8443",
+          ],
+        },
+        "http://app.test:3000"
       );
-      assert.include(source, 'if secure { properties[.secure] = "TRUE" }');
-      assert.include(source, "decisionHandler(.allow)");
-      assert.include(source, 'fatalError("Radical requires Capacitor WebView');
-    }).pipe(Effect.provide(state.layer));
-  });
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(
+          source,
+          'for (hostname, origin, secure) in [("app.test", "http://app.test:3000", false), ("secure.test", "https://secure.test", true)]'
+        );
+        assert.include(source, 'if secure { properties[.secure] = "TRUE" }');
+        assert.include(source, "decisionHandler(.allow)");
+        assert.include(
+          source,
+          'fatalError("Radical requires Capacitor WebView'
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
 
   it.effect(
     "keeps the previous shell when Capacitor controller or ATS anchors change",
@@ -786,7 +795,7 @@ describe("ios app identity", () => {
 
 describe("bundled ios shell", () => {
   it.effect(
-    "packages a fake adapter's SPA outputs and keeps navigation local",
+    "packages a fake adapter's SPA outputs and emits local-navigation config and Swift branches",
     () => {
       const state = memory(false, {
         ...defaultConfig,
