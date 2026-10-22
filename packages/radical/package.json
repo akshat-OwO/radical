@@ -50,7 +50,6 @@
     "@capacitor-firebase/messaging": "catalog:",
     "@capacitor/android": "catalog:",
     "@capacitor/app-launcher": "catalog:",
-    "@capacitor/assets": "catalog:",
     "@capacitor/camera": "catalog:",
     "@capacitor/cli": "catalog:",
     "@capacitor/core": "catalog:",
@@ -84,7 +83,6 @@
     "@capacitor-firebase/messaging": "8.5.2",
     "@capacitor/android": "^8.5.3",
     "@capacitor/app-launcher": "8.0.1",
-    "@capacitor/assets": "3.0.5",
     "@capacitor/camera": "8.2.6",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
@@ -125,9 +123,6 @@
       "optional": true
     },
     "react": {
-      "optional": true
-    },
-    "@capacitor/assets": {
       "optional": true
     },
     "@capacitor/camera": {

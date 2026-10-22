@@ -49,8 +49,7 @@ export const nativeCookiePlan = (origins: readonly string[]) => {
 export const capacitor = (
   platform: "android" | "ios",
   plugins: readonly EnabledPlugin[],
-  root: string,
-  assets = false
+  root: string
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -62,7 +61,6 @@ export const capacitor = (
           ...new Set([
             "@capacitor/core",
             `@capacitor/${platform}`,
-            ...(assets ? ["@capacitor/assets"] : []),
             ...plugins.flatMap(({ manifest }) =>
               Object.keys(manifest.dependencies)
             ),
@@ -81,7 +79,7 @@ export const capacitor = (
       }),
       catch: (cause) =>
         new NativeToolchainUnavailable({
-          message: `Install the enabled plugins' npm dependencies and @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8, plus @capacitor/assets@3.0.5 for icons or splash, to generate a ${platform} shell: ${String(cause)}`,
+          message: `Install the enabled plugins' npm dependencies and @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8 to generate a ${platform} shell: ${String(cause)}`,
         }),
     });
     const packages = yield* Effect.forEach(
@@ -96,11 +94,6 @@ export const capacitor = (
         )
     )(resolved.packages);
     for (const entry of packages) {
-      if (entry.name === "@capacitor/assets" && entry.version !== "3.0.5") {
-        return yield* new NativeToolchainUnavailable({
-          message: `Install @capacitor/assets@3.0.5 to generate icons or splash; installed ${entry.version}`,
-        });
-      }
       for (const { manifest } of plugins) {
         const range = manifest.dependencies[entry.name];
         if (range !== undefined && !semver.satisfies(entry.version, range)) {
@@ -199,12 +192,7 @@ export const generateNativeProject = <E, R>(
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { cli, packages } = yield* capacitor(
-      platform,
-      native.plugins,
-      root,
-      native.assets.length > 0
-    );
+    const { cli, packages } = yield* capacitor(platform, native.plugins, root);
     const { config, url } = native;
     return yield* replaceProject(
       path.join(root, `.radical/${platform}`),

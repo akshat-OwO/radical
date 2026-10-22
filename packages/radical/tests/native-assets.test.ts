@@ -1,17 +1,16 @@
 // oxlint-disable typescript/promise-function-async -- Sharp's Promise boundaries are owned by Effect.
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, PlatformError } from "effect";
-import { ChildProcessSpawner } from "effect/process";
 import sharp from "sharp";
 
+import baseline from "../../../docs/verification/native-assets-baseline.json" with { type: "json" };
 import {
   AssetGenerator,
   assetGeneratorLayer,
-  assetOutputPaths,
   prepareNativeAssets,
+  iosSplashResourceName,
 } from "../src/native-assets.ts";
 import type { AssetGeneration } from "../src/native-assets.ts";
 import { image } from "./fixtures/image.ts";
@@ -57,9 +56,25 @@ const filesystem = (files: Map<string, Uint8Array>) =>
         }
       }),
     makeDirectory: () => Effect.void,
+    exists: (name) =>
+      Effect.sync(() =>
+        [...files.keys()].some((file) => file.startsWith(`${name}/`))
+      ),
+    readDirectory: (name) =>
+      Effect.sync(() => [
+        ...new Set(
+          [...files.keys()]
+            .filter((file) => file.startsWith(`${name}/`))
+            .map((file) => file.slice(name.length + 1).split("/")[0])
+        ),
+      ]),
     remove: (name) =>
       Effect.sync(() => {
-        files.delete(name);
+        for (const file of files.keys()) {
+          if (file === name || file.startsWith(`${name}/`)) {
+            files.delete(file);
+          }
+        }
       }),
   });
 
@@ -281,115 +296,270 @@ describe("native asset validation", () => {
   );
 });
 
-const project = fileURLToPath(new URL("../", import.meta.url));
+const project = "/project";
 const invocation: AssetGeneration = {
   project,
   platform: "ios",
   backgroundColor: "#123456",
-  assets: [
-    { file: "icon-only.png", bytes: new Uint8Array([1]) },
-    { file: "splash.png", bytes: new Uint8Array([2]) },
-  ],
+  assets: [],
 };
-const generatorMemory = (
-  mode: "success" | "failure" | "missing",
-  output: Uint8Array = new Uint8Array([3]),
-  request: AssetGeneration = invocation
-) => {
-  const files = new Map<string, Uint8Array>();
-  const commands: string[][] = [];
-  files.set(
-    path.join(project, "ios/App/App/Base.lproj/LaunchScreen.storyboard"),
-    new TextEncoder().encode(
-      '<resources><imageView image="Splash"/><image name="Splash" width="1366" height="1366"/></resources>'
-    )
-  );
-  // Template files cannot disguise a CLI that exits successfully without generating anything.
-  for (const file of assetOutputPaths(request)) {
-    files.set(path.join(project, file), new Uint8Array([99]));
-  }
-  const spawner = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {
-    ...ChildProcessSpawner.make(() => Effect.die("Unexpected spawn")),
-    exitCode: (command) =>
-      Effect.sync(() => {
-        assert.strictEqual(command._tag, "StandardCommand");
-        if (command._tag === "StandardCommand") {
-          commands.push([...command.args]);
-        }
-        if (mode === "success") {
-          for (const file of assetOutputPaths(request)) {
-            files.set(path.join(project, file), output);
-          }
-        }
-        return ChildProcessSpawner.ExitCode(mode === "failure" ? 1 : 0);
-      }),
+const generate = (request: AssetGeneration) =>
+  Effect.gen(function* () {
+    const generator = yield* AssetGenerator;
+    yield* generator.generate(request);
   });
-  return {
-    files,
-    commands,
-    layer: Layer.mergeAll(filesystem(files), spawner, assetGeneratorLayer),
-  };
-};
+const generatedAssets = Effect.gen(function* () {
+  const files = new Map([
+    ["/app/icon.png", yield* image(1024)],
+    ["/app/splash.png", yield* image(2732)],
+  ]);
+  return yield* prepareNativeAssets("/app", {
+    appId: "dev.example.app",
+    icon: "icon.png",
+    splash: { image: "splash.png", backgroundColor: "#123456" },
+  }).pipe(Effect.provide(filesystem(files)));
+});
 
-describe("asset generator command boundary", () => {
+describe("native asset outputs", () => {
+  for (const platform of ["android", "ios"] as const) {
+    it.effect(
+      `writes the ${platform} baseline file set and sizes with complete catalogs and adaptive resources`,
+      () =>
+        Effect.gen(function* () {
+          const assets = yield* generatedAssets;
+          const files = new Map<string, Uint8Array>();
+          yield* generate({ ...invocation, platform, assets }).pipe(
+            Effect.provide(Layer.merge(filesystem(files), assetGeneratorLayer))
+          );
+          // Three unreferenced iOS template images are inherited, not generator writes.
+          const expected = baseline.outputs
+            .filter(
+              (entry) =>
+                entry.platform === platform &&
+                !entry.canonical.includes("splash-2732x2732")
+            )
+            .map((entry) => ({
+              ...entry,
+              canonical: entry.canonical.replace(
+                "/Splash.imageset/",
+                `/${iosSplashResourceName(assets)}.imageset/`
+              ),
+            }));
+          const additional = new Map<
+            string,
+            { width?: number; height?: number }
+          >();
+          if (platform === "android") {
+            for (const entry of expected.filter(({ canonical }) =>
+              /mipmap-[^-]+\/ic_launcher.*\.png$/u.test(canonical)
+            )) {
+              if (entry.canonical.endsWith("/ic_launcher_foreground.png")) {
+                const monochrome = entry.canonical.replace(
+                  "foreground",
+                  "monochrome"
+                );
+                additional.set(monochrome, entry);
+              }
+            }
+            for (const name of ["ic_launcher", "ic_launcher_round"]) {
+              additional.set(
+                `android/app/src/main/res/mipmap-anydpi-v33/${name}.xml`,
+                {}
+              );
+            }
+          }
+          assert.deepStrictEqual(
+            [...files.keys()].toSorted(),
+            [
+              ...expected.map(({ canonical }) => path.join(project, canonical)),
+              ...[...additional.keys()].map((file) => path.join(project, file)),
+            ].toSorted()
+          );
+          for (const entry of [
+            ...expected.map((item) => [item.canonical, item] as const),
+            ...additional,
+          ]) {
+            const [file, dimensions] = entry;
+            const bytes = files.get(path.join(project, file));
+            assert.isDefined(bytes, file);
+            assert.isAbove(bytes?.length ?? 0, 0, file);
+            if (file.endsWith(".png")) {
+              const metadata = yield* Effect.promise(() =>
+                sharp(bytes).metadata()
+              );
+              assert.strictEqual(metadata.width, dimensions.width, file);
+              assert.strictEqual(metadata.height, dimensions.height, file);
+              if (platform === "ios") {
+                assert.isFalse(
+                  metadata.hasAlpha,
+                  "iOS icons and splashes are opaque RGB"
+                );
+              }
+            }
+          }
+          for (const entry of expected.filter(({ canonical }) =>
+            canonical.endsWith("Contents.json")
+          )) {
+            assert.deepStrictEqual(
+              JSON.parse(
+                new TextDecoder().decode(
+                  files.get(path.join(project, entry.canonical))
+                )
+              ),
+              JSON.parse(entry.contents ?? "{}")
+            );
+          }
+          if (platform === "android") {
+            assert.isFalse(
+              [...files.keys()].some((file) => file.includes("/mipmap-night-")),
+              "night rasters must not override adaptive XML"
+            );
+            const res = `${project}/android/app/src/main/res`;
+            for (const version of [26, 33]) {
+              for (const name of ["ic_launcher", "ic_launcher_round"]) {
+                const xml = new TextDecoder().decode(
+                  files.get(`${res}/mipmap-anydpi-v${version}/${name}.xml`)
+                );
+                assert.include(xml, "@mipmap/ic_launcher_foreground");
+                assert.include(xml, "@mipmap/ic_launcher_background");
+                assert.include(xml, 'android:inset="16.7%"');
+                assert.strictEqual(
+                  xml.includes("<monochrome>"),
+                  version === 33
+                );
+                if (version === 33) {
+                  assert.include(xml, "@mipmap/ic_launcher_monochrome");
+                }
+              }
+            }
+          }
+        })
+    );
+  }
+
   it.effect(
-    "runs the resolved assets CLI and bounds iOS splash allocations below the launch-image limit",
+    "changes the splash resource name only when prepared pixels change and removes stale hashed catalogs",
     () =>
       Effect.gen(function* () {
-        const state = generatorMemory("success", yield* image(2732));
-        yield* Effect.gen(function* () {
-          const generator = yield* AssetGenerator;
-          yield* generator.generate(invocation);
-          assert.strictEqual(state.commands.length, 1);
-          assert.isTrue(
-            state.commands[0][0].endsWith(
-              "@capacitor/assets/bin/capacitor-assets"
-            )
-          );
-          assert.deepStrictEqual(state.commands[0].slice(1), [
-            "generate",
-            "--ios",
-            "--assetPath",
-            "assets",
-            "--splashBackgroundColor",
-            "#123456",
-            "--splashBackgroundColorDark",
-            "#123456",
-          ]);
-          assert.deepStrictEqual(
-            state.files.get(path.join(project, "assets/icon-only.png")),
-            new Uint8Array([1])
-          );
-          const splashes = [...state.files].filter(([name]) =>
-            /\/RadicalSplash[a-f0-9]+\.imageset\//u.test(name)
-          );
-          assert.strictEqual(splashes.length, 6);
-          for (const [, output] of splashes) {
-            const dimensions = yield* Effect.promise(() =>
-              sharp(output).metadata()
-            );
-            assert.strictEqual(dimensions.width, 2048);
-            assert.strictEqual(dimensions.height, 2048);
-          }
-          const storyboard = new TextDecoder().decode(
-            state.files.get(
-              path.join(
-                project,
-                "ios/App/App/Base.lproj/LaunchScreen.storyboard"
-              )
-            )
-          );
-          assert.match(
-            storyboard,
-            /<image name="RadicalSplash[a-f0-9]+" width="1024" height="1024"\/>/u
-          );
-          assert.notInclude(storyboard, 'image="Splash"');
-        }).pipe(Effect.provide(state.layer));
+        const assets = yield* generatedAssets;
+        const same = yield* generatedAssets;
+        const changed = [
+          { file: "splash.png", bytes: yield* image(2732, "#00ff00") },
+        ];
+        const first = iosSplashResourceName(assets);
+        const second = iosSplashResourceName(changed);
+        assert.match(first, /^RadicalSplash[0-9a-f]{16}$/u);
+        assert.strictEqual(first, iosSplashResourceName(same));
+        assert.notStrictEqual(first, second);
+        assert.strictEqual(iosSplashResourceName([]), "");
+        const files = new Map<string, Uint8Array>();
+        const layer = Layer.merge(filesystem(files), assetGeneratorLayer);
+        yield* generate({ ...invocation, assets }).pipe(Effect.provide(layer));
+        const unrelated = `${project}/ios/App/App/Assets.xcassets/Other.imageset/Contents.json`;
+        files.set(unrelated, new Uint8Array([99]));
+        yield* generate({ ...invocation, assets: changed }).pipe(
+          Effect.provide(layer)
+        );
+        assert.isFalse(
+          [...files.keys()].some((file) => file.includes(`/${first}.imageset/`))
+        );
+        assert.isTrue(
+          [...files.keys()].some((file) =>
+            file.includes(`/${second}.imageset/`)
+          )
+        );
+        assert.deepStrictEqual(files.get(unrelated), new Uint8Array([99]));
       })
   );
 
   it.effect(
-    "generates a square Android system splash independently of portrait drawable variants",
+    "writes only requested assets and leaves platform defaults alone when none are configured",
+    () =>
+      Effect.gen(function* () {
+        const assets = yield* generatedAssets;
+        for (const platform of ["android", "ios"] as const) {
+          for (const kind of ["icon", "splash", "none"]) {
+            const sentinel = "/project/default";
+            const files = new Map([[sentinel, new Uint8Array([99])]]);
+            const selected =
+              kind === "none"
+                ? []
+                : assets.filter(({ file }) => file.startsWith(kind));
+            yield* generate({ ...invocation, platform, assets: selected }).pipe(
+              Effect.provide(
+                Layer.merge(filesystem(files), assetGeneratorLayer)
+              )
+            );
+            assert.deepStrictEqual(files.get(sentinel), new Uint8Array([99]));
+            const paths = [...files.keys()].filter((file) => file !== sentinel);
+            if (kind === "none") {
+              assert.isEmpty(paths);
+            } else {
+              assert.isNotEmpty(paths);
+              assert.isTrue(
+                paths.every((file) =>
+                  kind === "icon"
+                    ? /ic_launcher|AppIcon/u.test(file)
+                    : /splash/iu.test(file)
+                )
+              );
+            }
+          }
+        }
+      })
+  );
+
+  it.effect("preserves legacy padding, round masks and monochrome alpha", () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const assets = yield* prepareNativeAssets("/app", {
+        appId: "dev.example.app",
+        icon: "icon.png",
+      }).pipe(
+        Effect.provide(
+          filesystem(
+            new Map([["/app/icon.png", yield* image(1024, "#ff000080")]])
+          )
+        )
+      );
+      yield* generate({ ...invocation, platform: "android", assets }).pipe(
+        Effect.provide(Layer.merge(filesystem(files), assetGeneratorLayer))
+      );
+      const readPixel = (name: string, left: number, top: number) =>
+        Effect.promise(() =>
+          sharp(
+            files.get(
+              `${project}/android/app/src/main/res/mipmap-mdpi/${name}.png`
+            )
+          )
+            .ensureAlpha()
+            .extract({ left, top, width: 1, height: 1 })
+            .raw()
+            .toBuffer()
+        );
+      assert.deepStrictEqual(
+        [...(yield* readPixel("ic_launcher", 0, 24))],
+        [0, 0, 0, 0]
+      );
+      assert.strictEqual((yield* readPixel("ic_launcher", 8, 24))[3], 255);
+      assert.strictEqual((yield* readPixel("ic_launcher_round", 0, 0))[3], 0);
+      assert.strictEqual(
+        (yield* readPixel("ic_launcher_round", 24, 24))[3],
+        255
+      );
+      assert.deepStrictEqual(
+        [...(yield* readPixel("ic_launcher_monochrome", 24, 24))],
+        [0, 0, 0, 128]
+      );
+      assert.deepStrictEqual(
+        [...(yield* readPixel("ic_launcher_foreground", 24, 24))],
+        [255, 0, 0, 128]
+      );
+    })
+  );
+
+  it.effect(
+    "keeps Android system splash artwork square and dark artwork separate",
     () =>
       Effect.gen(function* () {
         const source = yield* Effect.promise(() =>
@@ -430,75 +600,90 @@ describe("asset generator command boundary", () => {
             .png()
             .toBuffer()
         );
-        const request: AssetGeneration = {
+        const files = new Map<string, Uint8Array>();
+        yield* generate({
           ...invocation,
           platform: "android",
-          assets: [{ file: "splash.png", bytes: source }],
-          backgroundColor: "#241044",
-        };
-        const state = generatorMemory(
-          "success",
-          yield* Effect.promise(() =>
-            sharp(source).resize(320, 480, { fit: "cover" }).png().toBuffer()
-          ),
-          request
+          assets: [
+            { file: "splash.png", bytes: source },
+            { file: "splash-dark.png", bytes: yield* image(2732, "#123456") },
+          ],
+        }).pipe(
+          Effect.provide(Layer.merge(filesystem(files), assetGeneratorLayer))
         );
-        yield* Effect.gen(function* () {
-          const generator = yield* AssetGenerator;
-          yield* generator.generate(request);
-          const output = state.files.get(
-            path.join(
-              project,
-              "android/app/src/main/res/drawable-nodpi/radical_splash_icon.png"
-            )
+        const square = files.get(
+          `${project}/android/app/src/main/res/drawable-nodpi/radical_splash_icon.png`
+        );
+        for (const [left, top, expected] of [
+          [128, 512, [255, 0, 0, 255]],
+          [640, 128, [0, 255, 0, 255]],
+          [384, 512, [0x24, 0x10, 0x44, 255]],
+          [896, 896, [0x24, 0x10, 0x44, 255]],
+        ] as const) {
+          const pixel = yield* Effect.promise(() =>
+            sharp(square)
+              .ensureAlpha()
+              .extract({ left, top, width: 1, height: 1 })
+              .raw()
+              .toBuffer()
           );
-          assert.isDefined(
-            output,
-            "Android system splash needs a dedicated square image"
+          assert.deepStrictEqual(
+            [...pixel],
+            [...expected],
+            `square artwork at ${left},${top}`
           );
-          const metadata = yield* Effect.promise(() =>
-            sharp(output).metadata()
+        }
+        for (const orientation of ["land", "port"]) {
+          const dark = files.get(
+            `${project}/android/app/src/main/res/drawable-${orientation}-night-mdpi/splash.png`
           );
-          assert.strictEqual(metadata.width, 1024);
-          assert.strictEqual(metadata.height, 1024);
-          for (const [left, top, expected] of [
-            [128, 512, [255, 0, 0, 255]],
-            [640, 128, [0, 255, 0, 255]],
-            [384, 512, [0x24, 0x10, 0x44, 255]],
-            [896, 896, [0x24, 0x10, 0x44, 255]],
-          ] as const) {
-            const pixel = yield* Effect.promise(() =>
-              sharp(output)
-                .extract({ left, top, width: 1, height: 1 })
-                .raw()
-                .toBuffer()
-            );
-            assert.deepStrictEqual(
-              [...pixel],
-              [...expected],
-              `square artwork at ${left},${top}`
-            );
-          }
-        }).pipe(Effect.provide(state.layer));
+          const pixel = yield* Effect.promise(() =>
+            sharp(dark)
+              .ensureAlpha()
+              .extract({ left: 0, top: 0, width: 1, height: 1 })
+              .raw()
+              .toBuffer()
+          );
+          assert.deepStrictEqual([...pixel], [0x12, 0x34, 0x56, 255]);
+        }
       })
   );
 
   it.effect(
-    "reports nonzero exits and silent missing outputs as typed generation failures",
+    "reports corrupt image sources, missing foregrounds and filesystem failures as typed errors",
     () =>
       Effect.gen(function* () {
-        for (const mode of ["failure", "missing"] as const) {
-          const state = generatorMemory(mode);
-          const error = yield* Effect.gen(function* () {
-            const generator = yield* AssetGenerator;
-            return yield* Effect.flip(generator.generate(invocation));
-          }).pipe(Effect.provide(state.layer));
-          assert.strictEqual(error._tag, "AssetGenerationFailed");
-          assert.include(error.message, "Native asset generation failed");
-          assert.include(
-            error.message,
-            mode === "failure" ? "exited with code 1" : "AppIcon-512@2x.png"
+        const valid = yield* image(1024);
+        const failureFs = FileSystem.layerNoop({
+          makeDirectory: () => Effect.fail(missing("/project")),
+        });
+        for (const [assets, fs, message] of [
+          [
+            [{ file: "icon-only.png", bytes: new Uint8Array([1]) }],
+            filesystem(new Map()),
+            "Cannot resize",
+          ],
+          [
+            [{ file: "icon-only.png", bytes: valid }],
+            filesystem(new Map()),
+            "Missing native asset source icon-foreground.png",
+          ],
+          [
+            [{ file: "icon-only.png", bytes: valid }],
+            failureFs,
+            "Native asset generation failed",
+          ],
+        ] as const) {
+          const error = yield* generate({
+            ...invocation,
+            platform: message.startsWith("Missing") ? "android" : "ios",
+            assets,
+          }).pipe(
+            Effect.provide(Layer.merge(fs, assetGeneratorLayer)),
+            Effect.flip
           );
+          assert.strictEqual(error._tag, "AssetGenerationFailed");
+          assert.include(error.message, message);
         }
       })
   );

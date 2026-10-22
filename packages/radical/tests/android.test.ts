@@ -53,7 +53,6 @@ const memory = (
   ]);
   const require = createRequire(import.meta.url);
   for (const [name, version] of Object.entries({
-    "@capacitor/assets": "3.0.5",
     "@capacitor/core": "8.5.3",
     "@capacitor/android": "8.6.1",
     "@capacitor/device": "8.0.3",
@@ -573,10 +572,6 @@ describe("android app identity", () => {
           appId: "dev.custom.shell",
           appName: "Platform name",
         });
-        assert.include(
-          state.files.get(`${destination}/package.json`) ?? "",
-          '"@capacitor/assets":"3.0.5"'
-        );
         assert.strictEqual(state.assetCalls[0].platform, "android");
         assert.strictEqual(state.assetCalls[0].backgroundColor, "#241044");
         const first = state.assetCalls[0].assets;

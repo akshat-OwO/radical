@@ -15,7 +15,6 @@ catalog:
   "@capacitor-community/file-opener": 8.0.1
   "@capacitor/android": ^8.5.3
   "@capacitor/app-launcher": 8.0.1
-  "@capacitor/assets": 3.0.5
   "@capacitor/cli": ^8.5.3
   "@capacitor/camera": 8.2.6
   "@capacitor/core": ^8.5.3
