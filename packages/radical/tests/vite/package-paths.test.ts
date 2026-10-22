@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import {
   resolveOfflineEntry,
   resolvePackageRoot,
-} from "../../src/build/package-paths.ts";
+} from "../../src/vite/package-paths.ts";
 
 const packageUrl = new URL("../../", import.meta.url);
 const packageRoot = fileURLToPath(packageUrl).replace(/\/$/u, "");
@@ -19,7 +19,7 @@ describe("package paths", () => {
         for (const module of [
           "src/native/android/android.ts",
           "src/native/ios/ios.ts",
-          "src/build/offline-build.ts",
+          "src/vite/offline-build.ts",
           "dist/cli.mjs",
           "dist/vite.mjs",
           "dist/shared-chunk.mjs",
@@ -38,7 +38,7 @@ describe("package paths", () => {
       Effect.sync(() => {
         assert.strictEqual(
           resolveOfflineEntry(
-            new URL("src/build/offline-build.ts", packageUrl).href
+            new URL("src/vite/offline-build.ts", packageUrl).href
           ),
           fileURLToPath(
             new URL("src/core/offline/offline-entry.ts", packageUrl)

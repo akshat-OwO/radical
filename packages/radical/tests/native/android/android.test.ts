@@ -5,7 +5,6 @@ import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../../../apps/example/plugins/EchoPlugin.java?raw";
-import { PluginModules } from "../../../src/build/plugins/plugin-modules.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
@@ -15,6 +14,7 @@ import { generateAndroid } from "../../../src/native/android/android.ts";
 import { AssetGenerationFailed } from "../../../src/native/assets/errors.ts";
 import type { AssetGeneration } from "../../../src/native/assets/native-assets.ts";
 import { AssetGenerator } from "../../../src/native/assets/native-assets.ts";
+import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launch from "../../../templates/android/launch.html?raw";
 import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";

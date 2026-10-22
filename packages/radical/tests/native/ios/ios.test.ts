@@ -5,7 +5,6 @@ import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../../../apps/example/plugins/EchoPlugin.swift?raw";
-import { PluginModules } from "../../../src/build/plugins/plugin-modules.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
@@ -17,6 +16,7 @@ import {
 } from "../../../src/native/assets/native-assets.ts";
 import type { AssetGeneration } from "../../../src/native/assets/native-assets.ts";
 import { generateIos } from "../../../src/native/ios/ios.ts";
+import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
 import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";

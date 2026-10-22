@@ -3,10 +3,6 @@ import { Deferred, Effect, Fiber, Layer, Stream } from "effect";
 import { TestClock } from "effect/testing";
 
 import {
-  PluginModules,
-  resolvePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
-import {
   BrowserNetwork,
   browserNetworkLayer,
   getNetworkStatus,
@@ -14,6 +10,10 @@ import {
 } from "../../../src/capabilities/network/network.ts";
 import type { NetworkStatus } from "../../../src/capabilities/network/network.ts";
 import { Bridge, bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
+import {
+  PluginModules,
+  resolvePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
 
 const PluginModulesLive = Layer.succeed(PluginModules, {
   load: () => Effect.die("Unexpected module load"),

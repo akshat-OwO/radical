@@ -2,16 +2,16 @@ import path from "node:path";
 
 import { Effect, FileSystem, Schema } from "effect";
 
-import { InvalidConfig } from "../../build/config.ts";
-import { resolvePackageRoot } from "../../build/package-paths.ts";
-import { pluginRegistration } from "../../build/plugins/plugin-plan.ts";
-import { composePluginSources } from "../../build/plugins/plugin-sources.ts";
 import { cameraDeclarations } from "../../capabilities/camera/camera-declarations.ts";
 import { googleSignInDeclarations } from "../../capabilities/google-sign-in/google-sign-in-declarations.ts";
 import { configureNativeNotifications } from "../../capabilities/notifications/notification-native.ts";
 import { safeAreaUpdateScript } from "../../capabilities/safe-area/shell-events.ts";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
+import { InvalidConfig } from "../../vite/config.ts";
+import { resolvePackageRoot } from "../../vite/package-paths.ts";
+import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
+import { composePluginSources } from "../../vite/plugins/plugin-sources.ts";
 import { iosSplashResourceName } from "../assets/native-assets.ts";
 import {
   generateNativeProject,

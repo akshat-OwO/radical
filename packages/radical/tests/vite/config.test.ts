@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { nativeIdentity, validateConfig } from "../../src/build/config.ts";
+import { nativeIdentity, validateConfig } from "../../src/vite/config.ts";
 
 describe("radical config", () => {
   it.effect("accepts an app id and optional app name", () =>

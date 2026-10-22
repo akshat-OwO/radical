@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 
-import { InvalidConfig } from "../../build/config.ts";
-import type { RadicalConfig } from "../../build/config.ts";
+import { InvalidConfig } from "../../vite/config.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
 import { GoogleSignInConfigSchema } from "./google-sign-in-schema.ts";
 
 export const googleSignInDeclarations = (config: RadicalConfig) =>

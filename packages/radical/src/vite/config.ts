@@ -1,4 +1,5 @@
-import { Effect, Record, Schema } from "effect";
+import { Effect, Schema } from "effect";
+import { map as mapRecord } from "effect/Record";
 
 import { internalPluginRegistry } from "../core/plugins/internal-plugin-registry.ts";
 
@@ -61,7 +62,7 @@ export const RadicalConfigSchema = Schema.Struct({
   pluginOptions: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   internalPlugins: Schema.optional(
     Schema.Struct(
-      Record.map(internalPluginRegistry, () => Schema.optional(Schema.Boolean))
+      mapRecord(internalPluginRegistry, () => Schema.optional(Schema.Boolean))
     )
   ),
   notifications: Schema.optional(

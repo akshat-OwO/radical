@@ -6,11 +6,11 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, FileSystem, Schema } from "effect";
 import { Command, Flag } from "effect/cli";
 
-import { InvalidPlugin } from "../build/plugins/errors.ts";
-import { pluginModulesLayer } from "../build/plugins/plugin-plan.ts";
 import { generateAndroid, runAndroid } from "../native/android/android.ts";
 import { assetGeneratorLayer } from "../native/assets/native-assets.ts";
 import { generateIos, runIos } from "../native/ios/ios.ts";
+import { InvalidPlugin } from "../vite/plugins/errors.ts";
+import { pluginModulesLayer } from "../vite/plugins/plugin-plan.ts";
 
 const prepareNative = Effect.gen(function* () {
   const vite = yield* Effect.tryPromise({

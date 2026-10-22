@@ -3,7 +3,7 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   pack: {
     entry: {
-      vite: "src/build/vite.ts",
+      vite: "src/vite/vite.ts",
       plugins: "src/core/plugins/plugins.ts",
       "internal-plugins": "src/core/plugins/internal-plugins.ts",
       cli: "src/entry/cli.ts",

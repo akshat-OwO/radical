@@ -2,8 +2,8 @@ import path from "node:path";
 
 import { Effect, FileSystem } from "effect";
 
-import type { RadicalConfig } from "../../build/config.ts";
 import { replaceAnchor } from "../../native/shared/native-template.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
 
 /** Copy app-owned Firebase files only into the ignored generated shell. */
 export const configureNativeNotifications = (
