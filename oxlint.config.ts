@@ -1,6 +1,7 @@
 import { defineConfig } from "oxlint";
 import antiSlop from "ultracite/oxlint/anti-slop";
 import core from "ultracite/oxlint/core";
+import next from "ultracite/oxlint/next";
 import react from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import vitest from "ultracite/oxlint/vitest";
@@ -16,6 +17,7 @@ export default defineConfig({
   ignorePatterns: [...(core.ignorePatterns ?? []), "**/dist/**", ".radical/**"],
   options: { typeAware: true },
   overrides: [
+    { files: ["apps/docs/**/*.{ts,tsx,js,mjs}"], ...next },
     {
       // This wire decoder validates arbitrary worker messages without bundling Effect into native scripts.
       files: ["packages/radical/src/core/offline/offline-wire.ts"],

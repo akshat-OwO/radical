@@ -41,3 +41,8 @@ GoogleService-Info.plist
 
 # Fumadocs generated content
 .source/
+
+# Next.js generated output and types
+.next/
+next-env.d.ts
+*.tsbuildinfo

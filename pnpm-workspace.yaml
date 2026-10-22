@@ -6,6 +6,8 @@ packages:
 catalogMode: prefer
 
 catalog:
+  next: 16.4.2
+  "@tailwindcss/postcss": ^4.3.1
   fumadocs-core: 16.17.7
   fumadocs-ui: 16.17.7
   fumadocs-mdx: 15.4.9
