@@ -1,6 +1,6 @@
 # Live video verification
 
-Verified on 2026-10-22 with Capacitor 8.5.3 and `@capgo/camera-preview@8.14.2`. Both devices were opened through the T3 Device panel, one at a time. The pinned device CLI returned `Error (COMMAND_FAILED): Remote daemon is unavailable` on both platforms. Verification therefore used adb, simctl, screenshots, and the shells' WebView debuggers. No diagnostic code or generated native project is committed.
+Verified on 2026-10-22 with Capacitor 8.5.3 and `@capgo/camera-preview@8.14.2`. Both devices were opened through the T3 Device panel, one at a time. During the initial verification, the pinned device CLI returned `Error (COMMAND_FAILED): Remote daemon is unavailable` on both platforms. That verification therefore used adb, simctl, screenshots, and the shells' WebView debuggers. No diagnostic code or generated native project is committed.
 
 ## Build commands
 
@@ -32,9 +32,23 @@ Installed the debug APK and forwarded port 4173 with `adb reverse`. Used accessi
 - **Switch camera** changed the state to front and retained a live preview. Both emulated cameras reported a zoom range of 1 to 1 and only the `off` flash mode. Torch stayed disabled. Optical zoom and torch illumination cannot be verified on this emulator.
 - The first Stop attempt exposed Capacitor's `removeListener` contract: it returns no native promise result. Awaiting it left the session's finalizer pending. Removal now uses a fire-and-forget native callback call; a deterministic regression test asserts that removal never uses `nativePromise`.
 - Stop/restart and background restoration were repeated after this fix. Stop returned the UI to **Stopped** and restored body/root inline backgrounds; restart acquired another session.
-- Configured the virtual scene's wall and table images with a generated `radical-video-19` QR. The available preview continued to show a checkerboard, so no camera-decoded QR result was observed. The native barcode model loaded successfully according to logcat. Native optical QR detection remains unverified; in-memory tests verify QR event decoding, filtering, callback delivery, and listener removal.
+- The initial virtual-scene poster attempt showed only a checkerboard. The follow-up below verifies camera-decoded QR delivery.
 
 The QR scene images were reset after the attempt. Screenshots of the full cut-out, stopped state, and iOS unavailable state are attached to the PR.
+
+## Android QR follow-up
+
+On 2026-10-22, reopened only Pixel_9 through the T3 Device panel. The pinned `agent-device` CLI worked for this run. Rebuilt radical and the example, regenerated Android, and ran `assembleDebug` with the Java home above. Installed the debug APK and served remote mode on port 4173 through `adb reverse`.
+
+The Device panel launches the emulator with `-camera-back imagefile:/Users/akshat/.cache/serve-emu/camera/emulator-5554-back.png`, overriding the AVD's `hw.camera.back=virtualscene`. This explains why virtual-scene wall and table posters did not affect the earlier camera preview.
+
+Generated `radical-video-19` with Python `qrcode==8.2` and Pillow in a temporary venv. Saved an RGB 1280 by 960 PNG to the back-camera feed path after backing up the original. A single centered 696-pixel QR appeared cropped and produced no detection. Replaced it with 232-pixel QR images at x positions 80, 400, 720, and 1040 and y positions 40, 360, and 680, on a white canvas. Stopped and restarted the stream to reload the image.
+
+The real native camera pipeline decoded the image. Logcat at 08:13:13 showed `CameraPreview: Notifying listeners for event barcodeScanned` followed by barcode results with `value: "radical-video-19"` and `format: "qr_code"`. The unmodified `/video` route's `onDetect: setLastQR` callback updated the displayed text to **Last QR: radical-video-19**. The accessibility snapshot confirmed **Streaming**, **Camera: rear. Frame rate: 30**, and the decoded value. No bridge event or detection result was injected.
+
+![Android camera preview and decoded QR value](assets/video-android-qr.png)
+
+Stopped the stream, restored the original camera PNG, removed the port reverse, stopped preview, and closed and shut down Pixel_9 through the Device panel. This verifies Android QR detection from emulator camera frames. Physical camera optics remain outside this emulator check.
 
 ## iPhone Duo, iOS 27.1 simulator
 
@@ -44,6 +58,6 @@ Because the device daemon was unavailable, used LLDB to evaluate DOM navigation 
 
 ## Automated checks
 
-`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `vp run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 245 tests. The lockfile contains no `@pnpm/exe` entries.
+`pnpm exec ultracite fix`, `pnpm exec ultracite check`, `vp run ready`, and `pnpm install --frozen-lockfile` pass. The ready suite includes 249 tests. The lockfile contains no `@pnpm/exe` entries.
 
 Video tests use `it.effect`, `assert`, per-test bridge/browser layers, Deferred synchronization, and TestClock. They cover QR callbacks and filtering, command arguments, switching and state, permission denial, missing cameras, interrupted native startup, failed startup cleanup, late browser acquisition cleanup, background longhand restoration, fire-and-forget listener removal, duplicate hook starts, stop/restart, unmount, provider replacement with retired actions and callbacks, and SSR guards. They use no real camera, network, or timers. Browser preview and BarcodeDetector behavior on physical browser hardware remain unverified.

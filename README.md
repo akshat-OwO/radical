@@ -122,7 +122,7 @@ radical({
 });
 ```
 
-Regenerate both shells after enabling it. Generation adds Android `CAMERA` with optional camera hardware, and iOS `NSCameraUsageDescription` plus `NSPhotoLibraryUsageDescription`. Both descriptions must contain non-whitespace text and no invalid XML control characters. Camera is disabled by default so existing apps gain no camera permissions.
+Regenerate both shells after enabling it. Generation adds Android `CAMERA` with optional camera hardware, and iOS `NSCameraUsageDescription` plus `NSPhotoLibraryUsageDescription`. Both descriptions must contain non-whitespace text and no invalid XML control characters. When both camera and video stream are enabled, the single iOS camera description joins the still-camera purpose followed by the video purpose with a space. Identical descriptions appear once, and generation XML-escapes the combined string once. Photo-library access is declared only when the still camera is enabled. Android emits one shared `CAMERA` permission. Camera is disabled by default so existing apps gain no camera permissions.
 
 ```tsx
 import { useCamera, useCameraPermission } from "radical/react";
