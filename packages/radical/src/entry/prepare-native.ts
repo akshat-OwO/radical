@@ -4,6 +4,7 @@ import {
   NativeMetadata,
   nativeMetadataLayer,
 } from "../native/shared/native-metadata.ts";
+import { BuildPlanApi } from "../vite/build-plan-api.ts";
 import { InvalidPlugin } from "../vite/plugins/errors.ts";
 
 export const readCliMetadata = (root: string) =>
@@ -17,12 +18,21 @@ export const prepareNative = Effect.gen(function* () {
     try: () => import("vite"),
     catch: (cause) => new InvalidPlugin({ message: String(cause) }),
   });
-  yield* Effect.tryPromise({
+  const resolved = yield* Effect.tryPromise({
     try: () => vite.resolveConfig({}, "build", "production", "production"),
     catch: (cause) => new InvalidPlugin({ message: String(cause) }),
   });
-  const { config } = yield* readCliMetadata(process.cwd());
-  if (config.mode === "bundled") {
+  const api: unknown = resolved.plugins.find(
+    (plugin) => plugin.name === "radical:config"
+  )?.api;
+  if (!(api instanceof BuildPlanApi)) {
+    return yield* new InvalidPlugin({
+      message:
+        "Vite config must enable radical before generating a native project",
+    });
+  }
+  const plan = yield* api.resolve(resolved.root);
+  if (plan.config.mode === "bundled") {
     const builder = yield* Effect.tryPromise({
       try: () => vite.createBuilder({}),
       catch: (cause) => new InvalidPlugin({ message: String(cause) }),
@@ -35,4 +45,5 @@ export const prepareNative = Effect.gen(function* () {
         }),
     });
   }
+  return plan;
 });

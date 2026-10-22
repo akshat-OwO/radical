@@ -1,7 +1,23 @@
 import { assert, it } from "@effect/vitest";
 import { Effect, FileSystem } from "effect";
 
-import { configureNativeNotifications } from "../../../src/capabilities/notifications/notification-native.ts";
+import { applyBuildPlan } from "../../../src/native/shared/apply-build-plan.ts";
+import { resolveBuildPlan } from "../../../src/vite/build-plan.ts";
+import type { RadicalConfig } from "../../../src/vite/config.ts";
+import { PluginModules } from "../../../src/vite/plugins/plugin-plan.ts";
+
+const configureNativeNotifications = (
+  root: string,
+  staging: string,
+  platform: "android" | "ios",
+  config: RadicalConfig
+) =>
+  resolveBuildPlan(config).pipe(
+    Effect.provideService(PluginModules, {
+      load: () => Effect.sync(() => assert.fail("Unexpected manifest load")),
+    }),
+    Effect.flatMap((plan) => applyBuildPlan(root, staging, platform, plan))
+  );
 
 const app = "/shell/ios/App/App";
 const project = "/shell/ios/App/App.xcodeproj/project.pbxproj";

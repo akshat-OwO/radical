@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer } from "effect";
 
 import { Bridge } from "../../core/bridge/bridge.ts";
 import type { BridgeError } from "../../core/bridge/bridge.ts";
@@ -13,7 +13,6 @@ import {
   GoogleSignInConfiguration,
   GoogleSignInConfigurationLive,
 } from "./google-sign-in-configuration.ts";
-import { GoogleSignInConfigSchema } from "./google-sign-in-schema.ts";
 import type { GoogleIdentity } from "./google-sign-in-schema.ts";
 
 export {
@@ -52,10 +51,7 @@ export const googleSignIn = Effect.gen(function* () {
     return yield* (yield* BrowserGoogleSignIn).signIn;
   }
   const configuration = yield* GoogleSignInConfiguration;
-  const config = yield* configuration.read.pipe(
-    Effect.flatMap(Schema.decodeUnknownEffect(GoogleSignInConfigSchema)),
-    Effect.mapError((cause) => new GoogleSignInMisconfigured({ cause }))
-  );
+  const config = yield* configuration.read;
   const { bridge: plugin, commands } = googleSignInPlugin;
   yield* callPlugin(plugin, "initialize", commands.initialize, {
     clientId: config.webClientId,

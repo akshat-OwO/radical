@@ -5,16 +5,15 @@ import { Effect, FileSystem, Schema } from "effect";
 import semver from "semver";
 
 import { encodeNativeContextCookie } from "../../core/context/native-context.ts";
+import type { BuildPlan } from "../../vite/build-plan.ts";
+import { resolveBuildPlan } from "../../vite/build-plan.ts";
 import {
   InvalidConfig,
   nativeIdentity,
   AndroidPackageIdSchema,
   IosBundleIdSchema,
 } from "../../vite/config.ts";
-import {
-  resolvePlugins,
-  InvalidPlugin,
-} from "../../vite/plugins/plugin-plan.ts";
+import { InvalidPlugin } from "../../vite/plugins/plugin-plan.ts";
 import type { EnabledPlugin } from "../../vite/plugins/plugin-plan.ts";
 import {
   AssetGenerator,
@@ -113,14 +112,21 @@ export const capacitor = (
 export const readNativeProject = (
   root: string,
   packageRoot: string,
-  platform: "android" | "ios"
+  platform: "android" | "ios",
+  resolvedPlan?: BuildPlan
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { config, url, outputs } = yield* NativeMetadata.pipe(
+    const {
+      config: input,
+      url,
+      outputs,
+    } = yield* NativeMetadata.pipe(
       Effect.flatMap((metadata) => metadata.read(root)),
       Effect.provide(nativeMetadataLayer)
     );
+    const plan = resolvedPlan ?? (yield* resolveBuildPlan(input));
+    const { config, plugins } = plan;
     const bundled = config.mode === "bundled";
     const identity = nativeIdentity(config, platform);
     yield* Schema.decodeEffect(
@@ -129,7 +135,6 @@ export const readNativeProject = (
       Effect.mapError((error) => new InvalidConfig({ message: error.message }))
     );
     const assets = yield* prepareNativeAssets(root, config);
-    const plugins = yield* resolvePlugins(config);
     const { origin } = new URL(url);
     const localOrigin =
       platform === "android" ? "https://localhost" : "capacitor://localhost";
@@ -153,6 +158,7 @@ export const readNativeProject = (
     });
     return {
       config,
+      plan,
       identity,
       assets,
       url: bundled ? localOrigin : url,
@@ -275,26 +281,13 @@ export const generateNativeProject = <E, R>(
               experimental: {
                 ios: {
                   spm: {
-                    packageOptions: {
-                      "@capacitor-firebase/messaging": { symlink: true },
-                    },
+                    packageOptions: native.plan.spm,
                   },
                 },
               },
               plugins: {
                 SystemBars: { insetsHandling: "disable" },
-                ...Object.fromEntries(
-                  native.plugins.flatMap(({ manifest }) =>
-                    manifest.config
-                      ? [
-                          [
-                            manifest.bridge,
-                            config.pluginOptions?.[manifest.config.selector],
-                          ],
-                        ]
-                      : []
-                  )
-                ),
+                ...native.plan.pluginConfig,
               },
               server: {
                 ...(native.bundled ? {} : { url }),

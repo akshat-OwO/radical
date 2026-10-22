@@ -9,8 +9,11 @@ import {
   NativeMetadata,
   nativeMetadataLayer,
 } from "../../native/shared/native-metadata.ts";
+import { BuildPlanApi } from "../build-plan-api.ts";
+import { resolveBuildPlan } from "../build-plan.ts";
+import type { BuildPlan } from "../build-plan.ts";
 import type { RadicalConfig } from "../config.ts";
-import { resolvePlugins, pluginModulesLayer } from "./plugin-plan.ts";
+import { pluginModulesLayer } from "./plugin-plan.ts";
 import type { EnabledPlugin } from "./plugin-plan.ts";
 
 const modulePath = (root: string, module: string) =>
@@ -48,6 +51,20 @@ export const nativePlugins = (
   adapterLayer?: Layer.Layer<RadicalAdapter>
 ): Plugin => {
   let source = "";
+  let plan: BuildPlan | undefined;
+  const resolvePlan = (root: string) =>
+    Effect.suspend(() =>
+      plan === undefined
+        ? resolveBuildPlan(config).pipe(
+            Effect.provide(pluginModulesLayer(root)),
+            Effect.tap((value) =>
+              Effect.sync(() => {
+                plan = value;
+              })
+            )
+          )
+        : Effect.succeed(plan)
+    );
   const browserConfig = JSON.stringify({
     appId: config.appId,
     mode: config.mode ?? "remote",
@@ -55,10 +72,23 @@ export const nativePlugins = (
   });
   return {
     name: "radical:plugins",
+    api: new BuildPlanApi(resolvePlan),
+    config: (user) =>
+      Effect.runPromise(
+        resolvePlan(user.root ?? process.cwd()).pipe(
+          Effect.map((value) => ({
+            define: value.defines,
+            server: {
+              host: user.server?.host ?? "0.0.0.0",
+              watch: { ignored: ["**/.radical/**"] },
+            },
+          }))
+        )
+      ),
     configResolved: (resolved) =>
       Effect.runPromise(
         Effect.gen(function* () {
-          const plugins = yield* resolvePlugins(config);
+          const { plugins } = yield* resolvePlan(resolved.root);
           source = pluginVirtualSource(resolved.root, plugins);
           const fs = yield* FileSystem.FileSystem;
           const metadata = yield* NativeMetadata;

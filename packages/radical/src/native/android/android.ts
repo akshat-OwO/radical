@@ -2,21 +2,21 @@ import path from "node:path";
 
 import { Effect, FileSystem, Schema } from "effect";
 
-import { cameraDeclarations } from "../../capabilities/camera/camera-declarations.ts";
-import { configureNativeNotifications } from "../../capabilities/notifications/notification-native.ts";
-import { safeAreaUpdateScript } from "../../capabilities/safe-area/shell-events.ts";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
 import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
+import type { BuildPlan } from "../../vite/build-plan.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
 import { composePluginSources } from "../../vite/plugins/plugin-sources.ts";
+import { applyBuildPlan } from "../shared/apply-build-plan.ts";
 import {
   generateNativeProject,
   readNativeProject,
   renderTemplate,
 } from "../shared/native-project.ts";
 import { replaceAnchor } from "../shared/native-template.ts";
+import { safeAreaUpdateScript } from "../shared/shell-events.ts";
 import { execute } from "../shared/shell.ts";
 import { resolveAndroidTarget } from "./android-target.ts";
 
@@ -35,12 +35,12 @@ export const navigationGuardScript = (origins: readonly string[]) =>
 
 export const generateAndroid = (
   root: string,
-  packageRoot = resolvePackageRoot(import.meta.url)
+  packageRoot = resolvePackageRoot(import.meta.url),
+  plan?: BuildPlan
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const native = yield* readNativeProject(root, packageRoot, "android");
-    const camera = yield* cameraDeclarations(native.config);
+    const native = yield* readNativeProject(root, packageRoot, "android", plan);
     const { config, url, origins, cookie } = native;
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/MainActivity.java")
@@ -96,7 +96,7 @@ export const generateAndroid = (
             "AndroidManifest.xml",
             manifest,
             "</manifest>",
-            `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${camera.android}</manifest>`
+            `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.android.declarations.join("")}</manifest>`
           )
         );
         if (config.splash) {
@@ -133,7 +133,7 @@ export const generateAndroid = (
           ),
           activity
         );
-        yield* configureNativeNotifications(root, staging, "android", config);
+        yield* applyBuildPlan(root, staging, "android", native.plan);
         yield* composePluginSources(
           staging,
           "android",

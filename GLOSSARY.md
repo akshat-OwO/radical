@@ -80,6 +80,10 @@ _Avoid_: Extension, module
 The declaration of a native plugin's identity, commands, configuration, dependencies, and platform sources.\
 _Avoid_: Build manifest, plugin config
 
+**Build plan**:\
+The resolved app configuration, enabled capabilities, and native project contributions used to generate a shell.\
+_Avoid_: Resolved config, generation config
+
 **Native context**:\
 Request-time facts about the shell, such as platform and safe-area insets, available to the web app and its server.\
 _Avoid_: Device context, client hints

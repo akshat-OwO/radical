@@ -1,7 +1,7 @@
 import { assert, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { cameraDeclarations } from "../../../src/capabilities/camera/camera-declarations.ts";
+import { cameraDeclarations } from "../../vite/camera-declarations.ts";
 
 const pluginOptions = {
   Camera: {

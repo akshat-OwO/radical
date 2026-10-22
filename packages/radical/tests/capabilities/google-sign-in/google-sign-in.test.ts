@@ -2,7 +2,6 @@ import { assert, it } from "@effect/vitest";
 import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
-import { googleSignInDeclarations } from "../../../src/capabilities/google-sign-in/google-sign-in-declarations.ts";
 import {
   googleSignIn,
   GoogleSignInConfiguration,
@@ -18,6 +17,7 @@ import {
   PluginModules,
   resolvePlugins,
 } from "../../../src/vite/plugins/plugin-plan.ts";
+import { googleSignInDeclarations } from "../../vite/google-sign-in-declarations.ts";
 
 const config = {
   webClientId: "test-web.apps.googleusercontent.com",
@@ -230,7 +230,7 @@ it.effect(
           ...enabled,
           pluginOptions: {},
         }).pipe(Effect.flip))._tag,
-        "InvalidConfig"
+        "InvalidPlugin"
       );
     })
 );
