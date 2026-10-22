@@ -1,8 +1,12 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
 
-import { Bridge } from "./bridge.ts";
+import { Bridge, BridgeDecodeError } from "./bridge.ts";
 import type { BridgeError } from "./bridge.ts";
-import { HapticFeedbackFailed } from "./haptics-schema.ts";
+import {
+  HapticFeedbackFailed,
+  ImpactStyleSchema,
+  NotificationTypeSchema,
+} from "./haptics-schema.ts";
 import type { ImpactStyle, NotificationType } from "./haptics-schema.ts";
 import { hapticsPlugin } from "./internal-plugins.ts";
 import { callPlugin } from "./plugins.ts";
@@ -51,20 +55,44 @@ const callSelection = (
 /** Defaults to a medium impact. Browser timings approximate strength. */
 export const hapticImpact = (style: ImpactStyle = "MEDIUM") =>
   Effect.gen(function* () {
+    const decodedStyle = yield* Schema.decodeEffect(ImpactStyleSchema)(
+      style
+    ).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BridgeDecodeError({
+            plugin: hapticsPlugin.bridge,
+            method: "impact",
+            cause,
+          })
+      )
+    );
     const bridge = yield* Bridge;
     if ((yield* bridge.runtime) === "browser") {
       const browser = yield* BrowserHaptics;
       return yield* browser.vibrate([
-        { LIGHT: 10, MEDIUM: 20, HEAVY: 30 }[style],
+        { LIGHT: 10, MEDIUM: 20, HEAVY: 30 }[decodedStyle],
       ]);
     }
     return yield* callPlugin(hapticsPlugin.bridge, "impact", native.impact, {
-      style,
+      style: decodedStyle,
     }).pipe(Effect.asVoid);
   });
 
 export const hapticNotification = (type: NotificationType) =>
   Effect.gen(function* () {
+    const decodedType = yield* Schema.decodeEffect(NotificationTypeSchema)(
+      type
+    ).pipe(
+      Effect.mapError(
+        (cause) =>
+          new BridgeDecodeError({
+            plugin: hapticsPlugin.bridge,
+            method: "notification",
+            cause,
+          })
+      )
+    );
     const bridge = yield* Bridge;
     if ((yield* bridge.runtime) === "browser") {
       const browser = yield* BrowserHaptics;
@@ -73,13 +101,13 @@ export const hapticNotification = (type: NotificationType) =>
         WARNING: [30, 50, 30],
         ERROR: [50, 50, 50, 50, 50],
       };
-      return yield* browser.vibrate(patterns[type]);
+      return yield* browser.vibrate(patterns[decodedType]);
     }
     return yield* callPlugin(
       hapticsPlugin.bridge,
       "notification",
       native.notification,
-      { type }
+      { type: decodedType }
     ).pipe(Effect.asVoid);
   });
 
@@ -90,9 +118,9 @@ export const hapticSelection = Effect.gen(function* () {
     const browser = yield* BrowserHaptics;
     return yield* browser.vibrate([10]);
   }
-  yield* callSelection("selectionStart");
-  return yield* callSelection("selectionChanged").pipe(
-    // Release the native generator even on failure or interruption. Cleanup is best effort.
+  return yield* callSelection("selectionStart").pipe(
+    Effect.andThen(callSelection("selectionChanged")),
+    // Release the native generator on failure or interruption of either call.
     Effect.ensuring(callSelection("selectionEnd").pipe(Effect.ignore))
   );
 });

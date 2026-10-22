@@ -112,7 +112,7 @@ it.effect("does nothing without a browser vibration API", () =>
 );
 
 it.effect(
-  "preserves native failures and rejects invalid impact arguments before calling native",
+  "preserves native failures and rejects invalid arguments in every runtime",
   () =>
     Effect.gen(function* () {
       const failure = new BridgeCallFailed({
@@ -133,54 +133,112 @@ it.effect(
       // Exercise the Schema boundary used by JavaScript callers.
       // @ts-expect-error Invalid style must also be rejected at runtime.
       const invalid = hapticImpact("STRONG");
-      assert.strictEqual(
-        (yield* invalid.pipe(
+      // @ts-expect-error Invalid type must also be rejected at runtime.
+      const invalidNotification = hapticNotification("INFO");
+      for (const runtime of ["android", "ios", "browser"] as const) {
+        const patterns: (readonly number[])[] = [];
+        for (const action of [invalid, invalidNotification]) {
+          const decodeError = yield* action.pipe(
+            Effect.provide(bridgeTestLayer(runtime, unexpected)),
+            Effect.provideService(BrowserHaptics, {
+              vibrate: (pattern) =>
+                Effect.sync(() => {
+                  patterns.push(pattern);
+                }),
+            }),
+            Effect.flip
+          );
+          assert.strictEqual(decodeError._tag, "BridgeDecodeError");
+        }
+        assert.deepStrictEqual(patterns, []);
+      }
+    })
+);
+
+for (const inFlight of ["selectionStart", "selectionChanged"] as const) {
+  it.effect(
+    `releases a native selection generator when ${inFlight} is interrupted`,
+    () =>
+      Effect.gen(function* () {
+        const calls: string[] = [];
+        const fiber = yield* hapticSelection.pipe(
           Effect.provide(
             Layer.merge(
-              bridgeTestLayer("android", unexpected),
+              bridgeTestLayer("ios", (_plugin, method) =>
+                Effect.sync(() => {
+                  calls.push(method);
+                }).pipe(
+                  Effect.andThen(
+                    method === inFlight ? Effect.sleep("1 minute") : Effect.void
+                  )
+                )
+              ),
+              BrowserHapticsLive
+            )
+          ),
+          Effect.forkChild
+        );
+        yield* TestClock.adjust("1 second");
+        assert.strictEqual(calls.at(-1), inFlight);
+        yield* Fiber.interrupt(fiber);
+        assert.deepStrictEqual(
+          calls,
+          inFlight === "selectionStart"
+            ? ["selectionStart", "selectionEnd"]
+            : ["selectionStart", "selectionChanged", "selectionEnd"]
+        );
+      })
+  );
+}
+
+for (const failedMethod of ["selectionStart", "selectionChanged"] as const) {
+  it.effect(
+    `preserves ${failedMethod} failure when releasing the generator also fails`,
+    () =>
+      Effect.gen(function* () {
+        const calls: string[] = [];
+        const failure = new BridgeCallFailed({
+          plugin: "Haptics",
+          method: failedMethod,
+          cause: "action failed",
+        });
+        const cleanupFailure = new BridgeCallFailed({
+          plugin: "Haptics",
+          method: "selectionEnd",
+          cause: "cleanup failed",
+        });
+        const error = yield* hapticSelection.pipe(
+          Effect.provide(
+            Layer.merge(
+              bridgeTestLayer("ios", (_plugin, method) =>
+                Effect.sync(() => {
+                  calls.push(method);
+                }).pipe(
+                  Effect.andThen(() => {
+                    if (method === failedMethod) {
+                      return Effect.fail(failure);
+                    }
+                    return method === "selectionEnd"
+                      ? Effect.fail(cleanupFailure)
+                      : Effect.void;
+                  })
+                )
+              ),
               BrowserHapticsLive
             )
           ),
           Effect.flip
-        ))._tag,
-        "BridgeDecodeError"
-      );
-    })
-);
-
-it.effect(
-  "releases a native selection generator when its action is interrupted",
-  () =>
-    Effect.gen(function* () {
-      const calls: string[] = [];
-      const fiber = yield* hapticSelection.pipe(
-        Effect.provide(
-          Layer.merge(
-            bridgeTestLayer("ios", (_plugin, method) =>
-              Effect.sync(() => {
-                calls.push(method);
-              }).pipe(
-                Effect.andThen(
-                  method === "selectionChanged"
-                    ? Effect.sleep("1 minute")
-                    : Effect.void
-                )
-              )
-            ),
-            BrowserHapticsLive
-          )
-        ),
-        Effect.forkChild
-      );
-      yield* TestClock.adjust("1 second");
-      yield* Fiber.interrupt(fiber);
-      assert.deepStrictEqual(calls, [
-        "selectionStart",
-        "selectionChanged",
-        "selectionEnd",
-      ]);
-    })
-);
+        );
+        assert.strictEqual(error, failure);
+        assert.deepStrictEqual(
+          calls,
+          failedMethod === "selectionStart"
+            ? ["selectionStart", "selectionEnd"]
+            : ["selectionStart", "selectionChanged", "selectionEnd"]
+        );
+      })
+  );
+}
 
 it.effect("enables only the opted-in pinned Haptics manifest", () =>
   Effect.gen(function* () {
