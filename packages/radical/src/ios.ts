@@ -15,6 +15,7 @@ import {
   renderTemplate,
 } from "./native-project.ts";
 import { replaceAnchor } from "./native-template.ts";
+import { configureNativeNotifications } from "./notification-native.ts";
 import { pluginRegistration } from "./plugin-plan.ts";
 import { composePluginSources } from "./plugin-sources.ts";
 import { safeAreaUpdateScript } from "./shell-events.ts";
@@ -146,6 +147,12 @@ export const generateIos = (
             /<\/dict>\s*<\/plist>/u,
             `${bound}${ats}${camera.ios}${googleSignIn}\n</dict>\n</plist>`
           )
+        );
+        yield* configureNativeNotifications(
+          root,
+          staging,
+          "ios",
+          native.config
         );
         yield* composePluginSources(
           staging,

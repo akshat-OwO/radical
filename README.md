@@ -248,3 +248,40 @@ The hook subscribes after mount and updates live. SSR and the first hydration re
 `radical/client` exports `getNetworkStatus`, `watchNetworkStatus`, `NetworkStatusSchema`, `NetworkTypeSchema`, `BrowserNetwork`, `BrowserNetworkLive`, `browserNetworkLayer`, and `networkLive`. The Effect and Stream require `Bridge` and `BrowserNetwork`. Wrap a stream consumer Effect with `networkLive` for the default browser service, or inject an in-memory layer. Unexpected native failures are `BridgeCallFailed`; malformed results and events are `BridgeDecodeError`; missing native listener support is `BridgeUnavailable`. See [network verification](docs/verification/network.md).
 
 Google sign-in is available through `useGoogleSignIn` in both native shells. Enable `internalPlugins.googleSignIn` and supply public OAuth client IDs in `pluginOptions.GoogleSignIn`. See [Google sign-in setup](packages/radical/README.md#google-sign-in) and [ADR 0011](docs/adr/0011-google-sign-in.md).
+
+## Notifications
+
+Enable `internalPlugins.notifications` and install `@capacitor/local-notifications@8.3.1` and `@capawesome/capacitor-badge@8.0.4`. Regenerate shells after changing plugin flags. `useNotificationPermission()` exposes `check`, `request`, `loading`, `value`, and `error`. Permission values are `prompt`, `granted`, and `denied`. It checks after mount and prompts only when you call `request`.
+
+`useNotifications()` exposes `schedule`, `cancel`, `setBadge`, `clearBadge`, `registerPush`, `subscribe`, `unsubscribe`, and `lookupTopics`, plus `loading`, `value`, and `error`. Actions run after mount and ignore overlapping calls. Server rendering leaves both hooks idle and never reads browser APIs.
+
+```tsx
+const notifications = useNotifications();
+notifications.schedule({
+  id: 22,
+  title: "Reminder",
+  delaySeconds: 5,
+  route: "/offline-route",
+});
+notifications.cancel(22);
+```
+
+Notification IDs are positive 32-bit integers. Scheduling the same ID replaces its pending reminder. Delays must be positive finite seconds. Routes must be app-relative paths starting with one slash. Native delivery follows the OS scheduler and may be delayed by power management. Browsers use the Notification API and require permission, a secure context, and an open page. They cannot deliver after the page closes. Badge updates require a supported native launcher. Invalid inputs and unsupported operations return `Unavailable`; denied permission returns `PermissionDenied`.
+
+For push and topics, also enable `internalPlugins.pushNotifications` and install `@capacitor-firebase/messaging@8.5.2`. This flag includes local notifications and badges. Supply your own Firebase files for the shell's platform identity:
+
+```ts
+notifications: {
+	android: { googleServices: "./private/google-services.json" },
+	ios: {
+		googleServiceInfo: "./private/GoogleService-Info.plist",
+		environment: "development",
+	},
+},
+```
+
+Paths resolve from the app root. The generator copies files into the ignored shell, adds the iOS resource and push entitlement, and wires APNs callbacks. Set `environment: "production"` for distribution and configure signing with Push Notifications enabled. Upload an APNs key or certificate to Firebase. Never commit `google-services.json` or `GoogleService-Info.plist`. Without Firebase configuration, local scheduling still works and push operations return `MissingPushConfiguration`. `registerPush` requires notification permission and returns an FCM token. Browsers report push and topics as `Unavailable`.
+
+`subscribe(topic)`, `unsubscribe(topic)`, and `lookupTopics()` return the installation's confirmed topic memberships in `value`. Topic names accept 1–900 letters, digits, underscores, periods, tildes, percent signs, and hyphens. Lookup reads a persistent local record of successful operations, not Firebase's server state. Reinstalling the app clears it. Changes made outside Radical are not reflected.
+
+Mount `watchNotificationNavigation({ appId, push: true })` in an app-wide Effect scope. Provide `BridgeLive`, `NotificationSnapshotsLive`, and your adapter's client navigation layer. Interrupt the fiber on unmount to remove its listeners. Local taps read `notification.extra.route`; push taps read `notification.data.route`. Only the `tap` action navigates. When offline, the watcher checks stored snapshots first and uses full-document navigation for a matching URL. Otherwise it calls the adapter's navigation hook. The example's root route shows the TanStack Start setup. Visit an offline route before expecting its snapshot to exist.

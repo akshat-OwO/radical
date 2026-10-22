@@ -34,3 +34,7 @@ dist-ssr
 
 # radical generated native projects
 .radical/
+
+# App-owned Firebase configuration
+google-services.json
+GoogleService-Info.plist

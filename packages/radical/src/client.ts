@@ -190,3 +190,36 @@ export type {
   GoogleSignInConfig,
   GoogleSignInError,
 } from "./google-sign-in.ts";
+
+export {
+  checkNotificationPermission,
+  requestNotificationPermission,
+  scheduleNotification,
+  cancelNotification,
+  registerPush,
+  subscribeToTopic,
+  unsubscribeFromTopic,
+  getNotificationTopics,
+  isSubscribedToTopic,
+  setNotificationBadge,
+  clearNotificationBadge,
+  notificationsLive,
+  BrowserNotifications,
+  BrowserNotificationsLive,
+  browserNotificationsLayer,
+  LocalNotificationSchema,
+  NotificationPermissionSchema,
+  NotificationRouteSchema,
+  TopicSchema,
+  MissingPushConfiguration,
+} from "./notifications.ts";
+export type {
+  LocalNotification,
+  NotificationPermission,
+  NotificationError,
+} from "./notifications.ts";
+export {
+  NotificationSnapshots,
+  NotificationSnapshotsLive,
+  watchNotificationNavigation,
+} from "./notification-navigation.ts";

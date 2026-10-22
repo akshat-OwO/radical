@@ -287,6 +287,15 @@ export const generateNativeProject = <E, R>(
                     },
                   }
                 : {}),
+              experimental: {
+                ios: {
+                  spm: {
+                    packageOptions: {
+                      "@capacitor-firebase/messaging": { symlink: true },
+                    },
+                  },
+                },
+              },
               plugins: {
                 SystemBars: { insetsHandling: "disable" },
                 ...Object.fromEntries(

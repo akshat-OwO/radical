@@ -79,6 +79,34 @@ const transitionTypes = (
 };
 
 describe("TanStack navigation", () => {
+  it.effect("splits pathname, search, and hash before calling TanStack", () =>
+    Effect.gen(function* () {
+      const router = makeRouter();
+      const calls: unknown[] = [];
+      const navigation = tanstackNavigation({
+        options: router.options,
+        subscribe: router.subscribe,
+        navigate: async (options) => {
+          calls.push(options);
+          await Effect.runPromise(Effect.void);
+        },
+      });
+      yield* navigation.navigate("/details?item=1&name=hello%20world#x", {
+        replace: true,
+      });
+      yield* navigation.navigate("/about");
+      assert.deepStrictEqual(calls, [
+        {
+          to: "/details",
+          search: { item: 1, name: "hello world" },
+          hash: "x",
+          replace: true,
+        },
+        { to: "/about", search: {}, hash: "" },
+      ]);
+    })
+  );
+
   it.effect(
     "does not install browser transitions during server rendering",
     () =>
@@ -199,16 +227,20 @@ describe("TanStack navigation", () => {
         const removeAfter = yield* navigation.onAfterNavigate((to) => {
           after.push(to);
         });
-        yield* navigation.navigate("/details");
+        yield* navigation.navigate("/details?item=1#x");
         assert.strictEqual(router.state.location.pathname, "/details");
-        assert.deepStrictEqual(yield* Ref.get(before), ["/->/details"]);
-        assert.deepStrictEqual(after, ["/details"]);
+        assert.deepStrictEqual(router.state.location.search, { item: 1 });
+        assert.strictEqual(router.state.location.hash, "x");
+        assert.deepStrictEqual(yield* Ref.get(before), [
+          "/->/details?item=1#x",
+        ]);
+        assert.deepStrictEqual(after, ["/details?item=1#x"]);
         removeBefore();
         removeAfter();
         yield* navigation.navigate("/about", { replace: true });
         assert.strictEqual(router.state.location.pathname, "/about");
         assert.strictEqual(router.history.length, 2);
-        assert.deepStrictEqual(after, ["/details"]);
+        assert.deepStrictEqual(after, ["/details?item=1#x"]);
         controller.dispose();
         removeLoad();
       })
@@ -272,6 +304,7 @@ describe("TanStack navigation", () => {
         const router = makeRouter();
         const navigation = tanstackNavigation({
           subscribe: router.subscribe,
+          options: router.options,
           navigate: async () => {
             await Promise.reject(cause);
           },

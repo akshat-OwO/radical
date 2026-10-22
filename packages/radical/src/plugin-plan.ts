@@ -9,6 +9,10 @@ import {
   googleSignInPlugin,
   networkPlugin,
   appLauncherPlugin,
+  localNotificationsPlugin,
+  badgePlugin,
+  firebaseMessagingPlugin,
+  notificationTopicsPlugin,
   cameraPlugin,
   devicePlugin,
   fileOpenerPlugin,
@@ -179,6 +183,10 @@ export const validatePlugins = (
 const optInPlugins = [
   ["googleSignIn", googleSignInPlugin],
   ["network", networkPlugin],
+  ["notifications", localNotificationsPlugin],
+  ["notifications", badgePlugin],
+  ["pushNotifications", firebaseMessagingPlugin],
+  ["pushNotifications", notificationTopicsPlugin],
   ["videoStream", videoStreamPlugin],
   ["camera", cameraPlugin],
   ["filePicker", filePickerPlugin],
@@ -189,11 +197,15 @@ export const resolvePlugins = (config: RadicalConfig) =>
   Effect.gen(function* () {
     const plugins: EnabledPlugin[] = [];
     for (const [flag, manifest] of optInPlugins) {
-      if (config.internalPlugins?.[flag] === true) {
+      if (
+        config.internalPlugins?.[flag] === true ||
+        (flag === "notifications" &&
+          config.internalPlugins?.pushNotifications === true)
+      ) {
         plugins.push({
           manifest,
           module: "radical/internal-plugins",
-          selector: `${flag}Plugin`,
+          selector: `${manifest.id}Plugin`,
         });
       }
     }

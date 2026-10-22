@@ -284,3 +284,10 @@ export const googleSignInPlugin = definePlugin({
     },
   },
 });
+
+export {
+  localNotificationsPlugin,
+  badgePlugin,
+  firebaseMessagingPlugin,
+  notificationTopicsPlugin,
+} from "./notification-plugins.ts";

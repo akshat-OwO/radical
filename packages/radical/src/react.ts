@@ -87,3 +87,12 @@ export type { GoogleIdentity, GoogleSignInError } from "./google-sign-in.ts";
 export { GoogleSignInCancelled } from "./google-sign-in-cancelled.ts";
 export { GoogleSignInMisconfigured } from "./google-sign-in-misconfigured.ts";
 export { GoogleSignInUnavailable } from "./google-sign-in-unavailable.ts";
+
+export {
+  useNotifications,
+  useNotificationPermission,
+} from "./use-notifications.ts";
+export type {
+  NotificationsState,
+  NotificationPermissionState,
+} from "./use-notifications.ts";

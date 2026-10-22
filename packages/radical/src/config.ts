@@ -61,6 +61,8 @@ export const RadicalConfigSchema = Schema.Struct({
     Schema.Struct({
       googleSignIn: Schema.optional(Schema.Boolean),
       network: Schema.optional(Schema.Boolean),
+      notifications: Schema.optional(Schema.Boolean),
+      pushNotifications: Schema.optional(Schema.Boolean),
       camera: Schema.optional(Schema.Boolean),
       videoStream: Schema.optional(Schema.Boolean),
       device: Schema.optional(Schema.Boolean),
@@ -68,6 +70,23 @@ export const RadicalConfigSchema = Schema.Struct({
       intents: Schema.optional(Schema.Boolean),
       haptics: Schema.optional(Schema.Boolean),
       transitions: Schema.optional(Schema.Boolean),
+    })
+  ),
+  notifications: Schema.optional(
+    Schema.Struct({
+      android: Schema.optional(
+        Schema.Struct({
+          googleServices: Schema.optional(Schema.NonEmptyString),
+        })
+      ),
+      ios: Schema.optional(
+        Schema.Struct({
+          googleServiceInfo: Schema.optional(Schema.NonEmptyString),
+          environment: Schema.optional(
+            Schema.Literals(["development", "production"])
+          ),
+        })
+      ),
     })
   ),
   mode: Schema.optional(Schema.Literals(["remote", "bundled"])),

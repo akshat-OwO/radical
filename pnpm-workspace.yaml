@@ -7,6 +7,10 @@ catalogMode: prefer
 
 catalog:
   "@capawesome/capacitor-google-sign-in": 0.1.4
+
+  "@capacitor/local-notifications": 8.3.1
+  "@capacitor-firebase/messaging": 8.5.2
+  "@capawesome/capacitor-badge": 8.0.4
   "@capgo/camera-preview": 8.14.2
   "@capacitor-community/file-opener": 8.0.1
   "@capacitor/android": ^8.5.3

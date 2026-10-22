@@ -18,6 +18,8 @@ const config = {
   internalPlugins: {
     googleSignIn: true,
     network: true,
+    notifications: true,
+    pushNotifications: true,
     camera: true,
     videoStream: true,
     filePicker: true,
