@@ -11,7 +11,9 @@ description: "Local reminders, native push, topic state, badges, and tap navigat
 | --- | --- | --- |
 | `checkNotificationPermission` | Effect value | `"granted"`, `"denied"`, or `"prompt"` |
 | `requestNotificationPermission` | Effect value | Same permission union |
-| `scheduleNotification(notification)` | `LocalNotification` | Void |
+| `checkExactAlarmPermission` | Effect value | `"granted"`, `"denied"`, or `"not-required"` |
+| `requestExactAlarmPermission` | Effect value | Same exact-alarm union |
+| `scheduleNotification(notification)` | `LocalNotification` | `NotificationScheduleResult` |
 | `cancelNotification(id)` | Notification ID | Void |
 | `registerPush` | Effect value | FCM token string |
 | `subscribeToTopic(topic)` | Topic string | Void |
@@ -39,6 +41,20 @@ Permission, scheduling, cancellation, and push registration depend on `Bridge | 
 
 Native scheduling requests permission when it is prompt. A denied permission fails with `PermissionDenied`. Browsers schedule only while the page remains open. Native push and topics are unavailable in browsers. Topic lookup reports local confirmed state, not an FCM server query. Badges depend on native platform and launcher support.
 
+## Exact alarms and schedule results
+
+`@capacitor/local-notifications` 8.3.1 declares `SCHEDULE_EXACT_ALARM` in its library manifest. Android merges this permission into the app manifest. Radical neither adds nor removes it. Android 12 and 13 grant this access at install, though users can revoke it. On Android 14 and later, access is denied by default for most newly installed apps targeting API 33 or higher. Exemptions and existing grants during an OS upgrade can preserve access. See [Android's exact-alarm permission changes](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms).
+
+`checkExactAlarmPermission` and `requestExactAlarmPermission` require `Bridge`. On Android, they wrap Capacitor's `checkExactNotificationSetting` and `changeExactNotificationSetting`. The request opens Android's **Alarms & reminders** settings on Android 12 and later and returns the setting when the user returns. Denial is a success value, `"denied"`. Older Android versions report `"granted"` because they need no special access. Notification display permission is separate from exact-alarm access.
+
+On iOS and browsers, both operations report `"not-required"` without a native call. iOS has no exact-alarm permission. This value does not imply notification display permission or guaranteed delivery timing. `ExactAlarmPermissionSchema` validates this union.
+
+`NotificationScheduleResultSchema` decodes `notifications`, an array of `{ id: number }`, and optional `warning`, an object with string `code` and `message`. The corresponding types are `NotificationScheduleResult` and `NotificationScheduleWarning`. Warning code `"OS-PLUG-LNOT-0017"` means Android accepted the reminder as an inexact alarm because exact-alarm access was missing. Unknown warning codes are preserved. A missing warning is not a delivery-time guarantee. Browser scheduling returns the accepted ID without a warning.
+
+Scheduling uses Capacitor's default exact-alarm behavior. On Android 12 and later, Capacitor can open settings when access is missing, then fall back to an inexact alarm if access remains denied. Requesting access before scheduling avoids consuming the delay in settings. Existing inexact alarms are not upgraded by a later grant. Android cancels future exact alarms when access is revoked. See [Android alarm behavior](https://developer.android.com/develop/background-work/services/alarms#exact).
+
+Neither Radical nor the local-notifications plugin declares `USE_EXACT_ALARM`. [Google Play restricts that permission](https://support.google.com/googleplay/android-developer/answer/13161072) to qualifying core alarm and calendar use cases.
+
 ## Navigation watcher
 
 `watchNotificationNavigation({ appId, push?, onError? })` is a scoped, long-lived Effect requiring `Bridge`, `RadicalAdapter`, and `NotificationSnapshots`. It listens for tap actions, validates the route, and tries an exact stored snapshot when offline. Otherwise it uses adapter navigation. `push` defaults to false.
@@ -47,8 +63,8 @@ Native scheduling requests permission when it is prompt. A denied permission fai
 
 ## Errors and React hooks
 
-`NotificationError` includes `PermissionDenied`, `Unavailable`, `MissingPushConfiguration`, and bridge errors. Invalid IDs, routes, topic names, counts, and out-of-range scheduled dates produce `Unavailable`. `MissingPushConfiguration` carries `reason` when the native shell lacks Firebase setup. Unknown native failures remain `BridgeCallFailed`; malformed results remain `BridgeDecodeError`.
+`NotificationError` includes `PermissionDenied`, `Unavailable`, `MissingPushConfiguration`, and bridge errors. Invalid IDs, routes, topic names, counts, and out-of-range scheduled dates produce `Unavailable`. `MissingPushConfiguration` carries `reason` when the native shell lacks Firebase setup. Exact-alarm operations use the same typed bridge errors. Unknown native failures remain `BridgeCallFailed`; malformed results remain `BridgeDecodeError`.
 
-`useNotificationPermission()` exposes `check()` and `request()`. `useNotifications()` exposes schedule, cancel, badge, push, and topic actions. Topic actions return the updated confirmed list in `value`.
+`useNotificationPermission()` exposes `check()` and `request()`. `useExactAlarmPermission()` checks on mount and exposes `check()` and `request()`, with the exact-alarm union in `value`. `useNotifications()` exposes schedule, cancel, badge, push, and topic actions. Schedule actions retain `NotificationScheduleResult` in `value`, including warnings. Topic actions return the updated confirmed list in `value`.
 
 Source: [notification implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/notifications).

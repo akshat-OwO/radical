@@ -35,3 +35,22 @@ export class MissingPushConfiguration extends Schema.TaggedError<MissingPushConf
     reason: Schema.String,
   }
 ) {}
+
+export const ExactAlarmPermissionSchema = Schema.Literals([
+  "granted",
+  "denied",
+  "not-required",
+]);
+export type ExactAlarmPermission = typeof ExactAlarmPermissionSchema.Type;
+export const NotificationScheduleWarningSchema = Schema.Struct({
+  code: Schema.String,
+  message: Schema.String,
+});
+export type NotificationScheduleWarning =
+  typeof NotificationScheduleWarningSchema.Type;
+export const NotificationScheduleResultSchema = Schema.Struct({
+  notifications: Schema.Array(Schema.Struct({ id: Schema.Int })),
+  warning: Schema.optional(NotificationScheduleWarningSchema),
+});
+export type NotificationScheduleResult =
+  typeof NotificationScheduleResultSchema.Type;

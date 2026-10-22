@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
 import { definePlugin } from "../../core/plugins/plugins.ts";
+import { NotificationScheduleResultSchema } from "./notification-schema.ts";
 
 const empty = Schema.Struct({});
 const voidCommand = { args: empty, result: Schema.Unknown, errors: {} };
@@ -19,8 +20,21 @@ export const localNotificationsPlugin = definePlugin({
   commands: {
     checkPermissions: { ...voidCommand, result: permissions },
     requestPermissions: { ...voidCommand, result: permissions },
+    checkExactNotificationSetting: {
+      ...voidCommand,
+      result: Schema.Struct({
+        exact_alarm: Schema.Literals(["granted", "denied"]),
+      }),
+    },
+    changeExactNotificationSetting: {
+      ...voidCommand,
+      result: Schema.Struct({
+        exact_alarm: Schema.Literals(["granted", "denied"]),
+      }),
+    },
     schedule: {
       ...voidCommand,
+      result: NotificationScheduleResultSchema,
       args: Schema.Struct({
         notifications: Schema.Array(
           Schema.Struct({

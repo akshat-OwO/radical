@@ -1,7 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useNotificationPermission, useNotifications } from "radical/react";
+import {
+  useExactAlarmPermission,
+  useNotificationPermission,
+  useNotifications,
+} from "radical/react";
 
 const Notifications = () => {
+  const exactAlarms = useExactAlarmPermission();
   const permission = useNotificationPermission();
   const notifications = useNotifications();
   const actions = [
@@ -70,11 +75,47 @@ const Notifications = () => {
         Check permission
       </button>
       <output>{permission.error?._tag}</output>
+      <p>Exact alarm permission: {exactAlarms.value ?? "Not checked"}</p>
+      <button
+        type="button"
+        disabled={exactAlarms.loading}
+        onClick={() => {
+          exactAlarms.check();
+        }}
+      >
+        Check exact alarm permission
+      </button>
+      {exactAlarms.value === "denied" && (
+        <button
+          type="button"
+          disabled={exactAlarms.loading}
+          onClick={() => {
+            exactAlarms.request();
+          }}
+        >
+          Allow exact alarms in Android settings
+        </button>
+      )}
+      <output>{exactAlarms.error?._tag}</output>
+      {typeof notifications.value === "object" &&
+        "warning" in notifications.value &&
+        notifications.value.warning?.code === "OS-PLUG-LNOT-0017" && (
+          <p>
+            Android scheduled an inexact alarm. Allow exact alarms, then
+            schedule the reminder again.
+          </p>
+        )}
       {actions.map(([label, action]) => (
         <button
           key={label}
           type="button"
-          disabled={notifications.loading}
+          disabled={
+            notifications.loading ||
+            (label === "Schedule in 5 seconds" &&
+              (exactAlarms.loading ||
+                (exactAlarms.value !== "granted" &&
+                  exactAlarms.value !== "not-required")))
+          }
           onClick={action}
         >
           {label}

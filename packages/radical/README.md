@@ -215,7 +215,9 @@ The `googleSignIn` Effect, `GoogleSignInConfiguration`, and `BrowserGoogleSignIn
 
 ## Notifications
 
-`radical/react` exports `useNotifications`, `useNotificationPermission`, `NotificationsState`, and `NotificationPermissionState`. `radical/client` exports `scheduleNotification`, `cancelNotification`, `checkNotificationPermission`, `requestNotificationPermission`, `registerPush`, `setNotificationBadge`, `clearNotificationBadge`, `subscribeToTopic`, `unsubscribeFromTopic`, `getNotificationTopics`, and `isSubscribedToTopic` as Effects, with notification schemas, types, and `MissingPushConfiguration`.
+`radical/react` exports `useNotifications`, `useNotificationPermission`, `useExactAlarmPermission`, `NotificationsState`, `NotificationPermissionState`, and `ExactAlarmPermissionState`. `radical/client` exports `scheduleNotification`, `cancelNotification`, `checkNotificationPermission`, `requestNotificationPermission`, `checkExactAlarmPermission`, `requestExactAlarmPermission`, `registerPush`, `setNotificationBadge`, `clearNotificationBadge`, `subscribeToTopic`, `unsubscribeFromTopic`, `getNotificationTopics`, and `isSubscribedToTopic` as Effects, with notification schemas, types, and `MissingPushConfiguration`.
+
+`radical/client` also exports the `NotificationScheduleResult` type. `scheduleNotification` returns this result with accepted notification IDs and an optional inexact-alarm `warning`.
 
 `notificationsLive(effect)` supplies `BrowserNotificationsLive`. Tests can inject `BrowserNotifications` or use `browserNotificationsLayer(read)` with an in-memory Notification API and `TestClock`. Browser schedules belong to the page and cancel by ID. `watchNotificationNavigation` needs an app-wide scope, a bridge, an adapter, and `NotificationSnapshots`; its Live layer checks Cache Storage before navigation when the network is offline or its status is unavailable. If no snapshot matches, the watcher uses adapter navigation. See the [notification API and Firebase setup](../../README.md#notifications) for flags, pinned peers, payloads, permissions, topic lookup limits, and native configuration.
 

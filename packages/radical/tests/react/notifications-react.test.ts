@@ -9,6 +9,7 @@ import {
   bridgeTestLayer,
 } from "../../src/core/bridge/bridge.ts";
 import {
+  useExactAlarmPermission,
   useNotificationPermission,
   useNotifications,
 } from "../../src/react/react.ts";
@@ -101,6 +102,13 @@ it.effect(
             }
             const results: Record<string, unknown> = {
               checkPermissions: { display: "granted" },
+              schedule: {
+                notifications: [{ id: 1 }],
+                warning: {
+                  code: "OS-PLUG-LNOT-0017",
+                  message: "Inexact alarm",
+                },
+              },
               isSupported: { isSupported: true },
               status: { configured: true },
               getToken: { token: "token" },
@@ -149,6 +157,12 @@ it.effect(
           flushSync(action);
           yield* Deferred.await(settled);
           assert.isUndefined(mounted.state().error);
+          if (action === actions[0]) {
+            assert.deepStrictEqual(mounted.state().value, {
+              notifications: [{ id: 1 }],
+              warning: { code: "OS-PLUG-LNOT-0017", message: "Inexact alarm" },
+            });
+          }
           for (const key of [
             "schedule",
             "cancel",
@@ -262,6 +276,56 @@ it.effect(
         retired(5);
         yield* TestClock.adjust("1 minute");
         assert.strictEqual(calls, 2);
+      })
+    )
+);
+
+it.effect(
+  "refreshes exact-alarm consent on mount and after returning from settings",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        let settled = yield* Deferred.make<boolean>();
+        const calls: string[] = [];
+        const mounted = yield* mountHook(
+          useExactAlarmPermission,
+          bridgeTestLayer("android", (plugin, method) => {
+            assert.strictEqual(plugin, "LocalNotifications");
+            calls.push(method);
+            return Effect.succeed({
+              exact_alarm:
+                method === "changeExactNotificationSetting"
+                  ? "granted"
+                  : "denied",
+            });
+          }),
+          (state) => {
+            if (state.value !== undefined) {
+              const signal = settled;
+              queueMicrotask(() => {
+                Effect.runSync(Deferred.succeed(signal, true));
+              });
+            }
+          }
+        );
+        yield* Deferred.await(settled);
+        assert.strictEqual(mounted.state().value, "denied");
+        const initial = mounted.state();
+        settled = yield* Deferred.make<boolean>();
+        flushSync(initial.request);
+        yield* Deferred.await(settled);
+        assert.strictEqual(mounted.state().value, "granted");
+        assert.strictEqual(mounted.state().request, initial.request);
+        assert.strictEqual(mounted.state().check, initial.check);
+        settled = yield* Deferred.make<boolean>();
+        flushSync(initial.check);
+        yield* Deferred.await(settled);
+        assert.strictEqual(mounted.state().value, "denied");
+        assert.deepStrictEqual(calls, [
+          "checkExactNotificationSetting",
+          "changeExactNotificationSetting",
+          "checkExactNotificationSetting",
+        ]);
       })
     )
 );

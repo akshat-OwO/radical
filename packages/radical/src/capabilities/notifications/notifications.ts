@@ -21,6 +21,9 @@ import {
 import type { LocalNotification } from "./notification-schema.ts";
 
 export {
+  ExactAlarmPermissionSchema,
+  NotificationScheduleResultSchema,
+  NotificationScheduleWarningSchema,
   LocalNotificationSchema,
   NotificationPermissionSchema,
   NotificationRouteSchema,
@@ -28,6 +31,9 @@ export {
   MissingPushConfiguration,
 } from "./notification-schema.ts";
 export type {
+  ExactAlarmPermission,
+  NotificationScheduleResult,
+  NotificationScheduleWarning,
   LocalNotification,
   NotificationPermission,
 } from "./notification-schema.ts";
@@ -60,6 +66,19 @@ const permission = (request: boolean) =>
   });
 export const checkNotificationPermission = permission(false);
 export const requestNotificationPermission = permission(true);
+const exactAlarmPermission = (request: boolean) =>
+  Effect.gen(function* () {
+    const bridge = yield* Bridge;
+    if ((yield* bridge.runtime) !== "android") {
+      return "not-required" as const;
+    }
+    const result = yield* request
+      ? local.changeExactNotificationSetting({})
+      : local.checkExactNotificationSetting({});
+    return result.exact_alarm;
+  });
+export const checkExactAlarmPermission = exactAlarmPermission(false);
+export const requestExactAlarmPermission = exactAlarmPermission(true);
 const requireNotificationPermission = Effect.gen(function* () {
   const current = yield* checkNotificationPermission;
   const result =
@@ -74,7 +93,8 @@ export const scheduleNotification = (options: LocalNotification) =>
     const notification = yield* validate(LocalNotificationSchema, options);
     const bridge = yield* Bridge;
     if ((yield* bridge.runtime) === "browser") {
-      return yield* (yield* BrowserNotifications).schedule(notification);
+      yield* (yield* BrowserNotifications).schedule(notification);
+      return { notifications: [{ id: notification.id }] };
     }
     yield* requireNotificationPermission;
     const now = yield* Clock.currentTimeMillis;
@@ -172,5 +192,6 @@ export const notificationsLive = <A, E, R>(
 ) => effect.pipe(Effect.provide(BrowserNotificationsLive));
 export type NotificationError =
   | Effect.Error<ReturnType<typeof scheduleNotification>>
+  | Effect.Error<typeof requestExactAlarmPermission>
   | Effect.Error<typeof registerPush>
   | Effect.Error<ReturnType<typeof setNotificationBadge>>;

@@ -23,3 +23,17 @@ notifications.schedule({
 8. To navigate on a notification tap, install the app-scoped watcher described in [Handle notification taps](/docs/guides/notification-navigation).
 
 Keep the browser page open for browser reminders. For native push, follow [Configure Firebase push](/docs/guides/firebase). See [Notifications reference](/docs/reference/notifications) for inputs and errors.
+
+## Request exact alarms on Android
+
+1. Call `useExactAlarmPermission()` from `radical/react`.
+2. Wait for the initial check to finish. If `exactAlarms.value` is `"denied"`, offer a separate button that calls `exactAlarms.request()`.
+3. In Android's **Alarms & reminders** settings, allow exact alarms and return to your app.
+4. Wait for the request to return `"granted"` before enabling the schedule button.
+5. From the schedule button's click handler, call `notifications.schedule()` with `delaySeconds: 5`. Radical computes the scheduled time for this call.
+6. Inspect `notifications.value` after scheduling. If `value.warning?.code` is `"OS-PLUG-LNOT-0017"`, tell the user that Android scheduled an inexact alarm.
+7. After the user grants access, schedule that reminder again to replace the inexact alarm.
+
+Request access before scheduling so time spent in Android settings does not consume the reminder's delay. To refresh the setting after a user changes it outside your app, call `exactAlarms.check()`.
+
+No exact-alarm config option is needed. The plugin declares `SCHEDULE_EXACT_ALARM`, which Android 12 and 13 grant at install. Android 14 and later deny access by default for most newly installed apps targeting API 33 or higher. Neither Radical nor the plugin declares `USE_EXACT_ALARM` because Google Play restricts it. See [Exact alarms and schedule results](/docs/reference/notifications#exact-alarms-and-schedule-results) for exceptions, permission behavior, and policy links.

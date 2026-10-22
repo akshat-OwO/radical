@@ -107,10 +107,12 @@ export { GoogleSignInMisconfigured } from "../capabilities/google-sign-in/errors
 export { GoogleSignInUnavailable } from "../capabilities/google-sign-in/errors.ts";
 
 export {
+  useExactAlarmPermission,
   useNotifications,
   useNotificationPermission,
 } from "./use-notifications.ts";
 export type {
+  ExactAlarmPermissionState,
   NotificationsState,
   NotificationPermissionState,
 } from "./use-notifications.ts";
