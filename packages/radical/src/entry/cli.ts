@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-import path from "node:path";
-
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, Layer, FileSystem, Schema } from "effect";
+import { Effect, Layer } from "effect";
 import { Command, Flag } from "effect/cli";
 
 import { generateAndroid, runAndroid } from "../native/android/android.ts";
@@ -11,41 +9,7 @@ import { assetGeneratorLayer } from "../native/assets/native-assets.ts";
 import { generateIos, runIos } from "../native/ios/ios.ts";
 import { InvalidPlugin } from "../vite/plugins/errors.ts";
 import { pluginModulesLayer } from "../vite/plugins/plugin-plan.ts";
-
-const prepareNative = Effect.gen(function* () {
-  const vite = yield* Effect.tryPromise({
-    try: () => import("vite"),
-    catch: (cause) => new InvalidPlugin({ message: String(cause) }),
-  });
-  yield* Effect.tryPromise({
-    try: () => vite.resolveConfig({}, "build", "production", "production"),
-    catch: (cause) => new InvalidPlugin({ message: String(cause) }),
-  });
-  const fs = yield* FileSystem.FileSystem;
-  const metadata = yield* fs.readFileString(
-    path.join(process.cwd(), ".radical/native.json")
-  );
-  const { config } = yield* Schema.decodeEffect(
-    Schema.fromJsonString(
-      Schema.Struct({
-        config: Schema.Struct({ mode: Schema.optional(Schema.String) }),
-      })
-    )
-  )(metadata);
-  if (config.mode === "bundled") {
-    const builder = yield* Effect.tryPromise({
-      try: () => vite.createBuilder({}),
-      catch: (cause) => new InvalidPlugin({ message: String(cause) }),
-    });
-    yield* Effect.tryPromise({
-      try: () => builder.buildApp(),
-      catch: (cause) =>
-        new InvalidPlugin({
-          message: `Cannot build bundled UI: ${String(cause)}`,
-        }),
-    });
-  }
-});
+import { prepareNative } from "./prepare-native.ts";
 
 const android = Command.make(
   "android",

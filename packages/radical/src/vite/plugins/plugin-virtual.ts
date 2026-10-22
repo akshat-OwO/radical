@@ -1,10 +1,13 @@
 import path from "node:path";
 
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
-import { Effect, FileSystem, Layer, Schema } from "effect";
+import { Effect, FileSystem, Layer } from "effect";
 import type { Plugin } from "vite";
 
-import { HttpOriginSchema } from "../config.ts";
+import {
+  NativeMetadata,
+  nativeMetadataLayer,
+} from "../../native/shared/native-metadata.ts";
 import type { RadicalConfig } from "../config.ts";
 import { resolvePlugins, pluginModulesLayer } from "./plugin-plan.ts";
 import type { EnabledPlugin } from "./plugin-plan.ts";
@@ -54,25 +57,11 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
           const plugins = yield* resolvePlugins(config);
           source = pluginVirtualSource(resolved.root, plugins);
           const fs = yield* FileSystem.FileSystem;
+          const metadata = yield* NativeMetadata;
+          yield* metadata.update(resolved.root, config);
           yield* fs.makeDirectory(path.join(resolved.root, ".radical"), {
             recursive: true,
           });
-          const metadata = path.join(resolved.root, ".radical/native.json");
-          const previous = yield* fs.readFileString(metadata).pipe(
-            Effect.flatMap(
-              Schema.decodeEffect(
-                Schema.fromJsonString(Schema.Struct({ url: HttpOriginSchema }))
-              )
-            ),
-            Effect.orElseSucceed(() => ({ url: config.origin }))
-          );
-          const url = config.origin ?? previous?.url;
-          if (url !== undefined) {
-            yield* fs.writeFileString(
-              metadata,
-              JSON.stringify({ config, url })
-            );
-          }
           const file = path.join(resolved.root, ".radical/plugins.d.ts");
           const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string }; }\n`;
           // Preserve mtime to avoid restarting Vite's watcher on identical config.
@@ -85,7 +74,11 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
           }
         }).pipe(
           Effect.provide(
-            Layer.merge(pluginModulesLayer(resolved.root), NodeFileSystem.layer)
+            Layer.mergeAll(
+              pluginModulesLayer(resolved.root),
+              NodeFileSystem.layer,
+              nativeMetadataLayer.pipe(Layer.provide(NodeFileSystem.layer))
+            )
           )
         )
       ),

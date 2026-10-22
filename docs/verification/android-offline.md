@@ -4,7 +4,7 @@ Reverified on 2026-10-20 for PR #35 revision 1 using only the booted Pixel_9, An
 
 ## Setup
 
-Built radical and the production example with `pnpm --filter radical run build` and `pnpm --filter @radical/example run build`. The example uses `devHost: "localhost"`; `.radical/native.json` points at `http://localhost:4173`. Forwarded that port with `adb -s emulator-5554 reverse tcp:4173 tcp:4173` and ran `pnpm --filter @radical/example exec vp preview --port 4173 --host 0.0.0.0`.
+Built radical and the production example with `pnpm --filter radical run build` and `pnpm --filter @radical/example run build`. The example uses `devHost: "localhost"`; `.radical/native.json` from the shared [native metadata service](../../packages/radical/README.md#native-metadata) points at `http://localhost:4173`. Forwarded that port with `adb -s emulator-5554 reverse tcp:4173 tcp:4173` and ran `pnpm --filter @radical/example exec vp preview --port 4173 --host 0.0.0.0`.
 
 Built, installed, and launched the generated shell with Java 21:
 
