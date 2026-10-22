@@ -44,6 +44,8 @@
     "sharp": "catalog:"
   },
   "devDependencies": {
+    "@babel/parser": "catalog:",
+    "@babel/types": "catalog:",
     "@capacitor-community/file-opener": "catalog:",
     "@capacitor-firebase/messaging": "catalog:",
     "@capacitor/android": "catalog:",
