@@ -71,12 +71,14 @@
     "@types/react-dom": "^19.2.0",
     "@types/semver": "catalog:",
     "happy-dom": "^20.0.0",
+    "ignore": "catalog:",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "yaml": "catalog:"
   },
   "peerDependencies": {
     "@capacitor-community/file-opener": "8.0.1",
