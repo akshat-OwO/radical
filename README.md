@@ -6,11 +6,11 @@ Read the [Radical documentation](apps/docs/content/docs/index.mdx) for the intro
 
 For bundled TanStack Start apps, import `withBundledRequests` from `radical/tanstack-start-server` so API responses expose Start's protocol headers. See [Switch to bundled mode](apps/docs/content/docs/guides/bundled-mode.mdx).
 
-To run the docs locally:
+The docs use Next.js and Fumadocs. To run them locally:
 
 ```sh
 pnpm install
-vp -C apps/docs dev
+pnpm --filter @radical/docs dev
 ```
 
-Open `http://localhost:4317/docs`. To check the workspace, run `vp run ready`.
+Open `http://localhost:4317/docs`. Run `pnpm --filter @radical/docs build` to prerender every documentation page. To check the workspace, run `vp run ready`.
