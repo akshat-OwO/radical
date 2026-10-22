@@ -2,6 +2,8 @@ import { Effect } from "effect";
 import { useCallback, useEffect } from "react";
 
 import {
+  checkExactAlarmPermission,
+  requestExactAlarmPermission,
   cancelNotification,
   clearNotificationBadge,
   checkNotificationPermission,
@@ -15,6 +17,8 @@ import {
   unsubscribeFromTopic,
 } from "../capabilities/notifications/notifications.ts";
 import type {
+  ExactAlarmPermission,
+  NotificationScheduleResult,
   LocalNotification,
   NotificationError,
   NotificationPermission,
@@ -49,7 +53,7 @@ export const useNotificationPermission = (): NotificationPermissionState => {
   };
 };
 export interface NotificationsState extends ActionState<
-  string | readonly string[] | true,
+  string | readonly string[] | true | NotificationScheduleResult,
   NotificationError
 > {
   readonly schedule: (notification: LocalNotification) => void;
@@ -63,18 +67,14 @@ export interface NotificationsState extends ActionState<
 }
 export const useNotifications = (): NotificationsState => {
   const { run, ...state } = useBridgeAction<
-    string | readonly string[] | true,
+    string | readonly string[] | true | NotificationScheduleResult,
     NotificationError
   >();
   return {
     ...state,
     schedule: useCallback(
       (notification: LocalNotification) => {
-        run(
-          notificationsLive(scheduleNotification(notification)).pipe(
-            Effect.as(true as const)
-          )
-        );
+        run(notificationsLive(scheduleNotification(notification)));
       },
       [run]
     ),
@@ -120,6 +120,31 @@ export const useNotifications = (): NotificationsState => {
     ),
     lookupTopics: useCallback(() => {
       run(getNotificationTopics);
+    }, [run]),
+  };
+};
+
+export interface ExactAlarmPermissionState extends ActionState<
+  ExactAlarmPermission,
+  NotificationError
+> {
+  readonly check: () => void;
+  readonly request: () => void;
+}
+export const useExactAlarmPermission = (): ExactAlarmPermissionState => {
+  const { run, ...state } = useBridgeAction<
+    ExactAlarmPermission,
+    NotificationError
+  >();
+  const refresh = useCallback(() => {
+    run(checkExactAlarmPermission);
+  }, [run]);
+  useEffect(refresh, [refresh]);
+  return {
+    ...state,
+    check: refresh,
+    request: useCallback(() => {
+      run(requestExactAlarmPermission);
     }, [run]),
   };
 };

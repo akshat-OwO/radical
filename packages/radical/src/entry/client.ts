@@ -214,6 +214,11 @@ export type {
 } from "../capabilities/google-sign-in/google-sign-in.ts";
 
 export {
+  checkExactAlarmPermission,
+  requestExactAlarmPermission,
+  ExactAlarmPermissionSchema,
+  NotificationScheduleResultSchema,
+  NotificationScheduleWarningSchema,
   checkNotificationPermission,
   requestNotificationPermission,
   scheduleNotification,
@@ -236,6 +241,9 @@ export {
   MissingPushConfiguration,
 } from "../capabilities/notifications/notifications.ts";
 export type {
+  ExactAlarmPermission,
+  NotificationScheduleResult,
+  NotificationScheduleWarning,
   LocalNotification,
   NotificationPermission,
   NotificationError,

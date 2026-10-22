@@ -74,3 +74,15 @@ export const pushNotificationContributions = (
     appDelegateHooks: [appDelegateHook],
   };
 };
+
+/** Exact alarms remain opt-in and require separate Android user consent. */
+export const localNotificationContributions = (
+  config: RadicalConfig
+): NativeContributions => ({
+  android:
+    config.notifications?.android?.exactAlarms === true
+      ? [
+          '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
+        ]
+      : [],
+});

@@ -59,10 +59,11 @@ Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGene
 
 Camera descriptions require non-whitespace text without invalid XML control characters. Shared camera purposes compose once into the iOS camera description. Google identifiers match letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`.
 
-## Firebase fields
+## Notification fields
 
 | Field | Type | Meaning |
 | --- | --- | --- |
+| `notifications.android.exactAlarms` | Boolean, default false | Adds `SCHEDULE_EXACT_ALARM` when local notifications are enabled. Requires separate Android consent. Does not add `USE_EXACT_ALARM`. |
 | `notifications.android.googleServices` | Nonempty path | App-owned Firebase JSON copied into the generated Android project. |
 | `notifications.ios.googleServiceInfo` | Nonempty path | App-owned Firebase plist copied into the generated iOS project. |
 | `notifications.ios.environment` | `"development"` or `"production"` | APNs entitlement. Defaults to `"development"`. |
