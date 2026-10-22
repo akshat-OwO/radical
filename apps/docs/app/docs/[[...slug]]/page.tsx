@@ -5,11 +5,11 @@ import {
   DocsPage,
   DocsTitle,
 } from "fumadocs-ui/layouts/docs/page";
-import mdxComponents from "fumadocs-ui/mdx";
 /* oxlint-disable typescript/promise-function-async -- Effect owns Next.js route Promise boundaries. */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { mdxComponents } from "../../../components/mdx";
 import { source } from "../../../lib/source";
 
 interface PageProps {
