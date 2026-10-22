@@ -150,6 +150,53 @@ function Camera() {
 
 `CameraError` is `PermissionDenied | Cancelled | Unavailable | BridgeError`. Unexpected native codes remain `BridgeCallFailed`; invalid native results remain `BridgeDecodeError`. These error classes and result types are exported from `radical/react` and `radical/client`. The client entry also exports `capturePhoto`, `choosePhoto`, `checkCameraPermission`, and `requestCameraPermission` as Effects requiring `Bridge` and `BrowserCamera`. Use `cameraLive(effect)` to supply the default browser service, or an in-memory `BrowserCamera` layer for tests.
 
+## Files and intents
+
+Enable the file picker, intents, or both, and install the pinned plugins:
+
+```sh
+pnpm add @capawesome/capacitor-file-picker@8.1.1 @capacitor/app-launcher@8.0.1 @capacitor-community/file-opener@8.0.1
+```
+
+```ts
+radical({
+  appId: "dev.example.app",
+  internalPlugins: { filePicker: true, intents: true },
+});
+```
+
+`filePicker` adds `@capawesome/capacitor-file-picker`. `intents` adds `@capacitor/app-launcher` for URLs and `@capacitor-community/file-opener` for files. Neither adds platform permissions: the pickers use the system document UI, and the file opener grants read access per intent through its own `FileProvider`. Both are disabled by default so existing apps keep their dependency set.
+
+```tsx
+import { useFilePicker, useIntent } from "radical/react";
+
+function Attachments() {
+  const picker = useFilePicker();
+  const intent = useIntent();
+  const [first] = picker.value ?? [];
+  return (
+    <>
+      <button onClick={() => picker.pick({ types: ["application/pdf"] })}>
+        Attach PDF
+      </button>
+      <button disabled={!first} onClick={() => first && intent.openFile(first)}>
+        Open attachment
+      </button>
+      <button onClick={() => intent.openUrl("https://example.com/help")}>
+        Help
+      </button>
+      <p>{picker.error?._tag ?? intent.error?._tag}</p>
+    </>
+  );
+}
+```
+
+`useFilePicker()` returns `{ pick, loading, value, error }`. `pick({ types?, multiple? })` accepts MIME types or `type/*` patterns; omitting `types` allows every file. `value` is a list of `PickedFile`: `{ name, mimeType, size, lastModified?, blob, uri? }`. Every runtime returns the same shape with the contents in `blob`, and `size` is the size of that blob. Files without a type report `application/octet-stream`; native files without a name use the last segment of their URI. `uri` is the native file URI (`content://` on Android, `file://` on iOS) and is absent in browsers. Picked files are read into memory, so avoid very large files.
+
+`useIntent()` returns `{ openUrl, openFile, loading, value, error }`. `value` is `true` once the URL or file was handed to another app. `openUrl(url)` opens any parseable URL, such as `https:`, `mailto:` or `geo:`, in the app that handles it; browsers open a new tab. `openFile(file, { chooser? })` opens a picked native file in its default handler, or in the Android chooser or iOS Open In menu with `chooser: true`. Android may still show its "Open with" sheet when several apps can handle the type. On iOS the default handler is a Quick Look preview, and the action settles when the preview closes. Browser files have no URI, so `openFile` fails with `Unavailable` there.
+
+`FilePickerError` is `Cancelled | Unavailable | BridgeError`. `IntentError` is `NoHandler | Unavailable | BridgeError`: `NoHandler` means no installed app accepted the URL or file, and `Unavailable` covers invalid URLs, missing files, and files without a native URI. The client entry exports `pickFiles`, `openUrl`, and `openFile` as Effects, with `filesLive` and `intentsLive` supplying the default browser services and `BrowserFiles` and `BrowserIntents` for in-memory test layers.
+
 Browsers capture through `<input type="file" accept="image/*" capture="environment">`. Desktop browsers usually offer file selection; mobile browsers decide whether to offer a camera. Permission checks use the Permissions API where supported and otherwise report `"prompt"`. Requests require getUserMedia in a secure context and immediately stop the temporary stream. A successful file selection does not imply camera permission was granted.
 
 Both hooks guard server rendering, ignore duplicate actions while busy, interrupt pending work on unmount, and clear state when the provider changes. Browser inputs and readers are cleaned up on success, failure, and interruption. Capacitor cannot dismiss an open native picker on interruption; keep one camera hook mounted until the picker closes. Android process-death restoration is not included. See the [example route](apps/example/src/routes/camera.tsx), [camera decision](docs/adr/0005-camera-capability-hooks.md), and [verification record](docs/verification/camera.md).

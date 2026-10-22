@@ -9,6 +9,8 @@ import {
   useSafeArea,
   useCamera,
   useCameraPermission,
+  useFilePicker,
+  useIntent,
 } from "../src/react.ts";
 import { useBridgeEffect } from "../src/use-bridge-effect.ts";
 
@@ -91,4 +93,29 @@ it.effect(
         "<p>camera idle</p>"
       );
     })
+);
+
+const FilesProbe = () => {
+  const picker = useFilePicker();
+  const intent = useIntent();
+  assert.isFalse(picker.loading);
+  assert.isUndefined(picker.value);
+  assert.isUndefined(intent.value);
+  picker.pick();
+  intent.openUrl("https://example.test");
+  intent.openFile({ uri: "file:///tmp/a" });
+  return createElement("p", null, "files idle");
+};
+it.effect("guards file picker and intent actions during server rendering", () =>
+  Effect.sync(() => {
+    const layer = bridgeLayer(() =>
+      assert.fail("Files read bridge during SSR")
+    );
+    assert.strictEqual(
+      renderToString(
+        createElement(RadicalProvider, { layer }, createElement(FilesProbe))
+      ),
+      "<p>files idle</p>"
+    );
+  })
 );

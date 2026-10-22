@@ -3,8 +3,9 @@ import type { Option } from "effect";
 import { Context, Effect, Layer } from "effect";
 
 import { injectedBridge } from "./bridge.ts";
-import { Cancelled, PermissionDenied, Unavailable } from "./camera-schema.ts";
-import type { CameraPermission } from "./camera-schema.ts";
+import { browserFileInput } from "./browser-file-input.ts";
+import { PermissionDenied, Unavailable } from "./camera-schema.ts";
+import type { CameraPermission, Cancelled } from "./camera-schema.ts";
 
 type BrowserCameraError = PermissionDenied | Cancelled | Unavailable;
 const unavailable = (cause: unknown) =>
@@ -33,38 +34,10 @@ export class BrowserCamera extends Context.Service<
 >()("radical/BrowserCamera") {}
 
 export const browserCapture = (doc: Document, camera = true) =>
-  Effect.suspend(() => {
-    const input = doc.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    if (camera) {
-      input.setAttribute("capture", "environment");
-    }
-    input.hidden = true;
-    let complete:
-      | ((effect: Effect.Effect<Blob, BrowserCameraError>) => void)
-      | undefined;
-    const change = () => {
-      const file = input.files?.[0];
-      complete?.(file ? Effect.succeed(file) : Effect.fail(new Cancelled({})));
-    };
-    const cancel = () => complete?.(Effect.fail(new Cancelled({})));
-    return Effect.callback<Blob, BrowserCameraError>((receive) => {
-      complete = receive;
-      input.addEventListener("change", change);
-      input.addEventListener("cancel", cancel);
-      doc.body.append(input);
-      input.click();
-    }).pipe(
-      Effect.ensuring(
-        Effect.sync(() => {
-          input.removeEventListener("change", change);
-          input.removeEventListener("cancel", cancel);
-          input.remove();
-        })
-      )
-    );
-  });
+  browserFileInput(doc, {
+    accept: "image/*",
+    ...(camera ? { capture: "environment" as const } : {}),
+  }).pipe(Effect.map((files) => files[0] as Blob));
 
 const readDataUrl = (blob: Blob) =>
   Effect.suspend(() => {
@@ -120,13 +93,44 @@ const decodedDimensions = (blob: Blob) =>
       ).pipe(Effect.option)
     : Effect.succeedNone;
 
+/** Reads a native file URI through Capacitor's local file URL, aborting the fetch on interruption. */
+export const readNativeFile = (uri: string) =>
+  Effect.suspend(() => {
+    const convert = injectedBridge()?.convertFileSrc;
+    if (typeof convert !== "function") {
+      return Effect.fail(unavailable("Native file URLs require Capacitor"));
+    }
+    const controller = new AbortController();
+    return Effect.try({ try: () => convert(uri), catch: unavailable }).pipe(
+      Effect.flatMap((url) =>
+        Effect.tryPromise({
+          try: () => fetch(url, { signal: controller.signal }),
+          catch: unavailable,
+        })
+      ),
+      Effect.flatMap((response) =>
+        response.ok
+          ? Effect.tryPromise({
+              try: () => response.blob(),
+              catch: unavailable,
+            })
+          : Effect.fail(unavailable(`File read failed: ${response.status}`))
+      ),
+      Effect.ensuring(
+        Effect.sync(() => {
+          controller.abort();
+        })
+      )
+    );
+  });
+
 export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
-  capture: Effect.suspend(() =>
+  capture: Effect.suspend((): Effect.Effect<Blob, BrowserCameraError> =>
     typeof document === "undefined"
       ? Effect.fail(unavailable("Camera requires a browser document"))
       : browserCapture(document)
   ),
-  choose: Effect.suspend(() =>
+  choose: Effect.suspend((): Effect.Effect<Blob, BrowserCameraError> =>
     typeof document === "undefined"
       ? Effect.fail(unavailable("Photos require a browser document"))
       : browserCapture(document, false)
@@ -168,35 +172,7 @@ export const BrowserCameraLive = Layer.succeed(BrowserCamera, {
       catch: permissionError,
     });
   }),
-  readNative: (uri) =>
-    Effect.suspend(() => {
-      const convert = injectedBridge()?.convertFileSrc;
-      if (typeof convert !== "function") {
-        return Effect.fail(unavailable("Native file URLs require Capacitor"));
-      }
-      const controller = new AbortController();
-      return Effect.try({ try: () => convert(uri), catch: unavailable }).pipe(
-        Effect.flatMap((url) =>
-          Effect.tryPromise({
-            try: () => fetch(url, { signal: controller.signal }),
-            catch: unavailable,
-          })
-        ),
-        Effect.flatMap((response) =>
-          response.ok
-            ? Effect.tryPromise({
-                try: () => response.blob(),
-                catch: unavailable,
-              })
-            : Effect.fail(unavailable(`Photo read failed: ${response.status}`))
-        ),
-        Effect.ensuring(
-          Effect.sync(() => {
-            controller.abort();
-          })
-        )
-      );
-    }),
+  readNative: readNativeFile,
   dataUrl: readDataUrl,
   dimensions: decodedDimensions,
 });

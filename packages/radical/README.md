@@ -127,3 +127,7 @@ Use a production build at HTTPS or localhost. The iOS simulator shares the host 
 ## Camera
 
 `radical/react` exports `useCamera` and `useCameraPermission`. Enable `internalPlugins.camera` with `pluginOptions.Camera.usageDescription` and `photoLibraryUsageDescription` and install `@capacitor/camera@8.2.6` before regenerating shells. See the [camera API and configuration](../../README.md#camera-capture-and-permission) for result types, typed errors, browser behavior, and lifecycle limits.
+
+## Files and intents
+
+`radical/react` exports `useFilePicker` and `useIntent`. Enable `internalPlugins.filePicker` and `internalPlugins.intents`, install `@capawesome/capacitor-file-picker@8.1.1`, `@capacitor/app-launcher@8.0.1`, and `@capacitor-community/file-opener@8.0.1`, then regenerate shells. See [files and intents](../../README.md#files-and-intents) for result types, typed errors, and browser behavior.
