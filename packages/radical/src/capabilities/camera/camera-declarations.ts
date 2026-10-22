@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 
-import type { RadicalConfig } from "../../build/config.ts";
-import { InvalidConfig } from "../../build/config.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
+import { InvalidConfig } from "../../vite/config.ts";
 import { CameraConfigSchema } from "./camera-schema.ts";
 
 const escape = (text: string) =>

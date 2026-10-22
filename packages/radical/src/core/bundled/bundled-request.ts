@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 
-import type { RadicalConfig } from "../../build/config.ts";
 import { safeAreaStyle } from "../../capabilities/safe-area/safe-area-style.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
 import {
   NativeContextSchema,
   NATIVE_CONTEXT_HEADER,

@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { devServerUrl } from "../../src/build/dev-server.ts";
+import { devServerUrl } from "../../src/vite/dev-server.ts";
 
 describe("dev server URL", () => {
   it.effect("keeps the dev server's scheme for the shell", () =>

@@ -2,14 +2,14 @@ import path from "node:path";
 
 import { Effect, FileSystem, Schema } from "effect";
 
-import { resolvePackageRoot } from "../../build/package-paths.ts";
-import { pluginRegistration } from "../../build/plugins/plugin-plan.ts";
-import { composePluginSources } from "../../build/plugins/plugin-sources.ts";
 import { cameraDeclarations } from "../../capabilities/camera/camera-declarations.ts";
 import { configureNativeNotifications } from "../../capabilities/notifications/notification-native.ts";
 import { safeAreaUpdateScript } from "../../capabilities/safe-area/shell-events.ts";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
+import { resolvePackageRoot } from "../../vite/package-paths.ts";
+import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
+import { composePluginSources } from "../../vite/plugins/plugin-sources.ts";
 import {
   generateNativeProject,
   readNativeProject,

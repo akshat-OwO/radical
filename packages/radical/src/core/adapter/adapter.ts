@@ -2,7 +2,7 @@ import type { Effect } from "effect";
 import { Context } from "effect";
 import type { PluginOption } from "vite";
 
-import type { RadicalConfig } from "../../build/config.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
 import type { NativeContext } from "../context/native-context.ts";
 import type { AdapterUnavailable, NavigationFailed } from "./errors.ts";
 

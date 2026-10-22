@@ -2,10 +2,6 @@ import { assert, it } from "@effect/vitest";
 import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
-import {
-  PluginModules,
-  resolvePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
 import { googleSignInDeclarations } from "../../../src/capabilities/google-sign-in/google-sign-in-declarations.ts";
 import {
   googleSignIn,
@@ -18,6 +14,10 @@ import {
   BridgeCallFailed,
   bridgeTestLayer,
 } from "../../../src/core/bridge/bridge.ts";
+import {
+  PluginModules,
+  resolvePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
 
 const config = {
   webClientId: "test-web.apps.googleusercontent.com",

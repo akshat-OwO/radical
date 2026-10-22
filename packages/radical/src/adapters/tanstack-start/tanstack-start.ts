@@ -1,11 +1,11 @@
 import { Effect, Layer } from "effect";
 import type { PluginOption } from "vite";
 
-import type { RadicalConfig } from "../../build/config.ts";
-import { offlineBuild } from "../../build/offline-build.ts";
-import { radical as corePlugin } from "../../build/vite.ts";
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { AdapterUnavailable } from "../../core/adapter/errors.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
+import { offlineBuild } from "../../vite/offline-build.ts";
+import { radical as corePlugin } from "../../vite/vite.ts";
 import { createRadicalMiddleware } from "./tanstack-middleware.ts";
 
 export type { RadicalRouteOptions } from "./tanstack-route-data.ts";

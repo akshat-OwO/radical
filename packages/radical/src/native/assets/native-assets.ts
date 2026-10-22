@@ -4,7 +4,7 @@ import path from "node:path";
 import { Context, Effect, FileSystem, Layer } from "effect";
 import sharp from "sharp";
 
-import type { RadicalConfig } from "../../build/config.ts";
+import type { RadicalConfig } from "../../vite/config.ts";
 import { AssetGenerationFailed, InvalidAsset } from "./errors.ts";
 
 export interface NativeAsset {

@@ -2,10 +2,6 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
-import {
-  PluginModules,
-  resolvePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
 import { BrowserCamera } from "../../../src/capabilities/camera/browser-camera.ts";
 import { cameraDeclarations } from "../../../src/capabilities/camera/camera-declarations.ts";
 import {
@@ -22,6 +18,10 @@ import {
   BridgeCallFailed,
   bridgeTestLayer,
 } from "../../../src/core/bridge/bridge.ts";
+import {
+  PluginModules,
+  resolvePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
 
 const image = "data:image/jpeg;base64,aGVsbG8=";
 const browserLayer = (overrides: Partial<BrowserCamera["Service"]> = {}) =>

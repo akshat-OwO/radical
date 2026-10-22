@@ -4,6 +4,7 @@ import path from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import semver from "semver";
 
+import { encodeNativeContextCookie } from "../../core/context/native-context.ts";
 import {
   HttpOriginSchema,
   InvalidConfig,
@@ -11,13 +12,12 @@ import {
   nativeIdentity,
   AndroidPackageIdSchema,
   IosBundleIdSchema,
-} from "../../build/config.ts";
+} from "../../vite/config.ts";
 import {
   resolvePlugins,
   InvalidPlugin,
-} from "../../build/plugins/plugin-plan.ts";
-import type { EnabledPlugin } from "../../build/plugins/plugin-plan.ts";
-import { encodeNativeContextCookie } from "../../core/context/native-context.ts";
+} from "../../vite/plugins/plugin-plan.ts";
+import type { EnabledPlugin } from "../../vite/plugins/plugin-plan.ts";
 import {
   AssetGenerator,
   prepareNativeAssets,

@@ -3,10 +3,6 @@ import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
 import {
-  PluginModules,
-  resolvePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
-import {
   BrowserFiles,
   pickFiles,
 } from "../../../src/capabilities/files/file-picker.ts";
@@ -22,6 +18,10 @@ import {
   bridgeTestLayer,
 } from "../../../src/core/bridge/bridge.ts";
 import { Cancelled, Unavailable } from "../../../src/core/errors.ts";
+import {
+  PluginModules,
+  resolvePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
 
 const unexpected = () =>
   Effect.sync(() => assert.fail("Unexpected native call"));

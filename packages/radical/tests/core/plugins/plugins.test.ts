@@ -4,19 +4,6 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Schema, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 
-import { resolvePluginDependencies } from "../../../src/build/plugins/plugin-dependencies.ts";
-import {
-  PluginModules,
-  pluginRegistration,
-  resolvePlugins,
-  validatePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
-import type { EnabledPlugin } from "../../../src/build/plugins/plugin-plan.ts";
-import { composePluginSources } from "../../../src/build/plugins/plugin-sources.ts";
-import {
-  pluginTypeSource,
-  pluginVirtualSource,
-} from "../../../src/build/plugins/plugin-virtual.ts";
 import {
   BridgeCallFailed,
   bridgeTestLayer,
@@ -30,6 +17,19 @@ import {
   definePlugin,
 } from "../../../src/core/plugins/plugins.ts";
 import type { PluginManifest } from "../../../src/core/plugins/plugins.ts";
+import { resolvePluginDependencies } from "../../../src/vite/plugins/plugin-dependencies.ts";
+import {
+  PluginModules,
+  pluginRegistration,
+  resolvePlugins,
+  validatePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
+import type { EnabledPlugin } from "../../../src/vite/plugins/plugin-plan.ts";
+import { composePluginSources } from "../../../src/vite/plugins/plugin-sources.ts";
+import {
+  pluginTypeSource,
+  pluginVirtualSource,
+} from "../../../src/vite/plugins/plugin-virtual.ts";
 
 class EchoRejected extends Schema.TaggedError<EchoRejected>()("EchoRejected", {
   reason: Schema.String,

@@ -3,10 +3,6 @@ import { Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
 import {
-  PluginModules,
-  resolvePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
-import {
   browserNotificationsLayer,
   cancelNotification,
   checkNotificationPermission,
@@ -26,6 +22,10 @@ import type {
 } from "../../../src/capabilities/notifications/notifications.ts";
 import type { Bridge } from "../../../src/core/bridge/bridge.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
+import {
+  PluginModules,
+  resolvePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
 
 const reminder: LocalNotification = {
   id: 22,

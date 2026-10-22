@@ -2,11 +2,6 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer, Record, Schema } from "effect";
 import * as publicManifests from "radical/internal-plugins";
 
-import { RadicalConfigSchema } from "../../../src/build/config.ts";
-import {
-  PluginModules,
-  resolvePlugins,
-} from "../../../src/build/plugins/plugin-plan.ts";
 import {
   internalPluginRegistry,
   resolveInternalPlugins,
@@ -15,6 +10,11 @@ import type {
   InternalPluginConfig,
   InternalPluginFlag,
 } from "../../../src/core/plugins/internal-plugin-registry.ts";
+import { RadicalConfigSchema } from "../../../src/vite/config.ts";
+import {
+  PluginModules,
+  resolvePlugins,
+} from "../../../src/vite/plugins/plugin-plan.ts";
 
 // Freeze the old policy independently of the registry, including output order.
 const legacyPlugins = (config: InternalPluginConfig) => {
