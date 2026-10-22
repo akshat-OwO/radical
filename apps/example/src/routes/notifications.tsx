@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Schema } from "effect";
+import { NotificationScheduleResultSchema } from "radical/client";
 import {
   useExactAlarmPermission,
   useNotificationPermission,
   useNotifications,
 } from "radical/react";
 
+const isScheduleResult = Schema.is(NotificationScheduleResultSchema);
 const Notifications = () => {
   const exactAlarms = useExactAlarmPermission();
   const permission = useNotificationPermission();
@@ -97,8 +100,7 @@ const Notifications = () => {
         </button>
       )}
       <output>{exactAlarms.error?._tag}</output>
-      {typeof notifications.value === "object" &&
-        "warning" in notifications.value &&
+      {isScheduleResult(notifications.value) &&
         notifications.value.warning?.code === "OS-PLUG-LNOT-0017" && (
           <p>
             Android scheduled an inexact alarm. Allow exact alarms, then

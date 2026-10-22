@@ -106,10 +106,16 @@ it.effect(
             }
             const results = new Map([
               ["checkPermissions", { display: "granted" }],
-              ["schedule", {
-                notifications: [{ id: 1 }],
-                warning: { code: "OS-PLUG-LNOT-0017", message: "Inexact alarm" },
-              }],
+              [
+                "schedule",
+                {
+                  notifications: [{ id: 1 }],
+                  warning: {
+                    code: "OS-PLUG-LNOT-0017",
+                    message: "Inexact alarm",
+                  },
+                },
+              ],
               ["isSupported", { isSupported: true }],
               ["status", { configured: true }],
               ["getToken", { token: "token" }],

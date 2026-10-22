@@ -528,15 +528,15 @@ it.effect(
       for (const code of ["OS-PLUG-LNOT-0017", "future-warning", undefined]) {
         const result = {
           notifications: [{ id: 22 }],
-          ...(code === undefined
-            ? {}
-            : {
-                warning: {
-                  code,
-                  message: "Scheduled as an inexact alarm instead.",
-                },
-              }),
         };
+        if (code !== undefined) {
+          Object.assign(result, {
+            warning: {
+              code,
+              message: "Scheduled as an inexact alarm instead.",
+            },
+          });
+        }
         const layer = Layer.merge(
           unusedBrowser,
           bridgeTestLayer("android", (_plugin, method) =>
