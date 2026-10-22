@@ -3,6 +3,10 @@ import { Context, Effect, Layer, Queue, Schema } from "effect";
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { Bridge } from "../../core/bridge/bridge.ts";
 import { Unavailable } from "../../core/errors.ts";
+import {
+  isSnapshotCache,
+  snapshotKey,
+} from "../../core/offline/offline-protocol.ts";
 import { BrowserNetworkLive, getNetworkStatus } from "../network/network.ts";
 import { NotificationRouteSchema } from "./notification-schema.ts";
 
@@ -28,11 +32,7 @@ const snapshotStorage: NotificationSnapshots["Service"] = {
       }).pipe(
         Effect.flatMap((names) =>
           Effect.forEach(
-            names.filter(
-              (name) =>
-                name.startsWith(`radical:${appId}:`) &&
-                name.endsWith(":snapshots")
-            ),
+            names.filter((name) => isSnapshotCache(name, appId)),
             (name) =>
               Effect.tryPromise({
                 try: () => caches.open(name),
@@ -41,7 +41,7 @@ const snapshotStorage: NotificationSnapshots["Service"] = {
                 Effect.flatMap((cache) =>
                   Effect.tryPromise({
                     try: () =>
-                      cache.match(new URL(route, location.origin).href, {
+                      cache.match(snapshotKey(route, location.origin), {
                         ignoreVary: true,
                       }),
                     catch: (cause) =>

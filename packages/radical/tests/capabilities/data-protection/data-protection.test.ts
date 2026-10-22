@@ -306,25 +306,30 @@ for (const acknowledgement of [
   "radical-data-cleared",
   "radical-data-clear-failed",
 ]) {
-  it.effect(`handles offline worker acknowledgement ${acknowledgement}`, () =>
-    Effect.gen(function* () {
-      const result = yield* pauseOfflineWorker({
-        postMessage: (
-          message: unknown,
-          transfer?: StructuredSerializeOptions | Transferable[]
-        ) => {
-          assert.strictEqual(message, "radical-clear-web-data");
-          const port = Array.isArray(transfer) ? transfer[0] : undefined;
-          assert.instanceOf(port, MessagePort);
-          if (port instanceof MessagePort) {
-            port.postMessage(acknowledgement);
-          }
-        },
-      }).pipe(Effect.result);
-      assert.strictEqual(
-        result._tag,
-        acknowledgement === "radical-data-cleared" ? "Success" : "Failure"
-      );
-    })
+  it.effect(
+    `ignores unrelated messages before offline worker acknowledgement ${acknowledgement}`,
+    () =>
+      Effect.gen(function* () {
+        const result = yield* pauseOfflineWorker({
+          postMessage: (
+            message: unknown,
+            transfer?: StructuredSerializeOptions | Transferable[]
+          ) => {
+            assert.strictEqual(message, "radical-clear-web-data");
+            const port = Array.isArray(transfer) ? transfer[0] : undefined;
+            assert.instanceOf(port, MessagePort);
+            if (port instanceof MessagePort) {
+              port.postMessage({ type: acknowledgement });
+              port.postMessage("unrelated");
+              port.postMessage("radical-snapshot-ready");
+              port.postMessage(acknowledgement);
+            }
+          },
+        }).pipe(Effect.result);
+        assert.strictEqual(
+          result._tag,
+          acknowledgement === "radical-data-cleared" ? "Success" : "Failure"
+        );
+      })
   );
 }

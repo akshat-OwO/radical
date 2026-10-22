@@ -59,7 +59,7 @@ public class RadicalDataProtectionPlugin extends Plugin {
                 // Cache traversal is disk IO; never block the UI thread on it.
                 getBridge().execute(() -> {
                     try {
-                        if (!getActivity().getPreferences(android.content.Context.MODE_PRIVATE).edit().remove("lastOfflineUrl").commit()) {
+                        if (!getActivity().getPreferences(android.content.Context.MODE_PRIVATE).edit().remove(__OFFLINE_SAVED_URL_KEY__).commit()) {
                             call.reject("Cannot clear saved offline URL"); return;
                         }
                         if (!getContext().getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()) {

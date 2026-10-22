@@ -72,7 +72,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private String savedOfflineUrl() {
-        String saved = getPreferences(MODE_PRIVATE).getString("lastOfflineUrl", URL);
+        String saved = getPreferences(MODE_PRIVATE).getString(__OFFLINE_SAVED_URL_KEY__, URL);
         return allowed(Uri.parse(saved)) && !offlinePage(Uri.parse(saved)) && !launchPage(Uri.parse(saved)) ? saved : URL;
     }
 
@@ -197,7 +197,7 @@ public class MainActivity extends BridgeActivity {
                 String url = message.getData();
                 if (isMainFrame && url != null && url.equals(webView.getUrl())
                         && allowed(Uri.parse(url)) && !offlinePage(Uri.parse(url)) && !launchPage(Uri.parse(url))) {
-                    getPreferences(MODE_PRIVATE).edit().putString("lastOfflineUrl", url).apply();
+                    getPreferences(MODE_PRIVATE).edit().putString(__OFFLINE_SAVED_URL_KEY__, url).apply();
                 }
             });
         }

@@ -13,13 +13,16 @@ const makeMemory = () => {
   const entries = new Map<string, Set<string>>();
   const messages: string[] = [];
   const state = { href: url, fail: false, listeners: 0 };
-  const window = { caches: true };
-  let listener: ((event: { data: string }) => unknown) | undefined;
+  const window: { caches: boolean; __radicalDataCleared?: boolean } = {
+    caches: true,
+  };
+  let listener: ((event: { data: unknown }) => unknown) | undefined;
   const run = () => {
     const result: unknown = vm.runInNewContext(
       `(${offlineSnapshotCheckScript("dev.example")})(${JSON.stringify(url)})`,
       {
         window,
+        URL,
         location: {
           get href() {
             return state.href;
@@ -54,11 +57,9 @@ const makeMemory = () => {
     );
     return Effect.promise(() => Promise.resolve(result));
   };
-  const activate = () =>
-    Effect.promise(() =>
-      Promise.resolve(listener?.({ data: "radical-snapshot-ready" }))
-    );
-  return { entries, messages, state, run, activate };
+  const activate = (data: unknown = "radical-snapshot-ready") =>
+    Effect.promise(() => Promise.resolve(listener?.({ data })));
+  return { entries, messages, state, window, run, activate };
 };
 class Memory extends Context.Service<Memory, ReturnType<typeof makeMemory>>()(
   "test/AndroidOffline"
@@ -66,6 +67,19 @@ class Memory extends Context.Service<Memory, ReturnType<typeof makeMemory>>()(
 const layer = Layer.sync(Memory, makeMemory);
 
 describe("native offline URL signal", () => {
+  it.effect("ignores unknown messages and stops reporting after clearing", () =>
+    Effect.gen(function* () {
+      const memory = yield* Memory;
+      yield* memory.run();
+      memory.entries.set(snapshotCache, new Set([url]));
+      yield* memory.activate({ type: "radical-snapshot-ready" });
+      yield* memory.activate("unrelated");
+      assert.isEmpty(memory.messages);
+      memory.window.__radicalDataCleared = true;
+      yield* memory.activate();
+      assert.isEmpty(memory.messages);
+    }).pipe(Effect.provide(layer))
+  );
   it.effect("reports only the exact URL stored in this app's snapshots", () =>
     Effect.gen(function* () {
       const { entries, messages, state, run } = yield* Memory;

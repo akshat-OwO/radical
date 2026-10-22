@@ -1,5 +1,9 @@
 import { Effect } from "effect";
 
+import {
+  decodeOfflineMessage,
+  offlineMessages,
+} from "../../core/offline/offline-protocol.ts";
 import { WebDataClearFailed } from "./data-protection-schema.ts";
 
 /** Injectable browser boundary. Getters may reject access in restricted contexts. */
@@ -38,8 +42,16 @@ export const pauseOfflineWorker = (
     channel.port1.addEventListener(
       "message",
       (event: MessageEvent<unknown>) => {
+        const message = decodeOfflineMessage(event.data);
+        if (
+          message._tag === "None" ||
+          (message.value !== offlineMessages.cleared &&
+            message.value !== offlineMessages.clearFailed)
+        ) {
+          return;
+        }
         resume(
-          event.data === "radical-data-cleared"
+          message.value === offlineMessages.cleared
             ? Effect.succeed(true)
             : Effect.fail(new WebDataClearFailed({ cause: event.data }))
         );
@@ -48,7 +60,7 @@ export const pauseOfflineWorker = (
     channel.port1.start();
     Effect.runSync(
       attempt(() => {
-        worker.postMessage("radical-clear-web-data", [channel.port2]);
+        worker.postMessage(offlineMessages.clear, [channel.port2]);
       }).pipe(
         Effect.matchEffect({
           onSuccess: () => Effect.void,

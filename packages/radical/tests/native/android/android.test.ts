@@ -236,6 +236,8 @@ describe("Android shell generation", () => {
             `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
           ) ?? "";
         assert.include(source, "class RadicalDataProtectionPlugin");
+        assert.notInclude(source, "__OFFLINE_SAVED_URL_KEY__");
+        assert.include(source, 'remove("lastOfflineUrl")');
         assert.notInclude(source, "RadicalTransitionsPlugin");
         assert.include(
           state.files.get(mainActivity) ?? "",

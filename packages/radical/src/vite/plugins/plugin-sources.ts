@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { Effect, FileSystem } from "effect";
 
+import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
 import { replaceAnchor } from "../../native/shared/native-template.ts";
 import { InvalidPlugin } from "./errors.ts";
 import {
@@ -76,6 +77,17 @@ export const composePluginSources = (
             fs
               .readFileString(path.resolve(manifestDirectory, source.source))
               .pipe(
+                Effect.flatMap((content) =>
+                  module === "radical/internal-plugins" &&
+                  content.includes("__OFFLINE_SAVED_URL_KEY__")
+                    ? replaceAnchor(
+                        source.file,
+                        content,
+                        "__OFFLINE_SAVED_URL_KEY__",
+                        JSON.stringify(savedOfflineURLKeys[platform])
+                      )
+                    : Effect.succeed(content)
+                ),
                 Effect.map((content) => ({ ...source, content })),
                 Effect.mapError(
                   (cause) =>

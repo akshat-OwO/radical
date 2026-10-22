@@ -229,6 +229,11 @@ describe("iOS shell generation", () => {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
         assert.include(source, "class RadicalDataProtectionPlugin");
+        assert.notInclude(source, "__OFFLINE_SAVED_URL_KEY__");
+        assert.include(
+          source,
+          'removeObject(forKey: "radical.lastOfflineURL")'
+        );
         assert.notInclude(source, "RadicalTransitionsPlugin");
         assert.include(
           state.files.get(appDelegate) ?? "",

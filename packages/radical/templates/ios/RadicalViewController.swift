@@ -120,7 +120,7 @@ final class RadicalViewController: CAPBridgeViewController {
 final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     var onDocumentReady: (() -> Void)?
     private let serverURL = URL(string: __URL__)!
-    private let savedURLKey = "radical.lastOfflineURL"
+    private let savedURLKey = __OFFLINE_SAVED_URL_KEY__
     private var launching = true
     private var attemptedSnapshot = false
     private var showingFallback = false

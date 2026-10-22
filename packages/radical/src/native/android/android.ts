@@ -7,6 +7,7 @@ import { configureNativeNotifications } from "../../capabilities/notifications/n
 import { safeAreaUpdateScript } from "../../capabilities/safe-area/shell-events.ts";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
+import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
 import { composePluginSources } from "../../vite/plugins/plugin-sources.ts";
@@ -61,6 +62,7 @@ export const generateAndroid = (
       __OFFLINE_SNAPSHOT_CHECK__: JSON.stringify(
         offlineSnapshotCheckScript(config.appId)
       ),
+      __OFFLINE_SAVED_URL_KEY__: JSON.stringify(savedOfflineURLKeys.android),
       __BUNDLED__: String(native.bundled),
       __APP_ID__: native.identity.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),

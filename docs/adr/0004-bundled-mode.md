@@ -33,3 +33,5 @@ Bundled builds omit radical's offline worker output. `registerOffline({ mode })`
 - [TanStack Start SPA mode](https://tanstack.com/start/latest/docs/framework/react/guide/spa-mode), including SPA prerender and server-route separation.
 - Installed Start `createStart.ts`, `createCsrfMiddleware.ts`, and `client-rpc/serverFnFetcher.ts` define the custom fetch hook, Fetch Metadata guard precedence, and protocol headers.
 - [Capacitor config](https://capacitorjs.com/docs/config) defines the local schemes, webDir, mixed content, and App-Bound Domains settings.
+
+Remote-mode snapshot cache names, URL keys, and worker messages come from `core/offline/offline-protocol.ts`. Native generation renders saved-URL preference keys from that module in either mode; bundled mode still skips the snapshot mechanism.
