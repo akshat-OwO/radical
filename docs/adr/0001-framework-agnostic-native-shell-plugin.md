@@ -127,7 +127,7 @@ Custom native plugins use the Schema-defined contract in [ADR 0003](0003-native-
 
 ## Alternatives considered
 
-- **Tauri v2 mobile.** Requires Rust; remote-URL behaviour on mobile is undocumented.
+- **Tauri v2 mobile.** See the corrected assessment in the [Capacitor addendum](#addendum-when-to-revisit-capacitor).
 - **Expo DOM components.** No SSR; Expo recommends `react-native-webview` for remote sites.
 - **Ionic Portals.** Commercial license.
 - **Hotwire Native.** Rails-oriented, hand-maintained native projects. Its server-served path configuration is worth borrowing for transition and presentation rules.
@@ -138,6 +138,21 @@ Custom native plugins use the Schema-defined contract in [ADR 0003](0003-native-
 - **iOS offline caching.** Resolved in [ADR 0002](0002-ios-offline-caching-with-app-bound-domains.md): use a service worker via App-Bound Domains for remote mode. The simulator spike verified offline HTML and the required WebView APIs; physical-device validation remains open.
 - **App Store guideline 4.2.** Apps that only wrap a website risk rejection. Bundled mode (Start `spa.enabled`) reduces the risk.
 - **Bundled requests.** Resolved in [ADR 0004](0004-bundled-mode.md): use Start's custom fetch hook and a native-context header, with explicit API-server CORS and CSRF opt-in.
+
+## Addendum: when to revisit Capacitor
+
+2026-10-22, [issue #46](https://github.com/akshat-OwO/radical/issues/46).
+
+Keep Capacitor for the bridge, the plugin ABI, and the plugin ecosystem. Radical owns the shell behavior: remote mode, project generation, native context, transitions, offline fallback, and Android's launch gate. The generated shells customize Capacitor's WebView setup. Native transitions use Radical's own plugin through the Capacitor bridge.
+
+The original Tauri assessment overstated the Rust burden. App authors rarely touch Rust. Mobile plugins use [Swift on iOS and Kotlin on Android](https://v2.tauri.app/develop/plugins/develop-mobile/). Tauri v2 capabilities can grant IPC to remote origins through [`remote.urls` and explicit command permissions](https://v2.tauri.app/security/capabilities/#remote-api-access). That grant covers content already loaded, and on Android Tauri cannot tell an embedded frame from the window. It does not settle remote document loading. The costs for Radical are a thin mobile plugin ecosystem, a [Rust toolchain in every build](https://v2.tauri.app/start/prerequisites/#rust), and a less proven mobile story.
+
+Revisit Capacitor when either condition holds:
+
+- Remote mode needs more overrides of Capacitor's WebView setup.
+- A Capacitor major version breaks the generated shells.
+
+The likely replacement is a custom shell that still loads Capacitor-compatible plugins. Preserve access to the plugin ecosystem while taking direct control of WebView setup.
 
 ## Sources
 
