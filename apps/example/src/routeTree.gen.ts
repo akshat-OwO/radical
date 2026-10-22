@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as CameraRouteImport } from './routes/camera'
 import { Route as DetailsRouteImport } from './routes/details'
 import { Route as FilesRouteImport } from './routes/files'
+import { Route as GoogleSignInRouteImport } from './routes/google-sign-in'
 import { Route as HapticsRouteImport } from './routes/haptics'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
@@ -43,6 +44,11 @@ const DetailsRoute = DetailsRouteImport.update({
 const FilesRoute = FilesRouteImport.update({
   id: '/files',
   path: '/files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoogleSignInRoute = GoogleSignInRouteImport.update({
+  id: '/google-sign-in',
+  path: '/google-sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HapticsRoute = HapticsRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
+  '/google-sign-in': typeof GoogleSignInRoute
   '/haptics': typeof HapticsRoute
   '/network': typeof NetworkRoute
   '/offline-route': typeof OfflineRouteRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
+  '/google-sign-in': typeof GoogleSignInRoute
   '/haptics': typeof HapticsRoute
   '/network': typeof NetworkRoute
   '/offline-route': typeof OfflineRouteRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
+  '/google-sign-in': typeof GoogleSignInRoute
   '/haptics': typeof HapticsRoute
   '/network': typeof NetworkRoute
   '/offline-route': typeof OfflineRouteRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/camera'
     | '/details'
     | '/files'
+    | '/google-sign-in'
     | '/haptics'
     | '/network'
     | '/offline-route'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/camera'
     | '/details'
     | '/files'
+    | '/google-sign-in'
     | '/haptics'
     | '/network'
     | '/offline-route'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/camera'
     | '/details'
     | '/files'
+    | '/google-sign-in'
     | '/haptics'
     | '/network'
     | '/offline-route'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   CameraRoute: typeof CameraRoute
   DetailsRoute: typeof DetailsRoute
   FilesRoute: typeof FilesRoute
+  GoogleSignInRoute: typeof GoogleSignInRoute
   HapticsRoute: typeof HapticsRoute
   NetworkRoute: typeof NetworkRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/files'
       fullPath: '/files'
       preLoaderRoute: typeof FilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/google-sign-in': {
+      id: '/google-sign-in'
+      path: '/google-sign-in'
+      fullPath: '/google-sign-in'
+      preLoaderRoute: typeof GoogleSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/haptics': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   CameraRoute: CameraRoute,
   DetailsRoute: DetailsRoute,
   FilesRoute: FilesRoute,
+  GoogleSignInRoute: GoogleSignInRoute,
   HapticsRoute: HapticsRoute,
   NetworkRoute: NetworkRoute,
   OfflineRouteRoute: OfflineRouteRoute,

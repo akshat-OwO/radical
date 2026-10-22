@@ -59,6 +59,7 @@ export const RadicalConfigSchema = Schema.Struct({
   pluginOptions: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   internalPlugins: Schema.optional(
     Schema.Struct({
+      googleSignIn: Schema.optional(Schema.Boolean),
       network: Schema.optional(Schema.Boolean),
       camera: Schema.optional(Schema.Boolean),
       videoStream: Schema.optional(Schema.Boolean),

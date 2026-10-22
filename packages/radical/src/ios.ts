@@ -5,6 +5,7 @@ import { Effect, FileSystem, Schema } from "effect";
 
 import { cameraDeclarations } from "./camera-declarations.ts";
 import { InvalidConfig } from "./config.ts";
+import { googleSignInDeclarations } from "./google-sign-in-declarations.ts";
 import { iosSplashResourceName } from "./native-assets.ts";
 import { NATIVE_CONTEXT_COOKIE } from "./native-context.ts";
 import { offlineSnapshotCheckScript } from "./native-offline.ts";
@@ -27,6 +28,7 @@ export const generateIos = (
     const fs = yield* FileSystem.FileSystem;
     const native = yield* readNativeProject(root, packageRoot, "ios");
     const camera = yield* cameraDeclarations(native.config);
+    const googleSignIn = yield* googleSignInDeclarations(native.config);
     const domains = [
       ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
     ];
@@ -142,7 +144,7 @@ export const generateIos = (
             plist,
             contents,
             /<\/dict>\s*<\/plist>/u,
-            `${bound}${ats}${camera.ios}\n</dict>\n</plist>`
+            `${bound}${ats}${camera.ios}${googleSignIn}\n</dict>\n</plist>`
           )
         );
         yield* composePluginSources(

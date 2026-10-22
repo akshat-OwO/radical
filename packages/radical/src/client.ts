@@ -171,3 +171,22 @@ export {
   NetworkTypeSchema,
 } from "./network.ts";
 export type { NetworkStatus, NetworkType } from "./network.ts";
+
+export {
+  googleSignIn,
+  googleSignInLive,
+  GoogleSignInConfiguration,
+  GoogleSignInConfigurationLive,
+  BrowserGoogleSignIn,
+  BrowserGoogleSignInLive,
+  GoogleIdentitySchema,
+  GoogleSignInConfigSchema,
+  GoogleSignInCancelled,
+  GoogleSignInMisconfigured,
+  GoogleSignInUnavailable,
+} from "./google-sign-in.ts";
+export type {
+  GoogleIdentity,
+  GoogleSignInConfig,
+  GoogleSignInError,
+} from "./google-sign-in.ts";

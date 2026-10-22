@@ -201,6 +201,57 @@ describe("TanStack Start adapter", () => {
     }).pipe(Effect.provide(TanStackStartAdapter))
   );
 
+  it.effect(
+    "defines Google sign-in options through the returned config hook",
+    () =>
+      Effect.gen(function* () {
+        const googleSignIn = {
+          webClientId: "web.apps.googleusercontent.com",
+          iosClientId: "ios.apps.googleusercontent.com",
+        };
+        for (const enabled of [true, false, undefined]) {
+          const [plugin] = radical({
+            appId: "dev.radical.example",
+            internalPlugins: { googleSignIn: enabled },
+            pluginOptions: { GoogleSignIn: googleSignIn },
+          });
+          assert(
+            plugin !== null && typeof plugin === "object" && "config" in plugin
+          );
+          const hook = plugin.config;
+          assert(typeof hook === "function");
+          for (const host of [undefined, "localhost"]) {
+            const resolved = yield* Effect.promise(
+              async () =>
+                await hook.call(
+                  {
+                    meta: {
+                      viteVersion: "8.0.0",
+                      rollupVersion: "4.0.0",
+                      rolldownVersion: "1.0.0",
+                    },
+                    debug: () => {},
+                    info: () => {},
+                    warn: () => {},
+                    error: () => assert.fail("Unexpected config error"),
+                  },
+                  { server: { host } },
+                  { command: "build", mode: "production" }
+                )
+            );
+            assert.strictEqual(
+              resolved?.define?.__RADICAL_GOOGLE_SIGN_IN__,
+              JSON.stringify(enabled === true ? googleSignIn : null)
+            );
+            assert.deepStrictEqual(resolved?.server, {
+              host: host ?? "0.0.0.0",
+              watch: { ignored: ["**/.radical/**"] },
+            });
+          }
+        }
+      })
+  );
+
   it.effect("registers the core config plugin", () =>
     Effect.sync(() => {
       const plugins = radical({ appId: "dev.radical.example" });

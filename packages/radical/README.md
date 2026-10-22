@@ -165,3 +165,40 @@ Effect callers import `startVideoStream`, `videoStreamLive`, `BrowserVideoStream
 `radical/react` exports `useNetworkStatus` and the `NetworkStatusState`, `NetworkStatus`, and `NetworkType` types. Enable `internalPlugins.network`, install the optional `@capacitor/network@8.0.1` peer, and regenerate shells. The hook returns `{ loading, value, error }`, subscribes after mount, and removes its listener on unmount or provider replacement. SSR reports loading without reading globals.
 
 `radical/client` exports the current-status Effect `getNetworkStatus` and the live Stream `watchNetworkStatus`, plus schemas, types, and the injectable `BrowserNetwork` service. `networkLive(effect)` supplies `BrowserNetworkLive`; `browserNetworkLayer(read)` accepts browser event and navigator objects for tests. Each stream subscription installs its own listener, emits initial status, then distinct changes, and removes its listener on completion, failure, or interruption. A change received during the initial read takes precedence over the read's response. Status buffering keeps only the latest pending value for slow consumers. See the [network API](../../README.md#network-status) for fields, browser limits, and typed errors.
+
+## Google sign-in
+
+Install `@capawesome/capacitor-google-sign-in@0.1.4`, then enable the capability in your radical config:
+
+```ts
+{
+	internalPlugins: { googleSignIn: true },
+	pluginOptions: {
+		GoogleSignIn: {
+			webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+			iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
+		},
+	},
+}
+```
+
+Supply a web OAuth client ID and an iOS OAuth client ID from the same Google Cloud project. The iOS client must match `ios.bundleId`, or `appId` when no override exists. Radical generates `GIDClientID` and the reversed client ID URL scheme in Info.plist. Do not edit the generated plist.
+
+Register Android OAuth clients for `android.packageId`, or `appId`, and each signing certificate's SHA-1 fingerprint. Register the debug certificate for local builds and the Google Play app signing certificate for Play distribution. Android receives the web client ID at runtime. No Android client ID setting, `google-services.json`, or `GoogleService-Info.plist` is needed. Rebuild the web app and regenerate both shells after changing client IDs. See the [plugin setup guide](https://github.com/capawesome-team/capacitor-plugins/tree/main/packages/google-sign-in#installation).
+
+```tsx
+import { useGoogleSignIn } from "radical/react";
+
+const SignIn = () => {
+  const google = useGoogleSignIn();
+  return (
+    <button disabled={google.loading} onClick={google.signIn}>
+      {google.value ? "Signed in" : "Sign in with Google"}
+    </button>
+  );
+};
+```
+
+Read `value.idToken` after success and send it to your backend for signature, issuer, audience, and expiry verification before establishing a session. Radical neither verifies nor stores the token. `error` distinguishes `GoogleSignInCancelled`, `GoogleSignInMisconfigured`, `GoogleSignInUnavailable`, and bridge errors. A missing Android OAuth registration can also produce Google's cancellation code. `cancel()` stops observing the pending result, without dismissing native UI. Unmount and provider replacement also interrupt observation.
+
+The `googleSignIn` Effect, `GoogleSignInConfiguration`, and `BrowserGoogleSignIn` services and their Live layers are exported from `radical/client`. Provide configuration and browser layers when running the Effect directly, or use `googleSignInLive`. The default browser service reports unavailable. No browser OAuth redirect or popup runs. SSR starts idle and never reads the bridge.

@@ -56,6 +56,7 @@
     "@capacitor/ios": "catalog:",
     "@capacitor/network": "catalog:",
     "@capawesome/capacitor-file-picker": "catalog:",
+    "@capawesome/capacitor-google-sign-in": "catalog:",
     "@capgo/camera-preview": "catalog:",
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
@@ -86,6 +87,7 @@
     "@capacitor/ios": "^8.5.3",
     "@capacitor/network": "8.0.1",
     "@capawesome/capacitor-file-picker": "8.1.1",
+    "@capawesome/capacitor-google-sign-in": "0.1.4",
     "@capgo/camera-preview": "8.14.2",
     "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
@@ -139,6 +141,9 @@
       "optional": true
     },
     "@capacitor/network": {
+      "optional": true
+    },
+    "@capawesome/capacitor-google-sign-in": {
       "optional": true
     }
   }

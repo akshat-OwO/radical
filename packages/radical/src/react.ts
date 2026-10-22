@@ -80,3 +80,10 @@ export type { HapticError, ImpactStyle, NotificationType } from "./haptics.ts";
 export { useNetworkStatus } from "./use-network-status.ts";
 export type { NetworkStatusState } from "./use-network-status.ts";
 export type { NetworkStatus, NetworkType } from "./network.ts";
+
+export { useGoogleSignIn } from "./use-google-sign-in.ts";
+export type { GoogleSignInState } from "./use-google-sign-in.ts";
+export type { GoogleIdentity, GoogleSignInError } from "./google-sign-in.ts";
+export { GoogleSignInCancelled } from "./google-sign-in-cancelled.ts";
+export { GoogleSignInMisconfigured } from "./google-sign-in-misconfigured.ts";
+export { GoogleSignInUnavailable } from "./google-sign-in-unavailable.ts";

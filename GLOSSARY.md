@@ -52,6 +52,10 @@ _Avoid_: Camera modal, scanner screen
 Touch feedback for an impact, notification, or selection change.\
 _Avoid_: Buzz, rumble
 
+**Google sign-in**:\
+A request for Google to identify a user and issue an identity token to the app.\
+_Avoid_: Google session, Google authorization
+
 **Intent**:\
 A request to hand a URL or file to another app on the device.\
 _Avoid_: Share, deep link

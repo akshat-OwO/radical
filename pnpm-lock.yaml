@@ -67,6 +67,9 @@ catalogs:
     '@capawesome/capacitor-file-picker':
       specifier: 8.1.1
       version: 8.1.1
+    '@capawesome/capacitor-google-sign-in':
+      specifier: 0.1.4
+      version: 0.1.4
     '@capgo/camera-preview':
       specifier: 8.14.2
       version: 8.14.2
@@ -237,6 +240,9 @@ importers:
       '@capawesome/capacitor-file-picker':
         specifier: 'catalog:'
         version: 8.1.1(@capacitor/core@8.5.3)
+      '@capawesome/capacitor-google-sign-in':
+        specifier: 'catalog:'
+        version: 0.1.4(@capacitor/core@8.5.3)
       '@capgo/camera-preview':
         specifier: 'catalog:'
         version: 8.14.2(@capacitor/core@8.5.3)
@@ -420,6 +426,11 @@ packages:
 
   '@capawesome/capacitor-file-picker@8.1.1':
     resolution: {integrity: sha512-4zDRca+uQbhFkbASoRbMpvXRbuCVhmVATDYLL9MG5UvILer01uUcN7oQhuxpltVir2YnP+1O8LasnwYlqlLM5g==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capawesome/capacitor-google-sign-in@0.1.4':
+    resolution: {integrity: sha512-+8+3mfWN1B0+qB5r1xUZpy0hrYkpEDD5XHxa5LQ5wwDIVKoFLj/orYGRf/RrsB1AbkSpRfZZ1N2U7C3gPcjAdA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -3527,6 +3538,10 @@ snapshots:
       '@capacitor/core': 8.5.3
 
   '@capawesome/capacitor-file-picker@8.1.1(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
+  '@capawesome/capacitor-google-sign-in@0.1.4(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
 

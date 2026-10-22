@@ -6,6 +6,7 @@ import { renderToString } from "react-dom/server";
 import { bridgeLayer, getDeviceInfo } from "../src/client.ts";
 import {
   RadicalProvider,
+  useGoogleSignIn,
   useSafeArea,
   useNetworkStatus,
   useCamera,
@@ -199,4 +200,27 @@ it.effect(
         "<p>network unknown</p>"
       );
     })
+);
+
+const GoogleProbe = () => {
+  const state = useGoogleSignIn();
+  assert.isFalse(state.loading);
+  assert.isUndefined(state.value);
+  assert.isUndefined(state.error);
+  state.signIn();
+  state.cancel();
+  return createElement("p", null, "google idle");
+};
+it.effect("guards Google sign-in during server rendering", () =>
+  Effect.sync(() => {
+    const layer = bridgeLayer(() =>
+      assert.fail("Google sign-in read bridge during SSR")
+    );
+    assert.strictEqual(
+      renderToString(
+        createElement(RadicalProvider, { layer }, createElement(GoogleProbe))
+      ),
+      "<p>google idle</p>"
+    );
+  })
 );
