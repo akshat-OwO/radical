@@ -106,6 +106,9 @@ catalogs:
     effect:
       specifier: ^4.0.5
       version: 4.0.5
+    ignore:
+      specifier: ^7.0.13
+      version: 7.0.13
     oxfmt:
       specifier: ^0.71.0
       version: 0.71.0
@@ -133,6 +136,9 @@ catalogs:
     vitest:
       specifier: 5.0.5
       version: 5.0.5
+    yaml:
+      specifier: ^2.9.1
+      version: 2.9.1
 
 overrides:
   vite@*: npm:@voidzero-dev/vite-plus-core@1.3.0
@@ -297,6 +303,9 @@ importers:
       happy-dom:
         specifier: ^20.0.0
         version: 20.14.6
+      ignore:
+        specifier: 'catalog:'
+        version: 7.0.13
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -312,6 +321,9 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(@vitest/browser-preview@5.0.5)(@vitest/ui@5.0.5)(@voidzero-dev/vite-plus-core@1.3.0(@types/node@24.19.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))(happy-dom@20.14.6)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1)
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
 packages:
 
@@ -2101,6 +2113,10 @@ packages:
   human-signals@8.0.1:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
+
+  ignore@7.0.13:
+    resolution: {integrity: sha512-2E8Q6rh+1RRSq/YdaGsNfXsEZy9FVqv6BSSrkmZJP7BnaoPnRfKL+YaofPvP+5rzdk144qSm6i4+hvPgUcbV4Q==}
+    engines: {node: '>= 4'}
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
@@ -4536,6 +4552,8 @@ snapshots:
       - utf-8-validate
 
   human-signals@8.0.1: {}
+
+  ignore@7.0.13: {}
 
   inherits@2.0.4: {}
 
