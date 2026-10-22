@@ -166,4 +166,5 @@ jobs:
         run: |
           gh release create "$TAG" "$RUNNER_TEMP/radical-publish/"*.tgz \
             --verify-tag --title "radical v$VERSION" --generate-notes \
+            --notes "The attached tarball is the published npm package. This tag records source with a placeholder version; stamp $VERSION before rebuilding." \
             --prerelease="$IS_PRERELEASE" --latest="$MAKE_LATEST"
