@@ -47,15 +47,6 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
   });
   return {
     name: "radical:plugins",
-    config: () => ({
-      define: {
-        __RADICAL_GOOGLE_SIGN_IN__: JSON.stringify(
-          config.internalPlugins?.googleSignIn === true
-            ? (config.pluginOptions?.GoogleSignIn ?? null)
-            : null
-        ),
-      },
-    }),
     configResolved: (resolved) =>
       Effect.runPromise(
         Effect.gen(function* () {

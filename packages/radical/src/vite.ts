@@ -43,6 +43,13 @@ export const radical = (config: RadicalConfig): Plugin => ({
     Effect.runPromise(
       validateConfig(config).pipe(
         Effect.as({
+          define: {
+            __RADICAL_GOOGLE_SIGN_IN__: JSON.stringify(
+              config.internalPlugins?.googleSignIn === true
+                ? (config.pluginOptions?.GoogleSignIn ?? null)
+                : null
+            ),
+          },
           server: {
             host: user.server?.host ?? "0.0.0.0",
             watch: { ignored: ["**/.radical/**"] },
