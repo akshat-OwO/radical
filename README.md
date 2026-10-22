@@ -251,7 +251,7 @@ Google sign-in is available through `useGoogleSignIn` in both native shells. Ena
 
 ## Notifications
 
-Enable `internalPlugins.notifications` and install `@capacitor/local-notifications@8.3.1` and `@capawesome/capacitor-badge@8.0.4`. Regenerate shells after changing plugin flags. `useNotificationPermission()` exposes `check`, `request`, `loading`, `value`, and `error`. Permission values are `prompt`, `granted`, and `denied`. It checks after mount and prompts only when you call `request`.
+Enable `internalPlugins.notifications` and install `@capacitor/local-notifications@8.3.1`, `@capawesome/capacitor-badge@8.0.4`, and `@capacitor/network@8.0.1`. Regenerate shells after changing plugin flags. `useNotificationPermission()` exposes `check`, `request`, `loading`, `value`, and `error`. Permission values are `prompt`, `granted`, and `denied`. It checks after mount and prompts only when you call `request`.
 
 `useNotifications()` exposes `schedule`, `cancel`, `setBadge`, `clearBadge`, `registerPush`, `subscribe`, `unsubscribe`, and `lookupTopics`, plus `loading`, `value`, and `error`. Actions run after mount and ignore overlapping calls. Server rendering leaves both hooks idle and never reads browser APIs.
 
