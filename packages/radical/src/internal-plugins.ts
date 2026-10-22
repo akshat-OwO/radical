@@ -2,6 +2,10 @@ import { Schema } from "effect";
 
 import { CameraConfigSchema } from "./camera-schema.ts";
 import { DeviceInfoSchema } from "./device-info-schema.ts";
+import {
+  GoogleSignInConfigSchema,
+  GoogleIdentitySchema,
+} from "./google-sign-in-schema.ts";
 import { ImpactStyleSchema, NotificationTypeSchema } from "./haptics-schema.ts";
 import { NetworkStatusSchema } from "./network-schema.ts";
 import { definePlugin } from "./plugins.ts";
@@ -257,6 +261,25 @@ export const networkPlugin = definePlugin({
     getStatus: {
       args: Schema.Struct({}),
       result: NetworkStatusSchema,
+      errors: {},
+    },
+  },
+});
+
+export const googleSignInPlugin = definePlugin({
+  id: "googleSignIn",
+  bridge: "GoogleSignIn",
+  dependencies: { "@capawesome/capacitor-google-sign-in": "0.1.4" },
+  config: { selector: "GoogleSignIn", schema: GoogleSignInConfigSchema },
+  commands: {
+    initialize: {
+      args: Schema.Struct({ clientId: Schema.NonEmptyString }),
+      result: Schema.Unknown,
+      errors: {},
+    },
+    signIn: {
+      args: Schema.Struct({}),
+      result: GoogleIdentitySchema,
       errors: {},
     },
   },

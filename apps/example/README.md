@@ -106,3 +106,9 @@ Open `/haptics` from the home page. The example enables `internalPlugins.haptics
 ## Network status
 
 Open `/network` from **Network status** on the home page. The example enables `internalPlugins.network` and displays connected state and connection type, updating on native or browser events. Disable and restore connectivity while the page remains mounted. Use bundled mode for offline checks so the UI does not depend on a running preview server. Build radical before building the example or generating shells. See [network verification](../../docs/verification/network.md) for commands, observations, and iOS simulator limits.
+
+## Google sign-in demo
+
+Open `/google-sign-in` in either shell. Set `GOOGLE_WEB_CLIENT_ID` and `GOOGLE_IOS_CLIENT_ID` when building the web app, then regenerate the shells. The committed fallback values are placeholders for compilation only. Register the iOS bundle `dev.radical.example.ios` and Android package `dev.radical.example.android` in your Google Cloud project, including Android signing SHA-1 fingerprints. See [setup instructions](../../packages/radical/README.md#google-sign-in). Do not commit real client IDs or Google configuration files.
+
+The demo shows completion without displaying or logging the identity token. Real sign-in requires your OAuth registration and a device with Google services on Android. Browser sign-in reports `GoogleSignInUnavailable`.

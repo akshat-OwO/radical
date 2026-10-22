@@ -16,6 +16,7 @@ const config = {
   splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
   internalPlugins: {
+    googleSignIn: true,
     network: true,
     camera: true,
     videoStream: true,
@@ -24,6 +25,14 @@ const config = {
     haptics: true,
   },
   pluginOptions: {
+    GoogleSignIn: {
+      webClientId:
+        process.env.GOOGLE_WEB_CLIENT_ID ??
+        "configure-web.apps.googleusercontent.com",
+      iosClientId:
+        process.env.GOOGLE_IOS_CLIENT_ID ??
+        "configure-ios.apps.googleusercontent.com",
+    },
     VideoStream: {
       usageDescription: "Show a live camera preview and scan QR codes.",
     },

@@ -1,0 +1,11 @@
+# 0011: Google sign-in
+
+Use [Capawesome Google Sign-In](https://github.com/capawesome-team/capacitor-plugins/tree/main/packages/google-sign-in) 0.1.4 through the existing bridge. npm reports active Capacitor 8 support and a peer dependency of `@capacitor/core >=8.0.0`. Pin the optional peer, catalog, and manifest. Its Google-only native dependencies and explicit cancellation and provider-configuration codes fit this capability.
+
+We also checked Capgo Social Login 8.7.5, which supports Capacitor 8 but includes additional providers and a broader initialization contract. Codetrix Google Auth 3.4.0-rc.4 requires Capacitor 6, so it does not fit our shells. Versions and peers were checked with `pnpm view <package> version peerDependencies` on 2026-10-22.
+
+Keep public web and iOS OAuth client IDs in `pluginOptions.GoogleSignIn`, guarded by `internalPlugins.googleSignIn`. Vite embeds this configuration for runtime initialization. Each sign-in initializes the plugin before calling `signIn`, avoiding a global mutable cache. Native project generation derives `GIDClientID` and the reversed client ID URL scheme from the same config. Android Credential Manager receives the web client ID. The Android OAuth client is registered in Google Cloud against the package and signing certificate, without a client ID field or Google configuration file in the shell.
+
+Return the decoded identity token without storing it or establishing an application session. The backend verifies it. Map the upstream cancellation code to `GoogleSignInCancelled`, initialization and provider configuration failures to `GoogleSignInMisconfigured`, and preserve other bridge errors. Google Play services can report a missing Android OAuth registration as cancellation, so that code alone cannot prove user intent. Browser sign-in defaults to `GoogleSignInUnavailable` through an injectable service. A redirect-based browser OAuth flow would need callback routing and token exchange beyond this native capability.
+
+The hook uses `useBridgeAction` to guard SSR, ignore overlapping actions, and suppress results after unmount or provider replacement. Interrupting its Effect stops observing a native result but does not dismiss Google's native sign-in UI.

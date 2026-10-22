@@ -6,6 +6,7 @@ import { Effect, Layer, Schema } from "effect";
 
 import type { RadicalConfig } from "./config.ts";
 import {
+  googleSignInPlugin,
   networkPlugin,
   appLauncherPlugin,
   cameraPlugin,
@@ -176,6 +177,7 @@ export const validatePlugins = (
     }
   );
 const optInPlugins = [
+  ["googleSignIn", googleSignInPlugin],
   ["network", networkPlugin],
   ["videoStream", videoStreamPlugin],
   ["camera", cameraPlugin],
