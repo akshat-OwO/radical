@@ -45,6 +45,10 @@ Use `createRadicalFetch(config)` for other API calls too. Global fetch and HTML 
 
 Change `mode` to `"remote"` and regenerate to load the UI from `origin`. Omit `origin` in remote mode to use the running dev server's recorded URL. Bridge plugins, device info, and transitions work in either mode. Bundled mode restricts document navigation to the local asset origin and skips the remote offline worker, launch gate, fallback recovery, and iOS App-Bound Domains. See [ADR 0004](docs/adr/0004-bundled-mode.md) for the request and authentication contract.
 
+## Icons and splash
+
+Set `icon` and `splash` in the Radical config, then regenerate both shells. Radical validates and composites PNG or JPEG sources and writes Android and iOS resources directly with `sharp`. No asset-generator CLI is required. Android includes legacy, adaptive, and monochrome launcher resources; iOS includes the app icon and light and dark splash catalogs. See the [asset configuration](packages/radical/README.md#app-identity) and [output verification](docs/verification/native-assets.md).
+
 ## Offline routes in remote shells
 
 Mark a route with `staticData.radical.offline: true` and register the shared worker in production:

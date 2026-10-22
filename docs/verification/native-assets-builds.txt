@@ -1,0 +1,5 @@
+BUILD SUCCESSFUL in 5s
+458 actionable tasks: 458 executed
+** BUILD SUCCEEDED **
+6db7b587aca6d7b0d25b83df6da61ef9383ecd67fb8c4ba16d845e712b6ba261  apps/example/.radical/android/android/app/build/outputs/apk/debug/app-debug.apk
+3b8e9f79ae87c4bfc8e6ac1835cfdab5fdce73865354885ef13db2ef5c0804f0  apps/example/.radical/ios/build/Build/Products/Debug-iphonesimulator/App.app/Assets.car

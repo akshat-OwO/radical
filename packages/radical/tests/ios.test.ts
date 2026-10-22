@@ -7,8 +7,8 @@ import { ChildProcessSpawner } from "effect/process";
 import echoSource from "../../../apps/example/plugins/EchoPlugin.swift?raw";
 import { AssetGenerationFailed } from "../src/asset-generation-failed.ts";
 import { generateIos } from "../src/ios.ts";
+import { iosSplashResourceName, AssetGenerator } from "../src/native-assets.ts";
 import type { AssetGeneration } from "../src/native-assets.ts";
-import { AssetGenerator } from "../src/native-assets.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
@@ -43,7 +43,6 @@ const memory = (
   ]);
   const require = createRequire(import.meta.url);
   for (const [name, version] of Object.entries({
-    "@capacitor/assets": "3.0.5",
     "@capacitor/core": "8.5.3",
     "@capacitor/ios": "8.6.1",
     "@capacitor/device": "8.0.3",
@@ -615,10 +614,6 @@ describe("ios app identity", () => {
           appId: "dev.custom.shell",
           appName: "Platform name",
         });
-        assert.include(
-          state.files.get(`${destination}/package.json`) ?? "",
-          '"@capacitor/assets":"3.0.5"'
-        );
         assert.strictEqual(state.assetCalls[0].platform, "ios");
         const storyboard =
           state.files.get(
@@ -633,7 +628,10 @@ describe("ios app identity", () => {
           'secondItem="launch-view" secondAttribute="top"'
         );
         const source = state.files.get(appDelegate) ?? "";
-        assert.match(source, /let splashName = "RadicalSplash[a-f0-9]+"/u);
+        const firstName = iosSplashResourceName(state.assetCalls[0].assets);
+        assert.include(source, `let splashName = "${firstName}"`);
+        assert.include(storyboard, `image="${firstName}"`);
+        assert.include(storyboard, `<image name="${firstName}"`);
         assert.include(source, "view.addSubview(splash)");
         assert.include(source, "proxy.onDocumentReady = { [weak self] in");
         assert.include(source, "self?.startupSplash?.removeFromSuperview()");
@@ -658,6 +656,18 @@ describe("ios app identity", () => {
           '"appName":"Renamed shell"'
         );
         assert.strictEqual(state.assetCalls.length, 2);
+        const secondName = iosSplashResourceName(state.assetCalls[1].assets);
+        assert.notStrictEqual(firstName, secondName);
+        assert.include(
+          state.files.get(appDelegate) ?? "",
+          `let splashName = "${secondName}"`
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/ios/App/App/Base.lproj/LaunchScreen.storyboard`
+          ) ?? "",
+          `image="${secondName}"`
+        );
         assert.notDeepEqual(
           state.assetCalls[1].assets.find(
             ({ file }) => file === "icon-only.png"

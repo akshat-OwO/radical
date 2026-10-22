@@ -91,11 +91,11 @@ Start's `prerender` and `postServerBuild` hooks are internal, so the adapter use
 
 ### Native layer
 
-Build on Capacitor 8 (MIT) for the bridge, the official plugins (Camera, Haptics, Push Notifications, Network, Device, Filesystem, Preferences, System Bars), and SPM-based iOS projects. Use `@capacitor/assets` for icons and splash.
+Build on Capacitor 8 (MIT) for the bridge, the official plugins (Camera, Haptics, Push Notifications, Network, Device, Filesystem, Preferences, System Bars), and SPM-based iOS projects. The original icon and splash writer decision is superseded by [ADR 0013](0013-native-assets-with-sharp.md).
 
 App identity uses a shared `name`, with `android.name` and `ios.name` overrides. Legacy `appName` remains a fallback. `android.packageId` and `ios.bundleId` default to the shared `appId`, which continues to identify offline storage. Android's package override also controls generated source packages and qualified plugin class validation. Keeping native identifiers separate avoids changing web cache identity when a platform needs a different store identifier.
 
-Optional `icon` and `splash.image` paths resolve from the app root. Generation decodes square PNG or JPEG sources, checks the 1024px icon and 2732px splash minimums, and composites transparent splash pixels onto `splash.backgroundColor`, an opaque RGB hex colour. Both appearances use the same splash. The locally resolved `@capacitor/assets@3.0.5` CLI runs only for the requested platform, in custom mode, inside the staged project. Its resolved version enters the generated package. The tool emits 2732px iOS splash images whose decoded allocation exceeds the 25 MB launch-image limit observed on the simulator. Generation downsamples those outputs to 2048px, about 16 MB, and updates the storyboard dimensions before compilation. A content-derived splash resource name prevents UIKit from reusing a decoded image from a previous generation. The iOS controller retains this image through cookie setup and removes it when the first document or offline fallback finishes loading. This covers the gap between the system launch screen and remote content without a fixed delay. Output checks detect upstream silent failures before replacing the previous project. An Effect service isolates the generator from in-memory unit tests.
+Optional `icon` and `splash.image` paths resolve from the app root. Generation decodes square PNG or JPEG sources, checks the 1024px icon and 2732px splash minimums, and composites transparent splash pixels onto `splash.backgroundColor`, an opaque RGB hex colour. Both appearances use the same splash. [ADR 0013](0013-native-assets-with-sharp.md) supersedes the external asset CLI and post-generation downsampling. Radical writes the platform files directly with `sharp`, encodes iOS launch images at 2048px, and preserves a content-derived `RadicalSplash<hash>` resource name shared by the storyboard and startup overlay. The iOS controller retains this image through cookie setup and removes it when the first document or offline fallback finishes loading. An Effect service isolates the writer for in-memory tests.
 
 Capacitor does not fit two of our needs, so we replace them:
 
@@ -122,7 +122,7 @@ Custom native plugins use the Schema-defined contract in [ADR 0003](0003-native-
 | Native request context, safe-area | Start middleware reading a shell-set cookie or bundled request header (radical) |
 | Camera, haptics, push, network, device, files | Capacitor plugins wrapped in hooks (`radical/react`) |
 | Video stream, data protection, web data clearing | Custom Capacitor plugins (radical native) |
-| Native project generation, icons, splash, allowlist | `radical` CLI and `@capacitor/assets` |
+| Native project generation, icons, splash, allowlist | `radical` CLI and `sharp` |
 | Profiler, AI, MCP tooling | Later, as separate entry points |
 
 ## Alternatives considered

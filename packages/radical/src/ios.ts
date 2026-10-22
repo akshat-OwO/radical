@@ -88,6 +88,7 @@ export const generateIos = (
                 path.join(packageRoot, "templates/ios", storyboard)
               ),
               {
+                __SPLASH_NAME__: iosSplashResourceName(native.assets),
                 __BACKGROUND_RED__: String(
                   Number.parseInt(color.slice(1, 3), 16) / 255
                 ),
