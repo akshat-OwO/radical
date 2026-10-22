@@ -3,7 +3,6 @@ import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
 import { BrowserCamera } from "../../../src/capabilities/camera/browser-camera.ts";
-import { cameraDeclarations } from "../../../src/capabilities/camera/camera-declarations.ts";
 import {
   capturePhoto,
   choosePhoto,
@@ -22,6 +21,7 @@ import {
   PluginModules,
   resolvePlugins,
 } from "../../../src/vite/plugins/plugin-plan.ts";
+import { cameraDeclarations } from "../../vite/camera-declarations.ts";
 
 const image = "data:image/jpeg;base64,aGVsbG8=";
 const browserLayer = (overrides: Partial<BrowserCamera["Service"]> = {}) =>
@@ -386,7 +386,7 @@ describe("camera enablement", () => {
           );
           assert.strictEqual(
             (yield* Effect.flip(cameraDeclarations(invalid)))._tag,
-            "InvalidConfig"
+            "InvalidPlugin"
           );
         }
         for (const photoLibraryUsageDescription of [
@@ -406,7 +406,7 @@ describe("camera enablement", () => {
           };
           assert.strictEqual(
             (yield* cameraDeclarations(invalid).pipe(Effect.flip))._tag,
-            "InvalidConfig"
+            "InvalidPlugin"
           );
         }
         const valid = {

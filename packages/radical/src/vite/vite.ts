@@ -4,7 +4,6 @@ import type { Plugin } from "vite";
 
 import type { RadicalAdapter } from "../core/adapter/adapter.ts";
 import type { RadicalConfig } from "./config.ts";
-import { validateConfig } from "./config.ts";
 import { nativePlugins } from "./plugins/plugin-virtual.ts";
 
 export { InvalidPlugin } from "./plugins/errors.ts";
@@ -42,25 +41,6 @@ export const radical = (
           })
         ),
         Effect.asVoid
-      )
-    ),
-  // Shells reach the dev server over the LAN, unless the app chose its own host.
-  config: (user) =>
-    Effect.runPromise(
-      validateConfig(config).pipe(
-        Effect.as({
-          define: {
-            __RADICAL_GOOGLE_SIGN_IN__: JSON.stringify(
-              config.internalPlugins?.googleSignIn === true
-                ? (config.pluginOptions?.GoogleSignIn ?? null)
-                : null
-            ),
-          },
-          server: {
-            host: user.server?.host ?? "0.0.0.0",
-            watch: { ignored: ["**/.radical/**"] },
-          },
-        })
       )
     ),
 });

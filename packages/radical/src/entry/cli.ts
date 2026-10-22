@@ -19,7 +19,7 @@ const android = Command.make(
   },
   ({ generateOnly, target }) =>
     prepareNative.pipe(
-      Effect.andThen(generateAndroid(process.cwd())),
+      Effect.flatMap((plan) => generateAndroid(process.cwd(), undefined, plan)),
       Effect.flatMap((project) =>
         generateOnly ? Effect.void : runAndroid(project, target)
       )
@@ -33,7 +33,7 @@ const ios = Command.make(
   },
   ({ generateOnly, target }) =>
     prepareNative.pipe(
-      Effect.andThen(generateIos(process.cwd())),
+      Effect.flatMap((plan) => generateIos(process.cwd(), undefined, plan)),
       Effect.flatMap((project) =>
         generateOnly ? Effect.void : runIos(project, target)
       )

@@ -9,3 +9,9 @@ Keep public web and iOS OAuth client IDs in `pluginOptions.GoogleSignIn`, guarde
 Return the decoded identity token without storing it or establishing an application session. The backend verifies it. Map the upstream cancellation code to `GoogleSignInCancelled`, initialization and provider configuration failures to `GoogleSignInMisconfigured`, and preserve other bridge errors. Google Play services can report a missing Android OAuth registration as cancellation, so that code alone cannot prove user intent. Browser sign-in defaults to `GoogleSignInUnavailable` through an injectable service. A redirect-based browser OAuth flow would need callback routing and token exchange beyond this native capability.
 
 The hook uses `useBridgeAction` to guard SSR, ignore overlapping actions, and suppress results after unmount or provider replacement. Interrupting its Effect stops observing a native result but does not dismiss Google's native sign-in UI.
+
+## Build plan contributions
+
+`google-sign-in-plugin.ts` stays browser-safe. Its adjacent `google-sign-in-build.ts` contributes `GIDClientID`, the reversed client ID URL scheme, and the `__RADICAL_GOOGLE_SIGN_IN__` define from the decoded options. Disabled sign-in contributes a null runtime define and no native declarations. The runtime configuration service returns typed options or `GoogleSignInMisconfigured` when configuration is absent; sign-in does not decode the options again.
+
+Vite resolves and retains one build plan for its hooks. The CLI obtains that same plan through the plugin API and passes it to native generation. Build-only contribution modules never enter the runtime manifest import graph. Vite and platform generators apply the plan without importing Google sign-in modules.

@@ -9,3 +9,9 @@ Use manifest-declared Camera 8.2.6 commands through the Effect bridge. Pin that 
 Permission checks report granted, denied, or prompt. Native requests ask only for camera. Browser checks query the Permissions API, returning prompt when the browser does not implement camera queries. Browser requests use getUserMedia and immediately stop every track, including results that arrive after Effect interruption. A file picker can still work when camera permission is denied because file selection and camera access are distinct browser capabilities.
 
 Hooks render idle on the server and do not execute actions until mounted. Permission checks start after commit; capture and requests need explicit actions. A small bridge action hook owns one in-flight fiber, suppresses overlapping actions on that hook, and interrupts it on unmount or provider replacement. Browser inputs and readers release resources on every exit. Capacitor cannot cancel an open native picker; interruption abandons its result and suppresses state updates. Apps should keep a single camera hook mounted while its picker is open. Activity restoration after Android kills the process is outside this hook's contract.
+
+## Build plan contributions
+
+The build plan decodes Camera options once with the manifest schema. `camera-build.ts`, beside `camera-plugin.ts`, declares Android camera permission and optional hardware, plus the two iOS usage keys. Platform generators apply the resolved declarations without importing Camera code.
+
+Camera and Video stream contribute to the same `NSCameraUsageDescription`. The explicit `unique-purpose` composition rule orders the still-camera purpose before the video purpose, removes identical text, joins distinct purposes with a space, and escapes XML after composition. Android declarations deduplicate by exact value. Conflicting values for other plist keys fail with `InvalidConfig` naming the key.

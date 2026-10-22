@@ -1,12 +1,7 @@
 import { Schema } from "effect";
 
-import { CameraConfigSchema } from "../../capabilities/camera/camera-schema.ts";
 import { DataProtectionStatusSchema } from "../../capabilities/data-protection/data-protection-schema.ts";
 import { DeviceInfoSchema } from "../../capabilities/device-info/device-info-schema.ts";
-import {
-  GoogleSignInConfigSchema,
-  GoogleIdentitySchema,
-} from "../../capabilities/google-sign-in/google-sign-in-schema.ts";
 import {
   ImpactStyleSchema,
   NotificationTypeSchema,
@@ -63,61 +58,6 @@ export const transitionsPlugin = definePlugin({
   },
 });
 
-const cameraMedia = Schema.Struct({
-  uri: Schema.NonEmptyString,
-  metadata: Schema.optional(
-    Schema.Struct({
-      format: Schema.optional(Schema.String),
-      resolution: Schema.optional(Schema.String),
-    })
-  ),
-});
-const cameraPermissions = Schema.Struct({
-  camera: Schema.Literals([
-    "granted",
-    "denied",
-    "prompt",
-    "prompt-with-rationale",
-  ]),
-});
-export const cameraPlugin = definePlugin({
-  id: "camera",
-  bridge: "Camera",
-  dependencies: { "@capacitor/camera": "8.2.6" },
-  config: { selector: "Camera", schema: CameraConfigSchema },
-  commands: {
-    takePhoto: {
-      args: Schema.Struct({
-        saveToGallery: Schema.Literal(false),
-        includeMetadata: Schema.Literal(true),
-      }),
-      result: cameraMedia,
-      errors: {},
-    },
-    chooseFromGallery: {
-      args: Schema.Struct({
-        mediaType: Schema.Literal(0),
-        allowMultipleSelection: Schema.Literal(false),
-        includeMetadata: Schema.Literal(true),
-      }),
-      result: Schema.Struct({ results: Schema.Array(cameraMedia) }),
-      errors: {},
-    },
-    checkPermissions: {
-      args: Schema.Struct({}),
-      result: cameraPermissions,
-      errors: {},
-    },
-    requestPermissions: {
-      args: Schema.Struct({
-        permissions: Schema.Array(Schema.Literal("camera")),
-      }),
-      result: cameraPermissions,
-      errors: {},
-    },
-  },
-});
-
 // Android omits null names and types; iOS sends "" and -1/0 for unknown type, size, and date.
 const pickedFile = Schema.Struct({
   name: Schema.optional(Schema.String),
@@ -171,70 +111,6 @@ export const fileOpenerPlugin = definePlugin({
   },
 });
 
-const videoCommand = {
-  args: Schema.Struct({}),
-  result: Schema.Unknown,
-  errors: {},
-};
-export const videoStreamPlugin = definePlugin({
-  id: "videoStream",
-  bridge: "CameraPreview",
-  dependencies: { "@capgo/camera-preview": "8.14.2" },
-  config: {
-    selector: "VideoStream",
-    schema: Schema.Struct({
-      usageDescription: CameraConfigSchema.fields.usageDescription,
-    }),
-  },
-  commands: {
-    start: {
-      ...videoCommand,
-      args: Schema.Struct({
-        position: Schema.Literals(["rear", "front"]),
-        aspectRatio: Schema.Literal("fill"),
-        toBack: Schema.Literal(true),
-        disableAudio: Schema.Literal(true),
-        barcodeScanner: Schema.Struct({
-          formats: Schema.Array(Schema.Literal("qr_code")),
-          detectionInterval: Schema.Finite,
-        }),
-      }),
-    },
-    getAvailableDevices: {
-      ...videoCommand,
-      result: Schema.Struct({ devices: Schema.Array(Schema.Unknown) }),
-    },
-    stop: videoCommand,
-    flip: videoCommand,
-    requestPermissions: {
-      ...videoCommand,
-      args: Schema.Struct({ disableAudio: Schema.Literal(true) }),
-      result: cameraPermissions,
-    },
-    getZoom: {
-      ...videoCommand,
-      result: Schema.Struct({
-        min: Schema.Finite,
-        max: Schema.Finite,
-        current: Schema.Finite,
-      }),
-    },
-    setZoom: { ...videoCommand, args: Schema.Struct({ level: Schema.Finite }) },
-    getSupportedFlashModes: {
-      ...videoCommand,
-      result: Schema.Struct({ result: Schema.Array(Schema.String) }),
-    },
-    setFlashMode: {
-      ...videoCommand,
-      args: Schema.Struct({ flashMode: Schema.Literals(["off", "torch"]) }),
-    },
-    getVideoFrameRate: {
-      ...videoCommand,
-      result: Schema.Struct({ frameRate: Schema.Finite }),
-    },
-  },
-});
-
 // Haptics 8.0.2 has no plugin-specific rejection codes or result payloads.
 const hapticCompletion = { result: Schema.Unknown, errors: {} };
 const selectionCommand = { ...hapticCompletion, args: Schema.Struct({}) };
@@ -265,25 +141,6 @@ export const networkPlugin = definePlugin({
     getStatus: {
       args: Schema.Struct({}),
       result: NetworkStatusSchema,
-      errors: {},
-    },
-  },
-});
-
-export const googleSignInPlugin = definePlugin({
-  id: "googleSignIn",
-  bridge: "GoogleSignIn",
-  dependencies: { "@capawesome/capacitor-google-sign-in": "0.1.4" },
-  config: { selector: "GoogleSignIn", schema: GoogleSignInConfigSchema },
-  commands: {
-    initialize: {
-      args: Schema.Struct({ clientId: Schema.NonEmptyString }),
-      result: Schema.Unknown,
-      errors: {},
-    },
-    signIn: {
-      args: Schema.Struct({}),
-      result: GoogleIdentitySchema,
       errors: {},
     },
   },
@@ -333,3 +190,7 @@ export const dataProtectionPlugin = definePlugin({
     dependencies: [],
   },
 });
+
+export { cameraPlugin } from "../../capabilities/camera/camera-plugin.ts";
+export { videoStreamPlugin } from "../../capabilities/video-stream/video-stream-plugin.ts";
+export { googleSignInPlugin } from "../../capabilities/google-sign-in/google-sign-in-plugin.ts";

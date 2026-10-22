@@ -3,7 +3,6 @@ import { assert, it } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
-import { cameraDeclarations } from "../../../src/capabilities/camera/camera-declarations.ts";
 import {
   BrowserVideoStream,
   presentVideoStream,
@@ -16,6 +15,7 @@ import {
   bridgeLayer,
   bridgeTestLayer,
 } from "../../../src/core/bridge/bridge.ts";
+import { cameraDeclarations } from "../../vite/camera-declarations.ts";
 
 const presentation = Layer.succeed(BrowserVideoStream, {
   start: () => Effect.die("Unexpected browser start"),
@@ -268,7 +268,7 @@ it.effect(
         (yield* cameraDeclarations({ ...config, pluginOptions: {} }).pipe(
           Effect.flip
         ))._tag,
-        "InvalidConfig"
+        "InvalidPlugin"
       );
     })
 );

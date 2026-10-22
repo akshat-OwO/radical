@@ -11,6 +11,7 @@ import type { RadicalConfig } from "../config.ts";
 import { InvalidPlugin } from "./errors.ts";
 import { resolvePluginDependencies } from "./plugin-dependencies.ts";
 import { PluginModules } from "./plugin-modules.ts";
+import { decodePluginOptions } from "./plugin-options.ts";
 
 export { InvalidPlugin } from "./errors.ts";
 export { PluginDependencyConflict } from "./errors.ts";
@@ -53,6 +54,9 @@ export interface EnabledPlugin {
   readonly manifest: PluginManifest;
   readonly module: string;
   readonly selector: string;
+  readonly options?: unknown;
+  /** Validated encoded input for Capacitor, preserving its public config and key order. */
+  readonly encodedOptions?: unknown;
   /** Source directory relative to radical's package root. Omit for module-relative sources. */
   readonly sourceRoot?: string;
 }
@@ -64,6 +68,7 @@ export const validatePlugins = (
   Effect.gen(
     // oxlint-disable-next-line eslint/complexity -- Validate all manifest constraints before touching a project.
     function* () {
+      const resolved: EnabledPlugin[] = [];
       const ids = new Set<string>();
       const bridges = new Set<string>();
       const classes = new Set<string>();
@@ -101,25 +106,13 @@ export const validatePlugins = (
             }
           }
         }
-        if (manifest.config) {
-          const value = options[manifest.config.selector];
-          if (
-            !Object.hasOwn(options, manifest.config.selector) ||
-            value === undefined
-          ) {
-            return yield* new InvalidPlugin({
-              message: `Plugin ${manifest.id}: config selector ${manifest.config.selector} does not resolve`,
-            });
-          }
-          yield* Schema.decodeUnknownEffect(manifest.config.schema)(value).pipe(
-            Effect.mapError(
-              (error) =>
-                new InvalidPlugin({
-                  message: `Plugin ${manifest.id} config ${manifest.config?.selector}: ${error.message}`,
-                })
-            )
-          );
-        }
+        resolved.push({
+          ...entry,
+          options: yield* decodePluginOptions(manifest, options),
+          encodedOptions: manifest.config
+            ? options[manifest.config.selector]
+            : undefined,
+        });
         for (const native of [manifest.android, manifest.ios]) {
           for (const source of native?.sources ?? []) {
             if (
@@ -164,7 +157,7 @@ export const validatePlugins = (
         }
       }
       yield* resolvePluginDependencies(plugins);
-      return plugins;
+      return resolved;
     }
   );
 export const resolvePlugins = (config: RadicalConfig) =>

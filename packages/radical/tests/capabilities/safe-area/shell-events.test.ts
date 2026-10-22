@@ -3,11 +3,11 @@ import vm from "node:vm";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
+import { Bridge, bridgeLayer } from "../../../src/core/bridge/bridge.ts";
 import {
   safeAreaUpdateScript,
   shellEventPublisher,
-} from "../../../src/capabilities/safe-area/shell-events.ts";
-import { Bridge, bridgeLayer } from "../../../src/core/bridge/bridge.ts";
+} from "../../../src/native/shared/shell-events.ts";
 
 const sandbox = () => {
   const window = new EventTarget();

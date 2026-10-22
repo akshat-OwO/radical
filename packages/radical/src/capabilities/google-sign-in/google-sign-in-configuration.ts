@@ -1,10 +1,15 @@
 import { Context, Effect, Layer } from "effect";
 
+import { GoogleSignInMisconfigured } from "./errors.ts";
+import type { GoogleSignInConfig } from "./google-sign-in-schema.ts";
+
 // Replaced by the Vite plugin. OAuth client IDs are public identifiers.
-declare const __RADICAL_GOOGLE_SIGN_IN__: unknown;
+declare const __RADICAL_GOOGLE_SIGN_IN__: GoogleSignInConfig | null;
 export class GoogleSignInConfiguration extends Context.Service<
   GoogleSignInConfiguration,
-  { readonly read: Effect.Effect<unknown> }
+  {
+    readonly read: Effect.Effect<GoogleSignInConfig, GoogleSignInMisconfigured>;
+  }
 >()("radical/GoogleSignInConfiguration") {}
 export const GoogleSignInConfigurationLive = Layer.succeed(
   GoogleSignInConfiguration,
@@ -14,6 +19,16 @@ export const GoogleSignInConfigurationLive = Layer.succeed(
       typeof __RADICAL_GOOGLE_SIGN_IN__ === "undefined"
         ? undefined
         : __RADICAL_GOOGLE_SIGN_IN__
+    ).pipe(
+      Effect.flatMap((config) =>
+        config === null || config === undefined
+          ? Effect.fail(
+              new GoogleSignInMisconfigured({
+                cause: "Google sign-in is not configured",
+              })
+            )
+          : Effect.succeed(config)
+      )
     ),
   }
 );

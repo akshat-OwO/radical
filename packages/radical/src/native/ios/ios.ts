@@ -2,35 +2,34 @@ import path from "node:path";
 
 import { Effect, FileSystem, Schema } from "effect";
 
-import { cameraDeclarations } from "../../capabilities/camera/camera-declarations.ts";
-import { googleSignInDeclarations } from "../../capabilities/google-sign-in/google-sign-in-declarations.ts";
-import { configureNativeNotifications } from "../../capabilities/notifications/notification-native.ts";
-import { safeAreaUpdateScript } from "../../capabilities/safe-area/shell-events.ts";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
 import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
+import type { BuildPlan } from "../../vite/build-plan.ts";
+import { renderPlist } from "../../vite/build-plan.ts";
 import { InvalidConfig } from "../../vite/config.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
 import { composePluginSources } from "../../vite/plugins/plugin-sources.ts";
 import { iosSplashResourceName } from "../assets/native-assets.ts";
+import { applyBuildPlan } from "../shared/apply-build-plan.ts";
 import {
   generateNativeProject,
   readNativeProject,
   renderTemplate,
 } from "../shared/native-project.ts";
 import { replaceAnchor } from "../shared/native-template.ts";
+import { safeAreaUpdateScript } from "../shared/shell-events.ts";
 import { execute } from "../shared/shell.ts";
 
 export const generateIos = (
   root: string,
-  packageRoot = resolvePackageRoot(import.meta.url)
+  packageRoot = resolvePackageRoot(import.meta.url),
+  plan?: BuildPlan
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const native = yield* readNativeProject(root, packageRoot, "ios");
-    const camera = yield* cameraDeclarations(native.config);
-    const googleSignIn = yield* googleSignInDeclarations(native.config);
+    const native = yield* readNativeProject(root, packageRoot, "ios", plan);
     const domains = [
       ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
     ];
@@ -148,15 +147,10 @@ export const generateIos = (
             plist,
             contents,
             /<\/dict>\s*<\/plist>/u,
-            `${bound}${ats}${camera.ios}${googleSignIn}\n</dict>\n</plist>`
+            `${bound}${ats}${renderPlist(native.plan.ios.declarations)}\n</dict>\n</plist>`
           )
         );
-        yield* configureNativeNotifications(
-          root,
-          staging,
-          "ios",
-          native.config
-        );
+        yield* applyBuildPlan(root, staging, "ios", native.plan);
         yield* composePluginSources(
           staging,
           "ios",

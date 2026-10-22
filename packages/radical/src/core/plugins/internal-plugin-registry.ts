@@ -139,7 +139,9 @@ export type InternalPluginConfig = Readonly<
   Partial<Record<InternalPluginFlag, boolean>>
 >;
 
-export const resolveInternalPlugins = (config: InternalPluginConfig = {}) => {
+export const resolveInternalCapabilities = (
+  config: InternalPluginConfig = {}
+) => {
   const enabled = new Set<InternalPluginFlag>();
   const pending: InternalPluginFlag[] = [];
   const enable = (flag: InternalPluginFlag) => {
@@ -159,14 +161,15 @@ export const resolveInternalPlugins = (config: InternalPluginConfig = {}) => {
       enable(flag);
     }
   }
-  return flags.flatMap((flag) => {
-    const capability = internalPluginRegistry[flag];
-    return enabled.has(flag)
-      ? capability.plugins.map((plugin) => ({
-          ...plugin,
-          module: "radical/internal-plugins",
-          sourceRoot: capability.sourceRoot,
-        }))
-      : [];
-  });
+  return flags.filter((flag) => enabled.has(flag));
 };
+
+export const resolveInternalPlugins = (config: InternalPluginConfig = {}) =>
+  resolveInternalCapabilities(config).flatMap((flag) => {
+    const capability = internalPluginRegistry[flag];
+    return capability.plugins.map((plugin) => ({
+      ...plugin,
+      module: "radical/internal-plugins",
+      sourceRoot: capability.sourceRoot,
+    }));
+  });
