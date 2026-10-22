@@ -6,10 +6,7 @@ import {
   googleSignInContributions,
   googleSignInDefaults,
 } from "../capabilities/google-sign-in/google-sign-in-build.ts";
-import {
-  localNotificationContributions,
-  pushNotificationContributions,
-} from "../capabilities/notifications/notification-build.ts";
+import { pushNotificationContributions } from "../capabilities/notifications/notification-build.ts";
 import { videoStreamContributions } from "../capabilities/video-stream/video-stream-build.ts";
 import { resolveInternalCapabilities } from "../core/plugins/internal-plugin-registry.ts";
 import {
@@ -117,9 +114,6 @@ export const resolveBuildPlan = (input: unknown) =>
       ...(videoStream === undefined
         ? {}
         : { videoStream: videoStreamContributions(videoStream) }),
-      ...(capabilities.includes("notifications")
-        ? { notifications: localNotificationContributions(config) }
-        : {}),
       ...(capabilities.includes("pushNotifications")
         ? { pushNotifications: pushNotificationContributions(config) }
         : {}),
@@ -129,7 +123,6 @@ export const resolveBuildPlan = (input: unknown) =>
       contributions.camera,
       contributions.videoStream,
       contributions.googleSignIn,
-      contributions.notifications,
       contributions.pushNotifications,
     ].filter((value): value is NativeContributions => value !== undefined);
     const plistEntries = ordered.flatMap((value) => value.plist ?? []);

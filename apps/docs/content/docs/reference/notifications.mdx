@@ -43,9 +43,9 @@ Native scheduling requests permission when it is prompt. A denied permission fai
 
 ## Exact alarms and schedule results
 
-`notifications.android.exactAlarms` is an optional boolean that defaults to false. With local notifications enabled, true adds `android.permission.SCHEDULE_EXACT_ALARM` to the generated Android manifest. Push notifications also enable local notifications. False or omission preserves existing native output. This option has no effect on iOS and does not enable notifications by itself.
+`@capacitor/local-notifications` 8.3.1 declares `SCHEDULE_EXACT_ALARM` in its library manifest. Android merges this permission into the app manifest. Radical neither adds nor removes it. Android 12 and 13 grant this access at install, though users can revoke it. On Android 14 and later, access is denied by default for most newly installed apps targeting API 33 or higher. Exemptions and existing grants during an OS upgrade can preserve access. See [Android's exact-alarm permission changes](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms).
 
-`checkExactAlarmPermission` and `requestExactAlarmPermission` require `Bridge`. On Android, they wrap Capacitor's `checkExactNotificationSetting` and `changeExactNotificationSetting`. The request opens Android's **Alarms & reminders** settings on Android 12 and later and returns the setting when the user returns. Denial is a success value, `"denied"`. Older Android versions report `"granted"` because they need no special access. Declaration alone does not grant access.
+`checkExactAlarmPermission` and `requestExactAlarmPermission` require `Bridge`. On Android, they wrap Capacitor's `checkExactNotificationSetting` and `changeExactNotificationSetting`. The request opens Android's **Alarms & reminders** settings on Android 12 and later and returns the setting when the user returns. Denial is a success value, `"denied"`. Older Android versions report `"granted"` because they need no special access. Notification display permission is separate from exact-alarm access.
 
 On iOS and browsers, both operations report `"not-required"` without a native call. iOS has no exact-alarm permission. This value does not imply notification display permission or guaranteed delivery timing. `ExactAlarmPermissionSchema` validates this union.
 
@@ -53,7 +53,7 @@ On iOS and browsers, both operations report `"not-required"` without a native ca
 
 Scheduling uses Capacitor's default exact-alarm behavior. On Android 12 and later, Capacitor can open settings when access is missing, then fall back to an inexact alarm if access remains denied. Requesting access before scheduling avoids consuming the delay in settings. Existing inexact alarms are not upgraded by a later grant. Android cancels future exact alarms when access is revoked. See [Android alarm behavior](https://developer.android.com/develop/background-work/services/alarms#exact).
 
-Radical never adds `USE_EXACT_ALARM`. [Google Play restricts that permission](https://support.google.com/googleplay/android-developer/answer/13161072) to qualifying core alarm and calendar use cases.
+Neither Radical nor the local-notifications plugin declares `USE_EXACT_ALARM`. [Google Play restricts that permission](https://support.google.com/googleplay/android-developer/answer/13161072) to qualifying core alarm and calendar use cases.
 
 ## Navigation watcher
 

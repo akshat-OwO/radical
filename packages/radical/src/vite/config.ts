@@ -70,7 +70,6 @@ export const RadicalConfigSchema = Schema.Struct({
       android: Schema.optional(
         Schema.Struct({
           googleServices: Schema.optional(Schema.NonEmptyString),
-          exactAlarms: Schema.optional(Schema.Boolean),
         })
       ),
       ios: Schema.optional(

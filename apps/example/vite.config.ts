@@ -27,7 +27,6 @@ const config = {
     haptics: true,
     dataProtection: true,
   },
-  notifications: { android: { exactAlarms: true } },
   pluginOptions: {
     GoogleSignIn: {
       webClientId:

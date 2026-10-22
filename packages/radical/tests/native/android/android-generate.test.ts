@@ -66,9 +66,6 @@ const memory = (
     "@capacitor/core": "8.5.3",
     "@capacitor/android": "8.6.1",
     "@capacitor/device": "8.0.3",
-    "@capacitor/network": "8.0.1",
-    "@capacitor/local-notifications": "8.3.1",
-    "@capawesome/capacitor-badge": "8.0.4",
   })) {
     files.set(
       require.resolve(`${name}/package.json`),
@@ -806,57 +803,3 @@ describe("bundled android shell", () => {
     }
   );
 });
-
-it.effect(
-  "adds only SCHEDULE_EXACT_ALARM when notifications opt into exact alarms",
-  () =>
-    Effect.gen(function* () {
-      const states = [];
-      for (const exactAlarms of [undefined, false, true]) {
-        const state = memory(false, {
-          ...defaultConfig,
-          internalPlugins: { notifications: true },
-          ...(exactAlarms === undefined
-            ? {}
-            : { notifications: { android: { exactAlarms } } }),
-        });
-        yield* generate.pipe(Effect.provide(state.layer));
-        states.push(state);
-      }
-      const [omitted, off, on] = states;
-      const output = (state: typeof omitted) =>
-        [...state.files]
-          .filter(([name]) => name.startsWith(`${destination}/`))
-          .toSorted(([a], [b]) => a.localeCompare(b));
-      assert.deepStrictEqual(output(off), output(omitted));
-      const manifest = `${destination}/android/app/src/main/AndroidManifest.xml`;
-      const permission =
-        '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />';
-      assert.include(on.files.get(manifest) ?? "", permission);
-      assert.notInclude(on.files.get(manifest) ?? "", "USE_EXACT_ALARM");
-      assert.notInclude(off.files.get(manifest) ?? "", "SCHEDULE_EXACT_ALARM");
-      on.files.set(
-        manifest,
-        (on.files.get(manifest) ?? "").replace(permission, "")
-      );
-      assert.deepStrictEqual(output(on), output(off));
-    })
-);
-it.effect(
-  "omits exact-alarm declarations when notifications are disabled",
-  () => {
-    const state = memory(false, {
-      ...defaultConfig,
-      notifications: { android: { exactAlarms: true } },
-    });
-    return Effect.gen(function* () {
-      yield* generate;
-      assert.notInclude(
-        state.files.get(
-          `${destination}/android/app/src/main/AndroidManifest.xml`
-        ) ?? "",
-        "EXACT_ALARM"
-      );
-    }).pipe(Effect.provide(state.layer));
-  }
-);

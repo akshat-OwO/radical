@@ -16,9 +16,11 @@ The shared plan applicator copies files and applies resolved edits. Neither plat
 
 ## Exact alarms
 
-Exact alarms are opt-in through `notifications.android.exactAlarms`. When local notifications are enabled, this setting contributes `SCHEDULE_EXACT_ALARM` through the shared build plan. The default leaves generated native output unchanged. Use the existing typed notifications config so enabling local notifications does not start requiring a new plugin-options object.
+Keep the `SCHEDULE_EXACT_ALARM` permission declared by Capacitor Local Notifications 8.3.1's library manifest. Android merges that declaration into the app manifest. A Radical config flag that only adds the same permission cannot control access, so expose no exact-alarm config option or manifest contribution. This preserves exact alarms by default on Android 12 and 13, which grant access at install. Users can still revoke access.
 
-Do not add `USE_EXACT_ALARM`, because Google Play restricts it to qualifying core alarm and calendar use cases. `SCHEDULE_EXACT_ALARM` lets the user grant access in Android settings. Declaration and notification display permission alone do not grant exact-alarm access.
+On Android 14 and later, most newly installed apps targeting API 33 or higher receive no default grant. Exemptions and existing grants during an OS upgrade can preserve access. See [Android's exact-alarm permission changes](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms). Request access through system settings when the check returns `denied`. Notification display permission is separate from exact-alarm access.
+
+Neither Radical nor the plugin declares `USE_EXACT_ALARM`, because [Google Play restricts it](https://support.google.com/googleplay/android-developer/answer/13161072) to qualifying core alarm and calendar use cases.
 
 Expose separate check and request Effects for this access. Return `granted` or `denied` on Android and `not-required` on iOS and browsers. The latter platforms have no Android exact-alarm setting and make no bridge call. Keep bridge failures and malformed responses typed through the existing plugin client.
 

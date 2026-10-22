@@ -109,7 +109,13 @@ const Notifications = () => {
         <button
           key={label}
           type="button"
-          disabled={notifications.loading}
+          disabled={
+            notifications.loading ||
+            (label === "Schedule in 5 seconds" &&
+              (exactAlarms.loading ||
+                (exactAlarms.value !== "granted" &&
+                  exactAlarms.value !== "not-required")))
+          }
           onClick={action}
         >
           {label}
