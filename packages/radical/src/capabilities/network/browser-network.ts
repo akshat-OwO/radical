@@ -26,26 +26,32 @@ const readStatus = (
 ): NetworkStatus => {
   const type = navigator.connection?.type;
   let connectionType: NetworkStatus["connectionType"] = "none";
+
   if (navigator.onLine) {
     connectionType = Schema.is(NetworkTypeSchema)(type) ? type : "unknown";
   }
+
   return { connected: navigator.onLine, connectionType };
 };
 
 /** Read globals only after mount. The injected environment also supports browser tests. */
 export const browserNetworkLayer = (read: () => NetworkEnvironment) => {
   const current = Effect.sync(() => readStatus(read().navigator));
+
   return Layer.succeed(BrowserNetwork, {
     current,
     listen: (receive) =>
       Effect.sync(() => {
         const { events, navigator } = read();
+
         const changed = () => {
           receive(readStatus(navigator));
         };
+
         events.addEventListener("online", changed);
         events.addEventListener("offline", changed);
         navigator.connection?.addEventListener("change", changed);
+
         return () => {
           events.removeEventListener("online", changed);
           events.removeEventListener("offline", changed);
@@ -54,6 +60,7 @@ export const browserNetworkLayer = (read: () => NetworkEnvironment) => {
       }),
   });
 };
+
 export const BrowserNetworkLive = browserNetworkLayer(() => ({
   events: window,
   navigator,

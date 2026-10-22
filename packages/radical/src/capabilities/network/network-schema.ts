@@ -10,9 +10,12 @@ export const NetworkTypeSchema = Schema.Literals([
   "wimax",
   "other",
 ]);
+
 export const NetworkStatusSchema = Schema.Struct({
   connected: Schema.Boolean,
   connectionType: NetworkTypeSchema,
 });
+
 export type NetworkStatus = typeof NetworkStatusSchema.Type;
+
 export type NetworkType = typeof NetworkTypeSchema.Type;

@@ -15,6 +15,7 @@ describe("Effect toolchain", () => {
       const fiber = yield* Effect.forkChild(
         Effect.sleep("1 hour").pipe(Effect.as("done"))
       );
+
       yield* TestClock.adjust("1 hour");
       assert.strictEqual(yield* Fiber.join(fiber), "done");
     })

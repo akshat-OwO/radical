@@ -43,13 +43,17 @@ describe("offline worker bundle", () => {
             },
           })
       );
+
       const outputs = Array.isArray(result) ? result : [result];
+
       const chunks = outputs.flatMap((output) =>
         "output" in output
           ? output.output.filter((item) => item.type === "chunk")
           : []
       );
+
       assert.lengthOf(chunks, 1);
+
       for (const chunk of chunks) {
         assert.isBelow(Buffer.byteLength(chunk.code), 3000);
         assert.isEmpty(chunk.imports);

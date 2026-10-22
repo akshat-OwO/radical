@@ -13,4 +13,5 @@ export const googleSignInContributions = (
     },
   ],
 });
+
 export const googleSignInDefaults = { __RADICAL_GOOGLE_SIGN_IN__: "null" };

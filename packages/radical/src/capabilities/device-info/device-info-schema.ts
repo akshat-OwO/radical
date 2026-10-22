@@ -16,4 +16,5 @@ export const DeviceInfoSchema = Schema.Struct({
   manufacturer: Schema.String,
   isVirtual: Schema.Boolean,
 });
+
 export type DeviceInfo = typeof DeviceInfoSchema.Type;

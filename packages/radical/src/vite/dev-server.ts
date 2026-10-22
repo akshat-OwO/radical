@@ -34,6 +34,7 @@ export const configureServer = (
 ) => {
   server.httpServer?.once("listening", () => {
     const address = server.httpServer?.address();
+
     if (
       address === null ||
       address === undefined ||
@@ -41,6 +42,7 @@ export const configureServer = (
     ) {
       return;
     }
+
     const host =
       config.devHost ??
       Object.values(os.networkInterfaces())
@@ -48,6 +50,7 @@ export const configureServer = (
         .find((entry) => entry?.family === "IPv4" && !entry.internal)
         ?.address ??
       "127.0.0.1";
+
     Effect.runFork(
       Effect.gen(function* () {
         const metadata = yield* NativeMetadata;

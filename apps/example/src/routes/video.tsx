@@ -8,12 +8,15 @@ const Video = () => {
   const stream = useVideoStream({ viewfinder, onDetect: setLastQR });
   const zoom = stream.value?.zoom;
   let status = "Stopped";
+
   if (stream.loading) {
     status = "Starting...";
   }
+
   if (stream.running) {
     status = "Streaming";
   }
+
   return (
     <main style={{ isolation: "isolate", overflow: "hidden" }}>
       <section
@@ -108,4 +111,5 @@ const Video = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/video")({ component: Video });

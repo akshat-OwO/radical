@@ -3,6 +3,7 @@ import { useNetworkStatus } from "radical/react";
 
 const Network = () => {
   const status = useNetworkStatus();
+
   return (
     <main>
       <h1>Network status</h1>
@@ -18,4 +19,5 @@ const Network = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/network")({ component: Network });

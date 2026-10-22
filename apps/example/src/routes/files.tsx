@@ -6,6 +6,7 @@ const Files = () => {
   const intent = useIntent();
   const first = picker.value?.[0];
   let intentStatus = "Idle";
+
   if (intent.loading) {
     intentStatus = "Opening...";
   } else if (intent.error) {
@@ -13,6 +14,7 @@ const Files = () => {
   } else if (intent.value) {
     intentStatus = "Opened";
   }
+
   return (
     <main>
       <h1>Files</h1>
@@ -70,4 +72,5 @@ const Files = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/files")({ component: Files });

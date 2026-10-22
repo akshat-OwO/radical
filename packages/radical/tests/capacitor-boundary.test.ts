@@ -17,6 +17,7 @@ const allowed = new Set(capacitorAllowedFiles);
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 
 type Binding = "factory" | "require" | undefined;
+
 type Bindings = Map<string, Binding>;
 
 // Follow createRequire results and simple aliases in lexical scopes. Computed
@@ -28,12 +29,14 @@ const bindingOf = (
   if (node?.type === "Identifier") {
     return bindings.get(node.name);
   }
+
   if (
     node?.type === "CallExpression" &&
     bindingOf(node.callee, bindings) === "factory"
   ) {
     return "require";
   }
+
   return undefined;
 };
 
@@ -60,6 +63,7 @@ const updateBindings = (node: Node, bindings: Bindings) => {
         specifier.type === "ImportSpecifier" &&
         specifier.imported.type === "Identifier" &&
         specifier.imported.name === "createRequire";
+
       bindings.set(specifier.local.name, isFactory ? "factory" : undefined);
     }
   } else if (
@@ -85,22 +89,28 @@ const restrictedLoads = (source: string) => {
     plugins: ["typescript", "jsx"],
     createImportExpressions: true,
   });
+
   const imports: string[] = [];
+
   const record = (argument: Node | null | undefined) => {
     let value: string | null | undefined;
+
     if (argument?.type === "StringLiteral") {
       ({ value } = argument);
     } else if (argument?.type === "TemplateLiteral") {
       value = argument.quasis[0]?.value.cooked;
     }
+
     if (value !== undefined && value !== null && scopes.test(value)) {
       imports.push(value);
     }
   };
+
   let bindings = new Map<string, Binding>([
     ["require", "require"],
     ["createRequire", "factory"],
   ]);
+
   const parents: Bindings[] = [];
   traverse(ast, {
     enter(node) {
@@ -108,7 +118,9 @@ const restrictedLoads = (source: string) => {
         parents.push(bindings);
         bindings = new Map(bindings);
       }
+
       updateBindings(node, bindings);
+
       if (node.type === "ImportExpression") {
         record(node.source);
       } else if (node.type === "TSImportType") {
@@ -123,12 +135,14 @@ const restrictedLoads = (source: string) => {
     exit(node) {
       if (opensScope(node)) {
         const parent = parents.pop();
+
         if (parent) {
           bindings = parent;
         }
       }
     },
   });
+
   return imports;
 };
 
@@ -225,6 +239,7 @@ for (const [name, setup, callee] of callForms) {
       () =>
         Effect.sync(() => {
           const source = `${setup} ${callee}(${argument})`;
+
           for (const file of [
             "packages/radical/src/forbidden.ts",
             "apps/example/src/forbidden.ts",
@@ -234,12 +249,14 @@ for (const [name, setup, callee] of callForms) {
               `${file}: ${expected}`,
             ]);
           }
+
           for (const file of capacitorAllowedFiles) {
             assert.deepStrictEqual(violationsIn(file, source), []);
           }
         })
     );
   }
+
   it.effect(`ignores computed and unrelated specifiers in ${name}`, () =>
     Effect.sync(() => {
       for (const argument of [
@@ -311,7 +328,9 @@ it.effect(
           ],
         }
       ).toSorted();
+
       assert.isAbove(files.length, 0);
+
       const violations = files.flatMap((file) =>
         violationsIn(
           file,
@@ -321,6 +340,7 @@ it.effect(
           )
         )
       );
+
       assert.deepStrictEqual(violations, []);
     })
 );

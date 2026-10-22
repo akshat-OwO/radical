@@ -29,9 +29,11 @@ export const generateIos = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const native = yield* readNativeProject(root, packageRoot, "ios", plan);
+
     const domains = [
       ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
     ];
+
     if (!native.bundled && domains.length > 10) {
       return yield* Effect.fail(
         new InvalidConfig({
@@ -40,9 +42,11 @@ export const generateIos = (
         })
       );
     }
+
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/ios/RadicalViewController.swift")
     );
+
     const source = yield* renderTemplate(
       "RadicalViewController.swift",
       template,
@@ -74,9 +78,11 @@ export const generateIos = (
         __COOKIE_VALUE__: JSON.stringify(native.cookie),
       }
     );
+
     return yield* generateNativeProject(root, "ios", native, (staging) =>
       Effect.gen(function* () {
         const app = path.join(staging, "ios/App/App");
+
         if (native.config.splash) {
           const color = native.config.splash.backgroundColor;
           const storyboard = "LaunchScreen.storyboard";
@@ -102,6 +108,7 @@ export const generateIos = (
             )
           );
         }
+
         const delegate = path.join(app, "AppDelegate.swift");
         yield* fs.writeFileString(
           delegate,
@@ -130,16 +137,19 @@ export const generateIos = (
         );
         const plist = path.join(app, "Info.plist");
         const contents = yield* fs.readFileString(plist);
+
         // Exact origin validation remains in the navigation delegate.
         const bound = native.bundled
           ? ""
           : `<key>WKAppBoundDomains</key><array>${domains.map((domain) => `<string>${domain.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</string>`).join("")}</array>`;
+
         const ats = [
           native.config.origin ?? native.url,
           ...native.origins,
         ].some((origin) => origin.startsWith("http:"))
           ? "<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>"
           : "";
+
         yield* fs.writeFileString(
           plist,
           yield* replaceAnchor(

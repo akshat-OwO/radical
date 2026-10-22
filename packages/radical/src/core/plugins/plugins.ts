@@ -6,28 +6,34 @@ import { Bridge, BridgeDecodeError } from "../bridge/bridge.ts";
 const identifier = Schema.String.check(
   Schema.isPattern(/^[A-Za-z][A-Za-z0-9_]*$/u)
 );
+
 const codec = Schema.declare<Schema.Codec<unknown, unknown>>(
   (u): u is Schema.Codec<unknown, unknown> => Schema.isSchema(u)
 );
+
 const dependency = Schema.Record(
   Schema.String.check(
     Schema.isPattern(/^(?:@[a-z0-9_.-]+\/)?[a-z0-9_][a-z0-9_.-]*$/u)
   ),
   Schema.NonEmptyString
 );
+
 const gradleDependencies = Schema.Record(
   Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+$/u)),
   Schema.NonEmptyString
 );
+
 const source = Schema.Struct({
   file: Schema.NonEmptyString,
   source: Schema.NonEmptyString,
 });
+
 export const CommandSchema = Schema.Struct({
   args: codec,
   result: codec,
   errors: Schema.Record(identifier, codec),
 });
+
 export const PluginManifestSchema = Schema.Struct({
   id: identifier,
   bridge: identifier,
@@ -62,12 +68,15 @@ export const PluginManifestSchema = Schema.Struct({
     })
   ),
 });
+
 export type PluginManifest = typeof PluginManifestSchema.Type;
+
 /** Preserve concrete command codecs for client inference. Validation happens before generation. */
 export const definePlugin = <const M extends PluginManifest>(manifest: M): M =>
   manifest;
 
 type Command = typeof CommandSchema.Type;
+
 type ClientCommand<C extends Command> = (
   args: C["args"]["Type"]
 ) => Effect.Effect<
@@ -75,9 +84,11 @@ type ClientCommand<C extends Command> = (
   C["errors"][keyof C["errors"]]["Type"] | BridgeError,
   Bridge
 >;
+
 export type PluginClient<M extends PluginManifest> = {
   readonly [K in keyof M["commands"]]: ClientCommand<M["commands"][K]>;
 };
+
 const decodeRejection = Schema.decodeUnknownOption(
   Schema.Struct({
     code: Schema.String,
@@ -97,7 +108,9 @@ export const callPlugin = <C extends Command>(
         (cause) => new BridgeDecodeError({ plugin, method, cause })
       )
     );
+
     const bridge = yield* Bridge;
+
     const result = yield* bridge
       .call(
         plugin,
@@ -113,16 +126,21 @@ export const callPlugin = <C extends Command>(
       .pipe(
         Effect.catchTag("BridgeCallFailed", (error) => {
           const envelope = decodeRejection(error.cause);
+
           if (Option.isNone(envelope)) {
             return Effect.fail(error);
           }
+
           const { code, data = {} } = envelope.value;
+
           const schema = Object.hasOwn(command.errors, code)
             ? command.errors[code]
             : undefined;
+
           if (!schema) {
             return Effect.fail(error);
           }
+
           return Schema.decodeUnknownEffect(schema)({
             ...data,
             _tag: code,
@@ -134,6 +152,7 @@ export const callPlugin = <C extends Command>(
           );
         })
       );
+
     return yield* Schema.decodeUnknownEffect(command.result)(result).pipe(
       Effect.mapError(
         (cause) => new BridgeDecodeError({ plugin, method, cause })

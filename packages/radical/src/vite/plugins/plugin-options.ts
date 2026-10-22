@@ -10,10 +10,13 @@ export const decodePluginOptions = (
   options: NonNullable<RadicalConfig["pluginOptions"]>
 ) => {
   const { config } = manifest;
+
   if (!config) {
     return Effect.void;
   }
+
   const value = options[config.selector];
+
   if (!Object.hasOwn(options, config.selector) || value === undefined) {
     return Effect.fail(
       new InvalidPlugin({
@@ -21,6 +24,7 @@ export const decodePluginOptions = (
       })
     );
   }
+
   return Schema.decodeUnknownEffect(config.schema)(value).pipe(
     Effect.mapError(
       (error) =>

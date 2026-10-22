@@ -8,8 +8,10 @@ export const adapterOutputs = {
   spaShell: "entry.html",
   exposedHeaders: ["x-example-result", "x-example-error"],
 };
+
 const unavailable = () =>
   Effect.fail(new AdapterUnavailable({ operation: "test" }));
+
 export const fakeAdapter = Layer.succeed(RadicalAdapter, {
   name: "fake",
   routes: Effect.succeed([]),

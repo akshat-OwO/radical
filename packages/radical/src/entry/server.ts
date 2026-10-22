@@ -14,6 +14,7 @@ const decodeContext = Schema.decodeUnknownEffect(
 
 const readCookie = (request: Request) => {
   const prefix = `${NATIVE_CONTEXT_COOKIE}=`;
+
   return request.headers
     .get("cookie")
     ?.split(";")
@@ -29,6 +30,7 @@ export const getNativeContext = (
   Effect.suspend(() => {
     const value =
       request.headers.get(NATIVE_CONTEXT_HEADER) ?? readCookie(request);
+
     return value === undefined
       ? Effect.succeed(browserContext())
       : Effect.try(() => decodeURIComponent(value)).pipe(
@@ -38,6 +40,7 @@ export const getNativeContext = (
   });
 
 export { safeAreaStyle } from "../core/context/native-context.ts";
+
 export type { SafeArea } from "../core/context/native-context.ts";
 
 export { withBundledRequests } from "../core/bundled/bundled-server.ts";

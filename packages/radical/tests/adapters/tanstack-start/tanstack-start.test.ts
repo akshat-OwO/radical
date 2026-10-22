@@ -19,6 +19,7 @@ class MiddlewareFailure extends Schema.TaggedError<
 
 const readAdapter = Effect.gen(function* () {
   const adapter = yield* RadicalAdapter;
+
   return {
     name: adapter.name,
     routes: yield* adapter.routes,
@@ -34,6 +35,7 @@ describe("TanStack Start adapter", () => {
       const provideContext = nativeContext.options.server;
       assert.isDefined(guard);
       assert.isDefined(provideContext);
+
       for (const scenario of [
         { handlerType: "serverFn", site: "cross-site", status: 403 },
         { handlerType: "serverFn", site: "same-origin", status: 200 },
@@ -48,13 +50,16 @@ describe("TanStack Start adapter", () => {
             "sec-fetch-site": scenario.site,
           },
         });
+
         const expected = yield* getNativeContext(request);
+
         const options = {
           request,
           pathname: "/",
           context: undefined,
           handlerType: scenario.handlerType,
         };
+
         // Start composes heterogeneous middleware at runtime; its next() generic
         // cannot express the context added by a subsequent middleware.
         // SAFETY: Each next continuation returns the context supplied by the middleware under test.
@@ -66,6 +71,7 @@ describe("TanStack Start adapter", () => {
               assert.deepStrictEqual<unknown>(provided?.context, {
                 nativeContext: expected,
               });
+
               return {
                 ...options,
                 context: provided?.context,
@@ -73,11 +79,13 @@ describe("TanStack Start adapter", () => {
               };
             }) as Parameters<typeof provideContext>[0]["next"],
           })) as Parameters<typeof guard>[0]["next"];
+
         /* oxlint-enable typescript/no-unsafe-type-assertion */
         const result = yield* Effect.tryPromise({
           try: async () => await guard({ ...options, next }),
           catch: (cause) => new MiddlewareFailure({ cause }),
         });
+
         const response = result instanceof Response ? result : result.response;
         assert.strictEqual(response.status, scenario.status);
         assert.strictEqual(
@@ -107,6 +115,7 @@ describe("TanStack Start adapter", () => {
         const middleware = createRadicalMiddleware();
         const { server } = middleware.options;
         assert.isDefined(server);
+
         for (const platform of ["ios", "android", "browser"]) {
           const request = new Request("https://example.test/", {
             headers:
@@ -122,11 +131,14 @@ describe("TanStack Start adapter", () => {
                     )}`,
                   },
           });
+
           const expected = yield* getNativeContext(request);
+
           const completed = new Response(null, {
             status: 302,
             headers: { location: "/next" },
           });
+
           const result = yield* Effect.flip(
             Effect.tryPromise({
               try: async () =>
@@ -139,6 +151,7 @@ describe("TanStack Start adapter", () => {
                     assert.deepStrictEqual<unknown>(options?.context, {
                       nativeContext: expected,
                     });
+
                     // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- Start rejects redirects as Response objects.
                     return await Promise.reject(completed);
                   },
@@ -146,6 +159,7 @@ describe("TanStack Start adapter", () => {
               catch: (cause) => new MiddlewareFailure({ cause }),
             })
           );
+
           assert.strictEqual(result.cause, completed);
         }
       })
@@ -157,6 +171,7 @@ describe("TanStack Start adapter", () => {
         const adapter = yield* readAdapter.pipe(
           Effect.provide(TanStackStartAdapter)
         );
+
         assert.deepStrictEqual(adapter, {
           name: "tanstack-start",
           routes: [],
@@ -175,16 +190,21 @@ describe("TanStack Start adapter", () => {
       const navigation = yield* adapter.navigation;
       const navigateError = yield* Effect.flip(navigation.navigate("/"));
       assert.strictEqual(navigateError._tag, "AdapterUnavailable");
+
       if (navigateError._tag === "AdapterUnavailable") {
         assert.strictEqual(navigateError.operation, "navigate");
       }
+
       const beforeError = yield* Effect.flip(
         navigation.onBeforeNavigate(() => Effect.void)
       );
+
       assert.strictEqual(beforeError.operation, "onBeforeNavigate");
+
       const afterError = yield* Effect.flip(
         navigation.onAfterNavigate(() => {})
       );
+
       assert.strictEqual(afterError.operation, "onAfterNavigate");
     }).pipe(Effect.provide(TanStackStartAdapter))
   );
@@ -192,12 +212,14 @@ describe("TanStack Start adapter", () => {
   it.effect("lets a core consumer use an in-memory adapter layer", () =>
     Effect.gen(function* () {
       const adapter = yield* RadicalAdapter;
+
       const memory = Layer.succeed(RadicalAdapter, {
         ...adapter,
         name: "memory",
         routes: Effect.succeed([{ pattern: "/example", offline: true }]),
         outputs: Effect.succeed({ clientDir: "memory/client" }),
       });
+
       assert.deepStrictEqual(yield* readAdapter.pipe(Effect.provide(memory)), {
         name: "memory",
         routes: [{ pattern: "/example", offline: true }],
@@ -214,12 +236,14 @@ describe("TanStack Start adapter", () => {
           webClientId: "web.apps.googleusercontent.com",
           iosClientId: "ios.apps.googleusercontent.com",
         };
+
         for (const enabled of [true, false, undefined]) {
           const [plugin] = radical({
             appId: "dev.radical.example",
             internalPlugins: { googleSignIn: enabled },
             pluginOptions: { GoogleSignIn: googleSignIn },
           });
+
           assert(
             plugin !== null &&
               Predicate.isObjectKeyword(plugin) &&
@@ -228,6 +252,7 @@ describe("TanStack Start adapter", () => {
           const hook = plugin.config;
           assert.isDefined(hook);
           const handler = "handler" in hook ? hook.handler : hook;
+
           for (const host of [undefined, "localhost"]) {
             const resolved = yield* Effect.promise(
               async () =>
@@ -247,6 +272,7 @@ describe("TanStack Start adapter", () => {
                   { command: "build", mode: "production" }
                 )
             );
+
             assert.strictEqual(
               resolved?.define?.__RADICAL_GOOGLE_SIGN_IN__,
               JSON.stringify(enabled === true ? googleSignIn : null)
@@ -277,6 +303,7 @@ describe("bundled server-function CSRF opt-in", () => {
         const [csrf] = createRadicalRequestMiddleware();
         const guard = csrf.options.server;
         assert.isDefined(guard);
+
         for (const origin of [
           "https://localhost",
           "capacitor://localhost",
@@ -286,21 +313,25 @@ describe("bundled server-function CSRF opt-in", () => {
         ]) {
           for (const metadata of [true, false]) {
             const fetchSite: Record<string, string> = {};
+
             if (metadata) {
               fetchSite["sec-fetch-site"] = "cross-site";
             }
+
             const request = new Request("https://api.test/_serverFn/id", {
               headers: {
                 origin,
                 ...fetchSite,
               },
             });
+
             const options = {
               request,
               pathname: "/_serverFn/id",
               context: undefined,
               handlerType: "serverFn" as const,
             };
+
             // Start composes generic middleware contexts at runtime.
             // SAFETY: The fixture supplies every field read by the invoked API.
             // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Model Start's continuation boundary.
@@ -309,6 +340,7 @@ describe("bundled server-function CSRF opt-in", () => {
                 ...options,
                 response: new Response("allowed"),
               })) as Parameters<typeof guard>[0]["next"];
+
             const result = yield* Effect.tryPromise({
               try: async () =>
                 await guard({
@@ -317,8 +349,10 @@ describe("bundled server-function CSRF opt-in", () => {
                 }),
               catch: (cause) => new MiddlewareFailure({ cause }),
             });
+
             const response =
               result instanceof Response ? result : result.response;
+
             assert.strictEqual(
               response.status,
               origin === "https://localhost" ||

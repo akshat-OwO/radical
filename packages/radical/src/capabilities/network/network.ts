@@ -17,12 +17,16 @@ export {
   BrowserNetworkLive,
   browserNetworkLayer,
 } from "./browser-network.ts";
+
 export { NetworkStatusSchema, NetworkTypeSchema } from "./network-schema.ts";
+
 export type { NetworkStatus, NetworkType } from "./network-schema.ts";
+
 const native = createPluginClient(networkPlugin);
 
 export const getNetworkStatus = Effect.gen(function* () {
   const bridge = yield* Bridge;
+
   return (yield* bridge.runtime) === "browser"
     ? yield* (yield* BrowserNetwork).current
     : yield* native.getStatus({});
@@ -38,12 +42,14 @@ export const watchNetworkStatus: Stream.Stream<
     Effect.gen(function* () {
       const bridge = yield* Bridge;
       let changed = false;
+
       const receive: Parameters<NonNullable<Bridge["Service"]["listen"]>>[2] = (
         status
       ) => {
         changed = true;
         Queue.offerUnsafe(queue, status);
       };
+
       if ((yield* bridge.runtime) === "browser") {
         const browser = yield* BrowserNetwork;
         yield* Effect.acquireRelease(browser.listen(receive), (remove) =>
@@ -56,15 +62,19 @@ export const watchNetworkStatus: Stream.Stream<
             method: "addListener",
           });
         }
+
         yield* Effect.acquireRelease(
           bridge.listen("Network", "networkStatusChange", receive),
           (remove) => remove
         ).pipe(Effect.asVoid);
       }
+
       const initial = yield* getNetworkStatus;
+
       if (!changed) {
         Queue.offerUnsafe(queue, initial);
       }
+
       return yield* Effect.void;
     }),
   { bufferSize: 1, strategy: "sliding" }

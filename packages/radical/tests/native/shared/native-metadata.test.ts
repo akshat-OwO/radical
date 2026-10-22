@@ -18,6 +18,7 @@ describe("native metadata", () => {
     "persists adapter outputs across dev URL and config updates",
     () => {
       const memory = metadataMemory();
+
       return Effect.gen(function* () {
         const metadata = yield* NativeMetadata;
         const outputs = { clientDir: "web/public", spaShell: "entry.html" };
@@ -38,6 +39,7 @@ describe("native metadata", () => {
   );
   it.effect("keeps the dev URL while replacing config", () => {
     const memory = metadataMemory(JSON.stringify({ config, url }));
+
     return Effect.gen(function* () {
       const metadata = yield* NativeMetadata;
       const next = { ...config, name: "Renamed" };
@@ -58,6 +60,7 @@ describe("native metadata", () => {
     "prefers a listening URL over origin, then origin over the saved URL",
     () => {
       const memory = metadataMemory();
+
       return Effect.gen(function* () {
         const metadata = yield* NativeMetadata;
         const next = { ...config, origin: "https://example.com" };
@@ -74,6 +77,7 @@ describe("native metadata", () => {
       );
     }
   );
+
   for (const [name, source] of [
     ["missing", undefined],
     ["malformed", "{"],
@@ -81,6 +85,7 @@ describe("native metadata", () => {
   ] as const) {
     it.effect(`replaces ${name} metadata when a URL is available`, () => {
       const memory = metadataMemory(source);
+
       return Effect.gen(function* () {
         const metadata = yield* NativeMetadata;
         yield* metadata.update("/app", config, url);
@@ -90,8 +95,10 @@ describe("native metadata", () => {
       );
     });
   }
+
   it.effect("leaves a missing file absent until a URL is available", () => {
     const memory = metadataMemory();
+
     return Effect.gen(function* () {
       const metadata = yield* NativeMetadata;
       assert.strictEqual(
@@ -108,6 +115,7 @@ describe("native metadata", () => {
     "rejects invalid metadata on read and preserves it on a config write without a URL",
     () => {
       const memory = metadataMemory("{}");
+
       return Effect.gen(function* () {
         const metadata = yield* NativeMetadata;
         assert.strictEqual(
@@ -129,6 +137,7 @@ describe("native metadata", () => {
         module: "FileSystem",
         method: "readFileString",
       });
+
       return Effect.gen(function* () {
         const metadata = yield* NativeMetadata;
         assert.strictEqual(

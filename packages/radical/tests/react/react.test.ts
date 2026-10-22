@@ -29,10 +29,12 @@ const mount = (layer?: Layer.Layer<Bridge>, hook = useTestEffect, copies = 1) =>
     const container = document.createElement("div");
     const root = createRoot(container);
     const states: DeviceInfoState[] = [];
+
     const Probe = () => {
       const state = hook();
       useLayoutEffect(() => {
         states.push(state);
+
         if (!state.loading) {
           // Resume the test after React finishes the commit, before any timer.
           queueMicrotask(() => {
@@ -40,8 +42,10 @@ const mount = (layer?: Layer.Layer<Bridge>, hook = useTestEffect, copies = 1) =>
           });
         }
       }, [state]);
+
       return null;
     };
+
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
         flushSync(() => {
@@ -49,11 +53,13 @@ const mount = (layer?: Layer.Layer<Bridge>, hook = useTestEffect, copies = 1) =>
         });
       })
     );
+
     const render = (nextLayer = layer) => {
       flushSync(() => {
         const probes = Array.from({ length: copies }, (_, key) =>
           createElement(Probe, { key })
         );
+
         root.render(
           nextLayer
             ? createElement(RadicalProvider, { layer: nextLayer }, probes)
@@ -61,7 +67,9 @@ const mount = (layer?: Layer.Layer<Bridge>, hook = useTestEffect, copies = 1) =>
         );
       });
     };
+
     render();
+
     return {
       completed,
       states,
@@ -83,6 +91,7 @@ describe(useBridgeEffect, () => {
           const layer = bridgeTestLayer("browser", () =>
             Effect.sync(() => assert.fail("browser called native bridge"))
           );
+
           const mounted = yield* mount(layer);
           const state = yield* Deferred.await(mounted.completed);
           assert.strictEqual(mounted.states[0].loading, true);
@@ -102,9 +111,11 @@ describe(useBridgeEffect, () => {
           method: "getInfo",
           cause: { code: "UNAVAILABLE" },
         });
+
         const mounted = yield* mount(
           bridgeTestLayer("android", () => Effect.fail(error))
         );
+
         const state = yield* Deferred.await(mounted.completed);
         assert.strictEqual(mounted.states[0].loading, true);
         assert.deepStrictEqual(state, {
@@ -121,6 +132,7 @@ describe(useBridgeEffect, () => {
       Effect.gen(function* () {
         const started = yield* Deferred.make<boolean>();
         const interrupted = yield* Deferred.make<boolean>();
+
         const mounted = yield* mount(
           bridgeTestLayer("android", () =>
             Deferred.succeed(started, true).pipe(
@@ -129,6 +141,7 @@ describe(useBridgeEffect, () => {
             )
           )
         );
+
         yield* Deferred.await(started);
         mounted.unmount();
         yield* Deferred.await(interrupted);
@@ -146,9 +159,11 @@ describe(RadicalProvider, () => {
       Effect.scoped(
         Effect.gen(function* () {
           let calls = 0;
+
           const layer = bridgeTestLayer("android", () =>
             Effect.sync(() => {
               calls += 1;
+
               return {
                 platform: "android",
                 model: "test",
@@ -159,6 +174,7 @@ describe(RadicalProvider, () => {
               };
             })
           );
+
           const mounted = yield* mount(layer, useDeviceInfo, 2);
           yield* Deferred.await(mounted.completed);
           assert.strictEqual(calls, 2);
@@ -179,12 +195,14 @@ describe(RadicalProvider, () => {
         Effect.gen(function* () {
           const started = yield* Deferred.make<boolean>();
           const interrupted = yield* Deferred.make<boolean>();
+
           const layer = bridgeTestLayer("android", () =>
             Deferred.succeed(started, true).pipe(
               Effect.andThen(Effect.never),
               Effect.onInterrupt(() => Deferred.succeed(interrupted, true))
             )
           );
+
           const mounted = yield* mount(layer);
           yield* Deferred.await(started);
           mounted.render(
@@ -205,6 +223,7 @@ describe(RadicalProvider, () => {
         const mounted = yield* mount(
           bridgeTestLayer("browser", () => Effect.never)
         );
+
         const first = yield* Deferred.await(mounted.completed);
         assert.isDefined(first.value);
         const started = yield* Deferred.make<boolean>();
@@ -243,6 +262,7 @@ it.effect(
         const updated = yield* Deferred.make<boolean>();
         let publish: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
         let removed = false;
+
         const layer = Layer.succeed(Bridge, {
           runtime: Effect.succeed("ios" as const),
           call: () => Effect.never,
@@ -250,27 +270,33 @@ it.effect(
             Effect.sync(() => {
               publish = receive;
               receive(initial);
+
               return () => {
                 removed = true;
               };
             }),
         });
+
         const container = document.createElement("div");
         const root = createRoot(container);
         const priorStyle = document.documentElement.style.cssText;
         const values: unknown[] = [];
+
         const AreaProbe = () => {
           const area = useSafeArea();
           useLayoutEffect(() => {
             values.push(area);
+
             if (area === rotated || area.left === rotated.left) {
               queueMicrotask(() => {
                 Effect.runSync(Deferred.succeed(updated, true));
               });
             }
           }, [area]);
+
           return createElement("pre", null, JSON.stringify(area));
         };
+
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
             flushSync(() => {

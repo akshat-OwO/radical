@@ -22,11 +22,13 @@ export interface WebDataEnvironment {
   };
   readonly serviceWorker?: Pick<ServiceWorkerContainer, "getRegistrations">;
 }
+
 const attempt = <A>(run: () => A) =>
   Effect.try({
     try: run,
     catch: (cause) => new WebDataClearFailed({ cause }),
   });
+
 const promise = <A>(run: () => Promise<A>) =>
   Effect.tryPromise({
     try: run,
@@ -43,6 +45,7 @@ export const pauseOfflineWorker = (
       "message",
       (event: MessageEvent<unknown>) => {
         const message = decodeOfflineMessage(event.data);
+
         if (
           message._tag === "None" ||
           (message.value !== offlineMessages.cleared &&
@@ -50,6 +53,7 @@ export const pauseOfflineWorker = (
         ) {
           return;
         }
+
         resume(
           message.value === offlineMessages.cleared
             ? Effect.succeed(true)
@@ -71,6 +75,7 @@ export const pauseOfflineWorker = (
         })
       )
     );
+
     return Effect.sync(() => {
       channel.port1.close();
       channel.port2.close();
@@ -90,28 +95,35 @@ export const pauseOfflineWorker = (
 const clearCookies = (env: WebDataEnvironment) => {
   const paths = new Set(["/", ""]);
   const parts = env.location.pathname.split("/");
+
   for (let i = 1; i <= parts.length; i += 1) {
     const path = parts.slice(0, i).join("/");
     paths.add(path);
     paths.add(`${path}/`);
   }
+
   const host = env.location.hostname.split(".");
   const domains = new Set([""]);
+
   for (let i = 0; i < host.length; i += 1) {
     const domain = host.slice(i).join(".");
     domains.add(`; Domain=${domain}`);
     domains.add(`; Domain=.${domain}`);
   }
+
   for (const cookie of env.document.cookie.split(";")) {
     const name = cookie.split("=")[0]?.trim();
+
     if (name === undefined || name === "") {
       continue;
     }
+
     for (const path of paths) {
       for (const domain of domains) {
         const value = `${name}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=${path}${domain}`;
         env.document.cookie =
           env.location.protocol === "https:" ? `${value}; Secure` : value;
+
         if (env.location.protocol === "https:") {
           env.document.cookie = `${value}; Secure; SameSite=None; Partitioned`;
         }
@@ -124,9 +136,11 @@ export const clearBrowserWebData = (read: () => WebDataEnvironment) =>
   Effect.gen(function* () {
     const env = yield* attempt(read);
     yield* attempt(() => env.disableSnapshots?.());
+
     const registrations = yield* promise(
       () => env.serviceWorker?.getRegistrations() ?? Promise.resolve([])
     );
+
     for (const registration of registrations) {
       for (const worker of new Set([
         registration.active,
@@ -140,23 +154,30 @@ export const clearBrowserWebData = (read: () => WebDataEnvironment) =>
           yield* pauseOfflineWorker(worker);
         }
       }
+
       yield* promise(() => registration.unregister());
     }
+
     const caches = yield* attempt(() => env.caches);
+
     if (caches) {
       const keys = yield* promise(() => caches.keys());
       yield* Effect.forEach(keys, (key) => promise(() => caches.delete(key)), {
         discard: true,
       });
     }
+
     const db = yield* attempt(() => env.indexedDB);
     const enumerate = db?.databases;
+
     if (db && enumerate) {
       const databases = yield* promise(() => enumerate.call(db));
+
       for (const { name } of databases) {
         if (name === undefined || name === "") {
           continue;
         }
+
         const request = yield* attempt(() => db.deleteDatabase(name));
         yield* Effect.callback<boolean, WebDataClearFailed>((resume) => {
           request.addEventListener("success", () => {
@@ -179,6 +200,7 @@ export const clearBrowserWebData = (read: () => WebDataEnvironment) =>
         });
       }
     }
+
     yield* attempt(() => {
       env.localStorage.clear();
       env.sessionStorage.clear();

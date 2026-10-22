@@ -6,6 +6,7 @@ import type { Plugin, ResolvedConfig } from "vite";
 export const hookHandler = <F extends object>(
   hook: F | { readonly handler: F }
 ): F => ("handler" in hook ? hook.handler : hook);
+
 export const resolvePlugin = (plugin: Plugin, base = "/app/") =>
   Effect.promise(async () => {
     const hook = plugin.configResolved;

@@ -12,6 +12,7 @@ const cameraMedia = Schema.Struct({
     })
   ),
 });
+
 export const cameraPermissions = Schema.Struct({
   camera: Schema.Literals([
     "granted",
@@ -20,6 +21,7 @@ export const cameraPermissions = Schema.Struct({
     "prompt-with-rationale",
   ]),
 });
+
 export const cameraPlugin = definePlugin({
   id: "camera",
   bridge: "Camera",

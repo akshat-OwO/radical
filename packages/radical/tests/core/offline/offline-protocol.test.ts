@@ -35,10 +35,12 @@ describe("offline protocol", () => {
           ["radical-snapshot-ready"],
         ]) {
           const decoded = decodeOfflineMessage(input);
+
           const generated: unknown = vm.runInNewContext(
             `${offlineProtocolScript("dev.example")} decodeOfflineMessage(input)`,
             { input, URL }
           );
+
           assert.strictEqual(decodeWorkerMessage(input), generated);
           assert.strictEqual(
             generated,
@@ -58,6 +60,7 @@ describe("offline protocol", () => {
               offlineCachePrefix("dev.example", base),
               build
             );
+
             assert.strictEqual(
               name,
               `radical:dev.example:${base}:${build}:snapshots`
@@ -66,6 +69,7 @@ describe("offline protocol", () => {
             assert.isFalse(isSnapshotCache(name, "dev.other"));
           }
         }
+
         assert.isFalse(
           isSnapshotCache("radical:dev.example:/:one:assets", "dev.example")
         );
@@ -90,10 +94,12 @@ describe("offline protocol", () => {
         snapshotKey("https://app.test/notes?a=2&a=1&b=%20"),
         key
       );
+
       const generated: unknown = vm.runInNewContext(
         `${offlineProtocolScript("dev.example")} snapshotKey(input)`,
         { input: `${key}#section`, URL }
       );
+
       assert.strictEqual(generated, key);
     })
   );
@@ -113,6 +119,7 @@ describe("offline protocol", () => {
               "__OFFLINE_SAVED_URL_KEY__",
               JSON.stringify(savedOfflineURLKeys[platform])
             );
+
             assert.notInclude(rendered, "__OFFLINE_SAVED_URL_KEY__");
             assert.include(
               rendered,

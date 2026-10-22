@@ -40,12 +40,15 @@ export const generateAndroid = (
     const fs = yield* FileSystem.FileSystem;
     const native = yield* readNativeProject(root, packageRoot, "android", plan);
     const { config, url, origins, cookie } = native;
+
     const template = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/MainActivity.java")
     );
+
     const gradleTemplate = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/radical.gradle")
     );
+
     const replacements = {
       __OFFLINE_LAUNCH__: JSON.stringify(
         yield* fs.readFileString(
@@ -76,17 +79,20 @@ export const generateAndroid = (
       __ORIGINS__: origins.map((value) => JSON.stringify(value)).join(", "),
       __GUARD__: JSON.stringify(navigationGuardScript(origins)),
     };
+
     const activity = yield* renderTemplate(
       "MainActivity.java",
       template,
       replacements
     );
+
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
         const manifestPath = path.join(
           staging,
           "android/app/src/main/AndroidManifest.xml"
         );
+
         const manifest = yield* fs.readFileString(manifestPath);
         yield* fs.writeFileString(
           manifestPath,
@@ -97,11 +103,13 @@ export const generateAndroid = (
             `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.android.declarations.join("")}</manifest>`
           )
         );
+
         if (config.splash) {
           const styles = path.join(
             staging,
             "android/app/src/main/res/values/styles.xml"
           );
+
           yield* fs.writeFileString(
             styles,
             yield* replaceAnchor(
@@ -112,6 +120,7 @@ export const generateAndroid = (
             )
           );
         }
+
         const appGradle = path.join(staging, "android/app/build.gradle");
         const gradle = yield* fs.readFileString(appGradle);
         yield* fs.writeFileString(

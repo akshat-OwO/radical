@@ -18,6 +18,7 @@ export class CliNative extends Context.Service<
     readonly runIos: typeof runIos;
   }
 >()("radical/CliNative") {}
+
 export const cliNativeLayer = Layer.succeed(CliNative, {
   generateAndroid,
   generateIos,
@@ -50,6 +51,7 @@ export const makeCli = (root: string) => {
         )
       )
   );
+
   const ios = Command.make(
     "ios",
     {
@@ -74,9 +76,11 @@ export const makeCli = (root: string) => {
         )
       )
   );
+
   const typegen = Command.make("typegen", {}, () =>
     CliVite.pipe(Effect.flatMap((vite) => vite.resolve(true)))
   );
+
   return Command.make("radical").pipe(
     Command.withSubcommands([android, ios, typegen])
   );

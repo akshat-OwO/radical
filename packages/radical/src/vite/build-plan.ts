@@ -38,15 +38,19 @@ const optionsFor = <S extends Schema.Top>(
 export const composePlist = (entries: readonly PlistContribution[]) =>
   Effect.gen(function* () {
     const keys = new Map<string, PlistContribution[]>();
+
     for (const entry of entries) {
       keys.set(entry.key, [...(keys.get(entry.key) ?? []), entry]);
     }
+
     const resolved: Record<string, string> = {};
+
     for (const [key, values] of keys) {
       if (values.every((value) => value.composition === "unique-purpose")) {
         const purposes = values
           .toSorted((a, b) => (a.order ?? 0) - (b.order ?? 0))
           .map((value) => value.value);
+
         resolved[key] =
           `<string>${escapeXml([...new Set(purposes)].join(" "))}</string>`;
       } else {
@@ -61,11 +65,14 @@ export const composePlist = (entries: readonly PlistContribution[]) =>
             message: `Conflicting iOS plist contributions for ${key}`,
           });
         }
+
         resolved[key] = values[0]?.value ?? "";
       }
     }
+
     return resolved;
   });
+
 export const renderPlist = (entries: Readonly<Record<string, string>>) =>
   Object.entries(entries)
     .map(([key, value]) => `<key>${key}</key>${value}`)
@@ -78,6 +85,7 @@ export const composeSettings = <A>(
 ) =>
   Effect.gen(function* () {
     const resolved: Record<string, A> = {};
+
     for (const entry of entries) {
       for (const [key, value] of Object.entries(entry)) {
         if (
@@ -88,9 +96,11 @@ export const composeSettings = <A>(
             message: `Conflicting ${kind} contributions for ${key}`,
           });
         }
+
         resolved[key] = value;
       }
     }
+
     return resolved;
   });
 
@@ -104,22 +114,28 @@ export const resolveBuildPlan = flow(
       const camera = optionsFor(plugins, cameraPlugin);
       const videoStream = optionsFor(plugins, videoStreamPlugin);
       const googleSignIn = optionsFor(plugins, googleSignInPlugin);
+
       // Build-only handlers stay outside the browser-safe registry and manifest graph.
       const contributions: Partial<
         Record<(typeof capabilities)[number], NativeContributions>
       > = {};
+
       if (googleSignIn !== undefined) {
         contributions.googleSignIn = googleSignInContributions(googleSignIn);
       }
+
       if (camera !== undefined) {
         contributions.camera = cameraContributions(camera);
       }
+
       if (videoStream !== undefined) {
         contributions.videoStream = videoStreamContributions(videoStream);
       }
+
       if (capabilities.includes("pushNotifications")) {
         contributions.pushNotifications = pushNotificationContributions(config);
       }
+
       // Preserve declaration order independently of enablement order.
       const ordered = [
         contributions.camera,
@@ -127,21 +143,27 @@ export const resolveBuildPlan = flow(
         contributions.googleSignIn,
         contributions.pushNotifications,
       ].filter((value): value is NativeContributions => value !== undefined);
+
       const plistEntries = ordered.flatMap((value) => value.plist ?? []);
       const plist = yield* composePlist(plistEntries);
+
       const declarations = yield* composePlist(
         plistEntries.filter((entry) => entry.stage === undefined)
       );
+
       const postprocess = yield* composePlist(
         plistEntries.filter((entry) => entry.stage === "postprocess")
       );
+
       const entitlements = yield* composeSettings(
         "iOS entitlement",
         ordered.map((value) => value.entitlements ?? {})
       );
+
       const appDelegateHooks = [
         ...new Set(ordered.flatMap((value) => value.appDelegateHooks ?? [])),
       ];
+
       const defines = {
         ...googleSignInDefaults,
         ...(yield* composeSettings(
@@ -149,12 +171,15 @@ export const resolveBuildPlan = flow(
           ordered.map((value) => value.defines ?? {})
         )),
       };
+
       const spm = yield* composeSettings(
         "SPM setting",
         ordered.map((value) => value.spm ?? {})
       );
+
       const edits: NativeEdit[] = ordered.flatMap((value) => value.edits ?? []);
       const files = ordered.flatMap((value) => value.files ?? []);
+
       if (appDelegateHooks.length > 0) {
         edits.push({
           platform: "ios",
@@ -163,6 +188,7 @@ export const resolveBuildPlan = flow(
           replacement: `    var window: UIWindow?\n\n${appDelegateHooks.join("\n\n")}`,
         });
       }
+
       if (Object.keys(entitlements).length > 0) {
         files.push({
           platform: "ios",
@@ -177,6 +203,7 @@ export const resolveBuildPlan = flow(
             "CODE_SIGN_STYLE = Automatic;\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;",
         });
       }
+
       if (Object.keys(postprocess).length > 0) {
         edits.push({
           platform: "ios",
@@ -185,6 +212,7 @@ export const resolveBuildPlan = flow(
           replacement: `${renderPlist(postprocess)}\n</dict></plist>`,
         });
       }
+
       return {
         config,
         capabilities,
@@ -213,4 +241,5 @@ export const resolveBuildPlan = flow(
     })
   )
 );
+
 export type BuildPlan = Effect.Success<ReturnType<typeof resolveBuildPlan>>;

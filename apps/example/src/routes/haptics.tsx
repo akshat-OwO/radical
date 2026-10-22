@@ -3,6 +3,7 @@ import { useHapticFeedback } from "radical/react";
 
 const Haptics = () => {
   const feedback = useHapticFeedback();
+
   const actions = [
     ["Light", feedback.light],
     ["Medium", feedback.medium],
@@ -18,6 +19,7 @@ const Haptics = () => {
       },
     ],
   ] as const;
+
   return (
     <main>
       <h1>Haptic feedback</h1>
@@ -44,4 +46,5 @@ const Haptics = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/haptics")({ component: Haptics });

@@ -24,19 +24,23 @@ import { replaceAnchor } from "./native-template.ts";
 import { execute, replaceProject } from "./shell.ts";
 
 const require = createRequire(import.meta.url);
+
 export class NativeToolchainUnavailable extends Schema.TaggedError<
   NativeToolchainUnavailable,
   { readonly brand: unique symbol }
 >()("NativeToolchainUnavailable", { message: Schema.String }) {}
+
 /** Cookies share identity across schemes and ports. Plan once per hostname. */
 export const nativeCookiePlan = (origins: readonly string[]) => {
   const hosts = new Map<
     string,
     { hostname: string; origin: string; secure: boolean }
   >();
+
   for (const origin of [...origins].toSorted()) {
     const url = new URL(origin);
     const previous = hosts.get(url.hostname);
+
     if (!previous || url.protocol === "http:") {
       hosts.set(url.hostname, {
         hostname: url.hostname,
@@ -45,6 +49,7 @@ export const nativeCookiePlan = (origins: readonly string[]) => {
       });
     }
   }
+
   return [...hosts.values()].toSorted((a, b) =>
     a.hostname.localeCompare(b.hostname)
   );
@@ -58,6 +63,7 @@ export const capacitor = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const appRequire = createRequire(path.join(root, "package.json"));
+
     const resolved = yield* Effect.try({
       try: () => ({
         cli: require.resolve("@capacitor/cli/bin/capacitor"),
@@ -86,6 +92,7 @@ export const capacitor = (
           message: `Install the enabled plugins' npm dependencies and @capacitor/core@8, @capacitor/${platform}@8 and @capacitor/cli@8 to generate a ${platform} shell: ${String(cause)}`,
         }),
     });
+
     const packages = yield* Effect.forEach(
       (entry: (typeof resolved.packages)[number]) =>
         fs.readFileString(path.join(entry.directory, "package.json")).pipe(
@@ -97,9 +104,11 @@ export const capacitor = (
           Effect.map(({ version }) => ({ ...entry, version }))
         )
     )(resolved.packages);
+
     for (const entry of packages) {
       for (const { manifest } of plugins) {
         const range = manifest.dependencies[entry.name];
+
         if (range !== undefined && !semver.satisfies(entry.version, range)) {
           return yield* new InvalidPlugin({
             message: `Plugin ${manifest.id} requires ${entry.name}@${range}, installed ${entry.version}`,
@@ -107,8 +116,10 @@ export const capacitor = (
         }
       }
     }
+
     return { cli: resolved.cli, packages };
   });
+
 export const readNativeProject = (
   root: string,
   packageRoot: string,
@@ -117,6 +128,7 @@ export const readNativeProject = (
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
+
     const {
       config: input,
       url,
@@ -125,6 +137,7 @@ export const readNativeProject = (
       Effect.flatMap((metadata) => metadata.read(root)),
       Effect.provide(nativeMetadataLayer)
     );
+
     const plan = resolvedPlan ?? (yield* resolveBuildPlan(input));
     const { config, plugins } = plan;
     const bundled = config.mode === "bundled";
@@ -136,11 +149,14 @@ export const readNativeProject = (
     );
     const assets = yield* prepareNativeAssets(root, config);
     const { origin } = new URL(url);
+
     const localOrigin =
       platform === "android" ? "https://localhost" : "capacitor://localhost";
+
     const origins = bundled
       ? [localOrigin]
       : [...new Set([origin, ...(config.allowlist ?? [])])];
+
     const { version } = yield* fs
       .readFileString(path.join(packageRoot, "package.json"))
       .pipe(
@@ -150,12 +166,14 @@ export const readNativeProject = (
           )
         )
       );
+
     // Template seed only. Shells replace safeArea before writing any cookie.
     const cookie = yield* encodeNativeContextCookie({
       platform,
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
       shellVersion: version,
     });
+
     return {
       config,
       plan,
@@ -170,6 +188,7 @@ export const readNativeProject = (
       plugins,
     };
   });
+
 export const renderTemplate = (
   file: string,
   template: string,
@@ -177,9 +196,11 @@ export const renderTemplate = (
 ) =>
   Effect.gen(function* () {
     let source = template;
+
     for (const [anchor, replacement] of Object.entries(replacements)) {
       source = yield* replaceAnchor(file, source, anchor, replacement);
     }
+
     return source;
   });
 
@@ -193,6 +214,7 @@ export const generateNativeProject = <E, R>(
     const fs = yield* FileSystem.FileSystem;
     const { cli, packages } = yield* capacitor(platform, native.plugins, root);
     const { config, url } = native;
+
     return yield* replaceProject(
       path.join(root, `.radical/${platform}`),
       (staging) =>
@@ -201,6 +223,7 @@ export const generateNativeProject = <E, R>(
             path.join(staging, "node_modules/@capacitor"),
             { recursive: true }
           );
+
           for (const entry of packages) {
             yield* fs.makeDirectory(
               path.dirname(path.join(staging, "node_modules", entry.name)),
@@ -211,7 +234,9 @@ export const generateNativeProject = <E, R>(
               path.join(staging, "node_modules", entry.name)
             );
           }
+
           yield* fs.makeDirectory(path.join(staging, "www"));
+
           if (native.bundled) {
             if (native.outputs?.spaShell === undefined) {
               return yield* new InvalidConfig({
@@ -219,8 +244,10 @@ export const generateNativeProject = <E, R>(
                   "Bundled mode requires the adapter to report clientDir and spaShell outputs. Rebuild the app before generating the shell.",
               });
             }
+
             const client = path.resolve(root, native.outputs.clientDir);
             const shellPath = path.resolve(client, native.outputs.spaShell);
+
             const shell = yield* fs.readFileString(shellPath).pipe(
               Effect.mapError(
                 () =>
@@ -229,6 +256,7 @@ export const generateNativeProject = <E, R>(
                   })
               )
             );
+
             yield* fs.copy(client, path.join(staging, "www"), {
               overwrite: true,
             });
@@ -242,6 +270,7 @@ export const generateNativeProject = <E, R>(
               "<!doctype html><title>Radical shell</title>"
             );
           }
+
           yield* fs.writeFileString(
             path.join(staging, "package.json"),
             JSON.stringify({
@@ -254,6 +283,7 @@ export const generateNativeProject = <E, R>(
             })
           );
           const platformConfig: CapacitorPlatformConfig = {};
+
           if (platform === "android") {
             // Radical serves packaged worker requests before Capacitor's client.
             platformConfig.android = {
@@ -266,10 +296,13 @@ export const generateNativeProject = <E, R>(
               limitsNavigationsToAppBoundDomains: !native.bundled,
             };
           }
+
           const serverUrl: CapacitorServerUrl = {};
+
           if (!native.bundled) {
             serverUrl.url = url;
           }
+
           yield* fs.writeFileString(
             path.join(staging, "capacitor.config.json"),
             JSON.stringify({
@@ -300,6 +333,7 @@ export const generateNativeProject = <E, R>(
           );
           yield* execute(process.execPath, [cli, "add", platform], staging);
           yield* customize(staging);
+
           if (native.assets.length > 0) {
             const generator = yield* AssetGenerator;
             yield* generator.generate({
@@ -309,10 +343,12 @@ export const generateNativeProject = <E, R>(
               backgroundColor: config.splash?.backgroundColor ?? "#ffffff",
             });
           }
+
           return yield* Effect.void;
         })
     );
   });
+
 interface CapacitorPlatformConfig {
   android?: {
     resolveServiceWorkerRequests: boolean;
@@ -320,6 +356,7 @@ interface CapacitorPlatformConfig {
   };
   ios?: { limitsNavigationsToAppBoundDomains: boolean };
 }
+
 interface CapacitorServerUrl {
   url?: string;
 }

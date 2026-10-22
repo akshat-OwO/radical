@@ -8,6 +8,7 @@ import type {
   VideoStreamOptions,
   VideoStreamSession,
 } from "./video-stream-schema.ts";
+
 const supportsUserMedia = (
   devices: MediaDevices | undefined
 ): devices is MediaDevices => typeof devices?.getUserMedia === "function";
@@ -21,8 +22,10 @@ export class BrowserVideoStream extends Context.Service<
     readonly present: (viewfinder: HTMLElement) => Effect.Effect<() => void>;
   }
 >()("radical/BrowserVideoStream") {}
+
 const unavailable = (cause: unknown) =>
   new Unavailable({ reason: String(cause) });
+
 const mediaError = (cause: unknown) =>
   cause instanceof DOMException &&
   (cause.name === "NotAllowedError" || cause.name === "SecurityError")
@@ -54,6 +57,7 @@ export const requestVideoMedia = <
 export const presentVideoStream = (viewfinder: HTMLElement) =>
   Effect.sync(() => {
     const nodes: HTMLElement[] = [];
+
     for (
       let node: HTMLElement | null = viewfinder;
       node;
@@ -61,6 +65,7 @@ export const presentVideoStream = (viewfinder: HTMLElement) =>
     ) {
       nodes.push(node);
     }
+
     const previous = nodes.map((node) => ({
       node,
       declarations: Array.from({ length: node.style.length }, (_, index) =>
@@ -75,24 +80,30 @@ export const presentVideoStream = (viewfinder: HTMLElement) =>
           priority: node.style.getPropertyPriority(name),
         })),
     }));
+
     for (const node of nodes) {
       node.style.setProperty("background", "transparent", "important");
     }
+
     return () => {
       for (const { node, declarations } of previous) {
         node.style.removeProperty("background");
+
         for (const { name, value, priority } of declarations) {
           node.style.setProperty(name, value, priority);
         }
       }
     };
   });
+
 interface Detector {
   readonly detect: (
     video: HTMLVideoElement
   ) => Promise<readonly { rawValue: string }[]>;
 }
+
 type DetectorConstructor = new (options: { formats: string[] }) => Detector;
+
 // SAFETY: BarcodeDetector is an optional browser extension with the API used by Detector.
 const detectorConstructor = () =>
   (globalThis as typeof globalThis & { BarcodeDetector?: DetectorConstructor })
@@ -106,6 +117,7 @@ const browserStart = (options: VideoStreamOptions) =>
     ) {
       return yield* unavailable("getUserMedia is unavailable");
     }
+
     const video = options.viewfinder.ownerDocument.createElement("video");
     video.autoplay = true;
     video.muted = true;
@@ -114,12 +126,15 @@ const browserStart = (options: VideoStreamOptions) =>
     let facing = options.facing ?? "rear";
     let torch = false;
     let stream: MediaStream | undefined;
+
     const stopTracks = () => {
       for (const track of stream?.getTracks() ?? []) {
         track.stop();
       }
+
       stream = undefined;
     };
+
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
         stopTracks();
@@ -127,9 +142,11 @@ const browserStart = (options: VideoStreamOptions) =>
         video.remove();
       })
     );
+
     const acquire = () =>
       Effect.suspend(() => {
         let accepted = false;
+
         return requestVideoMedia(
           () =>
             navigator.mediaDevices.getUserMedia({
@@ -154,18 +171,22 @@ const browserStart = (options: VideoStreamOptions) =>
           )
         );
       });
+
     options.viewfinder.append(video);
     yield* acquire();
     yield* Effect.tryPromise({ try: () => video.play(), catch: unavailable });
     const Constructor = detectorConstructor();
+
     const detector = Constructor
       ? yield* Effect.try({
           try: () => new Constructor({ formats: ["qr_code"] }),
           catch: unavailable,
         }).pipe(Effect.option)
       : undefined;
+
     const detection =
       detector && detector._tag === "Some" ? detector.value : undefined;
+
     if (detection && options.onDetect) {
       yield* Effect.forkScoped(
         Effect.forever(
@@ -188,17 +209,22 @@ const browserStart = (options: VideoStreamOptions) =>
         )
       );
     }
+
     const track = () => stream?.getVideoTracks()[0];
+
     const info = Effect.sync(() => {
       const current = track();
+
       const caps:
         | (MediaTrackCapabilities & {
             zoom?: { min: number; max: number };
             torch?: boolean;
           })
         | undefined = current?.getCapabilities();
+
       const settings: (MediaTrackSettings & { zoom?: number }) | undefined =
         current?.getSettings();
+
       return {
         facing,
         torch,
@@ -210,10 +236,12 @@ const browserStart = (options: VideoStreamOptions) =>
         detectionAvailable: detection !== undefined,
       };
     });
+
     const apply = (key: "zoom" | "torch", value: number | boolean) =>
       Effect.gen(function* () {
         const current = track();
         const state = yield* info;
+
         if (
           !current ||
           (key === "zoom"
@@ -228,11 +256,13 @@ const browserStart = (options: VideoStreamOptions) =>
             `Camera ${key} is unsupported or out of range`
           );
         }
+
         return yield* Effect.tryPromise({
           try: () => current.applyConstraints({ advanced: [{ [key]: value }] }),
           catch: unavailable,
         });
       });
+
     return {
       info,
       switchCamera: Effect.sync(() => {
@@ -251,6 +281,7 @@ const browserStart = (options: VideoStreamOptions) =>
         ),
     } satisfies VideoStreamSession;
   });
+
 export const BrowserVideoStreamLive = Layer.succeed(BrowserVideoStream, {
   start: browserStart,
   present: presentVideoStream,

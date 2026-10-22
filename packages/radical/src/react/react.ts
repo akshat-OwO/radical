@@ -14,7 +14,9 @@ import {
 import type { BridgeState } from "./use-bridge-effect.ts";
 
 export type { DeviceInfo } from "../capabilities/device-info/device-info.ts";
+
 export type { BridgeError } from "../core/bridge/bridge.ts";
+
 export { RadicalProvider } from "./use-bridge-effect.ts";
 
 export type DeviceInfoState = BridgeState<DeviceInfo, BridgeError>;
@@ -30,52 +32,66 @@ export const useSafeArea = (): SafeArea => {
   const [snapshot, setSnapshot] = useState({ layer, area: context.safeArea });
   useEffect(() => {
     let release: (() => void) | undefined;
+
     const fiber = Effect.runFork(
       subscribeSafeArea((area) => {
         setSnapshot({ layer, area });
       }).pipe(
         Effect.map((remove) => {
           release = remove;
+
           return remove;
         }),
         Effect.andThen(Effect.never),
         Effect.provide(layer)
       )
     );
+
     return () => {
       release?.();
       Effect.runFork(Fiber.interrupt(fiber));
     };
   }, [layer]);
+
   return snapshot.layer === layer ? snapshot.area : context.safeArea;
 };
+
 export type { SafeArea } from "../core/context/native-context.ts";
 
 export { useCamera, useCameraPermission } from "./use-camera.ts";
+
 export type { CameraState, CameraPermissionState } from "./use-camera.ts";
+
 export type {
   Photo,
   CameraPermission,
   CameraError,
 } from "../capabilities/camera/camera.ts";
+
 export { PermissionDenied, Cancelled, Unavailable } from "../core/errors.ts";
 
 export { useFilePicker, useIntent } from "./use-files.ts";
+
 export type { FilePickerState, IntentState } from "./use-files.ts";
+
 export type {
   PickedFile,
   PickFilesOptions,
   FilePickerError,
 } from "../capabilities/files/file-picker.ts";
+
 export type {
   IntentError,
   OpenableFile,
   OpenFileOptions,
 } from "../capabilities/files/intents.ts";
+
 export { NoHandler } from "../capabilities/files/errors.ts";
 
 export { useVideoStream } from "./use-video-stream.ts";
+
 export type { VideoStreamState } from "./use-video-stream.ts";
+
 export type {
   VideoStreamInfo,
   VideoStreamError,
@@ -83,27 +99,37 @@ export type {
 } from "../capabilities/video-stream/video-stream.ts";
 
 export { useHapticFeedback } from "./use-haptic-feedback.ts";
+
 export type { HapticFeedbackState } from "./use-haptic-feedback.ts";
+
 export type {
   HapticError,
   ImpactStyle,
   NotificationType,
 } from "../capabilities/haptics/haptics.ts";
+
 export { useNetworkStatus } from "./use-network-status.ts";
+
 export type { NetworkStatusState } from "./use-network-status.ts";
+
 export type {
   NetworkStatus,
   NetworkType,
 } from "../capabilities/network/network.ts";
 
 export { useGoogleSignIn } from "./use-google-sign-in.ts";
+
 export type { GoogleSignInState } from "./use-google-sign-in.ts";
+
 export type {
   GoogleIdentity,
   GoogleSignInError,
 } from "../capabilities/google-sign-in/google-sign-in.ts";
+
 export { GoogleSignInCancelled } from "../capabilities/google-sign-in/errors.ts";
+
 export { GoogleSignInMisconfigured } from "../capabilities/google-sign-in/errors.ts";
+
 export { GoogleSignInUnavailable } from "../capabilities/google-sign-in/errors.ts";
 
 export {
@@ -111,6 +137,7 @@ export {
   useNotifications,
   useNotificationPermission,
 } from "./use-notifications.ts";
+
 export type {
   ExactAlarmPermissionState,
   NotificationsState,
@@ -118,7 +145,9 @@ export type {
 } from "./use-notifications.ts";
 
 export { useDataProtection } from "./use-data-protection.ts";
+
 export type { DataProtectionState } from "./use-data-protection.ts";
+
 export type {
   DataProtectionStatus,
   DataProtectionError,

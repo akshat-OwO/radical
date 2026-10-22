@@ -1,7 +1,9 @@
 import { Schema } from "effect";
 
 export { PermissionDenied } from "../../core/errors.ts";
+
 export { Cancelled } from "../../core/errors.ts";
+
 export { Unavailable } from "../../core/errors.ts";
 
 export const CameraPermissionSchema = Schema.Literals([
@@ -9,7 +11,9 @@ export const CameraPermissionSchema = Schema.Literals([
   "denied",
   "prompt",
 ]);
+
 export type CameraPermission = typeof CameraPermissionSchema.Type;
+
 export const PhotoSchema = Schema.Struct({
   dataUrl: Schema.String.check(
     Schema.isPattern(/^data:image\/[a-zA-Z0-9.+-]+;base64,/u)
@@ -18,7 +22,9 @@ export const PhotoSchema = Schema.Struct({
   width: Schema.optional(Schema.Finite.check(Schema.isGreaterThan(0))),
   height: Schema.optional(Schema.Finite.check(Schema.isGreaterThan(0))),
 });
+
 export type Photo = typeof PhotoSchema.Type;
+
 const usageDescription = Schema.String.check(
   Schema.makeFilter(
     (text) =>
@@ -30,6 +36,7 @@ const usageDescription = Schema.String.check(
         )
   )
 );
+
 export const CameraConfigSchema = Schema.Struct({
   usageDescription,
   photoLibraryUsageDescription: usageDescription,

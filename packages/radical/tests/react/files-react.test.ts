@@ -27,6 +27,7 @@ it.effect(
         let intent: IntentState | undefined;
         let picker: FilePickerState | undefined;
         let completed = true;
+
         const layer = bridgeTestLayer("android", (plugin, method) =>
           plugin === "AppLauncher"
             ? Effect.succeed({ completed })
@@ -38,29 +39,36 @@ it.effect(
                 })
               )
         );
+
         const Probe = () => {
           const intentState = useIntent();
           const pickerState = useFilePicker();
           useLayoutEffect(() => {
             intent = intentState;
             picker = pickerState;
+
             const settle = (signal: Deferred.Deferred<boolean>) => {
               queueMicrotask(() => {
                 Effect.runSync(Deferred.succeed(signal, true));
               });
             };
+
             if (intentState.value === true) {
               settle(opened);
             }
+
             if (intentState.error?._tag === "NoHandler") {
               settle(missing);
             }
+
             if (pickerState.error?._tag === "Cancelled") {
               settle(cancelled);
             }
           }, [intentState, pickerState]);
+
           return null;
         };
+
         const root = createRoot(document.createElement("div"));
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {

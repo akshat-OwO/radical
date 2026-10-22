@@ -12,6 +12,7 @@ const readNativeContext = createServerFn({ method: "GET" }).handler(
 
 const Home = () => {
   const [echo, setEcho] = useState("Ready");
+
   const runEcho = (text: string) => {
     Effect.runFork(
       plugins.echo.echo({ text }).pipe(
@@ -31,9 +32,11 @@ const Home = () => {
       )
     );
   };
+
   const device = useDeviceInfo();
   const safeArea = useSafeArea();
   const [nativeContext, setNativeContext] = useState("Not requested");
+
   const callServer = () => {
     Effect.runFork(
       Effect.tryPromise(async () => await readNativeContext()).pipe(
@@ -49,6 +52,7 @@ const Home = () => {
       )
     );
   };
+
   const [css, setCSS] = useState("");
   useEffect(() => {
     const readCSS = () => {
@@ -62,12 +66,15 @@ const Home = () => {
           .join("; ")
       );
     };
+
     readCSS();
     window.addEventListener("radicalSafeArea", readCSS);
+
     return () => {
       window.removeEventListener("radicalSafeArea", readCSS);
     };
   }, []);
+
   return (
     <main>
       <h1>Radical example</h1>

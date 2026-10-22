@@ -20,6 +20,7 @@ import {
 
 const unexpected = () =>
   Effect.sync(() => assert.fail("Unexpected native call"));
+
 const actions = [
   hapticImpact("LIGHT"),
   hapticImpact(),
@@ -42,17 +43,20 @@ it.effect(
     Effect.gen(function* () {
       for (const runtime of ["android", "ios"] as const) {
         const calls: unknown[] = [];
+
         const layer = bridgeTestLayer(runtime, (plugin, method, options) =>
           Effect.sync(() => {
             calls.push({ plugin, method, options });
           })
         );
+
         for (const action of actions) {
           yield* action.pipe(
             Effect.provide(layer),
             Effect.provideService(BrowserHaptics, { vibrate: unexpected })
           );
         }
+
         assert.deepStrictEqual(calls, [
           ...["LIGHT", "MEDIUM", "HEAVY"].map((style) => ({
             plugin: "Haptics",
@@ -75,6 +79,7 @@ it.effect(
 it.effect("uses browser vibration patterns without calling the bridge", () =>
   Effect.gen(function* () {
     const patterns: (readonly number[])[] = [];
+
     for (const action of actions) {
       yield* action.pipe(
         Effect.provide(bridgeTestLayer("browser", unexpected)),
@@ -86,6 +91,7 @@ it.effect("uses browser vibration patterns without calling the bridge", () =>
         })
       );
     }
+
     assert.deepStrictEqual(patterns, [
       [10],
       [20],
@@ -104,6 +110,7 @@ it.effect("does nothing without a browser vibration API", () =>
       typeof navigator === "undefined" || navigator.vibrate === undefined,
       true
     );
+
     for (const action of actions) {
       yield* action.pipe(
         Effect.provide(
@@ -126,6 +133,7 @@ it.effect(
         method: "impact",
         cause: { code: "UNIMPLEMENTED" },
       });
+
       const error = yield* hapticImpact().pipe(
         Effect.provide(
           Layer.merge(
@@ -135,14 +143,17 @@ it.effect(
         ),
         Effect.flip
       );
+
       assert.strictEqual(error, failure);
       // Exercise the Schema boundary used by JavaScript callers.
       // @ts-expect-error Invalid style must also be rejected at runtime.
       const invalid = hapticImpact("STRONG");
       // @ts-expect-error Invalid type must also be rejected at runtime.
       const invalidNotification = hapticNotification("INFO");
+
       for (const runtime of ["android", "ios", "browser"] as const) {
         const patterns: (readonly number[])[] = [];
+
         for (const action of [invalid, invalidNotification]) {
           const decodeError = yield* action.pipe(
             Effect.provide(bridgeTestLayer(runtime, unexpected)),
@@ -154,8 +165,10 @@ it.effect(
             }),
             Effect.flip
           );
+
           assert.strictEqual(decodeError._tag, "BridgeDecodeError");
         }
+
         assert.deepStrictEqual(patterns, []);
       }
     })
@@ -167,6 +180,7 @@ for (const inFlight of ["selectionStart", "selectionChanged"] as const) {
     () =>
       Effect.gen(function* () {
         const calls: string[] = [];
+
         const fiber = yield* hapticSelection.pipe(
           Effect.provide(
             Layer.merge(
@@ -184,6 +198,7 @@ for (const inFlight of ["selectionStart", "selectionChanged"] as const) {
           ),
           Effect.forkChild
         );
+
         yield* TestClock.adjust("1 second");
         assert.strictEqual(calls.at(-1), inFlight);
         yield* Fiber.interrupt(fiber);
@@ -203,16 +218,19 @@ for (const failedMethod of ["selectionStart", "selectionChanged"] as const) {
     () =>
       Effect.gen(function* () {
         const calls: string[] = [];
+
         const failure = new BridgeCallFailed({
           plugin: "Haptics",
           method: failedMethod,
           cause: "action failed",
         });
+
         const cleanupFailure = new BridgeCallFailed({
           plugin: "Haptics",
           method: "selectionEnd",
           cause: "cleanup failed",
         });
+
         const error = yield* hapticSelection.pipe(
           Effect.provide(
             Layer.merge(
@@ -224,6 +242,7 @@ for (const failedMethod of ["selectionStart", "selectionChanged"] as const) {
                     if (method === failedMethod) {
                       return Effect.fail(failure);
                     }
+
                     return method === "selectionEnd"
                       ? Effect.fail(cleanupFailure)
                       : Effect.void;
@@ -235,6 +254,7 @@ for (const failedMethod of ["selectionStart", "selectionChanged"] as const) {
           ),
           Effect.flip
         );
+
         assert.strictEqual(error, failure);
         assert.deepStrictEqual(
           calls,
@@ -254,9 +274,11 @@ it.effect("enables only the opted-in pinned Haptics manifest", () =>
         "haptics"
       );
     }
+
     const plugin = (yield* resolve(true)).find(
       ({ manifest }) => manifest.id === "haptics"
     );
+
     assert.deepStrictEqual(plugin?.manifest.dependencies, {
       "@capacitor/haptics": "8.0.2",
     });

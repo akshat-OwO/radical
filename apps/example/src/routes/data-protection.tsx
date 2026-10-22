@@ -3,6 +3,7 @@ import { useDataProtection } from "radical/react";
 
 const DataProtection = () => {
   const protection = useDataProtection();
+
   return (
     <main>
       <h1>Data protection</h1>
@@ -53,6 +54,7 @@ const DataProtection = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/data-protection")({
   component: DataProtection,
 });

@@ -20,6 +20,7 @@ import { TestClock } from "effect/testing";
 import { runAndroid } from "../../../src/native/android/run.ts";
 
 const project = "/app/.radical/android";
+
 const memory = (
   options: {
     config?: Record<string, string>;
@@ -37,6 +38,7 @@ const memory = (
   const executables: string[] = [];
   let bootChecks = 0;
   let unreferenced = false;
+
   const terminal = Layer.succeed(
     Terminal.Terminal,
     Terminal.make({
@@ -53,15 +55,19 @@ const memory = (
           input: Option.some("\r"),
           key: { name: "enter", ctrl: false, meta: false, shift: false },
         });
+
         return input;
       }),
     })
   );
+
   const fs = FileSystem.layerNoop({
     readFileString: () => Effect.succeed('{"appId":"dev.radical.example"}'),
   });
+
   const outputFor = (args: readonly string[]) => {
     let output = "";
+
     if (args.includes("devices")) {
       output =
         options.devices ??
@@ -73,8 +79,10 @@ const memory = (
     } else if (args.includes("getprop")) {
       output = bootChecks >= (options.bootAfter ?? 1) ? "1\n" : "0\n";
     }
+
     return output;
   };
+
   const spawner = Layer.succeed(
     ChildProcessSpawner.ChildProcessSpawner,
     ChildProcessSpawner.make((command) =>
@@ -82,6 +90,7 @@ const memory = (
         if (command._tag !== "StandardCommand") {
           return assert.fail("Unexpected piped command");
         }
+
         const executable = path.basename(command.command);
         commands.push([executable, ...command.args]);
         executables.push(command.command);
@@ -91,16 +100,20 @@ const memory = (
         );
         const launch = command.args.includes("start");
         const boot = command.args.includes("getprop");
+
         if (boot) {
           bootChecks += 1;
         }
+
         if (executable === "emulator" && command.args.includes("-avd")) {
           assert.strictEqual(command.options.detached, true);
           assert.strictEqual(command.options.stdin, "ignore");
           assert.strictEqual(command.options.stdout, "ignore");
           assert.strictEqual(command.options.stderr, "ignore");
         }
+
         const output = outputFor(command.args);
+
         return ChildProcessSpawner.makeHandle({
           pid: ChildProcessSpawner.ProcessId(1),
           exitCode:
@@ -126,12 +139,14 @@ const memory = (
           getOutputFd: () => Stream.empty,
           unref: Effect.sync(() => {
             unreferenced = true;
+
             return Effect.void;
           }),
         });
       })
     )
   );
+
   return {
     commands,
     executables,
@@ -146,10 +161,12 @@ const memory = (
     ),
   };
 };
+
 const bootCommands = (serial: string) => [
   ["adb", "-s", serial, "wait-for-device"],
   ["adb", "-s", serial, "shell", "getprop", "sys.boot_completed"],
 ];
+
 const expected = (serial: string) => [
   ["adb", "devices"],
   ...bootCommands(serial),
@@ -181,6 +198,7 @@ describe("Android runner", () => {
     "builds, stops Gradle, installs, and waits for the selected activity",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* runAndroid(project, "target");
         assert.deepStrictEqual(state.commands, expected("target"));
@@ -191,6 +209,7 @@ describe("Android runner", () => {
     "prefers a connected emulator and ignores unauthorized devices",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* runAndroid(project, "");
         assert.deepStrictEqual(state.commands, expected("emulator-5554"));
@@ -203,6 +222,7 @@ describe("Android runner", () => {
       const state = memory({
         devices: "List of devices attached\nphone unauthorized\n",
       });
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(runAndroid(project, ""));
         assert.strictEqual(error._tag, "AndroidDeviceUnavailable");
@@ -217,6 +237,7 @@ describe("Android runner", () => {
     "resolves a running AVD name to its serial without starting another emulator",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* runAndroid(project, "Pixel_9");
         assert.deepStrictEqual(state.commands, [
@@ -229,6 +250,7 @@ describe("Android runner", () => {
   );
   it.effect("rejects an unknown AVD without starting an emulator", () => {
     const state = memory({ devices: "", avds: "Pixel_9\n" });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(runAndroid(project, "Missing"));
       assert.strictEqual(error._tag, "AndroidDeviceUnavailable");
@@ -245,6 +267,7 @@ describe("Android runner", () => {
         devices: "emulator-5554 device\nemulator-5556 offline\n",
         avdNames: { "emulator-5554": "Tablet", "emulator-5556": "Pixel_9" },
       });
+
       return Effect.gen(function* () {
         yield* runAndroid(project, "Pixel_9");
         assert.deepStrictEqual(state.commands, [
@@ -258,6 +281,7 @@ describe("Android runner", () => {
   );
   it.effect("reads the SDK root fallback from the provided Config", () => {
     const state = memory({ config: { ANDROID_SDK_ROOT: "/sdk" } });
+
     return Effect.gen(function* () {
       yield* runAndroid(project, "target");
       assert.strictEqual(state.executables[0], "/sdk/platform-tools/adb");
@@ -267,6 +291,7 @@ describe("Android runner", () => {
     const state = memory({
       config: { ANDROID_HOME: "/primary", ANDROID_SDK_ROOT: "/fallback" },
     });
+
     return Effect.gen(function* () {
       yield* runAndroid(project, "target");
       assert.strictEqual(state.executables[0], "/primary/platform-tools/adb");
@@ -276,6 +301,7 @@ describe("Android runner", () => {
     "starts a stopped AVD detached and polls boot completion before installing",
     () => {
       const state = memory({ devices: "", avds: "Pixel_9\n", bootAfter: 3 });
+
       return Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(runAndroid(project, "Pixel_9"));
         yield* TestClock.adjust("2 seconds");
@@ -300,6 +326,7 @@ describe("Android runner", () => {
         avdNames: { "emulator-5554": "Tablet" },
         avds: "Pixel_9\n",
       });
+
       return Effect.gen(function* () {
         yield* runAndroid(project, "Pixel_9");
         assert.deepStrictEqual(state.commands[3], [
@@ -318,6 +345,7 @@ describe("Android runner", () => {
   );
   it.effect("prompts for an installed AVD when no device is running", () => {
     const state = memory({ devices: "", avds: "Pixel_9\nTablet\n" });
+
     return Effect.gen(function* () {
       yield* runAndroid(project, "");
       assert.include(state.displayed.join(""), "Select an Android AVD");
@@ -338,10 +366,12 @@ describe("Android runner", () => {
         avds: "Pixel_9\n",
         stalledWait: true,
       });
+
       return Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(
           Effect.flip(runAndroid(project, "Pixel_9"))
         );
+
         yield* TestClock.adjust("120 seconds");
         const error = yield* Fiber.join(fiber);
         assert.strictEqual(error._tag, "AndroidBootTimeout");
@@ -353,10 +383,12 @@ describe("Android runner", () => {
     "times out repeated incomplete boot properties without installing",
     () => {
       const state = memory({ bootAfter: Number.POSITIVE_INFINITY });
+
       return Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(
           Effect.flip(runAndroid(project, "target"))
         );
+
         yield* TestClock.adjust("120 seconds");
         const error = yield* Fiber.join(fiber);
         assert.strictEqual(error._tag, "AndroidBootTimeout");
@@ -366,6 +398,7 @@ describe("Android runner", () => {
   );
   it.effect("stops Gradle after a failed build without installing", () => {
     const state = memory({ buildFailure: true });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(runAndroid(project, "target"));
       assert.strictEqual(error._tag, "ShellCommandError");
@@ -376,10 +409,12 @@ describe("Android runner", () => {
     "times out a stalled launch without restarting the shared adb server",
     () => {
       const state = memory({ stalledLaunch: true });
+
       return Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(
           Effect.flip(runAndroid(project, "target"))
         );
+
         yield* TestClock.adjust("30 seconds");
         const error = yield* Fiber.join(fiber);
         assert.strictEqual(error._tag, "TimeoutError");

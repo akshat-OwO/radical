@@ -7,6 +7,7 @@ export class AssetGenerationFailed extends Schema.TaggedError<AssetGenerationFai
     message: Schema.String,
   }
 ) {}
+
 export class InvalidAsset extends Schema.TaggedError<InvalidAsset>()(
   "InvalidAsset",
   {

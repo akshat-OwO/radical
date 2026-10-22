@@ -25,24 +25,29 @@ import {
 
 const unexpected = () =>
   Effect.sync(() => assert.fail("Unexpected native call"));
+
 const filesLayer = (overrides: Partial<BrowserFiles["Service"]> = {}) =>
   Layer.succeed(BrowserFiles, {
     pick: () => Effect.sync(() => assert.fail("Unexpected browser picker")),
     readNative: (uri) => Effect.succeed(new Blob([uri], { type: "" })),
     ...overrides,
   });
+
 const intentsLayer = (overrides: Partial<BrowserIntents["Service"]> = {}) =>
   Layer.succeed(BrowserIntents, {
     openUrl: () => Effect.sync(() => assert.fail("Unexpected browser open")),
     ...overrides,
   });
+
 const failed = (cause: unknown) =>
   new BridgeCallFailed({ plugin: "Test", method: "test", cause });
+
 const strip = (files: readonly PickedFile[]) =>
   files.map(({ blob: _blob, ...file }) => file);
 
 const androidIntents = (call: Parameters<typeof bridgeTestLayer>[1]) =>
   Layer.merge(bridgeTestLayer("android", call), intentsLayer());
+
 const ids = (config: Partial<Parameters<typeof resolvePlugins>[0]>) =>
   resolvePlugins({ appId: "dev.test.app", ...config }).pipe(
     Effect.provideService(PluginModules, { load: unexpected }),
@@ -57,6 +62,7 @@ describe("file picker", () => {
         for (const runtime of ["ios", "android"] as const) {
           const calls: unknown[] = [];
           const read: string[] = [];
+
           const files = yield* pickFiles({
             types: ["application/pdf", "image/*"],
             multiple: true,
@@ -66,6 +72,7 @@ describe("file picker", () => {
                 bridgeTestLayer(runtime, (plugin, method, options) =>
                   Effect.sync(() => {
                     calls.push({ plugin, method, options });
+
                     return {
                       files: [
                         {
@@ -90,12 +97,14 @@ describe("file picker", () => {
                   readNative: (uri) =>
                     Effect.sync(() => {
                       read.push(uri);
+
                       return new Blob(["x"]);
                     }),
                 })
               )
             )
           );
+
           assert.deepStrictEqual(calls, [
             {
               plugin: "FilePicker",
@@ -163,6 +172,7 @@ describe("file picker", () => {
             )
           )
         );
+
         assert.deepStrictEqual(strip(files), [
           {
             name: "document%2F42",
@@ -189,6 +199,7 @@ describe("file picker", () => {
             bridgeTestLayer("android", (_plugin, _method, received) =>
               Effect.sync(() => {
                 options = received;
+
                 return {
                   files: [
                     { name: "a", mimeType: "text/plain", size: 1, path: "p" },
@@ -212,8 +223,10 @@ describe("file picker", () => {
           type: "text/plain",
           lastModified: 5,
         });
+
         const untyped = new File(["?"], "raw", { lastModified: 6 });
         let received: unknown;
+
         const files = yield* pickFiles({ types: ["text/plain"] }).pipe(
           Effect.provide(
             Layer.merge(
@@ -222,6 +235,7 @@ describe("file picker", () => {
                 pick: (options) =>
                   Effect.sync(() => {
                     received = options;
+
                     return [file, untyped];
                   }),
                 readNative: () =>
@@ -230,6 +244,7 @@ describe("file picker", () => {
             )
           )
         );
+
         assert.deepStrictEqual(received, { types: ["text/plain"] });
         assert.deepStrictEqual(strip(files), [
           {
@@ -260,6 +275,7 @@ describe("file picker", () => {
             ),
             Effect.flip
           );
+
         assert.instanceOf(
           yield* native(() =>
             Effect.fail(failed({ message: "pickFiles canceled." }))
@@ -300,6 +316,7 @@ describe("file picker", () => {
   it.effect("interrupts a pending browser pick and releases its input", () =>
     Effect.gen(function* () {
       let released = false;
+
       const fiber = yield* pickFiles().pipe(
         Effect.provide(
           Layer.merge(
@@ -319,6 +336,7 @@ describe("file picker", () => {
         ),
         Effect.forkChild
       );
+
       yield* TestClock.adjust("30 seconds");
       yield* Fiber.interrupt(fiber);
       assert.isTrue(released);
@@ -333,6 +351,7 @@ describe("intents", () => {
       Effect.gen(function* () {
         for (const runtime of ["ios", "android"] as const) {
           const calls: unknown[] = [];
+
           for (const completed of [true, false]) {
             const result = yield* openUrl("mailto:a@b.test").pipe(
               Effect.provide(
@@ -340,6 +359,7 @@ describe("intents", () => {
                   bridgeTestLayer(runtime, (plugin, method, options) =>
                     Effect.sync(() => {
                       calls.push({ plugin, method, options });
+
                       return { completed };
                     })
                   ),
@@ -349,6 +369,7 @@ describe("intents", () => {
               Effect.flip,
               Effect.option
             );
+
             if (completed) {
               assert.isTrue(result._tag === "None");
             } else {
@@ -358,6 +379,7 @@ describe("intents", () => {
               );
             }
           }
+
           assert.deepStrictEqual(calls, [
             {
               plugin: "AppLauncher",
@@ -413,16 +435,20 @@ describe("intents", () => {
     () =>
       Effect.gen(function* () {
         const calls: unknown[] = [];
+
         const record = androidIntents((plugin, method, options) =>
           Effect.sync(() => {
             calls.push({ plugin, method, options });
+
             return {};
           })
         );
+
         const file = {
           uri: "content://docs/a.pdf",
           mimeType: "application/pdf",
         };
+
         yield* openFile(file).pipe(Effect.provide(record));
         yield* openFile({ uri: "file:///tmp/b" }, { chooser: true }).pipe(
           Effect.provide(record)
@@ -443,6 +469,7 @@ describe("intents", () => {
             options: { filePath: "file:///tmp/b", openWithDefault: false },
           },
         ]);
+
         for (const [code, tag] of [
           ["8", "NoHandler"],
           ["9", "Unavailable"],
@@ -452,6 +479,7 @@ describe("intents", () => {
             Effect.provide(androidIntents(() => Effect.fail(failed({ code })))),
             Effect.flip
           );
+
           assert.strictEqual(error._tag, tag);
         }
       })
@@ -491,10 +519,12 @@ describe("file and intent enablement", () => {
       assert.include(intents, "appLauncher");
       assert.include(intents, "fileOpener");
       assert.notInclude(intents, "filePicker");
+
       const plugins = yield* resolvePlugins({
         appId: "dev.test.app",
         internalPlugins: { filePicker: true, intents: true },
       }).pipe(Effect.provideService(PluginModules, { load: unexpected }));
+
       assert.deepStrictEqual(
         Object.assign(
           {},

@@ -19,10 +19,12 @@ const capture = cameraLive(capturePhoto);
 const choose = cameraLive(choosePhoto);
 const check = cameraLive(checkCameraPermission);
 const request = cameraLive(requestCameraPermission);
+
 export interface CameraState extends ActionState<Photo, CameraError> {
   readonly capture: () => void;
   readonly choose: () => void;
 }
+
 export interface CameraPermissionState extends ActionState<
   CameraPermission,
   CameraError
@@ -30,8 +32,10 @@ export interface CameraPermissionState extends ActionState<
   readonly check: () => void;
   readonly request: () => void;
 }
+
 export const useCamera = (): CameraState => {
   const { run, ...state } = useBridgeAction<Photo, CameraError>();
+
   return {
     ...state,
     choose: useCallback(() => {
@@ -42,13 +46,17 @@ export const useCamera = (): CameraState => {
     }, [run]),
   };
 };
+
 /** Checks after commit. Permission requests only run from an explicit action. */
 export const useCameraPermission = (): CameraPermissionState => {
   const { run, ...state } = useBridgeAction<CameraPermission, CameraError>();
+
   const refresh = useCallback(() => {
     run(check);
   }, [run]);
+
   useEffect(refresh, [refresh]);
+
   return {
     ...state,
     check: refresh,

@@ -14,10 +14,13 @@ import { NavigationFailed } from "../../../src/core/adapter/errors.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
 
 const transition = { kind: "slide", direction: "back" } as const;
+
 const fixture = Effect.gen(function* () {
   const calls = yield* Ref.make<string[]>([]);
+
   const record = (name: string) =>
     Ref.update(calls, (values) => [...values, name]);
+
   const service: NativeTransitions["Service"] = {
     nextId: Effect.succeed("one"),
     cover: () => record("cover"),
@@ -25,6 +28,7 @@ const fixture = Effect.gen(function* () {
     reveal: (_id, value) => record(`${value.kind}:${value.direction}`),
     remove: () => record("remove"),
   };
+
   return { calls, record, service, commit: record("commit") };
 });
 
@@ -65,6 +69,7 @@ describe("native snapshot transitions", () => {
     Effect.gen(function* () {
       const state = yield* fixture;
       const started = yield* Deferred.make<boolean>();
+
       const fiber = yield* Effect.forkChild(
         nativeTransition("one", transition, state.commit, 100).pipe(
           Effect.provide(
@@ -78,6 +83,7 @@ describe("native snapshot transitions", () => {
           )
         )
       );
+
       yield* Deferred.await(started);
       yield* TestClock.adjust(99);
       assert.deepStrictEqual(yield* Ref.get(state.calls), []);
@@ -91,11 +97,13 @@ describe("native snapshot transitions", () => {
     Effect.gen(function* () {
       const state = yield* fixture;
       const error = new NavigationFailed({ cause: "commit" });
+
       const result = yield* Effect.flip(
         nativeTransition("one", transition, Effect.fail(error)).pipe(
           Effect.provide(Layer.succeed(NativeTransitions, state.service))
         )
       );
+
       assert.strictEqual(result, error);
       assert.deepStrictEqual(yield* Ref.get(state.calls), ["cover", "remove"]);
     })
@@ -106,6 +114,7 @@ describe("native snapshot transitions", () => {
       const state = yield* fixture;
       const started = yield* Deferred.make<boolean>();
       const committed = yield* Deferred.make<string>();
+
       const fiber = yield* Effect.forkChild(
         nativeTransition(
           "one",
@@ -116,6 +125,7 @@ describe("native snapshot transitions", () => {
           100
         ).pipe(Effect.provideService(NativeTransitions, state.service))
       );
+
       yield* Deferred.await(started);
       yield* TestClock.adjust(5000);
       assert.deepStrictEqual(yield* Ref.get(state.calls), ["cover"]);
@@ -134,6 +144,7 @@ describe("native snapshot transitions", () => {
     Effect.gen(function* () {
       const state = yield* fixture;
       const started = yield* Deferred.make<boolean>();
+
       const fiber = yield* Effect.forkChild(
         nativeTransition(
           "one",
@@ -152,6 +163,7 @@ describe("native snapshot transitions", () => {
           )
         )
       );
+
       yield* Deferred.await(started);
       yield* TestClock.adjust(100);
       yield* Fiber.join(fiber);
@@ -168,6 +180,7 @@ describe("native snapshot transitions", () => {
     Effect.gen(function* () {
       const state = yield* fixture;
       const started = yield* Deferred.make<boolean>();
+
       const fiber = yield* Effect.forkChild(
         nativeTransition("one", transition, state.commit).pipe(
           Effect.provide(
@@ -180,6 +193,7 @@ describe("native snapshot transitions", () => {
           )
         )
       );
+
       yield* Deferred.await(started);
       yield* Fiber.interrupt(fiber);
       assert.deepStrictEqual(yield* Ref.get(state.calls), [
@@ -193,25 +207,32 @@ describe("native snapshot transitions", () => {
   it.effect("mints unique overlay ids across live layer rebuilds", () =>
     Effect.gen(function* () {
       const calls = yield* Ref.make<string[]>([]);
+
       const bridge = bridgeTestLayer("ios", (_plugin, method, options) =>
         Ref.update(calls, (values) => [
           ...values,
           `${method}:${String(options.id)}`,
         ]).pipe(Effect.as({ id: options.id }))
       );
+
       const layer = NativeTransitionsLive.pipe(Layer.provide(bridge));
+
       const overlay = Effect.gen(function* () {
         const native = yield* NativeTransitions;
         const id = yield* native.nextId;
         yield* native.cover(id);
         yield* native.reveal(id, transition);
         yield* native.remove(id);
+
         return id;
       });
+
       const ids: string[] = [];
+
       for (let index = 0; index < 3; index += 1) {
         ids.push(yield* overlay.pipe(Effect.provide(layer)));
       }
+
       assert.strictEqual(new Set(ids).size, 3);
       assert.strictEqual(BigInt(ids[1]), BigInt(ids[0]) + 1n);
       assert.strictEqual(BigInt(ids[2]), BigInt(ids[1]) + 1n);
@@ -239,6 +260,7 @@ describe("native snapshot transitions", () => {
             )
           )
         );
+
         assert.strictEqual(error._tag, "TransitionFailed");
       }
     })
@@ -263,6 +285,7 @@ it.effect(
             )
           )
         );
+
         assert.strictEqual(
           strategy,
           platform === "browser" ? "plain" : "native"
@@ -275,6 +298,7 @@ it.effect("bounds cleanup when the bridge never acknowledges removal", () =>
   Effect.gen(function* () {
     const state = yield* fixture;
     const removing = yield* Deferred.make<boolean>();
+
     const fiber = yield* Effect.forkChild(
       nativeTransition("one", transition, state.commit, 100).pipe(
         Effect.provideService(NativeTransitions, {
@@ -284,6 +308,7 @@ it.effect("bounds cleanup when the bridge never acknowledges removal", () =>
         })
       )
     );
+
     yield* Deferred.await(removing);
     yield* TestClock.adjust(100);
     yield* Fiber.join(fiber);

@@ -16,8 +16,11 @@ export {
   ImpactStyleSchema,
   NotificationTypeSchema,
 } from "./haptics-schema.ts";
+
 export type { ImpactStyle, NotificationType } from "./haptics-schema.ts";
+
 export type HapticError = BridgeError | HapticFeedbackFailed;
+
 const supportsVibration = (
   source: Navigator | undefined
 ): source is Navigator => typeof source?.vibrate === "function";
@@ -45,6 +48,7 @@ export const BrowserHapticsLive = Layer.succeed(BrowserHaptics, {
 });
 
 const native = hapticsPlugin.commands;
+
 const callSelection = (
   method: "selectionStart" | "selectionChanged" | "selectionEnd"
 ) =>
@@ -67,13 +71,17 @@ export const hapticImpact = (style: ImpactStyle = "MEDIUM") =>
           })
       )
     );
+
     const bridge = yield* Bridge;
+
     if ((yield* bridge.runtime) === "browser") {
       const browser = yield* BrowserHaptics;
+
       return yield* browser.vibrate([
         { LIGHT: 10, MEDIUM: 20, HEAVY: 30 }[decodedStyle],
       ]);
     }
+
     return yield* callPlugin(hapticsPlugin.bridge, "impact", native.impact, {
       style: decodedStyle,
     }).pipe(Effect.asVoid);
@@ -93,16 +101,21 @@ export const hapticNotification = (type: NotificationType) =>
           })
       )
     );
+
     const bridge = yield* Bridge;
+
     if ((yield* bridge.runtime) === "browser") {
       const browser = yield* BrowserHaptics;
+
       const patterns = {
         SUCCESS: [10, 50, 10],
         WARNING: [30, 50, 30],
         ERROR: [50, 50, 50, 50, 50],
       };
+
       return yield* browser.vibrate(patterns[decodedType]);
     }
+
     return yield* callPlugin(
       hapticsPlugin.bridge,
       "notification",
@@ -114,10 +127,13 @@ export const hapticNotification = (type: NotificationType) =>
 /** One discrete selection, including iOS generator preparation and release. */
 export const hapticSelection = Effect.gen(function* () {
   const bridge = yield* Bridge;
+
   if ((yield* bridge.runtime) === "browser") {
     const browser = yield* BrowserHaptics;
+
     return yield* browser.vibrate([10]);
   }
+
   return yield* callSelection("selectionStart").pipe(
     Effect.andThen(callSelection("selectionChanged")),
     // Release the native generator on failure or interruption of either call.

@@ -20,20 +20,24 @@ export interface DataProtectionState extends ActionState<
   readonly setEnabled: (enabled: boolean) => void;
   readonly clearWebData: () => void;
 }
+
 /** Explicit actions. Protection persists until disabled, including across unmounts. */
 export const useDataProtection = (): DataProtectionState => {
   const { run, ...state } = useBridgeAction<
     DataProtectionStatus | true,
     DataProtectionError
   >();
+
   const setEnabled = useCallback(
     (enabled: boolean) => {
       run(setDataProtection(enabled));
     },
     [run]
   );
+
   const clear = useCallback(() => {
     run(dataProtectionLive(clearWebData).pipe(Effect.as(true)));
   }, [run]);
+
   return { ...state, setEnabled, clearWebData: clear };
 };

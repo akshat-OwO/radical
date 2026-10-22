@@ -9,16 +9,20 @@ import launchPage from "../../../templates/android/launch.html?raw";
 
 const url = "https://app.test/notes/1?view=one";
 const snapshotCache = "radical:dev.example:/:build:snapshots";
+
 const makeMemory = () => {
   const entries = new Map<string, Set<string>>();
   const messages: string[] = [];
   const state = { href: url, fail: false, listeners: 0 };
+
   const window: OfflineWindow = {
     caches: true,
   };
+
   let listener:
     | ((event: { data: string | { type: string } }) => Promise<void>)
     | undefined;
+
   const run = () => {
     const result: unknown = vm.runInNewContext(
       `(${offlineSnapshotCheckScript("dev.example")})(${JSON.stringify(url)})`,
@@ -57,16 +61,21 @@ const makeMemory = () => {
         },
       }
     );
+
     return Effect.promise(() => Promise.resolve(result));
   };
+
   const activate = (
     data: string | { type: string } = "radical-snapshot-ready"
   ) => Effect.promise(() => Promise.resolve(listener?.({ data })));
+
   return { entries, messages, state, window, run, activate };
 };
+
 class Memory extends Context.Service<Memory, ReturnType<typeof makeMemory>>()(
   "test/AndroidOffline"
 ) {}
+
 const layer = Layer.sync(Memory, makeMemory);
 
 describe("native offline URL signal", () => {
@@ -134,12 +143,15 @@ describe("Android launch gate", () => {
     () =>
       Effect.gen(function* () {
         let ready: (() => void) | undefined;
+
         const lookup = new Promise<void>((resolve) => {
           ready = () => {
             resolve();
           };
         });
+
         const targets: string[] = [];
+
         const result: unknown = vm.runInNewContext(
           (
             /<script>(?<script>[\s\S]*?)<\/script>/u.exec(launchPage)?.groups
@@ -150,6 +162,7 @@ describe("Android launch gate", () => {
               serviceWorker: {
                 getRegistration: (scope: string) => {
                   assert.strictEqual(scope, url);
+
                   return lookup;
                 },
               },
@@ -161,6 +174,7 @@ describe("Android launch gate", () => {
             },
           }
         );
+
         assert.isEmpty(targets);
         ready?.();
         yield* Effect.promise(() => Promise.resolve(result));
@@ -189,6 +203,7 @@ describe("Android launch gate", () => {
     })
   );
 });
+
 interface OfflineWindow {
   caches: boolean;
   __radicalDataCleared?: boolean;

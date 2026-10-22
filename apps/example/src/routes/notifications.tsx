@@ -8,10 +8,12 @@ import {
 } from "radical/react";
 
 const isScheduleResult = Schema.is(NotificationScheduleResultSchema);
+
 const Notifications = () => {
   const exactAlarms = useExactAlarmPermission();
   const permission = useNotificationPermission();
   const notifications = useNotifications();
+
   const actions = [
     [
       "Schedule in 5 seconds",
@@ -53,6 +55,7 @@ const Notifications = () => {
     ],
     ["Look up topics", notifications.lookupTopics],
   ] as const;
+
   return (
     <main>
       <h1>Notifications</h1>
@@ -140,6 +143,7 @@ const Notifications = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/notifications")({
   component: Notifications,
 });

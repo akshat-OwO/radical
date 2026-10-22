@@ -17,8 +17,10 @@ export const devicePlugin = definePlugin({
     getInfo: { args: Schema.Struct({}), result: DeviceInfoSchema, errors: {} },
   },
 });
+
 const args = Schema.Struct({ id: Schema.String });
 const command = { args, result: args, errors: {} };
+
 export const transitionsPlugin = definePlugin({
   id: "transitions",
   bridge: "RadicalTransitions",
@@ -66,6 +68,7 @@ const pickedFile = Schema.Struct({
   path: Schema.optional(Schema.String),
   modifiedAt: Schema.optional(Schema.Finite),
 });
+
 export const filePickerPlugin = definePlugin({
   id: "filePicker",
   bridge: "FilePicker",
@@ -82,6 +85,7 @@ export const filePickerPlugin = definePlugin({
     },
   },
 });
+
 export const appLauncherPlugin = definePlugin({
   id: "appLauncher",
   bridge: "AppLauncher",
@@ -94,6 +98,7 @@ export const appLauncherPlugin = definePlugin({
     },
   },
 });
+
 export const fileOpenerPlugin = definePlugin({
   id: "fileOpener",
   bridge: "FileOpener",
@@ -114,6 +119,7 @@ export const fileOpenerPlugin = definePlugin({
 // Haptics 8.0.2 has no plugin-specific rejection codes or result payloads.
 const hapticCompletion = { result: Schema.Unknown, errors: {} };
 const selectionCommand = { ...hapticCompletion, args: Schema.Struct({}) };
+
 export const hapticsPlugin = definePlugin({
   id: "haptics",
   bridge: "Haptics",
@@ -192,5 +198,7 @@ export const dataProtectionPlugin = definePlugin({
 });
 
 export { cameraPlugin } from "../../capabilities/camera/camera-plugin.ts";
+
 export { videoStreamPlugin } from "../../capabilities/video-stream/video-stream-plugin.ts";
+
 export { googleSignInPlugin } from "../../capabilities/google-sign-in/google-sign-in-plugin.ts";

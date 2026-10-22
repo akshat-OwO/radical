@@ -6,6 +6,7 @@ export const cameraAndroid = [
   '<uses-permission android:name="android.permission.CAMERA" />',
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
 ];
+
 export const cameraContributions = (
   options: typeof CameraConfigSchema.Type
 ): NativeContributions => ({

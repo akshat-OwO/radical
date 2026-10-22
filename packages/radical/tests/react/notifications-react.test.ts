@@ -24,19 +24,24 @@ it.effect(
         const calls: string[] = [];
         let granted = false;
         let failed = false;
+
         const layer = () =>
           bridgeTestLayer("ios", (plugin, method) => {
             calls.push(method);
+
             if (failed) {
               return Effect.fail(
                 new BridgeCallFailed({ plugin, method, cause: "denied" })
               );
             }
+
             if (method === "requestPermissions") {
               granted = true;
             }
+
             return Effect.succeed({ display: granted ? "granted" : "prompt" });
           });
+
         const mounted = yield* mountHook(
           useNotificationPermission,
           layer(),
@@ -49,6 +54,7 @@ it.effect(
             }
           }
         );
+
         yield* Deferred.await(settled);
         assert.strictEqual(mounted.state().value, "prompt");
         const initial = mounted.state();
@@ -88,22 +94,27 @@ it.effect(
       Effect.gen(function* () {
         let settled = yield* Deferred.make<boolean>();
         let failed = false;
+
         const calls: {
           plugin: string;
           method: string;
           options: Parameters<Parameters<typeof bridgeTestLayer>[1]>[2];
         }[] = [];
+
         yield* TestClock.setTime(1000);
         const clock = yield* Clock.Clock;
+
         const layer = Layer.merge(
           Layer.succeed(Clock.Clock, clock),
           bridgeTestLayer("android", (plugin, method, options) => {
             calls.push({ plugin, method, options });
+
             if (failed) {
               return Effect.fail(
                 new BridgeCallFailed({ plugin, method, cause: "failed" })
               );
             }
+
             const results = new Map([
               ["checkPermissions", { display: "granted" }],
               [
@@ -121,9 +132,11 @@ it.effect(
               ["getToken", { token: "token" }],
               ["list", { topics: ["news"] }],
             ]);
+
             return Effect.succeed(results.get(method));
           })
         );
+
         const mounted = yield* mountHook(useNotifications, layer, (state) => {
           if (state.value !== undefined || state.error !== undefined) {
             const signal = settled;
@@ -132,7 +145,9 @@ it.effect(
             });
           }
         });
+
         const initial = mounted.state();
+
         const actions = [
           () => {
             initial.schedule({
@@ -159,17 +174,20 @@ it.effect(
           },
           initial.lookupTopics,
         ];
+
         for (const action of actions) {
           settled = yield* Deferred.make<boolean>();
           flushSync(action);
           yield* Deferred.await(settled);
           assert.isUndefined(mounted.state().error);
+
           if (action === actions[0]) {
             assert.deepStrictEqual(mounted.state().value, {
               notifications: [{ id: 1 }],
               warning: { code: "OS-PLUG-LNOT-0017", message: "Inexact alarm" },
             });
           }
+
           for (const key of [
             "schedule",
             "cancel",
@@ -183,6 +201,7 @@ it.effect(
             assert.strictEqual(mounted.state()[key], initial[key]);
           }
         }
+
         assert.deepStrictEqual(mounted.state().value, ["news"]);
         assert.deepStrictEqual(
           calls.map((call) => call.method),
@@ -246,6 +265,7 @@ it.effect(
       Effect.gen(function* () {
         let calls = 0;
         let interrupted = 0;
+
         const layer = () =>
           bridgeTestLayer("ios", () =>
             Effect.sync(() => {
@@ -259,6 +279,7 @@ it.effect(
               )
             )
           );
+
         const mounted = yield* mountHook(useNotifications, layer());
         const stale = mounted.state().cancel;
         stale(1);
@@ -290,11 +311,13 @@ it.effect(
       Effect.gen(function* () {
         let settled = yield* Deferred.make<boolean>();
         const calls: string[] = [];
+
         const mounted = yield* mountHook(
           useExactAlarmPermission,
           bridgeTestLayer("android", (plugin, method) => {
             assert.strictEqual(plugin, "LocalNotifications");
             calls.push(method);
+
             return Effect.succeed({
               exact_alarm:
                 method === "changeExactNotificationSetting"
@@ -311,6 +334,7 @@ it.effect(
             }
           }
         );
+
         yield* Deferred.await(settled);
         assert.strictEqual(mounted.state().value, "denied");
         const initial = mounted.state();

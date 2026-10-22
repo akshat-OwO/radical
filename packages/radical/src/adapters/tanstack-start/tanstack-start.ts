@@ -49,6 +49,7 @@ export const radical = (config: RadicalConfig): PluginOption[] => [
 export { NavigationFailed } from "../../core/adapter/errors.ts";
 
 export { browserTransitions } from "./tanstack-navigation.ts";
+
 export type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
 
 export { tanstackStartAdapterLayer } from "./tanstack-start-client.ts";

@@ -15,6 +15,7 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const root = createRootRoute();
+
       const router = createRouter({
         routeTree: root.addChildren(
           ["/", "/details"].map((path) =>
@@ -27,6 +28,7 @@ it.effect(
         defaultPendingMinMs: 0,
         isServer: false,
       });
+
       assert.isFunction(router.startViewTransition);
       yield* Effect.promise(async () => {
         await router.load();
@@ -35,6 +37,7 @@ it.effect(
       // A false default must not disable native transitions. Only the explicit
       // per-navigation false flag opts out, and the hook must consume that flag.
       router.update({ defaultViewTransition: false });
+
       for (const viewTransition of [
         false,
         undefined,
@@ -55,6 +58,7 @@ it.effect(
             const removeHistory = router.history.subscribe(() => {
               /* Loaded below. */
             });
+
             const removeHook = installRouterCommitHook(
               router,
               async (commit, enabled) => {
@@ -81,6 +85,7 @@ it.effect(
                 );
               }
             );
+
             return () => {
               removeHook();
               removeHistory();
@@ -89,12 +94,14 @@ it.effect(
           () =>
             Effect.gen(function* () {
               const navigation = router.navigate({ to, viewTransition });
+
               const load = yield* Effect.promise(async () => {
                 await router.load();
               }).pipe(
                 Effect.andThen(Deferred.succeed(loaded, true)),
                 Effect.forkChild
               );
+
               yield* Deferred.await(entered);
               yield* TestClock.adjust(1000);
               assert.strictEqual(router.state.matches.at(-1)?.pathname, from);

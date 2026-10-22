@@ -36,6 +36,7 @@ const nativeTestLayer = (call: Bridge["Service"]["call"]) =>
     NativeTransitions,
     Effect.gen(function* () {
       const service = yield* NativeTransitions;
+
       return { ...service, painted: Effect.void };
     })
   ).pipe(
@@ -46,22 +47,27 @@ const nativeTestLayer = (call: Bridge["Service"]["call"]) =>
 
 const makeRouter = () => {
   const root = createRootRoute();
+
   const home = createRoute({
     getParentRoute: () => root,
     path: "/",
     staticData: { radical: { transition: "slide" } },
   });
+
   const details = createRoute({
     getParentRoute: () => root,
     path: "/details",
     staticData: { radical: { transition: "slide" } },
   });
+
   const about = createRoute({
     getParentRoute: () => root,
     path: "/about",
     staticData: { radical: { transition: "fade" } },
   });
+
   const plain = createRoute({ getParentRoute: () => root, path: "/plain" });
+
   return createRouter({
     routeTree: root.addChildren([home, details, about, plain]),
     history: createMemoryHistory({ initialEntries: ["/"] }),
@@ -80,13 +86,17 @@ const transitionTypes = (
   const option = router.options.defaultViewTransition;
   assert.isObject(option);
   assert.isTrue(Predicate.isObjectKeyword(option));
+
   if (!Predicate.isObjectKeyword(option)) {
     return false;
   }
+
   assert.isFunction(option.types);
+
   if (option.types === undefined || Array.isArray(option.types)) {
     return false;
   }
+
   return option.types({
     fromLocation:
       from === undefined ? undefined : router.buildLocation({ to: from }),
@@ -102,6 +112,7 @@ describe("TanStack navigation", () => {
     Effect.gen(function* () {
       const router = makeRouter();
       const calls: unknown[] = [];
+
       const navigation = tanstackNavigation({
         options: router.options,
         subscribe: router.subscribe,
@@ -110,6 +121,7 @@ describe("TanStack navigation", () => {
           await Effect.runPromise(Effect.void);
         },
       });
+
       yield* navigation.navigate("/details?item=1&name=hello%20world#x", {
         replace: true,
       });
@@ -134,6 +146,7 @@ describe("TanStack navigation", () => {
           routeTree: createRootRoute(),
           isServer: true,
         });
+
         const original = router.options.defaultViewTransition;
         const controller = browserTransitions(router);
         controller.cancel();
@@ -191,11 +204,13 @@ describe("TanStack navigation", () => {
       const router = makeRouter();
       const original = { types: ["host"] };
       router.update({ defaultViewTransition: original });
+
       const controller = browserTransitions(
         router,
         { direction: () => "back" },
         typedBrowser()
       );
+
       assert.deepStrictEqual(transitionTypes(router, "/", "/details"), [
         "radical-slide",
         "radical-back",
@@ -224,6 +239,7 @@ describe("TanStack navigation", () => {
       Effect.gen(function* () {
         const router = makeRouter();
         const controller = browserTransitions(router);
+
         const removeLoad = router.history.subscribe(() => {
           Effect.runFork(
             Effect.promise(async () => {
@@ -231,21 +247,27 @@ describe("TanStack navigation", () => {
             })
           );
         });
+
         yield* Effect.promise(async () => {
           await router.load();
         });
+
         const adapter = yield* RadicalAdapter.pipe(
           Effect.provide(tanstackStartAdapterLayer(router))
         );
+
         const navigation = yield* adapter.navigation;
         const before = yield* Ref.make<string[]>([]);
         const after: string[] = [];
+
         const removeBefore = yield* navigation.onBeforeNavigate((from, to) =>
           Ref.update(before, (items) => [...items, `${from}->${to}`])
         );
+
         const removeAfter = yield* navigation.onAfterNavigate((to) => {
           after.push(to);
         });
+
         yield* navigation.navigate("/details?item=1#x");
         assert.strictEqual(router.state.location.pathname, "/details");
         assert.deepStrictEqual(router.state.location.search, { item: 1 });
@@ -270,6 +292,7 @@ describe("TanStack navigation", () => {
     () =>
       Effect.gen(function* () {
         const router = makeRouter();
+
         const removeLoad = router.history.subscribe(() => {
           Effect.runFork(
             Effect.promise(async () => {
@@ -277,12 +300,14 @@ describe("TanStack navigation", () => {
             })
           );
         });
+
         yield* Effect.promise(async () => {
           await router.load();
         });
         const started = yield* Deferred.make<boolean>();
         const skipped = yield* Deferred.make<boolean>();
         const clock = yield* Effect.clockWith(Effect.succeed);
+
         const browser = Layer.merge(
           Layer.succeed(BrowserTransitions, {
             supportsTypes: Effect.succeed(true),
@@ -297,11 +322,13 @@ describe("TanStack navigation", () => {
           }),
           Layer.succeed(Clock.Clock, clock)
         );
+
         const controller = browserTransitions(
           router,
           { timeoutMs: 100 },
           browser
         );
+
         yield* Effect.promise(async () => {
           await router.navigate({ to: "/details" });
         });
@@ -321,6 +348,7 @@ describe("TanStack navigation", () => {
       Effect.gen(function* () {
         const cause = new Error("navigation failed");
         const router = makeRouter();
+
         const navigation = tanstackNavigation({
           subscribe: router.subscribe,
           options: router.options,
@@ -328,8 +356,10 @@ describe("TanStack navigation", () => {
             await Promise.reject(cause);
           },
         });
+
         const error = yield* Effect.flip(navigation.navigate("/details"));
         assert.strictEqual(error._tag, "NavigationFailed");
+
         if (error._tag === "NavigationFailed") {
           assert.strictEqual(error.cause, cause);
         }
@@ -347,6 +377,7 @@ it.effect(
       });
       const calls: string[] = [];
       const original = router.startViewTransition;
+
       const controller = installNativeTransitions(
         router,
         {},
@@ -369,12 +400,14 @@ it.effect(
             }),
         })
       );
+
       const navigate = (to: string) =>
         Effect.promise(async () => {
           const navigation = router.navigate({ to });
           void router.load();
           await navigation;
         });
+
       yield* navigate("/details");
       assert.deepStrictEqual(calls, [
         "cover:/",
@@ -407,6 +440,7 @@ it.effect(
           to: "/about",
           viewTransition: false,
         });
+
         void router.load();
         await navigation;
       });
@@ -424,6 +458,7 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
         configurable: true,
         value: { randomUUID: undefined },
       });
+
       return descriptor;
     }),
     () =>
@@ -435,6 +470,7 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
         const router = makeRouter();
         const ids: string[] = [];
         const clock = yield* Effect.clockWith(Effect.succeed);
+
         const controller = installNativeTransitions(
           router,
           {},
@@ -445,15 +481,18 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
                 if (method === "cover") {
                   ids.push(String(options.id));
                 }
+
                 return { id: options.id };
               })
             )
           )
         );
+
         yield* Effect.promise(async () => {
           await router.load();
         });
         assert.deepStrictEqual(ids, []);
+
         for (const to of ["/details", "/plain", "/about"] as const) {
           yield* Effect.promise(async () => {
             const navigation = router.navigate({ to });
@@ -462,6 +501,7 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
           });
           assert.strictEqual(router.state.location.pathname, to);
         }
+
         assert.strictEqual(ids.length, 2);
         assert.strictEqual(ids[1], String(Number(ids[0]) + 1));
         yield* Effect.promise(async () => {
@@ -469,6 +509,7 @@ it.effect("commits plain and native routes without crypto.randomUUID", () =>
             to: "/",
             viewTransition: false,
           });
+
           await router.load();
           await navigation;
         });
@@ -497,25 +538,30 @@ it.effect("keeps overlay ids unique across routers and reinstallations", () =>
     const releaseRemove = yield* Deferred.make<boolean>();
     const removed = yield* Deferred.make<boolean>();
     const clock = yield* Effect.clockWith(Effect.succeed);
+
     const native = nativeTestLayer((_plugin, method, options) =>
       Effect.gen(function* () {
         if (method === "cover") {
           yield* Ref.update(ids, (values) => [...values, String(options.id)]);
         }
+
         if (method === "remove" && options.id === (yield* Ref.get(staleId))) {
           yield* Deferred.succeed(removing, true);
           yield* Deferred.await(releaseRemove);
           yield* Deferred.succeed(removed, true);
         }
+
         return { id: options.id };
       })
     );
+
     const install = (router: ReturnType<typeof makeRouter>) =>
       installNativeTransitions(
         router,
         {},
         Layer.merge(native, Layer.succeed(Clock.Clock, clock))
       );
+
     const controllers: ReturnType<typeof install>[] = [];
     yield* Effect.acquireUseRelease(
       Effect.sync(() => {
@@ -529,6 +575,7 @@ it.effect("keeps overlay ids unique across routers and reinstallations", () =>
           yield* Effect.promise(async () => {
             await second.load();
           });
+
           for (const [router, to] of [
             [first, "/details"],
             [second, "/about"],
@@ -543,6 +590,7 @@ it.effect("keeps overlay ids unique across routers and reinstallations", () =>
               await navigation;
             });
           }
+
           const beforeReinstall = yield* Ref.get(ids);
           assert.strictEqual(new Set(beforeReinstall).size, 4);
           yield* Ref.set(staleId, beforeReinstall[2]);
@@ -566,6 +614,7 @@ it.effect("keeps overlay ids unique across routers and reinstallations", () =>
       () =>
         Effect.gen(function* () {
           yield* Deferred.succeed(releaseRemove, true);
+
           for (const controller of controllers) {
             controller.dispose();
           }

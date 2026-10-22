@@ -21,6 +21,7 @@ const Root = () => (
     </body>
   </html>
 );
+
 export const Route = createRootRoute({
   component: Root,
   head: () => ({

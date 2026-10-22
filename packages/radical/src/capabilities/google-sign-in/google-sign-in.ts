@@ -19,17 +19,23 @@ export {
   GoogleSignInConfigSchema,
   GoogleIdentitySchema,
 } from "./google-sign-in-schema.ts";
+
 export type {
   GoogleIdentity,
   GoogleSignInConfig,
 } from "./google-sign-in-schema.ts";
+
 export { GoogleSignInCancelled } from "./errors.ts";
+
 export { GoogleSignInMisconfigured } from "./errors.ts";
+
 export { GoogleSignInUnavailable } from "./errors.ts";
+
 export {
   GoogleSignInConfiguration,
   GoogleSignInConfigurationLive,
 } from "./google-sign-in-configuration.ts";
+
 export type GoogleSignInError =
   | BridgeError
   | GoogleSignInCancelled
@@ -40,17 +46,21 @@ export class BrowserGoogleSignIn extends Context.Service<
   BrowserGoogleSignIn,
   { readonly signIn: Effect.Effect<GoogleIdentity, GoogleSignInError> }
 >()("radical/BrowserGoogleSignIn") {}
+
 /** Native-only. Browser apps can provide their own OAuth flow through this service. */
 export const BrowserGoogleSignInLive = Layer.succeed(BrowserGoogleSignIn, {
   signIn: Effect.fail(new GoogleSignInUnavailable({})),
 });
 
 const hasErrorCode = Schema.is(Schema.Struct({ code: Schema.Unknown }));
+
 export const googleSignIn = Effect.gen(function* () {
   const bridge = yield* Bridge;
+
   if ((yield* bridge.runtime) === "browser") {
     return yield* (yield* BrowserGoogleSignIn).signIn;
   }
+
   const configuration = yield* GoogleSignInConfiguration;
   const config = yield* configuration.read;
   const { bridge: plugin, commands } = googleSignInPlugin;
@@ -61,15 +71,18 @@ export const googleSignIn = Effect.gen(function* () {
       Effect.fail(new GoogleSignInMisconfigured({ cause }))
     )
   );
+
   return yield* callPlugin(plugin, "signIn", commands.signIn, {}).pipe(
     Effect.catchTag(
       "BridgeCallFailed",
       (error): Effect.Effect<never, GoogleSignInError> => {
         const { cause } = error;
         const code = hasErrorCode(cause) ? cause.code : undefined;
+
         if (code === "SIGN_IN_CANCELED") {
           return Effect.fail(new GoogleSignInCancelled({}));
         }
+
         return code === "PROVIDER_CONFIGURATION_ERROR"
           ? Effect.fail(new GoogleSignInMisconfigured({ cause }))
           : Effect.fail(error);
@@ -77,6 +90,7 @@ export const googleSignIn = Effect.gen(function* () {
     )
   );
 });
+
 export const googleSignInLive = <A, E, R>(
   effect: Effect.Effect<
     A,

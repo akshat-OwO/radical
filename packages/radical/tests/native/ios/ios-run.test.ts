@@ -6,6 +6,7 @@ import { TestClock } from "effect/testing";
 import { runIos } from "../../../src/native/ios/run.ts";
 
 const project = "/app/.radical/ios";
+
 const memory = (
   options: {
     stalledLaunch?: boolean;
@@ -16,11 +17,13 @@ const memory = (
   } = {}
 ) => {
   const commands: string[][] = [];
+
   const fs = FileSystem.layerNoop({
     exists: () => Effect.succeed(options.workspace === true),
     readFileString: () =>
       Effect.succeed(JSON.stringify({ appId: "dev.radical.example" })),
   });
+
   const spawner = Layer.succeed(
     ChildProcessSpawner.ChildProcessSpawner,
     ChildProcessSpawner.make((command) =>
@@ -28,11 +31,13 @@ const memory = (
         if (command._tag !== "StandardCommand") {
           return assert.fail("Unexpected piped command");
         }
+
         assert.strictEqual(command.options.cwd, project);
         const args = [command.command, ...command.args];
         commands.push(args);
         const listing = command.args.includes("list");
         const boot = command.args.includes("boot");
+
         const stdout = listing
           ? JSON.stringify(
               options.devices ?? {
@@ -45,7 +50,9 @@ const memory = (
               }
             )
           : "";
+
         const stderr = boot ? (options.bootError ?? "") : "";
+
         return ChildProcessSpawner.makeHandle({
           pid: ChildProcessSpawner.ProcessId(1),
           exitCode:
@@ -73,6 +80,7 @@ const memory = (
       })
     )
   );
+
   return { commands, layer: Layer.merge(fs, spawner) };
 };
 
@@ -109,6 +117,7 @@ describe("headless iOS runner", () => {
     "builds the SPM project and boots, installs, and launches the explicit target",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* runIos(project, "target");
         assert.deepStrictEqual(state.commands, expected("target"));
@@ -122,6 +131,7 @@ describe("headless iOS runner", () => {
         workspace: true,
         bootError: "Unable to boot device in current state: Booted",
       });
+
       return Effect.gen(function* () {
         yield* runIos(project, "");
         assert.deepStrictEqual(state.commands, [
@@ -142,6 +152,7 @@ describe("headless iOS runner", () => {
         },
       },
     });
+
     return Effect.gen(function* () {
       yield* runIos(project, "");
       assert.deepStrictEqual(state.commands.slice(1), expected("first"));
@@ -149,6 +160,7 @@ describe("headless iOS runner", () => {
   });
   it.effect("fails with a typed error when no iPhone is available", () => {
     const state = memory({ devices: { devices: {} } });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(runIos(project, ""));
       assert.strictEqual(error._tag, "IosSimulatorUnavailable");
@@ -157,6 +169,7 @@ describe("headless iOS runner", () => {
   });
   it.effect("rejects malformed simulator output before building", () => {
     const state = memory({ devices: { devices: [] } });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(runIos(project, ""));
       assert.strictEqual(error._tag, "SchemaError");
@@ -165,6 +178,7 @@ describe("headless iOS runner", () => {
   });
   it.effect("stops before install when boot fails for another reason", () => {
     const state = memory({ bootError: "Device unavailable" });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(runIos(project, "target"));
       assert.strictEqual(error._tag, "ShellCommandError");
@@ -173,10 +187,12 @@ describe("headless iOS runner", () => {
   });
   it.effect("times out a stalled simulator launch", () => {
     const state = memory({ stalledLaunch: true });
+
     return Effect.gen(function* () {
       const fiber = yield* Effect.forkChild(
         Effect.flip(runIos(project, "target"))
       );
+
       yield* TestClock.adjust("30 seconds");
       const error = yield* Fiber.join(fiber);
       assert.strictEqual(error._tag, "TimeoutError");
@@ -185,6 +201,7 @@ describe("headless iOS runner", () => {
   });
   it.effect("stops before boot when the build fails", () => {
     const state = memory({ buildFailure: true });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(runIos(project, "target"));
       assert.strictEqual(error._tag, "ShellCommandError");

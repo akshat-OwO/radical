@@ -29,6 +29,7 @@ describe("safe area", () => {
             ),
           })
         );
+
         const firstClient = renderToString(
           createElement("html", {
             style: safeAreaStyle(
@@ -37,6 +38,7 @@ describe("safe area", () => {
             ),
           })
         );
+
         assert.strictEqual(firstClient, prerender);
         assert.include(firstClient, "env(safe-area-inset-top, 0px)");
       })
@@ -65,6 +67,7 @@ describe("safe area", () => {
         shellVersion: null,
         safeArea: portrait,
       });
+
       assert.strictEqual(
         style["--radical-safe-area-top"],
         "env(safe-area-inset-top, 0px)"
@@ -82,6 +85,7 @@ describe("safe area", () => {
         const values: SafeArea[] = [];
         let removed = false;
         let publish: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
+
         const layer = Layer.succeed(Bridge, {
           runtime: Effect.succeed("ios" as const),
           call: () => Effect.never,
@@ -90,11 +94,13 @@ describe("safe area", () => {
               assert.strictEqual(event, "radicalSafeArea");
               publish = receive;
               receive(portrait);
+
               return () => {
                 removed = true;
               };
             }),
         });
+
         const subscription = yield* Effect.forkChild(
           Effect.scoped(
             watchSafeArea((value) => {
@@ -102,7 +108,9 @@ describe("safe area", () => {
             }).pipe(Effect.andThen(Effect.never))
           ).pipe(Effect.provide(layer))
         );
+
         yield* Effect.yieldNow;
+
         const rotation = yield* Effect.forkChild(
           Effect.sleep("1 second").pipe(
             Effect.andThen(
@@ -112,6 +120,7 @@ describe("safe area", () => {
             )
           )
         );
+
         yield* TestClock.adjust("1 second");
         yield* Fiber.join(rotation);
         publish?.({ ...landscape, bottom: 0 });

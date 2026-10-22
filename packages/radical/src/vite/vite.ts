@@ -7,16 +7,20 @@ import type { RadicalConfig } from "./config.ts";
 import { nativePlugins } from "./plugins/plugin-virtual.ts";
 
 export { InvalidPlugin } from "./plugins/errors.ts";
+
 export { PluginDependencyConflict } from "./plugins/errors.ts";
 
 export { AdapterUnavailable } from "../core/adapter/errors.ts";
+
 export { RadicalAdapter } from "../core/adapter/adapter.ts";
+
 export type {
   AdapterOutputs,
   RadicalCore,
   RadicalNavigation,
   RadicalRoute,
 } from "../core/adapter/adapter.ts";
+
 export {
   InvalidConfig,
   RadicalConfigSchema,

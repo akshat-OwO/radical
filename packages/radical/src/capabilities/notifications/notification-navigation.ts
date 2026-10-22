@@ -20,12 +20,14 @@ export class NotificationSnapshots extends Context.Service<
     ) => Effect.Effect<boolean, Unavailable>;
   }
 >()("radical/NotificationSnapshots") {}
+
 const snapshotStorage: NotificationSnapshots["Service"] = {
   restore: (route, appId) =>
     Effect.gen(function* () {
       if (!("caches" in globalThis)) {
         return false;
       }
+
       const found = yield* Effect.tryPromise({
         try: () => caches.keys(),
         catch: (cause) => new Unavailable({ reason: String(cause) }),
@@ -53,12 +55,15 @@ const snapshotStorage: NotificationSnapshots["Service"] = {
         ),
         Effect.map((matches) => matches.some(Boolean))
       );
+
       if (found) {
         window.location.assign(route);
       }
+
       return found;
     }),
 };
+
 /** Select snapshots using the platform network capability before reading storage. */
 export const notificationSnapshotsLayer = (
   storage: NotificationSnapshots["Service"] = snapshotStorage
@@ -68,6 +73,7 @@ export const notificationSnapshotsLayer = (
     Effect.gen(function* () {
       const services =
         yield* Effect.context<Effect.Services<typeof getNetworkStatus>>();
+
       return {
         restore: (route: string, appId: string) =>
           getNetworkStatus.pipe(
@@ -83,9 +89,11 @@ export const notificationSnapshotsLayer = (
       };
     })
   );
+
 export const NotificationSnapshotsLive = notificationSnapshotsLayer().pipe(
   Layer.provide(BrowserNetworkLive)
 );
+
 const actionSchema = Schema.Struct({
   actionId: Schema.String,
   notification: Schema.Struct({
@@ -97,6 +105,7 @@ const actionSchema = Schema.Struct({
     ),
   }),
 });
+
 export const notificationRoute = flow(
   Schema.decodeUnknownEffect(actionSchema),
   Effect.flatMap((action) =>
@@ -104,6 +113,7 @@ export const notificationRoute = flow(
       if (action.actionId !== "tap") {
         return yield* new Unavailable({ reason: "Not a notification tap" });
       }
+
       return yield* Schema.decodeUnknownEffect(NotificationRouteSchema)(
         action.notification.extra?.route ?? action.notification.data?.route
       );
@@ -111,6 +121,7 @@ export const notificationRoute = flow(
   ),
   Effect.option
 );
+
 /** Own this watcher in an app/router scope, not in the notification example route. */
 export const watchNotificationNavigation = (options: {
   readonly appId: string;
@@ -123,14 +134,18 @@ export const watchNotificationNavigation = (options: {
     const navigation = yield* adapter.navigation;
     const snapshots = yield* NotificationSnapshots;
     const queue = yield* Queue.unbounded<unknown>();
+
     const receive: Parameters<Bridge["Service"]["observe"]>[1] = (value) => {
       Queue.offerUnsafe(queue, value);
     };
+
     const runtime = yield* bridge.runtime;
+
     if (runtime === "browser") {
       const stop = yield* bridge.observe("radical-notification", (value) => {
         receive({ actionId: "tap", notification: { extra: value } });
       });
+
       yield* Effect.addFinalizer(() => Effect.sync(stop));
     } else {
       if (!bridge.listen) {
@@ -138,6 +153,7 @@ export const watchNotificationNavigation = (options: {
           reason: "Notification events are unavailable",
         });
       }
+
       for (const [plugin, event] of [
         ["LocalNotifications", "localNotificationActionPerformed"],
         ...(options.push === true
@@ -150,6 +166,7 @@ export const watchNotificationNavigation = (options: {
         ).pipe(Effect.asVoid);
       }
     }
+
     return yield* Effect.forever(
       Queue.take(queue).pipe(
         Effect.flatMap(notificationRoute),

@@ -6,12 +6,14 @@ export interface PlistContribution {
   readonly order?: number;
   readonly stage?: "postprocess";
 }
+
 export interface NativeEdit {
   readonly platform: "android" | "ios";
   readonly file: string;
   readonly anchor: string | RegExp;
   readonly replacement: string;
 }
+
 export interface NativeContributions {
   readonly android?: readonly string[];
   readonly plist?: readonly PlistContribution[];
@@ -31,5 +33,6 @@ export interface NativeContributions {
     readonly file: string;
   }[];
 }
+
 export const escapeXml = (text: string) =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");

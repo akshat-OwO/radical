@@ -39,48 +39,61 @@ export const createOfflineWorker = (
   const operations = new Set<Promise<unknown>>();
   const namespace = `${manifest.cachePrefix}${manifest.buildId}`;
   const assetsName = `${namespace}:assets`;
+
   const snapshotsName = snapshotCacheName(
     manifest.cachePrefix,
     manifest.buildId
   );
+
   const absolute = (path: string) => new URL(path, services.origin).href;
   const assetURLs = new Set(manifest.assets.map(absolute));
+
   const track = <A>(operation: Promise<A>): Promise<A> => {
     operations.add(operation);
+
     return operation.finally(() => {
       operations.delete(operation);
     });
   };
+
   const missing: Response | undefined = undefined;
+
   const cached = (name: string, request: Request) => {
     if (cleared) {
       return Promise.resolve(missing);
     }
+
     return track(
       services.caches
         .open(name)
         .then((cache) => cache.match(request, { ignoreVary: true }))
     );
   };
+
   const store = (name: string, request: Request, response: Response) => {
     if (cleared) {
       return Promise.resolve();
     }
+
     const write = services.caches
       .open(name)
       .then((cache) =>
         cleared ? undefined : cache.put(request, response.clone())
       );
+
     return track(write);
   };
+
   const fallback = () =>
     cached(assetsName, new Request(absolute(manifest.fallback))).then(
       (response) => {
         if (!response) {
           return Response.error();
         }
+
         const headers = new Headers(response.headers);
         headers.set("x-radical-offline-fallback", "1");
+
         return new Response(response.body, {
           status: response.status,
           headers,
@@ -90,6 +103,7 @@ export const createOfflineWorker = (
 
   const document = (request: Request) => {
     const key = new Request(snapshotKey(request.url));
+
     return services.fetch(request).then(
       (response) => {
         if (
@@ -104,6 +118,7 @@ export const createOfflineWorker = (
             () => response
           );
         }
+
         return response;
       },
       () =>
@@ -113,6 +128,7 @@ export const createOfflineWorker = (
 
   const clear = () => {
     cleared = true;
+
     return Promise.allSettled(operations)
       .then(() => services.caches.keys())
       .then((keys) =>
@@ -130,9 +146,11 @@ export const createOfflineWorker = (
       input: Parameters<typeof decodeWorkerMessage>[0]
     ): Promise<OfflineMessage> | undefined => {
       const message = decodeWorkerMessage(input);
+
       if (message !== offlineMessages.clear) {
         return undefined;
       }
+
       return clear().then(
         () => offlineMessages.cleared,
         () => offlineMessages.clearFailed
@@ -146,6 +164,7 @@ export const createOfflineWorker = (
       Promise.all(
         [...manifest.assets, manifest.fallback].map((path) => {
           const request = new Request(absolute(path), { cache: "reload" });
+
           return services
             .fetch(request)
             .then((response) =>
@@ -181,6 +200,7 @@ export const createOfflineWorker = (
           (response) => response ?? services.fetch(request)
         );
       }
+
       return document(request);
     },
   };

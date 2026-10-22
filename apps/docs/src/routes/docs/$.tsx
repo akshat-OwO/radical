@@ -16,6 +16,7 @@ import { source } from "../../lib/source";
 const Page = () => {
   const { _splat } = Route.useParams();
   const page = source.getPage(_splat?.split("/").filter(Boolean) ?? []);
+
   if (!page) {
     return (
       <main>
@@ -24,8 +25,10 @@ const Page = () => {
       </main>
     );
   }
+
   const { toc } = use(page.data.load());
   const Content = page.data.body;
+
   return (
     <DocsLayout
       tree={source.pageTree}
@@ -42,21 +45,25 @@ const Page = () => {
     </DocsLayout>
   );
 };
+
 export const Route = createFileRoute("/docs/$")({
   component: Page,
   loader: ({ params }) => {
     const page = source.getPage(
       params._splat?.split("/").filter(Boolean) ?? []
     );
+
     if (!page) {
       return notFound({ throw: true });
     }
+
     return Effect.runPromise(Effect.promise(() => page.data.preload()));
   },
   head: ({ params }) => {
     const page = source.getPage(
       params._splat?.split("/").filter(Boolean) ?? []
     );
+
     return {
       meta: [
         { title: `${page?.data.title ?? "Page not found"} | Radical` },

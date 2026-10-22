@@ -10,6 +10,7 @@ export const pushNotificationContributions = (
 ): NativeContributions => {
   const app = "ios/App/App";
   const project = "ios/App/App.xcodeproj/project.pbxproj";
+
   const appDelegateHook = `    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
     }
@@ -19,9 +20,11 @@ export const pushNotificationContributions = (
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         NotificationCenter.default.post(name: Notification.Name("didReceiveRemoteNotification"), object: completionHandler, userInfo: userInfo)
     }`;
+
   const edits: NativeEdit[] = [];
   const copies: NonNullable<NativeContributions["copies"]>[number][] = [];
   const android = config.notifications?.android?.googleServices;
+
   if (android !== undefined) {
     copies.push({
       platform: "android",
@@ -29,13 +32,16 @@ export const pushNotificationContributions = (
       file: "android/app/google-services.json",
     });
   }
+
   const ios = config.notifications?.ios?.googleServiceInfo;
+
   if (ios !== undefined) {
     copies.push({
       platform: "ios",
       source: ios,
       file: `${app}/GoogleService-Info.plist`,
     });
+
     for (const [anchor, replacement] of [
       [
         "/* Begin PBXBuildFile section */",
@@ -57,6 +63,7 @@ export const pushNotificationContributions = (
       edits.push({ platform: "ios", file: project, anchor, replacement });
     }
   }
+
   return {
     spm: { "@capacitor-firebase/messaging": { symlink: true } },
     edits,

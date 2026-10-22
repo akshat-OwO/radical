@@ -6,12 +6,14 @@ import { execute } from "../shared/shell.ts";
 import { resolveAndroidTarget } from "./android-target.ts";
 
 export { AndroidBootTimeout } from "./errors.ts";
+
 export { AndroidDeviceUnavailable } from "./errors.ts";
 
 export const runAndroid = (project: string, target: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const { adb, serial } = yield* resolveAndroidTarget(project, target);
+
     const { appId } = yield* fs
       .readFileString(path.join(project, "capacitor.config.json"))
       .pipe(
@@ -21,6 +23,7 @@ export const runAndroid = (project: string, target: string) =>
           )
         )
       );
+
     // native-run restarts the shared adb server after five seconds and can leave
     // its retry promise pending. Own the launch and its lifetime instead.
     yield* execute(
@@ -45,6 +48,7 @@ export const runAndroid = (project: string, target: string) =>
       ],
       project
     );
+
     return yield* execute(
       adb,
       [

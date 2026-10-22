@@ -21,6 +21,7 @@ const configureNativeNotifications = (
 
 const app = "/shell/ios/App/App";
 const project = "/shell/ios/App/App.xcodeproj/project.pbxproj";
+
 const memory = () => {
   const files = new Map<string, string>([
     [
@@ -35,12 +36,14 @@ const memory = () => {
     ["/app/private/firebase.plist", "app-owned-plist"],
     ["/app/private/firebase.json", "app-owned-json"],
   ]);
+
   return {
     files,
     layer: FileSystem.layerNoop({
       readFileString: (name) =>
         Effect.sync(() => {
           assert.isTrue(files.has(name), name);
+
           return files.get(name) ?? "";
         }),
       writeFileString: (name, value) =>
@@ -61,6 +64,7 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const fs = memory();
+
       const config = {
         appId: "dev.test.app",
         internalPlugins: { pushNotifications: true },
@@ -72,6 +76,7 @@ it.effect(
           },
         },
       };
+
       yield* configureNativeNotifications(
         "/app",
         "/shell",
@@ -119,12 +124,14 @@ it.effect(
     Effect.gen(function* () {
       const fs = memory();
       const before = [...fs.files.entries()];
+
       for (const platform of ["android", "ios"] as const) {
         yield* configureNativeNotifications("/app", "/shell", platform, {
           appId: "dev.test.app",
           internalPlugins: { notifications: true },
         }).pipe(Effect.provide(fs.layer));
       }
+
       assert.deepStrictEqual([...fs.files.entries()], before);
     })
 );

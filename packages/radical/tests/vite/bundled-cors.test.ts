@@ -17,9 +17,11 @@ const configure = (config: RadicalConfig, user: UserConfig = {}) =>
       metadataMemory().layer,
       Layer.succeed(PluginModules, { load: () => Effect.succeed({}) })
     );
+
     const hook = nativePlugins(config, undefined, services).config;
     assert.isDefined(hook);
     const handler = hookHandler(hook);
+
     // SAFETY: The config hook does not use its Vite plugin context.
     const result = yield* Effect.promise(
       async () =>
@@ -30,6 +32,7 @@ const configure = (config: RadicalConfig, user: UserConfig = {}) =>
           isPreview: true,
         })
     );
+
     // SAFETY: Both inputs are UserConfig; merging preserves the Vite config contract.
     return mergeConfig(user, result ?? {}) as UserConfig;
   });
@@ -50,6 +53,7 @@ it.effect("passes only exact bundled origins through Vite CORS", () =>
     const { origin } = cors;
     assert.isFunction(origin);
     assert.ok(Predicate.isFunction(origin));
+
     for (const value of ["https://localhost", "capacitor://localhost"]) {
       const policies: CorsOrigin[] = [];
       origin(value, (error, policy) => {
@@ -58,6 +62,7 @@ it.effect("passes only exact bundled origins through Vite CORS", () =>
       });
       assert.deepStrictEqual(policies, [false]);
     }
+
     for (const value of [
       undefined,
       "http://localhost",
@@ -75,6 +80,7 @@ it.effect("passes only exact bundled origins through Vite CORS", () =>
       });
       assert.deepStrictEqual(policies, [defaultAllowedOrigins]);
     }
+
     // Vite inherits server.cors when preview.cors is absent.
     assert.isUndefined(config.preview?.cors);
   })

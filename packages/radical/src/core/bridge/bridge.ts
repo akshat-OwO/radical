@@ -7,11 +7,15 @@ import {
 } from "./errors.ts";
 
 export { BridgeUnavailable } from "./errors.ts";
+
 export { BridgeCallFailed } from "./errors.ts";
+
 export { BridgeDecodeError } from "./errors.ts";
 
 export const RuntimeSchema = Schema.Literals(["browser", "android", "ios"]);
+
 export type Runtime = typeof RuntimeSchema.Type;
+
 export type BridgeError =
   | BridgeUnavailable
   | BridgeCallFailed
@@ -33,20 +37,25 @@ export interface InjectedBridge {
     options: Readonly<Record<string, unknown>>
   ) => Promise<unknown>;
 }
+
 interface BridgeWindow extends Window {
   readonly Capacitor?: InjectedBridge;
 }
+
 export const injectedBridge = (): InjectedBridge | undefined => {
   if (typeof window === "undefined") {
     return undefined;
   }
+
   const browserWindow: BridgeWindow = window;
+
   return browserWindow.Capacitor;
 };
 
 /** SSR reports browser. Detection reads globals only when called. */
 const runtimeOf = (bridge: InjectedBridge | undefined): Runtime => {
   const platform = bridge?.getPlatform();
+
   return platform === "android" || platform === "ios" ? platform : "browser";
 };
 
@@ -101,9 +110,11 @@ export const bridgeLayer = (
         const listener = bridgeEventListener(receive);
         events.addEventListener(event, listener);
         const latest = events.__radical?.latest;
+
         if (latest && Object.hasOwn(latest, event)) {
           receive(latest[event]);
         }
+
         return () => {
           events.removeEventListener(event, listener);
         };
@@ -115,12 +126,15 @@ export const bridgeLayer = (
         never
       >(() => {
         const bridge = read();
+
         if (!bridge?.nativeCallback) {
           return Effect.fail(
             new BridgeUnavailable({ plugin, method: "addListener" })
           );
         }
+
         let active = true;
+
         return Effect.try({
           try: () =>
             bridge.nativeCallback?.(
@@ -152,6 +166,7 @@ export const bridgeLayer = (
       Effect.suspend<unknown, BridgeUnavailable | BridgeCallFailed, never>(
         () => {
           const bridge = read();
+
           if (
             !bridge ||
             runtimeOf(bridge) === "browser" ||
@@ -159,6 +174,7 @@ export const bridgeLayer = (
           ) {
             return Effect.fail(new BridgeUnavailable({ plugin, method }));
           }
+
           return Effect.tryPromise({
             try: () => bridge.nativePromise(plugin, method, options),
             catch: (cause) => new BridgeCallFailed({ plugin, method, cause }),
@@ -166,6 +182,7 @@ export const bridgeLayer = (
         }
       ),
   });
+
 export const BridgeLive = bridgeLayer(injectedBridge);
 
 /** Each test supplies its own handler and state; decoding stays on the caller side. */
@@ -188,6 +205,7 @@ export const callBridge = <A, I>(
   Effect.gen(function* () {
     const bridge = yield* Bridge;
     const result = yield* bridge.call(plugin, method, options);
+
     return yield* Schema.decodeUnknownEffect(schema)(result).pipe(
       Effect.mapError(
         (cause) => new BridgeDecodeError({ plugin, method, cause })

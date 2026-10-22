@@ -8,6 +8,7 @@ import ignore from "ignore";
 import { parse } from "yaml";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
+
 const workspaceSchema = Schema.Struct({
   packages: Schema.Array(Schema.String),
 });
@@ -27,9 +28,11 @@ interface IgnoreConfig {
 // The root config currently includes Ultracite core's patterns explicitly.
 const lintPatterns = (config: IgnoreConfig): readonly string[] | undefined => {
   let patterns: readonly string[] | undefined;
+
   for (const base of config.extends ?? []) {
     patterns = lintPatterns(base) ?? patterns;
   }
+
   return config.ignorePatterns ?? patterns;
 };
 
@@ -37,20 +40,24 @@ const lintPatterns = (config: IgnoreConfig): readonly string[] | undefined => {
 const readConfig = (name: string) =>
   Effect.gen(function* () {
     const url = new URL(name, new URL("../../../", import.meta.url)).href;
+
     const module = yield* Effect.tryPromise({
       // oxlint-disable-next-line typescript/promise-function-async -- Effect owns the Promise boundary.
       try: () => import(url).then(Schema.decodeUnknownSync(Schema.Unknown)),
       catch: (cause) => new DirectoryScanError({ cause }),
     });
+
     const configSchema: Schema.Codec<IgnoreConfig> = Schema.Struct({
       ignorePatterns: Schema.optional(Schema.Array(Schema.String)),
       extends: Schema.optional(
         Schema.Array(Schema.suspend(() => configSchema))
       ),
     });
+
     const config = yield* Schema.decodeUnknownEffect(
       Schema.Struct({ default: configSchema })
     )(module);
+
     return lintPatterns(config.default) ?? [];
   });
 
@@ -59,9 +66,11 @@ const ignoredFolders = (
   patterns: readonly string[]
 ) => {
   const matcher = ignore({ ignorecase: false }).add(patterns);
+
   return folders.flatMap((folder) => {
     // A trailing slash checks directories, including directory-only patterns.
     const result = matcher.test(`${folder}/`);
+
     return result.ignored ? [`${folder}: ${result.rule?.pattern}`] : [];
   });
 };
@@ -70,8 +79,10 @@ const scanFolders = (workspaces: readonly string[]) =>
   Effect.try({
     try: () => {
       const folders: string[] = [];
+
       const visit = (directory: string) => {
         folders.push(path.relative(root, directory).split(path.sep).join("/"));
+
         for (const entry of readdirSync(directory, { withFileTypes: true })) {
           // Do not follow symlinks or scan installed/generated trees. Do not
           // exclude lint patterns here: those are exactly what we must catch.
@@ -84,10 +95,13 @@ const scanFolders = (workspaces: readonly string[]) =>
           }
         }
       };
+
       const includes = workspaces.filter((pattern) => !pattern.startsWith("!"));
+
       const excludes = workspaces.flatMap((pattern) =>
         pattern.startsWith("!") ? [pattern.slice(1)] : []
       );
+
       for (const workspace of globSync(includes, {
         cwd: root,
         exclude: [...excludes, "**/node_modules/**", "**/.radical/**"],
@@ -104,6 +118,7 @@ const scanFolders = (workspaces: readonly string[]) =>
           }
         }
       }
+
       return folders.toSorted();
     },
     catch: (cause) => new DirectoryScanError({ cause }),
@@ -152,10 +167,13 @@ it.effect("keeps workspace source and test folders visible to Ultracite", () =>
         ),
       catch: (cause) => new DirectoryScanError({ cause }),
     });
+
     const workspace =
       yield* Schema.decodeUnknownEffect(workspaceSchema)(document);
+
     const folders = yield* scanFolders(workspace.packages);
     assert.isAbove(folders.length, 0);
+
     const violations = yield* Effect.forEach(
       ["oxlint.config.ts", "oxfmt.config.ts"],
       (name) =>
@@ -165,6 +183,7 @@ it.effect("keeps workspace source and test folders visible to Ultracite", () =>
           )
         )
     );
+
     assert.deepStrictEqual(violations.flat(), []);
   })
 );

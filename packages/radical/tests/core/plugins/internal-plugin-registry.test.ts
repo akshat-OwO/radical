@@ -20,6 +20,7 @@ import {
 const legacyPlugins = (config: InternalPluginConfig) => {
   const notifications =
     config.notifications === true || config.pushNotifications === true;
+
   return (
     [
       [config.googleSignIn === true, "googleSignIn"],
@@ -40,6 +41,7 @@ const legacyPlugins = (config: InternalPluginConfig) => {
     ] as const
   ).flatMap(([enabled, id]) => (enabled ? [id] : []));
 };
+
 const flags = [
   "googleSignIn",
   "dataProtection",
@@ -54,21 +56,27 @@ const flags = [
   "device",
   "transitions",
 ] as const satisfies readonly InternalPluginFlag[];
+
 const combination = (
   index: number,
   states: readonly (boolean | undefined)[]
 ) => {
   const config: Partial<Record<InternalPluginFlag, boolean>> = {};
   let remaining = index;
+
   for (const flag of flags) {
     const value = states[remaining % states.length];
+
     if (value !== undefined) {
       config[flag] = value;
     }
+
     remaining = Math.floor(remaining / states.length);
   }
+
   return config;
 };
+
 const pluginOptions = {
   Camera: {
     usageDescription: "Take a photo",
@@ -85,9 +93,11 @@ describe("internal plugin registry", () => {
   it.effect("accepts every registry flag in the config schema", () =>
     Effect.gen(function* () {
       const internalPlugins = combination(2 ** flags.length - 1, [false, true]);
+
       const config = yield* Schema.decodeUnknownEffect(RadicalConfigSchema, {
         onExcessProperty: "error",
       })({ appId: "dev.test.app", internalPlugins });
+
       assert.deepStrictEqual(config.internalPlugins, internalPlugins);
     })
   );
@@ -96,6 +106,7 @@ describe("internal plugin registry", () => {
     () =>
       Effect.sync(() => {
         assert.deepStrictEqual(Record.keys(internalPluginRegistry), [...flags]);
+
         for (let index = 0; index < 3 ** flags.length; index += 1) {
           const config = combination(index, [undefined, false, true]);
           const plugins = resolveInternalPlugins(config);
@@ -114,13 +125,16 @@ describe("internal plugin registry", () => {
           load: () =>
             Effect.die("Internal resolution must not load custom modules"),
         });
+
         for (let index = 0; index < 2 ** flags.length; index += 1) {
           const internalPlugins = combination(index, [false, true]);
+
           const plugins = yield* resolvePlugins({
             appId: "dev.test.app",
             internalPlugins,
             pluginOptions,
           }).pipe(Effect.provide(modules));
+
           assert.deepStrictEqual(
             plugins.map(({ manifest }) => manifest.id),
             legacyPlugins(internalPlugins)
@@ -135,9 +149,11 @@ describe("internal plugin registry", () => {
         for (const capability of Object.values(internalPluginRegistry)) {
           for (const { manifest, selector } of capability.plugins) {
             assert.isTrue(Object.hasOwn(publicManifests, selector), selector);
+
             const exported = Object.entries(publicManifests).find(
               ([name]) => name === selector
             );
+
             assert.strictEqual(exported?.[1].id, manifest.id);
           }
         }

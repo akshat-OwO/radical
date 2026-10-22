@@ -41,6 +41,7 @@ describe("injected bridge", () => {
             }))
           )
         );
+
         assert.strictEqual(
           runtime,
           platform === "android" || platform === "ios" ? platform : "browser"
@@ -63,6 +64,7 @@ describe("injected bridge", () => {
             assert.strictEqual(plugin, "Device");
             assert.strictEqual(method, "getInfo");
             assert.deepStrictEqual(options, {});
+
             return await Effect.runPromise(
               Effect.succeed({
                 ...nativeInfo,
@@ -71,6 +73,7 @@ describe("injected bridge", () => {
             );
           },
         };
+
         assert.deepStrictEqual(
           yield* getDeviceInfo.pipe(
             Effect.provide(bridgeLayer(() => injected))
@@ -88,6 +91,7 @@ describe("injected bridge", () => {
             Effect.provide(bridgeLayer(() => {}))
           )
         );
+
         assert.strictEqual(error._tag, "BridgeUnavailable");
         assert.strictEqual(error.plugin, "Device");
       })
@@ -95,6 +99,7 @@ describe("injected bridge", () => {
   it.effect("preserves the rejected native cause in BridgeCallFailed", () =>
     Effect.gen(function* () {
       const cause = new Error("UNIMPLEMENTED");
+
       const error = yield* Effect.flip(
         getDeviceInfo.pipe(
           Effect.provide(
@@ -106,7 +111,9 @@ describe("injected bridge", () => {
           )
         )
       );
+
       assert.instanceOf(error, BridgeCallFailed);
+
       if (error._tag === "BridgeCallFailed") {
         assert.strictEqual(error.cause, cause);
         assert.strictEqual(error.method, "getInfo");
@@ -126,6 +133,7 @@ describe("injected bridge", () => {
             )
           )
         );
+
         assert.strictEqual(error._tag, "BridgeDecodeError");
         assert.strictEqual(error.plugin, "Device");
         assert.deepStrictEqual(

@@ -36,6 +36,7 @@ const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
 
 /** Per-test files and command results, with no SDK, processes or real disk. */
 const defaultConfig = { appId: "dev.radical.example" };
+
 const memory = (
   fail = false,
   config: Schema.Json = defaultConfig,
@@ -58,7 +59,9 @@ const memory = (
     ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
   ]);
+
   const require = createRequire(import.meta.url);
+
   for (const [name, version] of Object.entries({
     "@capacitor/core": "8.5.3",
     "@capacitor/ios": "8.6.1",
@@ -70,14 +73,17 @@ const memory = (
       JSON.stringify({ version })
     );
   }
+
   const commands: string[][] = [];
   const binaries = new Map<string, Uint8Array>();
   const assetCalls: AssetGeneration[] = [];
   const control = { failAssets: false };
+
   const fs = FileSystem.layerNoop({
     readFile: (name) =>
       Effect.suspend(() => {
         const bytes = binaries.get(name);
+
         return bytes === undefined
           ? Effect.fail(
               PlatformError.systemError({
@@ -92,6 +98,7 @@ const memory = (
     readFileString: (name) =>
       Effect.suspend(() => {
         const content = files.get(name);
+
         return content === undefined
           ? Effect.fail(
               PlatformError.systemError({
@@ -138,11 +145,13 @@ const memory = (
         }
       }),
   });
+
   const spawner = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {
     ...ChildProcessSpawner.make(() => Effect.die("Unexpected spawn")),
     exitCode: (command) =>
       Effect.sync(() => {
         assert.strictEqual(command._tag, "StandardCommand");
+
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
           const app = `${command.options.cwd}/ios/App/App`;
@@ -162,13 +171,16 @@ const memory = (
             `${app}/Info.plist`,
             "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict></dict></plist>"
           );
+
           if (mismatch) {
             files.set(`${app}/${mismatch}`, "upstream template changed");
           }
         }
+
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
   });
+
   return {
     files,
     binaries,
@@ -182,6 +194,7 @@ const memory = (
         generate: (input) =>
           Effect.suspend(() => {
             assetCalls.push(input);
+
             return control.failAssets
               ? Effect.fail(
                   new AssetGenerationFailed({
@@ -215,6 +228,7 @@ describe("iOS shell generation", () => {
           pushNotifications: false,
         },
       });
+
       return Effect.gen(function* () {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
@@ -234,6 +248,7 @@ describe("iOS shell generation", () => {
         ...defaultConfig,
         internalPlugins: { dataProtection: true, transitions: false },
       });
+
       return Effect.gen(function* () {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
@@ -262,6 +277,7 @@ describe("iOS shell generation", () => {
       plugins: [{ manifest: "./plugins/echo.ts" }],
       pluginOptions: { Echo: { prefix: "Native: " } },
     });
+
     return Effect.gen(function* () {
       yield* generate;
       const source = state.files.get(appDelegate) ?? "";
@@ -280,6 +296,7 @@ describe("iOS shell generation", () => {
         ...defaultConfig,
         internalPlugins: { device: false, transitions: false },
       });
+
       return Effect.gen(function* () {
         yield* generate;
         assert.notInclude(
@@ -305,6 +322,7 @@ describe("iOS shell generation", () => {
     "emits the transitions Swift class and its registration call",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* generate;
         assert.include(
@@ -323,11 +341,14 @@ describe("iOS shell generation", () => {
     "emits a Capacitor project with the native-context cookie and Swift window and safe-area guards",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         assert.strictEqual(yield* generate, destination);
         assert.strictEqual(state.commands.length, 1);
+
         const generatedPackage =
           state.files.get(`${destination}/package.json`) ?? "";
+
         const { dependencies } = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
@@ -335,6 +356,7 @@ describe("iOS shell generation", () => {
             })
           )
         )(generatedPackage);
+
         assert.deepStrictEqual(dependencies, {
           "@capacitor/core": "8.5.3",
           "@capacitor/ios": "8.6.1",
@@ -347,16 +369,20 @@ describe("iOS shell generation", () => {
         );
         assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "ios"]);
         const source = state.files.get(appDelegate) ?? "";
+
         const value = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(Schema.String)
         )(
           /let seed = (?<cookie>"[^"]+")\.removingPercentEncoding/u.exec(source)
             ?.groups?.cookie
         );
+
         assert.include(source, `.name: "${NATIVE_CONTEXT_COOKIE}"`);
+
         const context = yield* Schema.decodeEffect(
           Schema.fromJsonString(ShellContextSchema)
         )(decodeURIComponent(value ?? ""));
+
         assert.deepStrictEqual(context, {
           platform: "ios",
           shellVersion: "1.2.3",
@@ -412,6 +438,7 @@ describe("iOS shell generation", () => {
           source,
           "handleFailure(webView, navigation: navigation, error: error)"
         );
+
         const config = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
@@ -421,6 +448,7 @@ describe("iOS shell generation", () => {
             })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
+
         assert.isTrue(config.ios.limitsNavigationsToAppBoundDomains);
       }).pipe(Effect.provide(state.layer));
     }
@@ -441,12 +469,15 @@ describe("iOS shell generation", () => {
         },
         "https://app.test"
       );
+
       return Effect.gen(function* () {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
         assert.include(source, '["https://app.test", "https://app.test:8443"]');
+
         const plist =
           state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+
         assert.include(
           plist,
           "<key>WKAppBoundDomains</key><array><string>app.test</string></array>"
@@ -461,6 +492,7 @@ describe("iOS shell generation", () => {
     () => {
       const usageDescription = "Price $& tax $' after $` before $$ total";
       const photoLibraryUsageDescription = "Pick $& or $$";
+
       const state = memory(false, {
         ...defaultConfig,
         internalPlugins: { camera: true },
@@ -468,10 +500,13 @@ describe("iOS shell generation", () => {
           Camera: { usageDescription, photoLibraryUsageDescription },
         },
       });
+
       return Effect.gen(function* () {
         yield* generate;
+
         const plist =
           state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+
         assert.include(
           plist,
           `<key>NSCameraUsageDescription</key><string>${usageDescription.replaceAll("&", "&amp;")}</string><key>NSPhotoLibraryUsageDescription</key><string>${photoLibraryUsageDescription.replaceAll("&", "&amp;")}</string>\n</dict>\n</plist>`
@@ -489,13 +524,16 @@ describe("iOS shell generation", () => {
           { length: 9 },
           (_, index) => `https://host${index}.test`
         );
+
         const accepted = memory(
           false,
           { ...defaultConfig, allowlist },
           "https://app.test"
         );
+
         yield* generate.pipe(Effect.provide(accepted.layer));
         assert.strictEqual(accepted.commands.length, 1);
+
         const rejected = memory(
           false,
           {
@@ -504,9 +542,11 @@ describe("iOS shell generation", () => {
           },
           "https://app.test"
         );
+
         const error = yield* Effect.flip(
           generate.pipe(Effect.provide(rejected.layer))
         );
+
         assert.strictEqual(error._tag, "InvalidConfig");
         assert.isEmpty(rejected.commands);
         assert.isFalse(rejected.files.has(appDelegate));
@@ -528,6 +568,7 @@ describe("iOS shell generation", () => {
         },
         "http://app.test:3000"
       );
+
       return Effect.gen(function* () {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
@@ -556,13 +597,17 @@ describe("iOS shell generation", () => {
         ]) {
           const state = memory(false, defaultConfig, "http://app.test", file);
           state.files.set(`${destination}/previous.txt`, "usable shell");
+
           const error = yield* Effect.flip(
             generate.pipe(Effect.provide(state.layer))
           );
+
           assert.strictEqual(error._tag, "NativeTemplateMismatch");
+
           if (error._tag === "NativeTemplateMismatch") {
             assert.isTrue(error.file.endsWith(file));
           }
+
           assert.strictEqual(
             state.files.get(`${destination}/previous.txt`),
             "usable shell"
@@ -580,11 +625,14 @@ describe("iOS shell generation", () => {
     "replaces stale files and produces identical project content on rerun",
     () => {
       const state = memory();
+
       return Effect.gen(function* () {
         yield* generate;
+
         const first = [...state.files].toSorted(([a], [b]) =>
           a.localeCompare(b)
         );
+
         state.files.set(`${destination}/stale.txt`, "old shell");
         state.files.set(
           `${destination}.next/abandoned.txt`,
@@ -605,6 +653,7 @@ describe("iOS shell generation", () => {
     () => {
       const state = memory(true);
       state.files.set(`${destination}/previous.txt`, "usable shell");
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "ShellCommandError");
@@ -625,6 +674,7 @@ describe("iOS shell generation", () => {
     "rejects invalid configuration before generating or executing commands",
     () => {
       const state = memory(false, { appId: "../outside" });
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "InvalidConfig");
@@ -645,9 +695,11 @@ describe("ios app identity", () => {
           { ...defaultConfig, ios: { bundleId: "dev.my_app" } },
         ]) {
           const state = memory(false, config);
+
           const error = yield* Effect.flip(
             generate.pipe(Effect.provide(state.layer))
           );
+
           assert.strictEqual(error._tag, "InvalidConfig");
           assert.include(error.message, "ios");
           assert.include(error.message, "dev.my_app");
@@ -655,10 +707,12 @@ describe("ios app identity", () => {
           assert.include(error.message, "letters, digits and hyphens");
           assert.isEmpty(state.commands);
         }
+
         const state = memory(false, {
           appId: "dev.my_app",
           ios: { bundleId: "dev.valid.app" },
         });
+
         yield* generate.pipe(Effect.provide(state.layer));
         assert.include(
           state.files.get(`${destination}/capacitor.config.json`) ?? "",
@@ -678,25 +732,31 @@ describe("ios app identity", () => {
         icon: "icon.png",
         splash: { image: "splash.png", backgroundColor: "#241044" },
       };
+
       const state = memory(false, config);
+
       return Effect.gen(function* () {
         state.binaries.set("/app/icon.png", yield* image(1024));
         state.binaries.set("/app/splash.png", yield* image(2732));
         yield* generate;
+
         const nativeConfig = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({ appId: Schema.String, appName: Schema.String })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+
         assert.deepStrictEqual(nativeConfig, {
           appId: "dev.custom.shell",
           appName: "Platform name",
         });
         assert.strictEqual(state.assetCalls[0].platform, "ios");
+
         const storyboard =
           state.files.get(
             `${destination}/ios/App/App/Base.lproj/LaunchScreen.storyboard`
           ) ?? "";
+
         assert.include(
           storyboard,
           `red="${0x24 / 255}" green="${0x10 / 255}" blue="${0x44 / 255}"`
@@ -763,6 +823,7 @@ describe("ios app identity", () => {
 
   it.effect("keeps the previous shell when the asset generator fails", () => {
     const state = memory(false, { ...defaultConfig, icon: "icon.png" });
+
     return Effect.gen(function* () {
       state.binaries.set("/app/icon.png", yield* image(1024));
       state.files.set(`${destination}/previous.txt`, "usable shell");
@@ -783,6 +844,7 @@ describe("ios app identity", () => {
 
   it.effect("rejects a missing icon before invoking any tool", () => {
     const state = memory(false, { ...defaultConfig, icon: "missing.png" });
+
     return Effect.gen(function* () {
       const error = yield* Effect.flip(generate);
       assert.strictEqual(error._tag, "InvalidAsset");
@@ -803,11 +865,13 @@ describe("bundled ios shell", () => {
         origin: "https://api.example",
         allowlist: ["https://external.example"],
       });
+
       state.files.set(
         "/app/web/public/entry.html",
         "<!doctype html><title>SPA shell</title>"
       );
       state.files.set("/app/web/public/assets/app.js", "application code");
+
       return Effect.gen(function* () {
         const adapter = yield* RadicalAdapter;
         const outputs = yield* adapter.outputs;
@@ -827,6 +891,7 @@ describe("bundled ios shell", () => {
           state.files.get(`${destination}/www/assets/app.js`),
           "application code"
         );
+
         const config = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
@@ -837,6 +902,7 @@ describe("bundled ios shell", () => {
             })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
+
         assert.isUndefined(config.server.url);
         assert.deepStrictEqual(config.server.allowNavigation, []);
         const source = state.files.get(appDelegate) ?? "";
@@ -868,6 +934,7 @@ describe("bundled ios shell", () => {
       );
     }
   );
+
   for (const outputs of [undefined, { clientDir: "web/public" }]) {
     it.effect(
       `rejects ${outputs === undefined ? "missing adapter outputs" : "an adapter without a SPA shell"} before replacing a bundled project`,
@@ -877,6 +944,7 @@ describe("bundled ios shell", () => {
           mode: "bundled",
           origin: "https://api.example",
         });
+
         state.files.set(
           "/app/.radical/native.json",
           JSON.stringify({
@@ -890,6 +958,7 @@ describe("bundled ios shell", () => {
           })
         );
         state.files.set(`${destination}/previous.txt`, "usable shell");
+
         return Effect.gen(function* () {
           const error = yield* Effect.flip(generate);
           assert.strictEqual(error._tag, "InvalidConfig");
@@ -903,6 +972,7 @@ describe("bundled ios shell", () => {
       }
     );
   }
+
   it.effect(
     "rejects missing SPA output before replacing an existing shell",
     () => {
@@ -911,7 +981,9 @@ describe("bundled ios shell", () => {
         mode: "bundled",
         origin: "https://api.example",
       });
+
       state.files.set(`${destination}/previous.txt`, "usable shell");
+
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "InvalidConfig");

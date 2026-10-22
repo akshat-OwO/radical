@@ -20,7 +20,9 @@ describe("CLI metadata read", () => {
       mode: "bundled" as const,
       origin: "https://example.com",
     };
+
     const metadata = { config, url: "http://localhost:5173" };
+
     return Effect.gen(function* () {
       assert.deepStrictEqual(yield* readCliMetadata("/app"), metadata);
     }).pipe(Effect.provide(metadataMemory(JSON.stringify(metadata)).layer));
@@ -57,6 +59,7 @@ describe("CLI Vite root resolution", () => {
             const planRoots: string[] = [];
             const buildRoots: string[] = [];
             const resolutions: unknown[] = [];
+
             const plan = yield* resolveBuildPlan({
               appId: "dev.test.app",
               mode,
@@ -68,10 +71,12 @@ describe("CLI Vite root resolution", () => {
                 })
               )
             );
+
             const layer = makeCliViteLayer(
               Effect.succeed({
                 resolveConfig: (inline, ...args) => {
                   resolutions.push([inline, ...args]);
+
                   return Promise.resolve({
                     root: inline.root ?? configuredRoot ?? cwd,
                     plugins: [
@@ -80,6 +85,7 @@ describe("CLI Vite root resolution", () => {
                         api: new BuildPlanApi((root) =>
                           Effect.sync(() => {
                             planRoots.push(root);
+
                             return plan;
                           })
                         ),
@@ -89,15 +95,18 @@ describe("CLI Vite root resolution", () => {
                 },
                 createBuilder: (inline) => {
                   assert.deepStrictEqual(inline, {});
+
                   return Promise.resolve({
                     buildApp: () => {
                       buildRoots.push(inline.root ?? configuredRoot ?? cwd);
+
                       return Promise.resolve();
                     },
                   });
                 },
               })
             );
+
             yield* Effect.gen(function* () {
               assert.strictEqual(yield* prepareNative, plan);
               const vite = yield* CliVite;

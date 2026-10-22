@@ -3,6 +3,7 @@ import { useGoogleSignIn } from "radical/react";
 
 const GoogleSignIn = () => {
   const google = useGoogleSignIn();
+
   return (
     <main>
       <h1>Google sign-in</h1>
@@ -29,6 +30,7 @@ const GoogleSignIn = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/google-sign-in")({
   component: GoogleSignIn,
 });

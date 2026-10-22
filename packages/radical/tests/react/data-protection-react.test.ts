@@ -19,8 +19,10 @@ it.effect(
         let settled = yield* Deferred.make<boolean>();
         const calls: unknown[] = [];
         let failed = false;
+
         const layer = bridgeTestLayer("android", (plugin, method, options) => {
           calls.push({ plugin, method, options });
+
           return failed
             ? Effect.fail(
                 new BridgeCallFailed({ plugin, method, cause: "failed" })
@@ -32,6 +34,7 @@ it.effect(
                 appSwitcher: true,
               });
         });
+
         const mounted = yield* mountHook(useDataProtection, layer, (state) => {
           if (state.value !== undefined || state.error !== undefined) {
             const signal = settled;
@@ -40,7 +43,9 @@ it.effect(
             });
           }
         });
+
         const initial = mounted.state();
+
         for (const enabled of [true, false]) {
           settled = yield* Deferred.make<boolean>();
           flushSync(() => {
@@ -59,6 +64,7 @@ it.effect(
             initial.clearWebData
           );
         }
+
         settled = yield* Deferred.make<boolean>();
         failed = true;
         flushSync(() => {
@@ -88,6 +94,7 @@ it.effect(
       Effect.gen(function* () {
         const calls: unknown[] = [];
         let interrupted = 0;
+
         const layer = () =>
           bridgeTestLayer("ios", (_plugin, method, options) =>
             Effect.sync(() => {
@@ -101,6 +108,7 @@ it.effect(
               )
             )
           );
+
         const mounted = yield* mountHook(useDataProtection, layer());
         const stale = mounted.state().setEnabled;
         stale(true);
@@ -134,6 +142,7 @@ it.effect(
       Effect.gen(function* () {
         const settled = yield* Deferred.make<boolean>();
         const calls: string[] = [];
+
         const layer = bridgeTestLayer("ios", (_plugin, method) =>
           Effect.sync(() => {
             calls.push(method);
@@ -141,6 +150,7 @@ it.effect(
             assert.isNull(sessionStorage.getItem("private"));
           })
         );
+
         const mounted = yield* mountHook(useDataProtection, layer, (state) => {
           if (state.value !== undefined || state.error !== undefined) {
             queueMicrotask(() => {
@@ -148,6 +158,7 @@ it.effect(
             });
           }
         });
+
         localStorage.setItem("private", "local");
         sessionStorage.setItem("private", "session");
         yield* Effect.addFinalizer(() =>

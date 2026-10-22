@@ -6,7 +6,9 @@ export const DataProtectionStatusSchema = Schema.Struct({
   recording: Schema.Boolean,
   appSwitcher: Schema.Boolean,
 });
+
 export type DataProtectionStatus = typeof DataProtectionStatusSchema.Type;
+
 export class WebDataClearFailed extends Schema.TaggedError<
   WebDataClearFailed,
   { readonly brand: unique symbol }

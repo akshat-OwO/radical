@@ -33,6 +33,7 @@ interface BundledDocument {
 
 const shellDocument = (): BundledDocument | undefined =>
   typeof window === "undefined" ? undefined : window;
+
 const injectedNativeContext = flow(
   Schema.decodeUnknownEffect(NativeContextSchema),
   Effect.orElseSucceed(browserContext)
@@ -44,6 +45,7 @@ export const localNativeContext = (
 ) =>
   Effect.suspend(() => {
     const target = read();
+
     return target?.__radicalMounted === true
       ? injectedNativeContext(target.__radicalNativeContext)
       : Effect.succeed(browserContext());
@@ -55,15 +57,19 @@ export const mountNativeContext = (
 ) =>
   Effect.gen(function* () {
     const target = read();
+
     const context = yield* injectedNativeContext(
       target?.__radicalNativeContext
     );
+
     if (target) {
       target.__radicalMounted = true;
+
       for (const [name, value] of Object.entries(safeAreaStyle(context))) {
         target.document.documentElement.style.setProperty(name, value);
       }
     }
+
     return context;
   });
 
@@ -83,26 +89,33 @@ export const routeBundledRequest = (
       const pageOrigin = `${pageUrl.protocol}//${pageUrl.host}`;
       const local = bundledOrigins.some((origin) => pageOrigin === origin);
       const urlOrigin = `${url.protocol}//${url.host}`;
+
       const routed =
         config.mode === "bundled" &&
         local &&
         config.origin !== undefined &&
         (urlOrigin === pageOrigin || urlOrigin === config.origin);
+
       const target = routed
         ? new URL(url.pathname + url.search, config.origin).href
         : url.href;
+
       const request = new Request(
         target,
         input instanceof Request ? input : undefined
       );
+
       const result = new Request(request, init);
+
       if (routed) {
         result.headers.set(
           NATIVE_CONTEXT_HEADER,
           encodeURIComponent(JSON.stringify(context))
         );
+
         return new Request(result, { credentials: "include", mode: "cors" });
       }
+
       return result;
     },
     catch: (cause) => new RequestFailed({ cause }),
@@ -119,6 +132,7 @@ export const createRadicalFetch =
           typeof location === "undefined"
             ? ""
             : `${location.protocol}//${location.host}`;
+
         if (
           config.mode !== "bundled" ||
           !bundledOrigins.some((origin) => page === origin)
@@ -128,9 +142,11 @@ export const createRadicalFetch =
             catch: (cause) => new RequestFailed({ cause }),
           });
         }
+
         const context = yield* injectedNativeContext(
           shellDocument()?.__radicalNativeContext
         );
+
         const request = yield* routeBundledRequest(
           config,
           input,
@@ -138,6 +154,7 @@ export const createRadicalFetch =
           location.href,
           context
         );
+
         return yield* Effect.tryPromise({
           try: () => fetch(request),
           catch: (cause) => new RequestFailed({ cause }),

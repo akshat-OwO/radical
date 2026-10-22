@@ -4,6 +4,7 @@ import { useCamera, useCameraPermission } from "radical/react";
 const Camera = () => {
   const camera = useCamera();
   const permission = useCameraPermission();
+
   return (
     <main>
       <h1>Camera</h1>
@@ -66,4 +67,5 @@ const Camera = () => {
     </main>
   );
 };
+
 export const Route = createFileRoute("/camera")({ component: Camera });

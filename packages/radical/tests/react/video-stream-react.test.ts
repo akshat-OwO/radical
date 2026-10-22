@@ -23,8 +23,10 @@ const Probe = ({
   useLayoutEffect(() => {
     committed(state);
   }, [committed, state]);
+
   return null;
 };
+
 it.effect(
   "suppresses duplicate starts, stops, restarts, and releases on unmount",
   () =>
@@ -38,6 +40,7 @@ it.effect(
         let state: VideoStreamState | undefined;
         let starts = 0;
         let stops = 0;
+
         const layer = Layer.succeed(Bridge, {
           runtime: Effect.succeed("android" as const),
           observe: () => Effect.succeed(() => {}),
@@ -47,9 +50,11 @@ it.effect(
               if (method === "requestPermissions") {
                 return { camera: "granted" };
               }
+
               if (method === "start") {
                 starts += 1;
               }
+
               if (method === "stop") {
                 stops += 1;
                 yield* Deferred.succeed(
@@ -57,27 +62,35 @@ it.effect(
                   true
                 );
               }
+
               if (method === "getAvailableDevices") {
                 return { devices: [{}] };
               }
+
               if (method === "getZoom") {
                 return { min: 1, max: 4, current: 1 };
               }
+
               if (method === "getSupportedFlashModes") {
                 return { result: [] };
               }
+
               if (method === "getVideoFrameRate") {
                 return { frameRate: 30 };
               }
+
               return {};
             }),
         });
+
         const root = createRoot(document.createElement("div"));
+
         const unmount = () => {
           flushSync(() => {
             root.unmount();
           });
         };
+
         yield* Effect.addFinalizer(() => Effect.sync(unmount));
         flushSync(() => {
           root.render(
@@ -89,11 +102,13 @@ it.effect(
                 committed: (next) => {
                   state = next;
                   let signal: typeof running | undefined;
+
                   if (next.running) {
                     signal = starts === 1 ? running : restarted;
                   } else if (!next.loading && stops === 1) {
                     signal = idle;
                   }
+
                   if (signal) {
                     queueMicrotask(() => {
                       Effect.runSync(Deferred.succeed(signal, true));
@@ -133,12 +148,14 @@ it.effect(
         let emit: Parameters<Bridge["Service"]["observe"]>[1] | undefined;
         let starts = 0;
         const codes: string[] = [];
+
         const layer = Layer.succeed(Bridge, {
           runtime: Effect.succeed("android" as const),
           observe: () => Effect.succeed(() => {}),
           listen: (_plugin, _event, receive) =>
             Effect.sync(() => {
               emit = receive;
+
               return Effect.void;
             }),
           call: (_plugin, method) =>
@@ -146,27 +163,35 @@ it.effect(
               if (method === "requestPermissions") {
                 return { camera: "granted" };
               }
+
               if (method === "getAvailableDevices") {
                 return { devices: [{}] };
               }
+
               if (method === "start") {
                 starts += 1;
               }
+
               if (method === "stop") {
                 yield* Deferred.succeed(stopped, true);
               }
+
               if (method === "getZoom") {
                 return { min: 1, max: 1, current: 1 };
               }
+
               if (method === "getSupportedFlashModes") {
                 return { result: [] };
               }
+
               if (method === "getVideoFrameRate") {
                 return { frameRate: 30 };
               }
+
               return {};
             }),
         });
+
         const root = createRoot(document.createElement("div"));
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
@@ -175,6 +200,7 @@ it.effect(
             });
           })
         );
+
         const render = (next: EffectLayer.Layer<Bridge>) => {
           flushSync(() => {
             root.render(
@@ -188,6 +214,7 @@ it.effect(
                   },
                   committed: (value) => {
                     state = value;
+
                     if (value.running) {
                       queueMicrotask(() => {
                         Effect.runSync(Deferred.succeed(running, true));
@@ -199,6 +226,7 @@ it.effect(
             );
           });
         };
+
         render(layer);
         state?.start();
         yield* Deferred.await(running);

@@ -18,11 +18,13 @@ export interface PickedFile {
   /** Native file URI, present only in a shell. Pass the file to `openFile` to open it externally. */
   readonly uri?: string;
 }
+
 export interface PickFilesOptions {
   /** MIME types or `type/*` patterns. All files when omitted. */
   readonly types?: readonly string[];
   readonly multiple?: boolean;
 }
+
 export type FilePickerError = Cancelled | Unavailable | BridgeError;
 
 /** Browser resources are isolated so tests never need a device or network. */
@@ -53,25 +55,31 @@ export const BrowserFilesLive = Layer.succeed(BrowserFiles, {
 });
 
 const fallbackType = "application/octet-stream";
+
 /** Native pickers report unknown text fields as missing or empty. */
 const present = (value: string | undefined) =>
   value === undefined || value === "" ? undefined : value;
+
 const nameFromUri = (uri: string) =>
   uri.split(/[/?#]/u).findLast(Boolean) ?? "file";
+
 // Capawesome rejects cancellation without a code; its message is the stable contract in 8.1.1.
 const cancelled = "pickFiles canceled.";
 
 const isCancelled = Schema.is(
   Schema.Struct({ message: Schema.Literal(cancelled) })
 );
+
 const nativeFiles = (options: PickFilesOptions) => {
   const args: NativeFileArgs = {
     limit: options.multiple === true ? 0 : 1,
     readData: false,
   };
+
   if (options.types !== undefined) {
     args.types = [...options.types];
   }
+
   return callPlugin(
     filePickerPlugin.bridge,
     "pickFiles",
@@ -93,8 +101,10 @@ export const pickFiles = (options: PickFilesOptions = {}) =>
   Effect.gen(function* () {
     const bridge = yield* Bridge;
     const browser = yield* BrowserFiles;
+
     if ((yield* bridge.runtime) === "browser") {
       const files = yield* browser.pick(options);
+
       return files.map((file): PickedFile => ({
         name: file.name,
         mimeType: file.type || fallbackType,
@@ -103,10 +113,13 @@ export const pickFiles = (options: PickFilesOptions = {}) =>
         blob: file,
       }));
     }
+
     const { files } = yield* nativeFiles(options);
+
     if (files.length === 0) {
       return yield* new Cancelled({});
     }
+
     return yield* Effect.all(
       files.map(({ path, ...file }) =>
         path === undefined || path === ""
@@ -128,9 +141,11 @@ export const pickFiles = (options: PickFilesOptions = {}) =>
                   blob,
                   uri: path,
                 };
+
                 if (file.modifiedAt !== undefined && file.modifiedAt > 0) {
                   result.lastModified = file.modifiedAt;
                 }
+
                 return result;
               })
             )
@@ -142,6 +157,7 @@ export const pickFiles = (options: PickFilesOptions = {}) =>
 export const filesLive = <A, E, R>(
   effect: Effect.Effect<A, E, R | BrowserFiles>
 ) => effect.pipe(Effect.provide(BrowserFilesLive));
+
 interface NativePickedFile {
   name: string;
   mimeType: string;
@@ -150,6 +166,7 @@ interface NativePickedFile {
   uri: string;
   lastModified?: number;
 }
+
 interface NativeFileArgs {
   types?: string[];
   limit: 0 | 1;

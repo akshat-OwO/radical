@@ -15,7 +15,9 @@ export {
   DataProtectionStatusSchema,
   WebDataClearFailed,
 } from "./data-protection-schema.ts";
+
 export type { DataProtectionStatus } from "./data-protection-schema.ts";
+
 export type DataProtectionError = BridgeError | WebDataClearFailed;
 
 export class BrowserDataProtection extends Context.Service<
@@ -62,7 +64,9 @@ export const setDataProtection = (enabled: boolean) =>
           })
       )
     );
+
     const bridge = yield* Bridge;
+
     if ((yield* bridge.runtime) === "browser") {
       return {
         enabled: false,
@@ -71,6 +75,7 @@ export const setDataProtection = (enabled: boolean) =>
         appSwitcher: false,
       } satisfies DataProtectionStatus;
     }
+
     return yield* callPlugin(
       dataProtectionPlugin.bridge,
       "setProtection",
@@ -84,6 +89,7 @@ export const clearWebData = Effect.gen(function* () {
   const browser = yield* BrowserDataProtection;
   yield* browser.clear;
   const bridge = yield* Bridge;
+
   if ((yield* bridge.runtime) !== "browser") {
     yield* callPlugin(
       dataProtectionPlugin.bridge,
@@ -93,6 +99,7 @@ export const clearWebData = Effect.gen(function* () {
     );
   }
 });
+
 export const dataProtectionLive = <A, E, R>(
   effect: Effect.Effect<A, E, R | BrowserDataProtection>
 ) => effect.pipe(Effect.provide(BrowserDataProtectionLive));

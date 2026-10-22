@@ -11,12 +11,16 @@ export const installRouterCommitHook = (
   run: (commit: () => Promise<void>, enabled: boolean) => Promise<void>
 ) => {
   const original = router.startViewTransition;
+
   const start: typeof original = (commit) => {
     const enabled = router.shouldViewTransition !== false;
     router.shouldViewTransition = undefined;
+
     return run(commit, enabled);
   };
+
   router.startViewTransition = start;
+
   return () => {
     if (router.startViewTransition === start) {
       router.startViewTransition = original;

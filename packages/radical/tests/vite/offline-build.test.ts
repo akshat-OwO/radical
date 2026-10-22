@@ -11,26 +11,35 @@ import { fakeAdapter } from "../fixtures/adapter.ts";
 import { hookHandler, resolvePlugin } from "../fixtures/vite-hooks.ts";
 
 type Hook<T> = T extends { handler: infer H } ? H : T;
+
 type WriteHook = Hook<NonNullable<Plugin["writeBundle"]>>;
+
 type OutputBundle = Parameters<WriteHook>[1];
+
 type OutputAsset = Extract<OutputBundle[string], { type: "asset" }>;
+
 type OutputChunk = Extract<OutputBundle[string], { type: "chunk" }>;
+
 type PluginContext = ThisParameterType<WriteHook>;
 
 const placeholder = "RADICAL_BUILD_CONTENT_HASH";
+
 const write = (plugin: Plugin, bundle: OutputBundle, outDir = "web/public") =>
   Effect.promise(async () => {
     const hook = plugin.writeBundle;
     assert.isDefined(hook);
     const handler = hookHandler(hook);
+
     // SAFETY: The fixture supplies every field read by the invoked API.
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The hook only reads environment.config.root and build.outDir.
     const context = {
       environment: { config: { root: "/app", build: { outDir } } },
     } as PluginContext;
+
     // SAFETY: The write hook reads only the environment directory and bundle fields provided by this fixture.
     await handler.call(context, {} as Parameters<WriteHook>[0], bundle);
   });
+
 const fixture = (
   code = `worker('${placeholder}','${placeholder}')`,
   fallback = "offline",
@@ -38,11 +47,13 @@ const fixture = (
 ) => {
   const files = new Map<string, string>();
   const compiled: InlineConfig[] = [];
+
   const layer = Layer.merge(
     FileSystem.layerNoop({
       readFile: (file) =>
         Effect.sync(() => {
           assert.strictEqual(file, "/app/web/public/offline.html");
+
           return new TextEncoder().encode(fallback);
         }),
       writeFileString: (file, value) =>
@@ -63,12 +74,14 @@ const fixture = (
         ),
     })
   );
+
   return {
     files,
     compiled,
     plugin: offlineBuild({ appId: "dev.test.app" }, fakeAdapter, layer),
   };
 };
+
 const bundle = (
   script = "app",
   asset: string | Uint8Array<ArrayBuffer> = "css"
@@ -90,6 +103,7 @@ const buildId = (files: Map<string, string>) => {
   const manifest: unknown = JSON.parse(
     files.get("/app/web/public/radical-manifest.json") ?? "null"
   );
+
   return Schema.decodeUnknownSync(Schema.Struct({ buildId: Schema.String }))(
     manifest
   ).buildId;
@@ -103,6 +117,7 @@ describe("offline build hook", () => {
         const fake = fixture();
         yield* resolvePlugin(fake.plugin);
         yield* write(fake.plugin, bundle());
+
         const hash = createHash("sha256")
           .update(`worker('${placeholder}','${placeholder}')`)
           .update("a.css")
@@ -111,6 +126,7 @@ describe("offline build hook", () => {
           .update("app")
           .update("offline")
           .digest("hex");
+
         assert.deepStrictEqual(
           [...fake.files.keys()],
           [
@@ -118,9 +134,11 @@ describe("offline build hook", () => {
             "/app/web/public/radical-sw.js",
           ]
         );
+
         const manifest: unknown = JSON.parse(
           fake.files.get("/app/web/public/radical-manifest.json") ?? "null"
         );
+
         assert.deepStrictEqual(manifest, {
           buildId: hash,
           cachePrefix: "radical:dev.test.app:/app/:",
@@ -140,14 +158,18 @@ describe("offline build hook", () => {
         const lib = config.build?.lib;
         assert.isDefined(lib);
         assert.notStrictEqual(lib, false);
+
         if (lib === false) {
           assert.fail("Missing worker library");
         }
+
         assert.deepStrictEqual(lib.formats, ["iife"]);
         assert.isString(lib.entry);
+
         if (Predicate.isString(lib.entry)) {
           assert.include(lib.entry, "offline-main.ts");
         }
+
         const defined: unknown = config.define?.__RADICAL_MANIFEST__;
         assert.isString(defined);
         assert.deepStrictEqual(
@@ -190,6 +212,7 @@ describe("offline build hook", () => {
         const baseline = fixture();
         yield* resolvePlugin(baseline.plugin);
         yield* write(baseline.plugin, bundle());
+
         for (const [fake, output] of [
           [fixture("changed worker"), bundle()],
           [fixture(), bundle("changed script")],

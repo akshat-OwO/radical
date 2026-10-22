@@ -29,12 +29,15 @@ export const composePluginSources = (
       let kotlin = false;
       const gradle = new Map<string, string>();
       const spm = new Map<string, { version: string; products: Set<string> }>();
+
       for (const { manifest, module, sourceRoot } of plugins) {
         const native = manifest[platform];
+
         if (platform === "android" && native && native.sources.length > 0) {
           const sourceClasses = native.sources.map(({ file }) =>
             path.basename(file, path.extname(file))
           );
+
           if (
             !sourceClasses.some(
               (name) =>
@@ -47,6 +50,7 @@ export const composePluginSources = (
             });
           }
         }
+
         if (
           platform === "android" &&
           native?.sources.length === 0 &&
@@ -56,7 +60,9 @@ export const composePluginSources = (
             message: `Plugin ${manifest.id}: android class ${native.className} with empty sources must name a fully qualified dependency-provided class`,
           });
         }
+
         let manifestDirectory = path.resolve(packageRoot, sourceRoot ?? ".");
+
         if (sourceRoot === undefined) {
           const resolved = module.startsWith(".")
             ? path.resolve(root, module)
@@ -70,8 +76,10 @@ export const composePluginSources = (
                     message: `Cannot resolve ${module}: ${String(cause)}`,
                   }),
               });
+
           manifestDirectory = path.dirname(resolved);
         }
+
         const sources = yield* Effect.forEach(
           (source: { file: string; source: string }) =>
             fs
@@ -97,17 +105,21 @@ export const composePluginSources = (
                 )
               )
         )(native?.sources ?? []);
+
         const contents = sources.map((source) => source.content).join("\n");
+
         if (sources.length > 0) {
           const pattern =
             platform === "ios"
               ? /CAPPluginMethod\s*\(\s*name:\s*"(?<command>[A-Za-z][A-Za-z0-9_]*)"/gu
               : /@PluginMethod(?:\s*\([^)]*\))?\s+(?:public\s+void\s+|(?:public\s+)?fun\s+)(?<command>[A-Za-z][A-Za-z0-9_]*)\s*\(/gu;
+
           const exposed = new Set(
             [...contents.matchAll(pattern)].map(
               (match) => match.groups?.command
             )
           );
+
           for (const command of Object.keys(manifest.commands)) {
             if (!exposed.has(command)) {
               return yield* new InvalidPlugin({
@@ -115,6 +127,7 @@ export const composePluginSources = (
               });
             }
           }
+
           for (const command of exposed) {
             if (
               command !== undefined &&
@@ -126,16 +139,19 @@ export const composePluginSources = (
             }
           }
         }
+
         for (const source of sources) {
           if (platform === "ios") {
             swift.push(source.content);
           } else {
             kotlin ||= source.file.endsWith(".kt");
+
             const directory = path.join(
               staging,
               "android/app/src/main/java",
               ...appId.split(".")
             );
+
             yield* fs.makeDirectory(directory, { recursive: true });
             yield* fs.writeFileString(
               path.join(directory, source.file),
@@ -143,9 +159,11 @@ export const composePluginSources = (
             );
           }
         }
+
         for (const name of Object.keys(manifest.android?.dependencies ?? {})) {
           gradle.set(name, versions.get(`gradle:${name}`) ?? "");
         }
+
         for (const dependency of manifest.ios?.dependencies ?? []) {
           spm.set(dependency.url, {
             ...dependency,
@@ -157,6 +175,7 @@ export const composePluginSources = (
           });
         }
       }
+
       if (platform === "android" && kotlin) {
         const rootGradle = path.join(staging, "android/build.gradle");
         yield* fs.writeFileString(
@@ -174,6 +193,7 @@ export const composePluginSources = (
           `${yield* fs.readFileString(appGradle)}\napply plugin: 'org.jetbrains.kotlin.android'\nkotlin { jvmToolchain(21) }\n`
         );
       }
+
       if (platform === "android" && gradle.size > 0) {
         const file = path.join(staging, "android/app/radical.gradle");
         yield* fs.writeFileString(
@@ -181,17 +201,20 @@ export const composePluginSources = (
           `${yield* fs.readFileString(file)}\ndependencies {\n${[...gradle].map(([name, version]) => `implementation "${name}:${version}"`).join("\n")}\n}`
         );
       }
+
       if (platform === "ios") {
         const file = path.join(staging, "ios/App/App/AppDelegate.swift");
         yield* fs.writeFileString(
           file,
           `${yield* fs.readFileString(file)}\n${swift.join("\n")}`
         );
+
         if (spm.size > 0) {
           const packageFile = path.join(
             staging,
             "ios/App/CapApp-SPM/Package.swift"
           );
+
           let contents = yield* fs.readFileString(packageFile);
           contents = yield* replaceAnchor(
             packageFile,
@@ -208,6 +231,7 @@ export const composePluginSources = (
           yield* fs.writeFileString(packageFile, contents);
         }
       }
+
       return yield* Effect.void;
     }
   );

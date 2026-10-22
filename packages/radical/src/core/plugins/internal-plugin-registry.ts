@@ -135,6 +135,7 @@ export const internalPluginRegistry = defineRegistry({
 });
 
 export type InternalPluginFlag = keyof typeof internalPluginRegistry;
+
 export type InternalPluginConfig = Readonly<
   Partial<Record<InternalPluginFlag, boolean>>
 >;
@@ -144,29 +145,35 @@ export const resolveInternalCapabilities = (
 ) => {
   const enabled = new Set<InternalPluginFlag>();
   const pending: InternalPluginFlag[] = [];
+
   const enable = (flag: InternalPluginFlag) => {
     if (!enabled.has(flag)) {
       enabled.add(flag);
       pending.push(flag);
     }
   };
+
   const flags = Record.keys(internalPluginRegistry);
+
   for (const flag of flags) {
     if (config[flag] ?? internalPluginRegistry[flag].default) {
       enable(flag);
     }
   }
+
   for (const current of pending) {
     for (const flag of internalPluginRegistry[current].implies) {
       enable(flag);
     }
   }
+
   return flags.filter((flag) => enabled.has(flag));
 };
 
 export const resolveInternalPlugins = (config: InternalPluginConfig = {}) =>
   resolveInternalCapabilities(config).flatMap((flag) => {
     const capability = internalPluginRegistry[flag];
+
     return capability.plugins.map((plugin) => ({
       ...plugin,
       module: "radical/internal-plugins",

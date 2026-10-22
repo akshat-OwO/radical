@@ -15,6 +15,7 @@ describe("browser device info", () => {
           userAgent: "Windows NT 10.0",
           userAgentData: { platform: "macOS", mobile: false },
         });
+
         assert.strictEqual(info.operatingSystem, "mac");
         assert.strictEqual(info.osVersion, "unknown");
         assert.strictEqual(info.platform, "web");
@@ -41,6 +42,7 @@ describe("browser device info", () => {
           ["Mozilla/5.0 (X11; Linux x86_64)", "linux", "unknown"],
           ["unrecognized", "unknown", "unknown"],
         ];
+
         for (const [userAgent, operatingSystem, osVersion] of cases) {
           const info = browserDeviceInfo({ userAgent });
           assert.strictEqual(info.operatingSystem, operatingSystem);

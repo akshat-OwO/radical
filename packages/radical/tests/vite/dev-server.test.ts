@@ -50,6 +50,7 @@ const serverFixture = (
 ) => {
   const events = createServer();
   const errors: string[] = [];
+
   const server = {
     httpServer: Object.assign(events, {
       address: () =>
@@ -67,6 +68,7 @@ const serverFixture = (
       },
     },
   };
+
   return { server, events, errors };
 };
 
@@ -84,9 +86,11 @@ describe("dev server listening", () => {
       Effect.gen(function* () {
         const memory = metadataMemory();
         const persisted = yield* Deferred.make<boolean>();
+
         const fs = yield* FileSystem.FileSystem.pipe(
           Effect.provide(memory.layer)
         );
+
         const layer = nativeMetadataLayer.pipe(
           Layer.provide(
             Layer.succeed(FileSystem.FileSystem, {
@@ -98,21 +102,26 @@ describe("dev server listening", () => {
             })
           )
         );
+
         const fixture = serverFixture({ port }, true);
+
         const config = {
           appId: "dev.example.app",
           devHost,
           origin: "https://production.example",
         };
+
         const initialListeners = fixture.events.listenerCount("listening");
         configureServer(config, fixture.server, layer);
         assert.isFalse(memory.files.has(metadataFile));
         fixture.events.emit("listening");
         yield* Deferred.await(persisted);
+
         const metadata = yield* NativeMetadata.pipe(
           Effect.flatMap((service) => service.read("/app")),
           Effect.provide(layer)
         );
+
         assert.deepStrictEqual(metadata, {
           config,
           url,
@@ -125,6 +134,7 @@ describe("dev server listening", () => {
       })
     );
   }
+
   for (const address of [null, "/tmp/socket"]) {
     it.effect(
       `skips persistence for ${address === null ? "an absent address" : "a socket address"}`,
@@ -142,6 +152,7 @@ describe("dev server listening", () => {
         })
     );
   }
+
   it.effect("logs persistence failures", () =>
     Effect.gen(function* () {
       const logged = yield* Deferred.make<string>();
@@ -149,11 +160,13 @@ describe("dev server listening", () => {
       fixture.server.config.logger.error = (message) => {
         Effect.runSync(Deferred.succeed(logged, message));
       };
+
       const failure = PlatformError.systemError({
         _tag: "PermissionDenied",
         module: "FileSystem",
         method: "writeFileString",
       });
+
       const layer = nativeMetadataLayer.pipe(
         Layer.provide(
           FileSystem.layerNoop({
@@ -169,6 +182,7 @@ describe("dev server listening", () => {
           })
         )
       );
+
       configureServer(
         { appId: "dev.example.app", devHost: "localhost" },
         fixture.server,

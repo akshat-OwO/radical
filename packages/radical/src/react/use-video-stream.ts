@@ -22,6 +22,7 @@ type Control =
   | { readonly kind: "switch" }
   | { readonly kind: "zoom"; readonly level: number }
   | { readonly kind: "torch"; readonly enabled: boolean };
+
 export interface VideoStreamState {
   readonly running: boolean;
   readonly loading: boolean;
@@ -33,25 +34,31 @@ export interface VideoStreamState {
   readonly setZoom: (level: number) => void;
   readonly setTorch: (enabled: boolean) => void;
 }
+
 const controlEffect = (session: VideoStreamSession, command: Control) => {
   if (command.kind === "switch") {
     return session.switchCamera;
   }
+
   if (command.kind === "zoom") {
     return session.setZoom(command.level);
   }
+
   return session.setTorch(command.enabled);
 };
+
 interface HookOptions {
   readonly viewfinder: RefObject<HTMLElement | null>;
   readonly facing?: CameraFacing;
   readonly onDetect?: (value: string) => void;
 }
+
 interface Owner {
   readonly layer: Layer.Layer<Bridge>;
   live: boolean;
   queue: Queue.Queue<Control> | null;
 }
+
 const streamAction = (
   callbacks: RefObject<HookOptions>,
   owner: Owner,
@@ -62,21 +69,25 @@ const streamAction = (
     Effect.scoped(
       Effect.gen(function* () {
         const viewfinder = callbacks.current.viewfinder.current;
+
         if (!viewfinder) {
           return yield* new Unavailable({
             reason: "Mount the viewfinder before starting",
           });
         }
+
         const queue = yield* Queue.unbounded<Control>();
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
             owner.queue = null;
+
             if (owner.live) {
               setValue(undefined);
               setControlError(undefined);
             }
           })
         );
+
         const session = yield* startVideoStream({
           viewfinder,
           facing: callbacks.current.facing,
@@ -86,6 +97,7 @@ const streamAction = (
             }
           },
         });
+
         owner.queue = queue;
         yield* session.info.pipe(
           Effect.tap((info) =>
@@ -97,6 +109,7 @@ const streamAction = (
             })
           )
         );
+
         return yield* Effect.forever(
           Queue.take(queue).pipe(
             Effect.flatMap((command) => controlEffect(session, command)),
@@ -119,32 +132,39 @@ const streamAction = (
       })
     )
   );
+
 export const useVideoStream = (options: HookOptions): VideoStreamState => {
   const layer = useContext(BridgeContext);
   const active = useRef<Owner>({ layer, live: false, queue: null });
   useEffect(() => {
     const owner: Owner = { layer, live: true, queue: null };
     active.current = owner;
+
     return () => {
       owner.live = false;
       owner.queue = null;
     };
   }, [layer]);
+
   const { run, cancel, loading, error } = useBridgeAction<
     undefined,
     VideoStreamError
   >();
+
   const callbacks = useRef(options);
   useEffect(() => {
     callbacks.current = options;
   }, [options]);
+
   const [snapshot, setSnapshot] = useState<{
     layer: Layer.Layer<Bridge>;
     value: VideoStreamInfo | undefined;
     error: VideoStreamError | undefined;
   }>({ layer, value: undefined, error: undefined });
+
   const value = snapshot.layer === layer ? snapshot.value : undefined;
   const controlError = snapshot.layer === layer ? snapshot.error : undefined;
+
   const start = useCallback(() => {
     const owner = active.current;
     run(
@@ -168,15 +188,18 @@ export const useVideoStream = (options: HookOptions): VideoStreamState => {
       )
     );
   }, [run, layer]);
+
   const send = useCallback(
     (command: Control) => {
       const owner = active.current;
+
       if (owner.live && owner.layer === layer && owner.queue) {
         Effect.runSync(Queue.offer(owner.queue, command));
       }
     },
     [layer]
   );
+
   return {
     running: value !== undefined,
     loading: loading && value === undefined,

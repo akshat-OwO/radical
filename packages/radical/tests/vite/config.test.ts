@@ -38,9 +38,11 @@ describe("radical config", () => {
     Effect.gen(function* () {
       const missing = yield* Effect.flip(validateConfig({}));
       assert.include(missing.message, "appId");
+
       const name = yield* Effect.flip(
         validateConfig({ appId: "dev.radical.app", appName: "" })
       );
+
       assert.include(name.message, "appName");
     })
   );
@@ -53,7 +55,9 @@ describe("radical config", () => {
           allowlist: ["https://app.example", "http://192.168.1.2:3000"],
           devHost: "192.168.1.2",
         };
+
         assert.deepStrictEqual(yield* validateConfig(config), config);
+
         for (const origin of [
           "*",
           "https://*.example",
@@ -66,6 +70,7 @@ describe("radical config", () => {
           const result = yield* Effect.flip(
             validateConfig({ appId: config.appId, allowlist: [origin] })
           );
+
           assert.strictEqual(result._tag, "InvalidConfig");
         }
       })
@@ -83,6 +88,7 @@ it.effect(
         android: { name: "Android", packageId: "dev.android.app" },
         ios: { bundleId: "dev.ios.my-app" },
       });
+
       assert.deepStrictEqual(nativeIdentity(config, "android"), {
         appId: "dev.android.app",
         name: "Android",
@@ -128,6 +134,7 @@ it.effect(
         const error = yield* Effect.flip(
           validateConfig({ appId: "dev.example.app", ...value })
         );
+
         assert.strictEqual(error._tag, "InvalidConfig");
         assert.include(error.message, field);
       }
@@ -145,8 +152,10 @@ describe("loading mode config", () => {
             mode,
             origin: "https://api.example",
           };
+
           assert.deepStrictEqual(yield* validateConfig(config), config);
         }
+
         for (const config of [
           { mode: "bundled" },
           { mode: "invalid" },
@@ -156,6 +165,7 @@ describe("loading mode config", () => {
           const error = yield* Effect.flip(
             validateConfig({ appId: "dev.example.app", ...config })
           );
+
           assert.strictEqual(error._tag, "InvalidConfig");
         }
       })

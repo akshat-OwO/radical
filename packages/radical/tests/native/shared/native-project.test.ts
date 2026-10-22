@@ -17,6 +17,7 @@ describe("native cookie plan", () => {
         "https://secure.test",
         "https://secure.test:8443",
       ];
+
       const expected = [
         { hostname: "app.test", origin: "http://app.test:3000", secure: false },
         {
@@ -25,6 +26,7 @@ describe("native cookie plan", () => {
           secure: true,
         },
       ];
+
       assert.deepStrictEqual(nativeCookiePlan(origins), expected);
       assert.deepStrictEqual(nativeCookiePlan(origins.toReversed()), expected);
     })
@@ -60,15 +62,18 @@ describe("native template anchors", () => {
             "replacement"
           )
         );
+
         assert.strictEqual(error._tag, "NativeTemplateMismatch");
         assert.strictEqual(error.file, "App/template");
         assert.strictEqual(error.anchor, String(anchor));
       }
+
       const error = yield* Effect.flip(
         renderTemplate("MainActivity.java", "changed upstream", {
           __COOKIES__: "cookie code",
         })
       );
+
       assert.strictEqual(error.file, "MainActivity.java");
       assert.strictEqual(error.anchor, "__COOKIES__");
     })

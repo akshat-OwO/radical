@@ -9,19 +9,23 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const doc = document.implementation.createHTMLDocument();
+
       const fiber = yield* browserFileInput(doc, {
         accept: "application/pdf,image/*",
         multiple: true,
       }).pipe(Effect.forkChild);
+
       yield* Effect.yieldNow;
       const input = doc.querySelector("input");
       assert.strictEqual(input?.accept, "application/pdf,image/*");
       assert.isTrue(input?.multiple);
       assert.isNull(input?.getAttribute("capture"));
+
       const files = [
         new File(["a"], "a.pdf", { type: "application/pdf" }),
         new File(["b"], "b.png", { type: "image/png" }),
       ] satisfies readonly [File, ...File[]];
+
       Object.defineProperty(input, "files", { value: files });
       input?.dispatchEvent(new Event("change"));
       assert.deepStrictEqual(yield* Fiber.join(fiber), files);

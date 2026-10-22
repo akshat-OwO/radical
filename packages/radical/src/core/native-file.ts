@@ -10,10 +10,13 @@ const unavailable = (cause: unknown) =>
 export const readNativeFile = (uri: string) =>
   Effect.suspend(() => {
     const convert = injectedBridge()?.convertFileSrc;
+
     if (!Predicate.isFunction(convert)) {
       return Effect.fail(unavailable("Native file URLs require Capacitor"));
     }
+
     const controller = new AbortController();
+
     return Effect.try({ try: () => convert(uri), catch: unavailable }).pipe(
       Effect.flatMap((url) =>
         Effect.tryPromise({

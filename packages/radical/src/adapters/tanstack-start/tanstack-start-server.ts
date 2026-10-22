@@ -43,7 +43,9 @@ export const offlineHandler =
     const eligible =
       context.router.stores.matches.get().at(-1)?.staticData?.radical
         ?.offline === true;
+
     context.responseHeaders.set("x-radical-offline", eligible ? "1" : "0");
+
     return handler(context);
   };
 

@@ -6,16 +6,20 @@ import { installOfflineWorker } from "../../../src/core/offline/offline-entry.ts
 import { offlineMessages } from "../../../src/core/offline/offline-protocol.ts";
 
 const origin = "https://example.test";
+
 const fixture = () => {
   const listeners = new Map<string, (event: FakeWorkerEvent) => void>();
+
   const storage = new Map<string, Map<string, Response>>([
     ["radical:test:old:assets", new Map()],
     ["other:assets", new Map()],
   ]);
+
   const requests: string[] = [];
   const events: string[] = [];
   const messages: unknown[] = [];
   let online = true;
+
   const scope = {
     location: { origin },
     addEventListener: (
@@ -30,12 +34,14 @@ const fixture = () => {
       open: (name: string) => {
         const data = storage.get(name) ?? new Map<string, Response>();
         storage.set(name, data);
+
         return Promise.resolve({
           match: (request: Request) =>
             Promise.resolve(data.get(request.url)?.clone()),
           put: (request: Request, response: Response) => {
             data.set(request.url, response.clone());
             events.push(`stored:${request.url}`);
+
             return Promise.resolve();
           },
         });
@@ -43,6 +49,7 @@ const fixture = () => {
     },
     fetch: (request: Request) => {
       requests.push(request.url);
+
       return online
         ? Promise.resolve(
             new Response(request.url, {
@@ -57,11 +64,13 @@ const fixture = () => {
     clients: {
       claim: () => {
         events.push("claim");
+
         return Promise.resolve();
       },
       matchAll: (options: ClientQueryOptions) => {
         assert.deepStrictEqual(options, { type: "window" });
         events.push("matchAll");
+
         return Promise.resolve([
           {
             url: `${origin}/notes?q=1`,
@@ -75,6 +84,7 @@ const fixture = () => {
       },
     },
   };
+
   // SAFETY: The fixture implements all scope APIs consumed by installOfflineWorker; unused host fields are never read.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Fake scope implements precisely the APIs consumed by the listener installer.
   installOfflineWorker(scope as ServiceWorkerGlobalScope & typeof scope, {
@@ -83,6 +93,7 @@ const fixture = () => {
     assets: ["/app.js"],
     fallback: "/offline.html",
   });
+
   const dispatch = (type: string, fields: Partial<FakeWorkerEvent> = {}) =>
     Effect.gen(function* () {
       const pending: Promise<unknown>[] = [];
@@ -102,6 +113,7 @@ const fixture = () => {
         },
       });
       yield* Effect.promise(() => Promise.all(pending));
+
       return {
         waited: pending.length,
         response: response
@@ -111,6 +123,7 @@ const fixture = () => {
           : undefined,
       };
     });
+
   return {
     storage,
     requests,
@@ -123,9 +136,11 @@ const fixture = () => {
     listeners,
   };
 };
+
 const navigation = (path: string) => {
   const request = new Request(new URL(path, origin));
   Object.defineProperty(request, "mode", { value: "navigate" });
+
   return request;
 };
 
@@ -154,9 +169,11 @@ it.effect(
       ]);
       assert.deepStrictEqual(fake.messages, [offlineMessages.snapshotReady]);
       fake.offline();
+
       const { response } = yield* fake.dispatch("fetch", {
         request: navigation("/notes?q=1"),
       });
+
       assert.isDefined(response);
       assert.strictEqual(
         yield* Effect.promise(() => response.text()),
@@ -172,9 +189,11 @@ it.effect(
       const fake = fixture();
       yield* fake.dispatch("install");
       fake.offline();
+
       const asset = yield* fake.dispatch("fetch", {
         request: new Request(`${origin}/app.js`),
       });
+
       assert.isDefined(asset.response);
       assert.strictEqual(
         yield* Effect.promise(
@@ -182,6 +201,7 @@ it.effect(
         ),
         `${origin}/app.js`
       );
+
       for (const request of [
         new Request(`${origin}/api`),
         new Request("https://other.test/app.js"),
@@ -201,6 +221,7 @@ it.effect(
       const fake = fixture();
       yield* fake.dispatch("install");
       const replies: unknown[] = [];
+
       const ports = [
         {
           postMessage: (message: string) => {
@@ -212,6 +233,7 @@ it.effect(
             assert.fail("Only the first port receives an acknowledgement"),
         },
       ];
+
       assert.strictEqual(
         (yield* fake.dispatch("message", { data: "unknown", ports })).waited,
         0
@@ -239,6 +261,7 @@ it.effect(
       );
     })
 );
+
 interface FakeWorkerEvent {
   readonly request: Request;
   readonly data: string;

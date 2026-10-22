@@ -9,6 +9,7 @@ export class AndroidBootTimeout extends Schema.TaggedError<
     return `Android target ${this.target} (${this.serial}) did not finish booting within 120 seconds`;
   }
 }
+
 export class AndroidDeviceUnavailable extends Schema.TaggedError<
   AndroidDeviceUnavailable,
   { readonly brand: unique symbol }
