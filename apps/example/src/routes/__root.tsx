@@ -1,4 +1,5 @@
 import {
+  useRouter,
   ClientOnly,
   createRootRoute,
   HeadContent,
@@ -6,14 +7,18 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
+import { Effect, Fiber, Layer } from "effect";
 import {
+  BridgeLive,
+  NotificationSnapshotsLive,
+  watchNotificationNavigation,
   localNativeContext,
   mountNativeContext,
   registerOffline,
   safeAreaStyle,
 } from "radical/client";
 import { RadicalProvider } from "radical/react";
+import { tanstackStartAdapterLayer } from "radical/tanstack-start-client";
 import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
@@ -21,6 +26,29 @@ import { config } from "virtual:radical/config";
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
 );
+
+const NotificationNavigation = () => {
+  const router = useRouter();
+  useEffect(() => {
+    const fiber = Effect.runFork(
+      Effect.scoped(
+        watchNotificationNavigation({ appId: config.appId, push: true })
+      ).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            BridgeLive,
+            NotificationSnapshotsLive.pipe(Layer.provide(BridgeLive)),
+            tanstackStartAdapterLayer(router)
+          )
+        )
+      )
+    );
+    return () => {
+      Effect.runFork(Fiber.interrupt(fiber));
+    };
+  }, [router]);
+  return null;
+};
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
   const nativeContext = Route.useLoaderData();
@@ -44,6 +72,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
       </head>
       <body>
         <RadicalProvider nativeContext={nativeContext}>
+          <NotificationNavigation />
           {children}
         </RadicalProvider>
         <Scripts />

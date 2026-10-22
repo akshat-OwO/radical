@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@capacitor-community/file-opener": "catalog:",
+    "@capacitor-firebase/messaging": "catalog:",
     "@capacitor/android": "catalog:",
     "@capacitor/app-launcher": "catalog:",
     "@capacitor/assets": "catalog:",
@@ -54,7 +55,9 @@
     "@capacitor/device": "catalog:",
     "@capacitor/haptics": "catalog:",
     "@capacitor/ios": "catalog:",
+    "@capacitor/local-notifications": "catalog:",
     "@capacitor/network": "catalog:",
+    "@capawesome/capacitor-badge": "catalog:",
     "@capawesome/capacitor-file-picker": "catalog:",
     "@capawesome/capacitor-google-sign-in": "catalog:",
     "@capgo/camera-preview": "catalog:",
@@ -76,6 +79,7 @@
   },
   "peerDependencies": {
     "@capacitor-community/file-opener": "8.0.1",
+    "@capacitor-firebase/messaging": "8.5.2",
     "@capacitor/android": "^8.5.3",
     "@capacitor/app-launcher": "8.0.1",
     "@capacitor/assets": "3.0.5",
@@ -85,7 +89,9 @@
     "@capacitor/device": "^8.0.3",
     "@capacitor/haptics": "8.0.2",
     "@capacitor/ios": "^8.5.3",
+    "@capacitor/local-notifications": "8.3.1",
     "@capacitor/network": "8.0.1",
+    "@capawesome/capacitor-badge": "8.0.4",
     "@capawesome/capacitor-file-picker": "8.1.1",
     "@capawesome/capacitor-google-sign-in": "0.1.4",
     "@capgo/camera-preview": "8.14.2",
@@ -144,6 +150,15 @@
       "optional": true
     },
     "@capawesome/capacitor-google-sign-in": {
+      "optional": true
+    },
+    "@capacitor/local-notifications": {
+      "optional": true
+    },
+    "@capacitor-firebase/messaging": {
+      "optional": true
+    },
+    "@capawesome/capacitor-badge": {
       "optional": true
     }
   }

@@ -1,3 +1,4 @@
+import { defaultParseSearch } from "@tanstack/react-router";
 import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import { Effect, Fiber, Layer } from "effect";
 
@@ -119,11 +120,24 @@ export const browserTransitions = (
 };
 
 export const tanstackNavigation = (
-  router: Pick<AnyRouter, "navigate" | "subscribe">
+  router: Pick<AnyRouter, "navigate" | "subscribe" | "options">
 ): RadicalNavigation => ({
   navigate: (to, options) =>
     Effect.tryPromise({
-      try: () => router.navigate({ to, ...options }),
+      try: () => {
+        const hashIndex = to.indexOf("#");
+        const path = hashIndex === -1 ? to : to.slice(0, hashIndex);
+        const hash = hashIndex === -1 ? "" : to.slice(hashIndex + 1);
+        const searchIndex = path.indexOf("?");
+        const pathname = searchIndex === -1 ? path : path.slice(0, searchIndex);
+        const query = searchIndex === -1 ? "" : path.slice(searchIndex);
+        return router.navigate({
+          to: pathname,
+          search: (router.options.parseSearch ?? defaultParseSearch)(query),
+          hash,
+          ...options,
+        });
+      },
       catch: (cause) => new NavigationFailed({ cause }),
     }),
   onBeforeNavigate: (listener) =>

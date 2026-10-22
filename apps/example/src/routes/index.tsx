@@ -78,6 +78,7 @@ const Home = () => {
       <Link to="/camera">Camera capture and permission</Link>
       <Link to="/video">Live video and QR scanning</Link>
       <Link to="/network">Network status</Link>
+      <Link to="/notifications">Notifications</Link>
       <Link to="/files">Files and intents</Link>
       <Link to="/google-sign-in">Google sign-in</Link>
       <Link to="/haptics">Haptic feedback</Link>

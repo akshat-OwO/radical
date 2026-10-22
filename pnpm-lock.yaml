@@ -34,6 +34,9 @@ catalogs:
     '@capacitor-community/file-opener':
       specifier: 8.0.1
       version: 8.0.1
+    '@capacitor-firebase/messaging':
+      specifier: 8.5.2
+      version: 8.5.2
     '@capacitor/android':
       specifier: ^8.5.3
       version: 8.5.3
@@ -61,9 +64,15 @@ catalogs:
     '@capacitor/ios':
       specifier: ^8.5.3
       version: 8.5.3
+    '@capacitor/local-notifications':
+      specifier: 8.3.1
+      version: 8.3.1
     '@capacitor/network':
       specifier: 8.0.1
       version: 8.0.1
+    '@capawesome/capacitor-badge':
+      specifier: 8.0.4
+      version: 8.0.4
     '@capawesome/capacitor-file-picker':
       specifier: 8.1.1
       version: 8.1.1
@@ -207,6 +216,9 @@ importers:
       '@capacitor-community/file-opener':
         specifier: 'catalog:'
         version: 8.0.1(@capacitor/core@8.5.3)
+      '@capacitor-firebase/messaging':
+        specifier: 'catalog:'
+        version: 8.5.2(@capacitor/core@8.5.3)
       '@capacitor/android':
         specifier: 'catalog:'
         version: 8.5.3(@capacitor/core@8.5.3)
@@ -234,9 +246,15 @@ importers:
       '@capacitor/ios':
         specifier: 'catalog:'
         version: 8.5.3(@capacitor/core@8.5.3)
+      '@capacitor/local-notifications':
+        specifier: 'catalog:'
+        version: 8.3.1(@capacitor/core@8.5.3)
       '@capacitor/network':
         specifier: 'catalog:'
         version: 8.0.1(@capacitor/core@8.5.3)
+      '@capawesome/capacitor-badge':
+        specifier: 'catalog:'
+        version: 8.0.4(@capacitor/core@8.5.3)
       '@capawesome/capacitor-file-picker':
         specifier: 'catalog:'
         version: 8.1.1(@capacitor/core@8.5.3)
@@ -371,6 +389,15 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
+  '@capacitor-firebase/messaging@8.5.2':
+    resolution: {integrity: sha512-6EFxNeU/9teXdlQMmlHdjVqAMq+rr2po8oxLflvGuA6Xy+LPKbKccvamShXnTLjGO30beD6YmERNv5k9SxeGvg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+      firebase: ^12.6.0
+    peerDependenciesMeta:
+      firebase:
+        optional: true
+
   '@capacitor/android@8.5.3':
     resolution: {integrity: sha512-ilH4gSSz3DrketMkzDVAvY9JsWJ//rCQnECLTdcFRO7xXDogwAbUvQAnIAbiqefwV/D1xfjEL4Gw1MJXEcaA9g==}
     peerDependencies:
@@ -419,8 +446,18 @@ packages:
     peerDependencies:
       '@capacitor/core': ^8.5.0
 
+  '@capacitor/local-notifications@8.3.1':
+    resolution: {integrity: sha512-F7zu/+p/mIR958YP4axOkeI5hBKRaXDyYjbNPrAil2wWfd7OxScPSTvP9t85NpQ0eULVRu0/sntoxOg6ck477A==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/network@8.0.1':
     resolution: {integrity: sha512-9xK/FHFmzKGanB6BdoSZOzXk8vF0OFVQSQ4PAsIrzAzLuXHryO317qy8dcHVpgxYeuZq2noI0My9z1DvVDi/9w==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capawesome/capacitor-badge@8.0.4':
+    resolution: {integrity: sha512-ADqD0XvSxrry2B5ntLHJrrRKnjYqZjJANRbNpCnEwHn2zBeOt5KIqP6T2FZUod574fPCgXpfhQJWAacaYjNMXA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -3439,6 +3476,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.5.3
 
+  '@capacitor-firebase/messaging@8.5.2(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
   '@capacitor/android@8.5.3(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
@@ -3533,7 +3574,15 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.5.3
 
+  '@capacitor/local-notifications@8.3.1(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
   '@capacitor/network@8.0.1(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
+  '@capawesome/capacitor-badge@8.0.4(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
 

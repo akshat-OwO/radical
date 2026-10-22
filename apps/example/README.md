@@ -112,3 +112,11 @@ Open `/network` from **Network status** on the home page. The example enables `i
 Open `/google-sign-in` in either shell. Set `GOOGLE_WEB_CLIENT_ID` and `GOOGLE_IOS_CLIENT_ID` when building the web app, then regenerate the shells. The committed fallback values are placeholders for compilation only. Register the iOS bundle `dev.radical.example.ios` and Android package `dev.radical.example.android` in your Google Cloud project, including Android signing SHA-1 fingerprints. See [setup instructions](../../packages/radical/README.md#google-sign-in). Do not commit real client IDs or Google configuration files.
 
 The demo shows completion without displaying or logging the identity token. Real sign-in requires your OAuth registration and a device with Google services on Android. Browser sign-in reports `GoogleSignInUnavailable`.
+
+## Notifications
+
+Open `/notifications` from the home page. Request permission, schedule a reminder, or cancel ID 22 before five seconds elapse. Visit `/offline-route` first to save its snapshot. Tap the reminder to open that route. The app root owns the tap listeners across route changes. Disconnect the device and tap again to check snapshot navigation. Browser delivery requires the page to remain open.
+
+The example enables local and push plugins so both shells compile their notification code. Badge buttons require a supported launcher. Push registration and topic buttons report `MissingPushConfiguration` until you supply a Firebase project. Add `notifications.android.googleServices` and `notifications.ios.googleServiceInfo` in `vite.config.ts` with paths to your own files for the platform app IDs. Never commit those files. Follow the [Firebase and APNs setup](../../README.md#notifications), rebuild radical and the example, then regenerate each shell.
+
+Compilation does not verify delivery, push tokens, APNs signing, or Firebase topic membership. Verify those on configured devices. Topic lookup reports only this installation's successful subscriptions.

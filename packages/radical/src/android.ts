@@ -13,6 +13,7 @@ import {
   renderTemplate,
 } from "./native-project.ts";
 import { replaceAnchor } from "./native-template.ts";
+import { configureNativeNotifications } from "./notification-native.ts";
 import { pluginRegistration } from "./plugin-plan.ts";
 import { composePluginSources } from "./plugin-sources.ts";
 import { safeAreaUpdateScript } from "./shell-events.ts";
@@ -130,6 +131,7 @@ export const generateAndroid = (
           ),
           activity
         );
+        yield* configureNativeNotifications(root, staging, "android", config);
         yield* composePluginSources(
           staging,
           "android",

@@ -9,6 +9,8 @@ import {
   useGoogleSignIn,
   useSafeArea,
   useNetworkStatus,
+  useNotificationPermission,
+  useNotifications,
   useCamera,
   useCameraPermission,
   useFilePicker,
@@ -221,6 +223,43 @@ it.effect("guards Google sign-in during server rendering", () =>
         createElement(RadicalProvider, { layer }, createElement(GoogleProbe))
       ),
       "<p>google idle</p>"
+    );
+  })
+);
+
+const NotificationsProbe = () => {
+  const permission = useNotificationPermission();
+  const notifications = useNotifications();
+  assert.isFalse(permission.loading);
+  assert.isUndefined(permission.value);
+  assert.isFalse(notifications.loading);
+  assert.isUndefined(notifications.value);
+  permission.check();
+  permission.request();
+  notifications.schedule({ id: 1, title: "SSR", delaySeconds: 1 });
+  notifications.cancel(1);
+  notifications.setBadge(1);
+  notifications.clearBadge();
+  notifications.registerPush();
+  notifications.subscribe("demo");
+  notifications.unsubscribe("demo");
+  notifications.lookupTopics();
+  return createElement("p", null, "notifications idle");
+};
+it.effect("guards every notification action during server rendering", () =>
+  Effect.sync(() => {
+    const layer = bridgeLayer(() =>
+      assert.fail("Notifications read bridge during SSR")
+    );
+    assert.strictEqual(
+      renderToString(
+        createElement(
+          RadicalProvider,
+          { layer },
+          createElement(NotificationsProbe)
+        )
+      ),
+      "<p>notifications idle</p>"
     );
   })
 );

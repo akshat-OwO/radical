@@ -17,6 +17,7 @@ import { Route as FilesRouteImport } from './routes/files'
 import { Route as GoogleSignInRouteImport } from './routes/google-sign-in'
 import { Route as HapticsRouteImport } from './routes/haptics'
 import { Route as NetworkRouteImport } from './routes/network'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
 import { Route as VideoRouteImport } from './routes/video'
@@ -61,6 +62,11 @@ const NetworkRoute = NetworkRouteImport.update({
   path: '/network',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfflineRouteRoute = OfflineRouteRouteImport.update({
   id: '/offline-route',
   path: '/offline-route',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/google-sign-in': typeof GoogleSignInRoute
   '/haptics': typeof HapticsRoute
   '/network': typeof NetworkRoute
+  '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
   '/video': typeof VideoRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/google-sign-in': typeof GoogleSignInRoute
   '/haptics': typeof HapticsRoute
   '/network': typeof NetworkRoute
+  '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
   '/video': typeof VideoRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/google-sign-in': typeof GoogleSignInRoute
   '/haptics': typeof HapticsRoute
   '/network': typeof NetworkRoute
+  '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
   '/video': typeof VideoRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/google-sign-in'
     | '/haptics'
     | '/network'
+    | '/notifications'
     | '/offline-route'
     | '/online-route'
     | '/video'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/google-sign-in'
     | '/haptics'
     | '/network'
+    | '/notifications'
     | '/offline-route'
     | '/online-route'
     | '/video'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/google-sign-in'
     | '/haptics'
     | '/network'
+    | '/notifications'
     | '/offline-route'
     | '/online-route'
     | '/video'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   GoogleSignInRoute: typeof GoogleSignInRoute
   HapticsRoute: typeof HapticsRoute
   NetworkRoute: typeof NetworkRoute
+  NotificationsRoute: typeof NotificationsRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
   VideoRoute: typeof VideoRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NetworkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/offline-route': {
       id: '/offline-route'
       path: '/offline-route'
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   GoogleSignInRoute: GoogleSignInRoute,
   HapticsRoute: HapticsRoute,
   NetworkRoute: NetworkRoute,
+  NotificationsRoute: NotificationsRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
   VideoRoute: VideoRoute,

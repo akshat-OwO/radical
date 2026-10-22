@@ -48,6 +48,10 @@ _Avoid_: Video recording, capture session
 The transparent area of the app UI through which the camera preview is visible.\
 _Avoid_: Camera modal, scanner screen
 
+**Notification topic membership**:\
+The installation's record of notification topics whose subscription or unsubscription succeeded.\
+_Avoid_: Server subscription list, audience
+
 **Haptic feedback**:\
 Touch feedback for an impact, notification, or selection change.\
 _Avoid_: Buzz, rumble

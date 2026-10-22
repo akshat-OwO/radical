@@ -42,6 +42,7 @@ export const pluginTypeSource = (
 export const nativePlugins = (config: RadicalConfig): Plugin => {
   let source = "";
   const browserConfig = JSON.stringify({
+    appId: config.appId,
     mode: config.mode ?? "remote",
     origin: config.origin,
   });
@@ -73,7 +74,7 @@ export const nativePlugins = (config: RadicalConfig): Plugin => {
             );
           }
           const file = path.join(resolved.root, ".radical/plugins.d.ts");
-          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly mode: "remote" | "bundled"; readonly origin?: string }; }\n`;
+          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string }; }\n`;
           // Preserve mtime to avoid restarting Vite's watcher on identical config.
           if (
             (yield* fs
