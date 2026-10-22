@@ -4,23 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import { Effect, Layer, Schema } from "effect";
 
-import {
-  googleSignInPlugin,
-  dataProtectionPlugin,
-  networkPlugin,
-  appLauncherPlugin,
-  localNotificationsPlugin,
-  badgePlugin,
-  firebaseMessagingPlugin,
-  notificationTopicsPlugin,
-  cameraPlugin,
-  devicePlugin,
-  fileOpenerPlugin,
-  filePickerPlugin,
-  hapticsPlugin,
-  transitionsPlugin,
-  videoStreamPlugin,
-} from "../../core/plugins/internal-plugins.ts";
+import { resolveInternalPlugins } from "../../core/plugins/internal-plugin-registry.ts";
 import { PluginManifestSchema } from "../../core/plugins/plugins.ts";
 import type { PluginManifest } from "../../core/plugins/plugins.ts";
 import type { RadicalConfig } from "../config.ts";
@@ -69,6 +53,8 @@ export interface EnabledPlugin {
   readonly manifest: PluginManifest;
   readonly module: string;
   readonly selector: string;
+  /** Source directory relative to radical's package root. Omit for module-relative sources. */
+  readonly sourceRoot?: string;
 }
 // oxlint-disable-next-line eslint/complexity -- Validate all manifest constraints before touching a project.
 export const validatePlugins = (
@@ -181,72 +167,11 @@ export const validatePlugins = (
       return plugins;
     }
   );
-const optInPlugins = [
-  ["googleSignIn", googleSignInPlugin],
-  ["dataProtection", dataProtectionPlugin],
-  ["network", networkPlugin],
-  ["notifications", localNotificationsPlugin],
-  ["notifications", badgePlugin],
-  ["pushNotifications", firebaseMessagingPlugin],
-  ["pushNotifications", notificationTopicsPlugin],
-  ["videoStream", videoStreamPlugin],
-  ["camera", cameraPlugin],
-  ["filePicker", filePickerPlugin],
-  ["haptics", hapticsPlugin],
-] as const;
-
-const enabledInternalPlugins = (config: RadicalConfig) => {
-  const notifications =
-    config.internalPlugins?.notifications === true ||
-    config.internalPlugins?.pushNotifications === true;
-  return {
-    ...config.internalPlugins,
-    notifications,
-    network: config.internalPlugins?.network === true || notifications,
-  };
-};
-
 export const resolvePlugins = (config: RadicalConfig) =>
   Effect.gen(function* () {
-    const plugins: EnabledPlugin[] = [];
-    const internalPlugins = enabledInternalPlugins(config);
-    for (const [flag, manifest] of optInPlugins) {
-      if (internalPlugins[flag] === true) {
-        plugins.push({
-          manifest,
-          module: "radical/internal-plugins",
-          selector: `${manifest.id}Plugin`,
-        });
-      }
-    }
-    if (config.internalPlugins?.intents === true) {
-      plugins.push(
-        {
-          manifest: appLauncherPlugin,
-          module: "radical/internal-plugins",
-          selector: "appLauncherPlugin",
-        },
-        {
-          manifest: fileOpenerPlugin,
-          module: "radical/internal-plugins",
-          selector: "fileOpenerPlugin",
-        }
-      );
-    }
-    if (config.internalPlugins?.device !== false) {
-      plugins.push({
-        manifest: devicePlugin,
-        module: "radical/internal-plugins",
-        selector: "devicePlugin",
-      });
-    }
-    if (config.internalPlugins?.transitions !== false) {
-      plugins.push({
-        manifest: transitionsPlugin,
-        module: "radical/internal-plugins",
-        selector: "transitionsPlugin",
-      });
-    }
+    const plugins: EnabledPlugin[] = resolveInternalPlugins(
+      config.internalPlugins
+    );
     if ((config.plugins?.length ?? 0) > 0) {
       const modules = yield* PluginModules;
       for (const entry of config.plugins ?? []) {

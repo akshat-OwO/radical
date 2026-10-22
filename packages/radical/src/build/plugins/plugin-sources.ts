@@ -28,7 +28,7 @@ export const composePluginSources = (
       let kotlin = false;
       const gradle = new Map<string, string>();
       const spm = new Map<string, { version: string; products: Set<string> }>();
-      for (const { manifest, module } of plugins) {
+      for (const { manifest, module, sourceRoot } of plugins) {
         const native = manifest[platform];
         if (platform === "android" && native && native.sources.length > 0) {
           const sourceClasses = native.sources.map(({ file }) =>
@@ -55,8 +55,8 @@ export const composePluginSources = (
             message: `Plugin ${manifest.id}: android class ${native.className} with empty sources must name a fully qualified dependency-provided class`,
           });
         }
-        let manifestDirectory = packageRoot;
-        if (module !== "radical/internal-plugins") {
+        let manifestDirectory = path.resolve(packageRoot, sourceRoot ?? ".");
+        if (sourceRoot === undefined) {
           const resolved = module.startsWith(".")
             ? path.resolve(root, module)
             : yield* Effect.try({

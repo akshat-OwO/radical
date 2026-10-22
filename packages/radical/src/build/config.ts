@@ -1,4 +1,6 @@
-import { Effect, Schema } from "effect";
+import { Effect, Record, Schema } from "effect";
+
+import { internalPluginRegistry } from "../core/plugins/internal-plugin-registry.ts";
 
 export const HttpOriginSchema = Schema.String.check(
   Schema.makeFilter((value) => {
@@ -58,20 +60,9 @@ export const RadicalConfigSchema = Schema.Struct({
   ),
   pluginOptions: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
   internalPlugins: Schema.optional(
-    Schema.Struct({
-      googleSignIn: Schema.optional(Schema.Boolean),
-      network: Schema.optional(Schema.Boolean),
-      notifications: Schema.optional(Schema.Boolean),
-      pushNotifications: Schema.optional(Schema.Boolean),
-      camera: Schema.optional(Schema.Boolean),
-      videoStream: Schema.optional(Schema.Boolean),
-      device: Schema.optional(Schema.Boolean),
-      filePicker: Schema.optional(Schema.Boolean),
-      intents: Schema.optional(Schema.Boolean),
-      dataProtection: Schema.optional(Schema.Boolean),
-      haptics: Schema.optional(Schema.Boolean),
-      transitions: Schema.optional(Schema.Boolean),
-    })
+    Schema.Struct(
+      Record.map(internalPluginRegistry, () => Schema.optional(Schema.Boolean))
+    )
   ),
   notifications: Schema.optional(
     Schema.Struct({
