@@ -1,4 +1,12 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/no-nesting -- Native worker boundary deliberately excludes the Effect runtime. */
+import {
+  decodeWorkerMessage,
+  offlineMessages,
+  snapshotCacheName,
+  snapshotKey,
+} from "./offline-wire.ts";
+import type { OfflineMessage } from "./offline-wire.ts";
+
 /** Native Promise boundary shared by the bundled worker and in-memory tests. */
 export interface OfflineManifest {
   readonly buildId: string;
@@ -31,7 +39,10 @@ export const createOfflineWorker = (
   const operations = new Set<Promise<unknown>>();
   const namespace = `${manifest.cachePrefix}${manifest.buildId}`;
   const assetsName = `${namespace}:assets`;
-  const snapshotsName = `${namespace}:snapshots`;
+  const snapshotsName = snapshotCacheName(
+    manifest.cachePrefix,
+    manifest.buildId
+  );
   const absolute = (path: string) => new URL(path, services.origin).href;
   const assetURLs = new Set(manifest.assets.map(absolute));
   const track = <A>(operation: Promise<A>): Promise<A> => {
@@ -77,8 +88,9 @@ export const createOfflineWorker = (
       }
     );
 
-  const document = (request: Request) =>
-    services.fetch(request).then(
+  const document = (request: Request) => {
+    const key = new Request(snapshotKey(request.url));
+    return services.fetch(request).then(
       (response) => {
         if (
           response.headers.get("x-radical-offline") === "1" &&
@@ -87,7 +99,7 @@ export const createOfflineWorker = (
           response.headers.get("content-type")?.includes("text/html") === true
         ) {
           // Storage failures must not discard a successful network response.
-          return store(snapshotsName, request, response).then(
+          return store(snapshotsName, key, response).then(
             () => response,
             () => response
           );
@@ -95,23 +107,34 @@ export const createOfflineWorker = (
         return response;
       },
       () =>
-        cached(snapshotsName, request).then(
-          (response) => response ?? fallback()
-        )
+        cached(snapshotsName, key).then((response) => response ?? fallback())
     );
+  };
+
+  const clear = () => {
+    cleared = true;
+    return Promise.allSettled(operations)
+      .then(() => services.caches.keys())
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith(manifest.cachePrefix))
+            .map((key) => services.caches.delete(key))
+        )
+      );
+  };
 
   return {
-    clear: () => {
-      cleared = true;
-      return Promise.allSettled(operations)
-        .then(() => services.caches.keys())
-        .then((keys) =>
-          Promise.all(
-            keys
-              .filter((key) => key.startsWith(manifest.cachePrefix))
-              .map((key) => services.caches.delete(key))
-          )
-        );
+    clear,
+    message: (input: unknown): Promise<OfflineMessage> | undefined => {
+      const message = decodeWorkerMessage(input);
+      if (message !== offlineMessages.clear) {
+        return undefined;
+      }
+      return clear().then(
+        () => offlineMessages.cleared,
+        () => offlineMessages.clearFailed
+      );
     },
     capture: (url: string): Promise<unknown> =>
       new URL(url).origin === services.origin

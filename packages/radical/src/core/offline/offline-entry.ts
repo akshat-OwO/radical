@@ -1,5 +1,6 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/no-nesting -- Native service worker boundary. */
 /// <reference lib="webworker" />
+import { offlineMessages } from "./offline-wire.ts";
 import { createOfflineWorker } from "./offline-worker.ts";
 import type { OfflineManifest } from "./offline-worker.ts";
 
@@ -24,7 +25,7 @@ scope.addEventListener("activate", (event) => {
         Promise.all(
           clients.map((client) =>
             worker.capture(client.url).then(() => {
-              client.postMessage("radical-snapshot-ready", []);
+              client.postMessage(offlineMessages.snapshotReady, []);
             })
           )
         )
@@ -38,17 +39,12 @@ scope.addEventListener("fetch", (event) => {
 });
 
 scope.addEventListener("message", (event) => {
-  if (event.data !== "radical-clear-web-data") {
-    return;
+  const response = worker.message(event.data);
+  if (response) {
+    event.waitUntil(
+      response.then((message) => {
+        event.ports[0]?.postMessage(message);
+      })
+    );
   }
-  event.waitUntil(
-    worker.clear().then(
-      () => {
-        event.ports[0]?.postMessage("radical-data-cleared");
-      },
-      () => {
-        event.ports[0]?.postMessage("radical-data-clear-failed");
-      }
-    )
-  );
 });

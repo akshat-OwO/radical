@@ -68,7 +68,7 @@ public class RadicalDataProtectionPlugin: CAPPlugin, CAPBridgedPlugin {
                 let clearData = NSSelectorFromString("clearData")
                 if transitions.responds(to: clearData) { transitions.perform(clearData) }
             }
-            UserDefaults.standard.removeObject(forKey: "radical.lastOfflineURL")
+            UserDefaults.standard.removeObject(forKey: __OFFLINE_SAVED_URL_KEY__)
             UserDefaults.standard.removeObject(forKey: "radical.notificationTopics")
             URLCache.shared.removeAllCachedResponses()
             HTTPCookieStorage.shared.removeCookies(since: .distantPast)

@@ -7,6 +7,7 @@ import { Effect, Schema } from "effect";
 import type * as Vite from "vite";
 import type { Plugin } from "vite";
 
+import { offlineCachePrefix } from "../core/offline/offline-protocol.ts";
 import type { RadicalConfig } from "./config.ts";
 import { resolveOfflineEntry } from "./package-paths.ts";
 
@@ -55,7 +56,7 @@ export const offlineBuild = (config: RadicalConfig): Plugin => {
             );
             const manifest = {
               buildId: "RADICAL_BUILD_CONTENT_HASH",
-              cachePrefix: `radical:${config.appId}:${base}:`,
+              cachePrefix: offlineCachePrefix(config.appId, base),
               assets: entries.map((item) => `${base}${item.fileName}`),
               fallback: `${base}offline.html`,
             };

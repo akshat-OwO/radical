@@ -80,3 +80,5 @@ The app was compiled with `xcrun --sdk iphonesimulator swiftc -parse-as-library`
 
 - **Custom-scheme proxy.** Rejected for remote mode because the tested HTTPS worker path preserves the server origin and already provides navigation interception and offline HTML. A proxy would add native networking and cookie behavior to maintain. Revisit only if a required deployment cannot satisfy the domain or worker limits.
 - **Unrestricted WKWebView.** Rejected for this offline mechanism. With App-Bound Domains absent, the simulator did not expose the Service Worker API.
+
+The shared `core/offline/offline-protocol.ts` module owns snapshot cache names, exact-URL keys, and worker messages. The generated snapshot-check script uses its app cache selector and Schema-derived finite message decoder. Native generation renders the same saved-URL preference key into the iOS controller and data-protection plugin.

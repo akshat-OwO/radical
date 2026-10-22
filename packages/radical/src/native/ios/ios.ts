@@ -8,6 +8,7 @@ import { configureNativeNotifications } from "../../capabilities/notifications/n
 import { safeAreaUpdateScript } from "../../capabilities/safe-area/shell-events.ts";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
+import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
 import { InvalidConfig } from "../../vite/config.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
@@ -48,6 +49,7 @@ export const generateIos = (
       "RadicalViewController.swift",
       template,
       {
+        __OFFLINE_SAVED_URL_KEY__: JSON.stringify(savedOfflineURLKeys.ios),
         __BUNDLED__: String(native.bundled),
         __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
         __SPLASH_NAME__: JSON.stringify(iosSplashResourceName(native.assets)),

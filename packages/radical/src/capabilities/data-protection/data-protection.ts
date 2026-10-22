@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 
 import { Bridge, BridgeDecodeError } from "../../core/bridge/bridge.ts";
 import type { BridgeError } from "../../core/bridge/bridge.ts";
+import { snapshotsDisabledKey } from "../../core/offline/offline-protocol.ts";
 import { dataProtectionPlugin } from "../../core/plugins/internal-plugins.ts";
 import { callPlugin } from "../../core/plugins/plugins.ts";
 import { clearBrowserWebData } from "./browser-web-data.ts";
@@ -33,7 +34,7 @@ export const BrowserDataProtectionLive = Layer.succeed(BrowserDataProtection, {
       return window.sessionStorage;
     },
     disableSnapshots: () => {
-      Object.assign(window, { __radicalDataCleared: true });
+      Object.assign(window, { [snapshotsDisabledKey]: true });
     },
     document,
     location,

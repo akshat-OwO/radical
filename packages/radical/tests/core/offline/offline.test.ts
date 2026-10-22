@@ -14,6 +14,7 @@ import {
   encodeNativeContextCookie,
   NATIVE_CONTEXT_COOKIE,
 } from "../../../src/core/context/native-context.ts";
+import { offlineMessages } from "../../../src/core/offline/offline-protocol.ts";
 import { createOfflineWorker } from "../../../src/core/offline/offline-worker.ts";
 import type {
   OfflineManifest,
@@ -122,6 +123,56 @@ const responseText = (response: Response) =>
 
 // Every test receives fresh fetch and Cache Storage state through its layer.
 describe("offline worker", () => {
+  it.effect(
+    "ignores unknown messages without disabling navigation or deleting caches",
+    () =>
+      Effect.gen(function* () {
+        const { worker, storage } = yield* Memory;
+        yield* Effect.promise(worker.install);
+        const names = [...storage.keys()];
+        for (const input of [
+          "unrelated",
+          {},
+          null,
+          undefined,
+          offlineMessages.snapshotReady,
+          offlineMessages.cleared,
+        ]) {
+          assert.isUndefined(worker.message(input));
+        }
+        assert.isTrue(worker.handles(navigation("/notes")));
+        assert.deepStrictEqual([...storage.keys()], names);
+        const response = worker.message(offlineMessages.clear);
+        assert.isDefined(response);
+        assert.strictEqual(
+          yield* Effect.promise(() => Promise.resolve(response)),
+          offlineMessages.cleared
+        );
+        assert.isFalse(worker.handles(navigation("/notes")));
+        assert.isEmpty([...storage.keys()]);
+      }).pipe(Effect.provide(memoryLayer))
+  );
+
+  it.effect(
+    "reports a typed clear failure message when cache deletion fails",
+    () =>
+      Effect.gen(function* () {
+        const { services } = yield* Memory;
+        const worker = createOfflineWorker(manifest, {
+          ...services,
+          caches: {
+            ...services.caches,
+            keys: () => Promise.reject(new Error("storage unavailable")),
+          },
+        });
+        const response = worker.message(offlineMessages.clear);
+        assert.isDefined(response);
+        assert.strictEqual(
+          yield* Effect.promise(() => Promise.resolve(response)),
+          offlineMessages.clearFailed
+        );
+      }).pipe(Effect.provide(memoryLayer))
+  );
   it.effect(
     "uses TanStack's selected route for overlapping, optional, and decorated params",
     () =>
