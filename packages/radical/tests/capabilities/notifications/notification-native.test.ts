@@ -57,7 +57,7 @@ const memory = () => {
 };
 
 it.effect(
-  "copies Firebase files into the shell and wires iOS resources, APNs callbacks, and signing",
+  "copies Firebase files and emits iOS resource, APNs callback and signing declarations",
   () =>
     Effect.gen(function* () {
       const fs = memory();

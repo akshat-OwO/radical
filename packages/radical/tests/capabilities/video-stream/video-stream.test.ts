@@ -252,7 +252,7 @@ it.effect(
     })
 );
 it.effect(
-  "video opt-in validates its own explanation without photo-library access",
+  "video opt-in validates its explanation and emits camera declarations without photo-library declarations",
   () =>
     Effect.gen(function* () {
       const config = {

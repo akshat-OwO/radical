@@ -14,7 +14,7 @@ import { resolveBuildPlan } from "../build-plan.ts";
 import type { BuildPlan } from "../build-plan.ts";
 import type { RadicalConfig } from "../config.ts";
 import { pluginModulesLayer } from "./plugin-plan.ts";
-import type { EnabledPlugin } from "./plugin-plan.ts";
+import type { EnabledPlugin, PluginModules } from "./plugin-plan.ts";
 
 const modulePath = (root: string, module: string) =>
   module.startsWith(".") ? path.resolve(root, module) : module;
@@ -48,7 +48,8 @@ export const pluginTypeSource = (
   ].join("\n");
 export const nativePlugins = (
   config: RadicalConfig,
-  adapterLayer?: Layer.Layer<RadicalAdapter>
+  adapterLayer?: Layer.Layer<RadicalAdapter>,
+  services?: Layer.Layer<PluginModules | FileSystem.FileSystem>
 ): Plugin => {
   let source = "";
   let plan: BuildPlan | undefined;
@@ -56,7 +57,7 @@ export const nativePlugins = (
     Effect.suspend(() =>
       plan === undefined
         ? resolveBuildPlan(config).pipe(
-            Effect.provide(pluginModulesLayer(root)),
+            Effect.provide(services ?? pluginModulesLayer(root)),
             Effect.tap((value) =>
               Effect.sync(() => {
                 plan = value;
@@ -114,10 +115,15 @@ export const nativePlugins = (
           }
         }).pipe(
           Effect.provide(
-            Layer.mergeAll(
-              pluginModulesLayer(resolved.root),
-              NodeFileSystem.layer,
-              nativeMetadataLayer.pipe(Layer.provide(NodeFileSystem.layer))
+            Layer.merge(
+              services ??
+                Layer.merge(
+                  pluginModulesLayer(resolved.root),
+                  NodeFileSystem.layer
+                ),
+              nativeMetadataLayer.pipe(
+                Layer.provide(services ?? NodeFileSystem.layer)
+              )
             )
           )
         )

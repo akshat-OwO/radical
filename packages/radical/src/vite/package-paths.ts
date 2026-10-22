@@ -9,6 +9,6 @@ export const resolveOfflineEntry = (moduleUrl: string) =>
   path.join(
     resolvePackageRoot(moduleUrl),
     moduleUrl.endsWith(".ts")
-      ? "src/core/offline/offline-entry.ts"
+      ? "src/core/offline/offline-main.ts"
       : "dist/offline-entry.mjs"
   );

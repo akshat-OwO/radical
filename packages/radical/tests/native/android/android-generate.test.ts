@@ -323,25 +323,28 @@ describe("Android shell generation", () => {
     }
   );
 
-  it.effect("registers and includes the internal transitions source", () => {
-    const state = memory();
-    return Effect.gen(function* () {
-      yield* generate;
-      assert.include(
-        state.files.get(mainActivity) ?? "",
-        "registerPlugin(RadicalTransitionsPlugin.class)"
-      );
-      assert.include(
-        state.files.get(
-          `${destination}/android/app/src/main/java/dev/radical/example/RadicalTransitionsPlugin.java`
-        ) ?? "",
-        "class RadicalTransitionsPlugin"
-      );
-    }).pipe(Effect.provide(state.layer));
-  });
+  it.effect(
+    "emits the transitions Java class and its registration call",
+    () => {
+      const state = memory();
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.include(
+          state.files.get(mainActivity) ?? "",
+          "registerPlugin(RadicalTransitionsPlugin.class)"
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalTransitionsPlugin.java`
+          ) ?? "",
+          "class RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
 
   it.effect(
-    "generates a Capacitor project with the encoded shared native context",
+    "emits a Capacitor project with the native-context cookie and Java safe-area expressions",
     () => {
       const state = memory();
       return Effect.gen(function* () {
@@ -429,7 +432,7 @@ describe("Android shell generation", () => {
   );
 
   it.effect(
-    "renders one mixed-scheme cookie and keeps HTTPS-only hosts Secure",
+    "emits deduplicated Java cookie calls with Secure only for HTTPS-only hosts",
     () => {
       const state = memory(false, {
         ...defaultConfig,
@@ -676,7 +679,7 @@ describe("android app identity", () => {
 
 describe("bundled android shell", () => {
   it.effect(
-    "packages a fake adapter's SPA outputs and keeps navigation local",
+    "packages a fake adapter's SPA outputs and emits local-navigation config and Java branches",
     () => {
       const state = memory(false, {
         ...defaultConfig,

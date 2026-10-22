@@ -40,9 +40,7 @@ describe("package paths", () => {
           resolveOfflineEntry(
             new URL("src/vite/offline-build.ts", packageUrl).href
           ),
-          fileURLToPath(
-            new URL("src/core/offline/offline-entry.ts", packageUrl)
-          )
+          fileURLToPath(new URL("src/core/offline/offline-main.ts", packageUrl))
         );
         assert.strictEqual(
           resolveOfflineEntry(new URL("dist/vite.mjs", packageUrl).href),
