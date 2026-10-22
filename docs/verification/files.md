@@ -19,7 +19,17 @@ The test files, the port forward, and Gradle daemons were removed afterwards, an
 
 Generated with `radical ios --generate-only` and built with `xcodebuild ... -sdk iphonesimulator`; the build succeeded. The generated SPM package includes `CapawesomeCapacitorFilePicker`, `CapacitorAppLauncher`, and `CapacitorCommunityFileOpener`, and `packageClassList` registers `FilePickerPlugin`, `AppLauncherPlugin`, and `FileOpenerPlugin`.
 
-Runtime checks on iOS are pending: the agent-device daemon was unavailable, and no other way to tap the simulator is installed.
+Runtime verified on 2026-10-22 at `9dc298b` on iPhone Duo, UDID `88BEE7A3-757E-40C4-A789-5E3259B6B673`. Built the library with `vp run radical#build`, built the example with `vp build`, regenerated the shell with `pnpm exec radical ios --generate-only`, and built the Debug simulator app with `xcodebuild`. Installed and launched `dev.radical.example.ios` with `xcrun simctl`, with the production preview at `http://localhost:4173`.
+
+The agent-device CLI reported "Remote daemon is unavailable". The simulator stayed visible in the T3 Device panel and was driven through that panel with computer use. Screenshots from `simctl io ... screenshot --display=primary` confirmed the results. Seeded `radical-note.txt`, containing `hello from radical` and a newline, and `radical-icon.png` in the simulator's Files storage under On My iPhone.
+
+- **Pick file** opened the system document picker. Selecting the text file displayed `radical-note.txt text/plain 19`, matching its name, MIME type, and 19-byte contents. The page showed `Intent: Idle`.
+- **Open picked file** opened Quick Look with the title `radical-note` and the contents `hello from radical`. Closing the preview returned to the example with `Intent: Opened`.
+- **Open URL** opened Safari at `example.com` and loaded the domain's documentation notice. Returning to the example showed `Intent: Opened`.
+- **Cancel** dismissed the document picker with its close button. The page showed `Cancelled`, cleared the file list, and disabled **Open picked file**, with no unexpected error. The intent status remained `Opened`.
+- **Pick images or PDFs** disabled the text file. Tapping it did not select it. The PNG remained selectable, and selecting it followed by **Open** displayed `radical-icon.png image/png 6340`, matching the source file's 6340 bytes. The intent status remained `Opened`. PDF selection was not exercised.
+
+No runtime bugs were found in these checks. The seeded files were removed, the preview server was stopped, and the device was closed in the Device panel afterwards.
 
 ## Repository checks
 
