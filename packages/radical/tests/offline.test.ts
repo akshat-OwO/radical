@@ -6,7 +6,8 @@ import {
   createRouter,
   createMemoryHistory,
 } from "@tanstack/react-router";
-import { Context, Effect, Layer } from "effect";
+import { Context, Deferred, Effect, Fiber, Layer } from "effect";
+import { TestClock } from "effect/testing";
 
 import { shouldRegister, registerOfflineEffect } from "../src/client.ts";
 import {
@@ -520,3 +521,83 @@ describe("offline registration", () => {
     })
   );
 });
+
+it.effect(
+  "drains in-flight writes before clearing and never recreates snapshots",
+  () =>
+    Effect.gen(function* () {
+      const storage = new Set([
+        "radical:example:one:assets",
+        "radical:example:one:snapshots",
+        "unrelated",
+      ]);
+      const missing: Response | undefined = undefined;
+      const pending = yield* Deferred.make<boolean>();
+      let writing = false;
+      const worker = createOfflineWorker(manifest, {
+        origin,
+        fetch: () => Promise.resolve(html("private")),
+        caches: {
+          keys: () => Promise.resolve([...storage]),
+          delete: (key) => Promise.resolve(storage.delete(key)),
+          open: (key) =>
+            Promise.resolve({
+              match: () => Promise.resolve(missing),
+              put: () => {
+                writing = true;
+                return Effect.runPromise(Deferred.await(pending)).then(() => {
+                  storage.add(key);
+                });
+              },
+            }),
+        },
+      });
+      const capture = yield* Effect.promise(() =>
+        worker.capture(`${origin}/private`)
+      ).pipe(Effect.forkChild);
+      yield* TestClock.adjust("1 millis");
+      assert.isTrue(writing);
+      const clear = yield* Effect.promise(worker.clear).pipe(Effect.forkChild);
+      yield* TestClock.adjust("1 millis");
+      assert.strictEqual(storage.size, 3);
+      yield* Deferred.succeed(pending, true);
+      yield* Fiber.join(capture);
+      yield* Fiber.join(clear);
+      assert.deepStrictEqual([...storage], ["unrelated"]);
+      yield* Effect.promise(() => worker.capture(`${origin}/private`));
+      assert.deepStrictEqual([...storage], ["unrelated"]);
+      assert.isFalse(worker.handles(navigation("/private")));
+    })
+);
+
+it.effect(
+  "does not reopen a cache when a pending navigation fails after clearing",
+  () =>
+    Effect.gen(function* () {
+      const fetched = yield* Deferred.make<Response, Error>();
+      const opened: string[] = [];
+      const worker = createOfflineWorker(manifest, {
+        origin,
+        fetch: () => Effect.runPromise(Deferred.await(fetched)),
+        caches: {
+          keys: () => Promise.resolve([]),
+          delete: () => Promise.resolve(false),
+          open: (name) => {
+            opened.push(name);
+            return Promise.resolve({
+              match: () => Promise.resolve(new Response("private snapshot")),
+              put: () => Promise.resolve(),
+            });
+          },
+        },
+      });
+      const navigationFiber = yield* Effect.promise(() =>
+        worker.respond(navigation("/private"))
+      ).pipe(Effect.forkChild);
+      yield* TestClock.adjust("1 millis");
+      yield* Effect.promise(worker.clear);
+      yield* Deferred.fail(fetched, new Error("offline"));
+      assert.strictEqual((yield* Fiber.join(navigationFiber)).type, "error");
+      assert.deepStrictEqual(opened, []);
+    })
+);

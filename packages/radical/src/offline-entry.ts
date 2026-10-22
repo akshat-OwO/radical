@@ -36,3 +36,19 @@ scope.addEventListener("fetch", (event) => {
     event.respondWith(worker.respond(event.request));
   }
 });
+
+scope.addEventListener("message", (event) => {
+  if (event.data !== "radical-clear-web-data") {
+    return;
+  }
+  event.waitUntil(
+    worker.clear().then(
+      () => {
+        event.ports[0]?.postMessage("radical-data-cleared");
+      },
+      () => {
+        event.ports[0]?.postMessage("radical-data-clear-failed");
+      }
+    )
+  );
+});

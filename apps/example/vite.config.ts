@@ -25,6 +25,7 @@ const config = {
     filePicker: true,
     intents: true,
     haptics: true,
+    dataProtection: true,
   },
   pluginOptions: {
     GoogleSignIn: {

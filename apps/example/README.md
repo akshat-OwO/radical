@@ -120,3 +120,9 @@ Open `/notifications` from the home page. Request permission, schedule a reminde
 The example enables local and push plugins so both shells compile their notification code. Badge buttons require a supported launcher. Push registration and topic buttons report `MissingPushConfiguration` until you supply a Firebase project. Add `notifications.android.googleServices` and `notifications.ios.googleServiceInfo` in `vite.config.ts` with paths to your own files for the platform app IDs. Never commit those files. Follow the [Firebase and APNs setup](../../README.md#notifications), rebuild radical and the example, then regenerate each shell.
 
 Compilation does not verify delivery, push tokens, APNs signing, or Firebase topic membership. Verify those on configured devices. Topic lookup reports only this installation's successful subscriptions.
+
+## Data protection
+
+Open `/data-protection` from **Data protection** on the home page. The example enables `internalPlugins.dataProtection`. **Enable protection** and **Disable protection** display the platform's policy result. Android blocks screenshots and non-secure recording. iOS obscures the app switcher and active capture but cannot block screenshots. Browsers report all protection fields false.
+
+**Clear web data** deletes accessible origin storage and native WebView data. First close other tabs and database connections and stop app writes. After clearing, inspect Cache Storage, localStorage, sessionStorage, cookies and IndexedDB in developer tools, then relaunch offline to check the saved offline URL is gone. A failure tag means clearing did not complete. Packaged assets and the immutable build manifest remain installed. See [platform limits](../../packages/radical/README.md#data-protection) and [verification](../../docs/verification/data-protection.md).

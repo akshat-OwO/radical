@@ -15,6 +15,7 @@ import {
 } from "../src/native-context.ts";
 import { PluginModules } from "../src/plugin-modules.ts";
 import launchScreen from "../templates/ios/LaunchScreen.storyboard?raw";
+import dataProtection from "../templates/ios/RadicalDataProtectionPlugin.swift?raw";
 import transitions from "../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../templates/offline.html?raw";
@@ -35,6 +36,10 @@ const memory = (
   const files = new Map<string, string>([
     ["/app/plugins/EchoPlugin.swift", echoSource],
     ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
+    [
+      "/package/templates/ios/RadicalDataProtectionPlugin.swift",
+      dataProtection,
+    ],
     ["/app/.radical/native.json", JSON.stringify({ config, url })],
     ["/package/templates/ios/RadicalViewController.swift", activity],
     ["/package/templates/ios/LaunchScreen.storyboard", launchScreen],
@@ -188,6 +193,53 @@ const memory = (
 const generate = generateIos("/app", "/package");
 
 describe("iOS shell generation", () => {
+  it.effect(
+    "generates topic-record cleanup even when notifications are disabled",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: {
+          dataProtection: true,
+          notifications: false,
+          pushNotifications: false,
+        },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(
+          source,
+          'UserDefaults.standard.removeObject(forKey: "radical.notificationTopics")'
+        );
+        assert.notInclude(source, "class RadicalNotificationTopicsPlugin");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "generates data protection without the disabled transitions class",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { dataProtection: true, transitions: false },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(source, "class RadicalDataProtectionPlugin");
+        assert.notInclude(source, "RadicalTransitionsPlugin");
+        assert.include(
+          state.files.get(appDelegate) ?? "",
+          "RadicalDataProtectionPlugin"
+        );
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "RadicalTransitionsPlugin"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
   it.effect("includes the Echo Swift class used by shell registration", () => {
     const state = memory(false, {
       ...defaultConfig,

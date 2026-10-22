@@ -43,15 +43,12 @@ const makeMemory = () => {
             state.fail
               ? Promise.reject(new Error("storage unavailable"))
               : Promise.resolve([...entries.keys()]),
-          open: (name: string) =>
-            Promise.resolve({
-              match: (key: string) =>
-                Promise.resolve(
-                  entries.get(name)?.has(key) === true
-                    ? new Response("snapshot")
-                    : undefined
-                ),
-            }),
+          match: (key: string, options: { cacheName: string }) =>
+            Promise.resolve(
+              entries.get(options.cacheName)?.has(key) === true
+                ? new Response("snapshot")
+                : undefined
+            ),
         },
       }
     );

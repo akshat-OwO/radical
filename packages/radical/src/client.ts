@@ -223,3 +223,17 @@ export {
   NotificationSnapshotsLive,
   watchNotificationNavigation,
 } from "./notification-navigation.ts";
+
+export {
+  setDataProtection,
+  clearWebData,
+  dataProtectionLive,
+  BrowserDataProtection,
+  BrowserDataProtectionLive,
+  DataProtectionStatusSchema,
+  WebDataClearFailed,
+} from "./data-protection.ts";
+export type {
+  DataProtectionStatus,
+  DataProtectionError,
+} from "./data-protection.ts";

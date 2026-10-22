@@ -36,6 +36,14 @@ _Avoid_: Interface, JSI, IPC
 A UI hook that exposes one native capability and its browser fallback.\
 _Avoid_: Native hook, device hook
 
+**Data protection**:\
+A shell policy that limits screen capture and obscures sensitive content when the app is inactive.\
+_Avoid_: Screenshot guarantee, DRM
+
+**Web data clearing**:\
+Deletion of stored web content and shell caches within the platform's accessible scope.\
+_Avoid_: Factory reset, server logout
+
 **Network status**:\
 Whether a local network connection is active and which connection type it uses.\
 _Avoid_: Internet reachability, server health

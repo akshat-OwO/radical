@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as CameraRouteImport } from './routes/camera'
+import { Route as DataProtectionRouteImport } from './routes/data-protection'
 import { Route as DetailsRouteImport } from './routes/details'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as GoogleSignInRouteImport } from './routes/google-sign-in'
@@ -35,6 +36,11 @@ const AboutRoute = AboutRouteImport.update({
 const CameraRoute = CameraRouteImport.update({
   id: '/camera',
   path: '/camera',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataProtectionRoute = DataProtectionRouteImport.update({
+  id: '/data-protection',
+  path: '/data-protection',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DetailsRoute = DetailsRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
+  '/data-protection': typeof DataProtectionRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
   '/google-sign-in': typeof GoogleSignInRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
+  '/data-protection': typeof DataProtectionRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
   '/google-sign-in': typeof GoogleSignInRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
+  '/data-protection': typeof DataProtectionRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
   '/google-sign-in': typeof GoogleSignInRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/camera'
+    | '/data-protection'
     | '/details'
     | '/files'
     | '/google-sign-in'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/camera'
+    | '/data-protection'
     | '/details'
     | '/files'
     | '/google-sign-in'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/camera'
+    | '/data-protection'
     | '/details'
     | '/files'
     | '/google-sign-in'
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CameraRoute: typeof CameraRoute
+  DataProtectionRoute: typeof DataProtectionRoute
   DetailsRoute: typeof DetailsRoute
   FilesRoute: typeof FilesRoute
   GoogleSignInRoute: typeof GoogleSignInRoute
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/camera'
       fullPath: '/camera'
       preLoaderRoute: typeof CameraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-protection': {
+      id: '/data-protection'
+      path: '/data-protection'
+      fullPath: '/data-protection'
+      preLoaderRoute: typeof DataProtectionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/details': {
@@ -279,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CameraRoute: CameraRoute,
+  DataProtectionRoute: DataProtectionRoute,
   DetailsRoute: DetailsRoute,
   FilesRoute: FilesRoute,
   GoogleSignInRoute: GoogleSignInRoute,

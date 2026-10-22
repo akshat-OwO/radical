@@ -81,6 +81,7 @@ const Home = () => {
       <Link to="/notifications">Notifications</Link>
       <Link to="/files">Files and intents</Link>
       <Link to="/google-sign-in">Google sign-in</Link>
+      <Link to="/data-protection">Data protection</Link>
       <Link to="/haptics">Haptic feedback</Link>
       <h2>Safe area</h2>
       <pre data-testid="safe-area">{JSON.stringify(safeArea)}</pre>

@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
 import { CameraConfigSchema } from "./camera-schema.ts";
+import { DataProtectionStatusSchema } from "./data-protection-schema.ts";
 import { DeviceInfoSchema } from "./device-info-schema.ts";
 import {
   GoogleSignInConfigSchema,
@@ -291,3 +292,41 @@ export {
   firebaseMessagingPlugin,
   notificationTopicsPlugin,
 } from "./notification-plugins.ts";
+
+export const dataProtectionPlugin = definePlugin({
+  id: "dataProtection",
+  bridge: "RadicalDataProtection",
+  dependencies: {},
+  commands: {
+    setProtection: {
+      args: Schema.Struct({ enabled: Schema.Boolean }),
+      result: DataProtectionStatusSchema,
+      errors: {},
+    },
+    clearWebData: {
+      args: Schema.Struct({}),
+      result: Schema.Unknown,
+      errors: {},
+    },
+  },
+  android: {
+    className: "RadicalDataProtectionPlugin",
+    sources: [
+      {
+        file: "RadicalDataProtectionPlugin.java",
+        source: "templates/android/RadicalDataProtectionPlugin.java",
+      },
+    ],
+    dependencies: {},
+  },
+  ios: {
+    className: "RadicalDataProtectionPlugin",
+    sources: [
+      {
+        file: "RadicalDataProtectionPlugin.swift",
+        source: "templates/ios/RadicalDataProtectionPlugin.swift",
+      },
+    ],
+    dependencies: [],
+  },
+});

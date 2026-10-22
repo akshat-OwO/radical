@@ -68,6 +68,7 @@ export const RadicalConfigSchema = Schema.Struct({
       device: Schema.optional(Schema.Boolean),
       filePicker: Schema.optional(Schema.Boolean),
       intents: Schema.optional(Schema.Boolean),
+      dataProtection: Schema.optional(Schema.Boolean),
       haptics: Schema.optional(Schema.Boolean),
       transitions: Schema.optional(Schema.Boolean),
     })
