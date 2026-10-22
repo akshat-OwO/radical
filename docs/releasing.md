@@ -64,7 +64,7 @@ Use Node.js 24 and the repository's pnpm version. Sign in to the npm account tha
 
 The tag identifies the source commit, whose manifest retains `0.0.0`. To reproduce the published version from that tag, stamp `0.1.0` before building and packing. The attached tarball contains the stamped manifest and CLI.
 
-Do not commit the stamped version. npm versions are immutable. If publication succeeds but creating the GitHub release fails, retry the GitHub step only.
+Do not commit the stamped version. npm versions are immutable. If manual publication succeeds but creating the GitHub release fails, rerun step 5.
 
 ## Enable automated releases after the first publish
 
@@ -83,3 +83,7 @@ Allow direct `npm publish` for that publisher. Create the GitHub `release` envir
 Push `v0.1.1` for a stable release, or `v0.2.0-alpha.1` for the `alpha` npm dist-tag. Stable releases use `latest`. Prereleases cannot use the reserved `latest` channel. Build metadata and numeric-only prerelease channels are rejected. Manual dispatch accepts the same version and defaults to a dry run.
 
 The pipeline runs `vp run ready`, stamps and builds the package, and verifies a clean install of the tarball. It publishes and attaches that same tarball to the GitHub release. Dry runs publish nothing.
+
+If the automated `publish` job succeeds but `github-release` fails, select **Re-run failed jobs** on that workflow run. GitHub reruns `github-release` with the same verified tarball and the original tag and commit. The successful `publish` job does not rerun, so recovery never calls `npm publish` again. If the GitHub release already exists, the job succeeds without recreating it.
+
+Do not select **Re-run all jobs** or dispatch a new run to recover a failed `github-release` job. Preflight still rejects versions that already exist on npm.

@@ -112,15 +112,13 @@ jobs:
     # Configure required reviewers and npm's trusted publisher for this environment.
     environment: release
     permissions:
-      contents: write
+      contents: read
       id-token: write
     env:
       VERSION: ${{ needs.preflight.outputs.version }}
       TAG: ${{ needs.preflight.outputs.tag }}
       SHA: ${{ needs.preflight.outputs.sha }}
       DIST_TAG: ${{ needs.preflight.outputs.dist_tag }}
-      IS_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
-      MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -137,9 +135,48 @@ jobs:
         with:
           name: radical-${{ needs.preflight.outputs.version }}
           path: ${{ runner.temp }}/radical-publish
-      - name: Establish the exact release tag before publishing
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Check the release tag before publishing
+        run: |
+          git fetch origin --tags
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" || {
+              echo "::error::Tag $TAG moved to a different commit."
+              exit 1
+            }
+          fi
+      - name: Publish the verified tarball with npm trusted publishing
+        working-directory: ${{ runner.temp }}/radical-publish
+        run: |
+          shopt -s nullglob
+          tarballs=("$PWD"/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          npm publish "${tarballs[0]}" --access public --ignore-scripts \
+            --registry https://registry.npmjs.org --tag "$DIST_TAG"
+
+  github-release:
+    if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+    needs: [preflight, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      TAG: ${{ needs.preflight.outputs.tag }}
+      SHA: ${{ needs.preflight.outputs.sha }}
+      IS_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+      MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          name: radical-${{ needs.preflight.outputs.version }}
+          path: ${{ runner.temp }}/radical-publish
+      - name: Establish the exact release tag
         run: |
           git fetch origin --tags
           if git show-ref --verify --quiet "refs/tags/$TAG"; then
@@ -152,18 +189,12 @@ jobs:
             gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
               -f "ref=refs/tags/$TAG" -f "sha=$SHA"
           fi
-      - name: Publish the verified tarball with npm trusted publishing
-        working-directory: ${{ runner.temp }}/radical-publish
-        run: |
-          shopt -s nullglob
-          tarballs=("$PWD"/*.tgz)
-          test "${#tarballs[@]}" -eq 1
-          npm publish "${tarballs[0]}" --access public --ignore-scripts \
-            --registry https://registry.npmjs.org --tag "$DIST_TAG"
       - name: Create the GitHub release with the same tarball
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view "$TAG" > /dev/null; then
+            echo "Release $TAG already exists."
+            exit 0
+          fi
           gh release create "$TAG" "$RUNNER_TEMP/radical-publish/"*.tgz \
             --verify-tag --title "radical v$VERSION" --generate-notes \
             --notes "The attached tarball is the published npm package. This tag records source with a placeholder version; stamp $VERSION before rebuilding." \
