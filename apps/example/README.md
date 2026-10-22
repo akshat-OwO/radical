@@ -56,7 +56,7 @@ adb -s emulator-5554 reverse tcp:4173 tcp:4173
 pnpm exec vp dev --port 4173
 ```
 
-Once dev starts, stop it. This creates `.radical/native.json` pointing at `http://localhost:4173`. Then build and preview:
+Once dev starts, stop it. The shared [native metadata service](../../packages/radical/README.md#native-metadata) records `.radical/native.json` pointing at `http://localhost:4173`. Config resolution during build also refreshes the record using the configured origin. Then build and preview:
 
 ```sh
 pnpm exec vp build

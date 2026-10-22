@@ -35,7 +35,7 @@ Build and dev time (`radical/vite`):
 3. Generates the service worker, with a cache namespace per build id and a precache list from Vite's client manifest.
 4. Provides virtual modules: `virtual:radical/config` (browser-safe config only) and `virtual:radical/plugins` (typed command stubs for enabled native plugins). Plugin declarations are generated into `.radical/plugins.d.ts`; `radical typegen` generates them without starting a server.
 5. In dev, binds to the LAN address and prints a URL and QR code for a device or emulator.
-6. Writes `.radical/native.json` for the CLI.
+6. Updates `.radical/native.json` through the shared [native metadata service](../../packages/radical/README.md#native-metadata). That service owns the Schema, reads, writes, and URL merge policy for the plugin, dev server, CLI, and shell generation.
 
 Runtime (`radical/client`, `radical/server`): bridge calls with browser fallbacks, the transitions engine (native snapshot overlay in shells, typed View Transitions in browsers, plain navigation on failure), a network-first service worker with an offline fallback page, and request-time native context. Bundled mode uses packaged SPA assets and a remote API origin as recorded in [ADR 0004](0004-bundled-mode.md).
 

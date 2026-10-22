@@ -12,7 +12,7 @@ pnpm --filter @radical/example run build
 pnpm --filter @radical/example exec vp preview --port 4173 --host 127.0.0.1
 ```
 
-The example uses `devHost: "localhost"`. Its generated `.radical/native.json` points at `http://localhost:4173`. The iOS simulator shares the host network; it needs no port forwarding. Localhost is a trustworthy origin for service workers even over HTTP. Plain HTTP LAN addresses are not. Physical-device remote mode needs HTTPS.
+The example uses `devHost: "localhost"`. Its generated `.radical/native.json` from the shared [native metadata service](../../packages/radical/README.md#native-metadata) points at `http://localhost:4173`. The iOS simulator shares the host network; it needs no port forwarding. Localhost is a trustworthy origin for service workers even over HTTP. Plain HTTP LAN addresses are not. Physical-device remote mode needs HTTPS.
 
 Build, install, and launch on the existing simulator:
 

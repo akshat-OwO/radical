@@ -6,9 +6,7 @@ import semver from "semver";
 
 import { encodeNativeContextCookie } from "../../core/context/native-context.ts";
 import {
-  HttpOriginSchema,
   InvalidConfig,
-  RadicalConfigSchema,
   nativeIdentity,
   AndroidPackageIdSchema,
   IosBundleIdSchema,
@@ -22,6 +20,7 @@ import {
   AssetGenerator,
   prepareNativeAssets,
 } from "../assets/native-assets.ts";
+import { NativeMetadata, nativeMetadataLayer } from "./native-metadata.ts";
 import { replaceAnchor } from "./native-template.ts";
 import { execute, replaceProject } from "./shell.ts";
 
@@ -111,10 +110,6 @@ export const capacitor = (
     }
     return { cli: resolved.cli, packages };
   });
-export const nativeConfigSchema = Schema.Struct({
-  config: RadicalConfigSchema,
-  url: HttpOriginSchema,
-});
 export const readNativeProject = (
   root: string,
   packageRoot: string,
@@ -122,18 +117,9 @@ export const readNativeProject = (
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const native = yield* fs.readFileString(
-      path.join(root, ".radical/native.json")
-    );
-    const { config, url } = yield* Schema.decodeEffect(
-      Schema.fromJsonString(nativeConfigSchema)
-    )(native).pipe(
-      Effect.mapError(
-        (error) =>
-          new InvalidConfig({
-            message: `Invalid radical config: ${error.message}`,
-          })
-      )
+    const { config, url } = yield* NativeMetadata.pipe(
+      Effect.flatMap((metadata) => metadata.read(root)),
+      Effect.provide(nativeMetadataLayer)
     );
     const bundled = config.mode === "bundled";
     const identity = nativeIdentity(config, platform);
