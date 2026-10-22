@@ -1,6 +1,6 @@
+import * as publicManifests from "@akshatowo/radical/internal-plugins";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer, Record, Schema } from "effect";
-import * as publicManifests from "radical/internal-plugins";
 
 import {
   internalPluginRegistry,

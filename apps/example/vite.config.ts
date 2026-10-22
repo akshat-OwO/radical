@@ -1,7 +1,10 @@
+import {
+  radical,
+  tanstackStartOptions,
+} from "@akshatowo/radical/tanstack-start";
+import type { RadicalConfig } from "@akshatowo/radical/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
-import { radical, tanstackStartOptions } from "radical/tanstack-start";
-import type { RadicalConfig } from "radical/vite";
 import { defineConfig } from "vite-plus";
 
 const config = {

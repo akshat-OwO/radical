@@ -3,7 +3,7 @@ title: "Vite plugin and TanStack Start adapter"
 description: "Build-time plugins, virtual modules, and framework integration."
 ---
 
-## `radical/vite`
+## `@akshatowo/radical/vite`
 
 `radical(config, adapterLayer?)` returns the core Vite plugin named `radical:config`. Config validation occurs before dev or build. The optional layer supplies `RadicalAdapter` for framework operations.
 
@@ -37,7 +37,7 @@ Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `Inval
 
 `.radical/plugins.d.ts` declares both modules. Vite startup and `radical typegen` generate the declarations. Custom manifest commands and errors retain their schema-derived types.
 
-## `radical/tanstack-start`
+## `@akshatowo/radical/tanstack-start`
 
 | Adapter export or behavior | Contract |
 | --- | --- |
@@ -50,7 +50,7 @@ Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `Inval
 | `routes` | Effect returns empty list; offline eligibility uses selected route at request time |
 | `RadicalRouteOptions` | `staticData.radical` with optional `offline: boolean` and `transition: "slide" \| "fade"` |
 
-## `radical/tanstack-start-server`
+## `@akshatowo/radical/tanstack-start-server`
 
 | Export | Contract |
 | --- | --- |
@@ -61,13 +61,13 @@ Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `Inval
 | `withBundledRequests(handler)` | Wraps the core CORS helper with the TanStack Start adapter outputs. Exposes `x-tss-serialized`, `x-tss-raw`, and `x-tss-error` to the two exact bundled origins. |
 | `offlineHandler(handler)` | Sets `x-radical-offline` to `1` only when the deepest selected route has `offline: true`, otherwise `0`, then delegates. |
 
-Middleware exports also appear in `radical/tanstack-start` for build-side integration. The server entry keeps server middleware out of browser imports.
+Middleware exports also appear in `@akshatowo/radical/tanstack-start` for build-side integration. The server entry keeps server middleware out of browser imports.
 
-## `radical/tanstack-start-client`
+## `@akshatowo/radical/tanstack-start-client`
 
 Exports `browserTransitions`, `BrowserTransitionOptions`, `tanstackStartAdapterLayer(router)`, `RadicalRouteOptions`, and `NavigationFailed`.
 
-`tanstackStartAdapterLayer(router)` supplies live navigation and fixed outputs. Its request-context operation fails with `AdapterUnavailable`. Its routes list is empty. `browserTransitions` is also re-exported from `radical/tanstack-start`.
+`tanstackStartAdapterLayer(router)` supplies live navigation and fixed outputs. Its request-context operation fails with `AdapterUnavailable`. Its routes list is empty. `browserTransitions` is also re-exported from `@akshatowo/radical/tanstack-start`.
 
 ## Generated offline output
 
@@ -77,6 +77,6 @@ Exports `browserTransitions`, `BrowserTransitionOptions`, `tanstackStartAdapterL
 | `radical-manifest.json` | `buildId`, `cachePrefix`, `assets`, `fallback` |
 | Fallback | `${base}offline.html` |
 | `cachePattern` | No public config field |
-| `radical/offline-entry` | Build-side worker installation entry; no React lifecycle API |
+| `@akshatowo/radical/offline-entry` | Build-side worker installation entry; no React lifecycle API |
 
 Source: [Vite implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/vite), [TanStack adapter](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/adapters/tanstack-start).

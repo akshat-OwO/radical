@@ -176,7 +176,7 @@ export const resolveInternalPlugins = (config: InternalPluginConfig = {}) =>
 
     return capability.plugins.map((plugin) => ({
       ...plugin,
-      module: "radical/internal-plugins",
+      module: "@akshatowo/radical/internal-plugins",
       sourceRoot: capability.sourceRoot,
     }));
   });

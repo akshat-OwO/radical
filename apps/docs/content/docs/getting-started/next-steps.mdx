@@ -1,0 +1,30 @@
+---
+title: "Next steps"
+description: "Add device capabilities, choose delivery, and prepare your app for production."
+---
+
+You now have a standalone app that runs in a browser and native shells. Choose the guide for your next task.
+
+## Build your UI
+
+Add file routes under `src/routes`. Use [safe-area insets](/docs/guides/safe-area) to keep controls clear of system UI, then add [navigation transitions](/docs/guides/transitions) if your app needs them.
+
+## Add native capabilities
+
+Each guide lists the optional dependency, config flag, and browser behavior. Start with [haptic feedback](/docs/guides/haptics), [camera capture](/docs/guides/camera), or [network status](/docs/guides/network). Regenerate native projects after changing capability settings.
+
+See [custom plugins](/docs/guides/custom-plugins) when a built-in capability does not cover your API.
+
+## Choose delivery and offline behavior
+
+The starter uses remote mode and SSR. Follow [offline routes](/docs/guides/offline-routes) to cache selected documents. Test with a production build over HTTPS or localhost; development mode does not register the service worker.
+
+Use [bundled mode](/docs/guides/bundled-mode) to package the UI inside the native app. That guide includes the client-fetch, root-loader, and server-handler changes needed for bundled startup.
+
+## Prepare production settings
+
+Set your app identifiers and [icons and splash screen](/docs/guides/app-assets) before distributing builds. In remote mode, configure `origin` with your deployed HTTPS URL. Review the [configuration reference](/docs/reference/config) for navigation allowlists and platform overrides.
+
+Deploy your TanStack Start server with a [supported hosting setup](https://tanstack.com/start/latest/docs/framework/react/guide/hosting). Native signing and app-store distribution belong to your app's release process.
+
+Use the [CLI reference](/docs/reference/cli) for generation options and the [delivery-mode explanation](/docs/explanation/delivery-modes) for authentication and offline limits.

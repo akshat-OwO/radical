@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Schema } from "effect";
-import { NotificationScheduleResultSchema } from "radical/client";
+import { NotificationScheduleResultSchema } from "@akshatowo/radical/client";
 import {
   useExactAlarmPermission,
   useNotificationPermission,
   useNotifications,
-} from "radical/react";
+} from "@akshatowo/radical/react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Schema } from "effect";
 
 const isScheduleResult = Schema.is(NotificationScheduleResultSchema);
 

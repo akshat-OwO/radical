@@ -1,6 +1,6 @@
+import { definePlugin } from "@akshatowo/radical/plugins";
 // oxlint-disable unicorn/throw-new-error -- Schema.TaggedError is an Effect factory.
 import { Schema } from "effect";
-import { definePlugin } from "radical/plugins";
 
 export class EchoRejected extends Schema.TaggedError<EchoRejected>()(
   "EchoRejected",

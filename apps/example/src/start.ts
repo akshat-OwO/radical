@@ -1,6 +1,6 @@
+import { createRadicalFetch } from "@akshatowo/radical/client";
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
 import { createStart } from "@tanstack/react-start";
-import { createRadicalFetch } from "radical/client";
-import { createRadicalRequestMiddleware } from "radical/tanstack-start-server";
 import { config } from "virtual:radical/config";
 
 export const startInstance = createStart(() => ({

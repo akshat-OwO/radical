@@ -1,0 +1,294 @@
+---
+title: "Installation"
+description: "Create a standalone TanStack Start project with Radical and run it in a browser."
+---
+
+Create an app that displays device information. The setup below uses the same APIs as Radical's [example app](https://github.com/akshat-OwO/radical/tree/main/apps/example), with a single route and no optional capabilities.
+
+## Prerequisites
+
+Install Node.js 22.18 or later and pnpm. Check your tools:
+
+```sh
+node --version
+pnpm --version
+```
+
+You need React and TypeScript knowledge to change the app. Android Studio and Xcode are optional until [the native step](/docs/getting-started/native).
+
+<Callout type="warning">
+  The first release, `@akshatowo/radical@0.1.0`, is pending publication. Run the
+  installation commands after that release is available. The CLI command is
+  `radical`.
+</Callout>
+
+## Create the project
+
+Run these commands in the directory where you keep your projects:
+
+```sh
+mkdir my-app
+cd my-app
+pnpm init
+pnpm add @akshatowo/radical@0.1.0
+pnpm add @tanstack/react-start@1.169.3 @tanstack/react-router@1.170.45 react@19.3.1 react-dom@19.3.1 effect@^4.0.5
+pnpm add -D vite@^8.0.0 @vitejs/plugin-react@^6.0.0 typescript@^7.0.2 @types/react@^19.2.0 @types/react-dom@^19.2.0 @types/node@^24
+mkdir -p src/routes public
+```
+
+Keep the dependencies pnpm adds to `package.json`. Add `"type": "module"` and these scripts:
+
+```json
+{
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+The versions above match the framework versions used by the repository example. This is a manual setup based on TanStack's [build from scratch guide](https://tanstack.com/start/latest/docs/framework/react/build-from-scratch). No app generator or repository clone is required.
+
+## Configure TypeScript and Vite
+
+Create `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src", "vite.config.ts", ".radical/plugins.d.ts"]
+}
+```
+
+Create `vite.config.ts`:
+
+```ts
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import react from "@vitejs/plugin-react";
+import {
+  radical,
+  tanstackStartOptions,
+} from "@akshatowo/radical/tanstack-start";
+import type { RadicalConfig } from "@akshatowo/radical/vite";
+import { defineConfig } from "vite";
+
+const config = {
+  appId: "dev.example.myapp",
+  name: "My app",
+  mode: "remote",
+  devHost: "localhost",
+} satisfies RadicalConfig;
+
+export default defineConfig({
+  plugins: [
+    tanstackStart(tanstackStartOptions(config)),
+    radical(config),
+    react(),
+  ],
+});
+```
+
+Keep the React plugin after Start. Remote mode loads the UI from the development server. `devHost` tells the native shell which host to connect to.
+
+## Register request middleware
+
+Create `src/start.ts`:
+
+```ts
+import { createStart } from "@tanstack/react-start";
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [...createRadicalRequestMiddleware()],
+}));
+
+declare module "@tanstack/react-start" {
+  interface Register {
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>;
+  }
+}
+```
+
+The middleware supplies typed native context to server functions and SSR. Keep the whole middleware list so Start's server-function CSRF checks stay enabled.
+
+Create `src/server.ts`:
+
+```ts
+import {
+  createStartHandler,
+  defaultStreamHandler,
+} from "@tanstack/react-start/server";
+import { offlineHandler } from "@akshatowo/radical/tanstack-start-server";
+
+export default {
+  fetch: createStartHandler(offlineHandler(defaultStreamHandler)),
+};
+```
+
+This keeps Start's streaming SSR handler and adds route-level offline response headers. Offline routes remain opt-in.
+
+## Create the router
+
+Create `src/router.tsx`:
+
+```tsx
+import { createRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
+
+export const getRouter = () =>
+  createRouter({ routeTree, scrollRestoration: true });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: ReturnType<typeof getRouter>;
+  }
+}
+```
+
+Start generates `src/routeTree.gen.ts` when you run the development server. Do not create that file yourself.
+
+## Add the root document and provider
+
+Create `src/routes/__root.tsx`:
+
+```tsx
+import {
+  createRootRoute,
+  HeadContent,
+  Outlet,
+  Scripts,
+} from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { registerOffline, safeAreaStyle } from "@akshatowo/radical/client";
+import { RadicalProvider } from "@akshatowo/radical/react";
+import { useEffect } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+const readNativeContext = createServerFn({ method: "GET" }).handler(
+  ({ context }) => context.nativeContext
+);
+
+const RootDocument = ({ children }: { children: ReactNode }) => {
+  const nativeContext = Route.useLoaderData();
+  const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
+    safeAreaStyle(nativeContext, "remote");
+
+  useEffect(() => {
+    void registerOffline({
+      mode: "remote",
+      production: import.meta.env.PROD,
+      base: import.meta.env.BASE_URL,
+    });
+  }, []);
+
+  return (
+    <html lang="en" style={rootStyle}>
+      <head>
+        <HeadContent />
+        <style>{`body { margin: 0; } main { box-sizing: border-box; min-height: 100dvh; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 16px) calc(var(--radical-safe-area-left) + 16px); } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
+      </head>
+      <body>
+        <RadicalProvider nativeContext={nativeContext}>
+          {children}
+        </RadicalProvider>
+        <Scripts />
+      </body>
+    </html>
+  );
+};
+
+export const Route = createRootRoute({
+  loader: () => readNativeContext(),
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
+      { title: "My app" },
+    ],
+  }),
+  shellComponent: RootDocument,
+  component: Outlet,
+});
+```
+
+The root loader reads context on the server. `RadicalProvider` gives hooks the same context during SSR and hydration, while `safeAreaStyle` supplies inset variables for the page padding.
+
+## Add the first route
+
+Create `src/routes/index.tsx`:
+
+```tsx
+import { createFileRoute } from "@tanstack/react-router";
+import { useDeviceInfo } from "@akshatowo/radical/react";
+
+const Home = () => {
+  const device = useDeviceInfo();
+
+  return (
+    <main>
+      <h1>My app</h1>
+      <pre>
+        {device.loading
+          ? "Loading device info..."
+          : JSON.stringify(device.error ?? device.value, null, 2)}
+      </pre>
+    </main>
+  );
+};
+
+export const Route = createFileRoute("/")({ component: Home });
+```
+
+Create `public/offline.html` as a standalone document with no external assets:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connection unavailable</title>
+  </head>
+  <body>
+    <h1>Connection unavailable</h1>
+    <p>Connect to the internet, then <a href="/">try again</a>.</p>
+  </body>
+</html>
+```
+
+## Run in the browser
+
+Start the development server from `my-app`:
+
+```sh
+pnpm dev
+```
+
+Open `http://localhost:5173`. You see **My app** and device information with `platform: "web"`. The hook reports loading during SSR and reads browser information after mount.
+
+Keep the server running. In a second terminal, check the app:
+
+```sh
+pnpm typecheck
+pnpm build
+```
+
+Run the server once before type checking so Start generates the route tree. Production builds generate offline assets; service worker registration stays disabled during development.
+
+Continue with [project structure](/docs/getting-started/project-structure) or [run on Android or iOS](/docs/getting-started/native).

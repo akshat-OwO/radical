@@ -7,11 +7,11 @@ Native enablement is `internalPlugins.camera`. The required dependency is `@capa
 
 ## Operations
 
-| `radical/client` export   | Result             | Requirements              |
-| ------------------------- | ------------------ | ------------------------- |
-| `capturePhoto`            | `Photo`            | `Bridge`, `BrowserCamera` |
-| `choosePhoto`             | `Photo`            | `Bridge`, `BrowserCamera` |
-| `checkCameraPermission`   | `CameraPermission` | `Bridge`, `BrowserCamera` |
+| `@akshatowo/radical/client` export | Result | Requirements |
+| --- | --- | --- |
+| `capturePhoto` | `Photo` | `Bridge`, `BrowserCamera` |
+| `choosePhoto` | `Photo` | `Bridge`, `BrowserCamera` |
+| `checkCameraPermission` | `CameraPermission` | `Bridge`, `BrowserCamera` |
 | `requestCameraPermission` | `CameraPermission` | `Bridge`, `BrowserCamera` |
 
 These are Effect values, not functions. `cameraLive(effect)` provides `BrowserCameraLive`. `BrowserCamera` is injectable for tests. `PhotoSchema` and `CameraPermissionSchema` validate results.

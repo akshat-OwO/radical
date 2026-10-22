@@ -1,5 +1,5 @@
+import { useVideoStream } from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useVideoStream } from "radical/react";
 import { useRef, useState } from "react";
 
 const Video = () => {

@@ -10,7 +10,7 @@ See the [delivery flow and authentication constraints](/docs/explanation/deliver
 
 ### Configure delivery
 
-Pass this config to both `tanstackStart(tanstackStartOptions(config))` and `radical(config)` from `radical/tanstack-start`:
+Pass this config to both `tanstackStart(tanstackStartOptions(config))` and `radical(config)` from `@akshatowo/radical/tanstack-start`:
 
 ```ts
 const config = {
@@ -29,8 +29,8 @@ Set `src/start.ts`:
 
 ```ts
 import { createStart } from "@tanstack/react-start";
-import { createRadicalFetch } from "radical/client";
-import { createRadicalRequestMiddleware } from "radical/tanstack-start-server";
+import { createRadicalFetch } from "@akshatowo/radical/client";
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
 import { config } from "virtual:radical/config";
 
 export const startInstance = createStart(() => ({
@@ -55,7 +55,7 @@ import {
 import {
   offlineHandler,
   withBundledRequests,
-} from "radical/tanstack-start-server";
+} from "@akshatowo/radical/tanstack-start-server";
 
 export default {
   fetch: withBundledRequests(

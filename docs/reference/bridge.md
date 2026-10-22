@@ -1,6 +1,6 @@
 # Bridge and device info
 
-`radical/client` exports `Bridge`, an Effect service with these operations:
+`@akshatowo/radical/client` exports `Bridge`, an Effect service with these operations:
 
 - `runtime: Effect<"browser" | "android" | "ios">` detects the injected shell bridge when executed. Server execution reports `"browser"`.
 - `observe(event, receive): Effect<() => void>` subscribes to shell events after mount and returns a cleanup function. The live bridge replays the latest value for each event name.
@@ -12,7 +12,11 @@ Provide `BridgeLive` for the shell transport or `bridgeTestLayer(runtime, handle
 
 ```ts
 import { Effect } from "effect";
-import { BridgeLive, callBridge, DeviceInfoSchema } from "radical/client";
+import {
+  BridgeLive,
+  callBridge,
+  DeviceInfoSchema,
+} from "@akshatowo/radical/client";
 
 const device = callBridge("Device", "getInfo", DeviceInfoSchema).pipe(
   Effect.provide(BridgeLive)
@@ -23,7 +27,7 @@ const device = callBridge("Device", "getInfo", DeviceInfoSchema).pipe(
 
 ## React state
 
-`useDeviceInfo()` in `radical/react` returns one of these states:
+`useDeviceInfo()` in `@akshatowo/radical/react` returns one of these states:
 
 - `{ loading: true, value: undefined, error: undefined }`
 - `{ loading: false, value: DeviceInfo, error: undefined }`
@@ -32,14 +36,14 @@ const device = callBridge("Device", "getInfo", DeviceInfoSchema).pipe(
 Rendering, including server rendering, returns the initial loading state without reading browser APIs or executing the bridge. After mount, an effect loads the device info. Unmount interrupts the Effect and ignores late results. Hooks use `BridgeLive` by default, without a provider. `RadicalProvider` accepts an optional `layer: Layer<Bridge>` for all hooks in its subtree and defaults to `BridgeLive`. Keep custom layers outside components or memoize them. Provider re-renders preserve the layer identity; replacing the layer interrupts the previous load and starts another.
 
 ```tsx
-import { RadicalProvider } from "radical/react";
+import { RadicalProvider } from "@akshatowo/radical/react";
 
 <RadicalProvider layer={testBridgeLayer}>
   <App />
 </RadicalProvider>;
 ```
 
-The internal `useBridgeEffect<A, E>` owns loading state, Effect execution, and interruption for capability hooks. It is not exported from `radical/react`.
+The internal `useBridgeEffect<A, E>` owns loading state, Effect execution, and interruption for capability hooks. It is not exported from `@akshatowo/radical/react`.
 
 `DeviceInfoSchema` defines the shared result with `platform`, `model`, `operatingSystem`, `osVersion`, `manufacturer`, and `isVirtual`. The native plugin reports `platform` as `"android"` or `"ios"`; browsers report `"web"`. Operating systems are `"android"`, `"ios"`, `"windows"`, `"mac"`, `"linux"`, or `"unknown"`.
 

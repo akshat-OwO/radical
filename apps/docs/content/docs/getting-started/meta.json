@@ -1,0 +1,10 @@
+{
+  "title": "Getting started",
+  "pages": [
+    "index",
+    "installation",
+    "project-structure",
+    "native",
+    "next-steps"
+  ]
+}

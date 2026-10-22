@@ -3,7 +3,7 @@ title: "Plugin manifest API"
 description: "Schema-defined native commands and generation metadata."
 ---
 
-`radical/plugins` exports `definePlugin`, `PluginManifestSchema`, `CommandSchema`, `callPlugin`, `createPluginClient`, and the `PluginManifest` and `PluginClient` types.
+`@akshatowo/radical/plugins` exports `definePlugin`, `PluginManifestSchema`, `CommandSchema`, `callPlugin`, `createPluginClient`, and the `PluginManifest` and `PluginClient` types.
 
 `definePlugin(manifest)` preserves concrete schema types. Validation occurs before generation. `createPluginClient(manifest)` creates typed command functions. `callPlugin(plugin, method, command, args)` encodes arguments, calls the bridge, and decodes the result. Both client forms return Effects requiring `Bridge`.
 
@@ -37,7 +37,7 @@ Native error mapping decodes `{ ...cause.data, _tag: cause.code }`. An undeclare
 
 ## Internal manifest exports
 
-`radical/internal-plugins` exports `devicePlugin`, `transitionsPlugin`, `cameraPlugin`, `filePickerPlugin`, `appLauncherPlugin`, `fileOpenerPlugin`, `videoStreamPlugin`, `hapticsPlugin`, `networkPlugin`, `googleSignInPlugin`, `dataProtectionPlugin`, `localNotificationsPlugin`, `firebaseMessagingPlugin`, `badgePlugin`, and `notificationTopicsPlugin`.
+`@akshatowo/radical/internal-plugins` exports `devicePlugin`, `transitionsPlugin`, `cameraPlugin`, `filePickerPlugin`, `appLauncherPlugin`, `fileOpenerPlugin`, `videoStreamPlugin`, `hapticsPlugin`, `networkPlugin`, `googleSignInPlugin`, `dataProtectionPlugin`, `localNotificationsPlugin`, `firebaseMessagingPlugin`, `badgePlugin`, and `notificationTopicsPlugin`.
 
 These use the same manifest contract as custom plugins. The internal registry owns defaults and capability implications.
 

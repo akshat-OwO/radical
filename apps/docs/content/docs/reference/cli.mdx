@@ -44,7 +44,7 @@ Resolves Vite config in build mode and writes `.radical/plugins.d.ts`. Does not 
 
 ## Framework flags and failures
 
-The Effect CLI supplies these global flags on every command. The executable uses `Command.run` with version `0.0.0`.
+The Effect CLI supplies these global flags on every command. The executable passes the package manifest version to `Command.run`. Release builds stamp that version before bundling.
 
 | Flag | Values and behavior |
 | --- | --- |

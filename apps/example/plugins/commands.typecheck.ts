@@ -1,11 +1,11 @@
-// oxlint-disable typescript/no-unsafe-call, typescript/no-unsafe-member-access -- Negative type assertions intentionally call missing properties.
-import type { Effect } from "effect";
 import type {
   Bridge,
   BridgeCallFailed,
   BridgeDecodeError,
   BridgeUnavailable,
-} from "radical/client";
+} from "@akshatowo/radical/client";
+// oxlint-disable typescript/no-unsafe-call, typescript/no-unsafe-member-access -- Negative type assertions intentionally call missing properties.
+import type { Effect } from "effect";
 import { plugins } from "virtual:radical/plugins";
 
 import type { EchoRejected } from "./echo.ts";

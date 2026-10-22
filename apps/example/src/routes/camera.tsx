@@ -1,5 +1,5 @@
+import { useCamera, useCameraPermission } from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCamera, useCameraPermission } from "radical/react";
 
 const Camera = () => {
   const camera = useCamera();

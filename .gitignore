@@ -35,6 +35,9 @@ dist-ssr
 # radical generated native projects
 .radical/
 
+# Verified npm release artifacts
+.release/
+
 # App-owned Firebase configuration
 google-services.json
 GoogleService-Info.plist

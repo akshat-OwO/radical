@@ -3,11 +3,11 @@ title: "Transitions API"
 description: "Router installation and the lower-level transition services."
 ---
 
-`internalPlugins.transitions` defaults to true. Radical supplies the native transition overlay plugin. `radical/transitions.css` contains the browser transition styles.
+`internalPlugins.transitions` defaults to true. Radical supplies the native transition overlay plugin. `@akshatowo/radical/transitions.css` contains the browser transition styles.
 
 ## TanStack installer
 
-`browserTransitions(router, options?, browserLayer?)` from `radical/tanstack-start-client` installs once per router. Returns `{ cancel(), dispose() }`. SSR returns no-op methods.
+`browserTransitions(router, options?, browserLayer?)` from `@akshatowo/radical/tanstack-start-client` installs once per router. Returns `{ cancel(), dispose() }`. SSR returns no-op methods.
 
 | Option | Meaning |
 | --- | --- |
