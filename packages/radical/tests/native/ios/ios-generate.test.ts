@@ -4,68 +4,66 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
-import echoSource from "../../../../../apps/example/plugins/EchoPlugin.java?raw";
+import echoSource from "../../../../../apps/example/plugins/EchoPlugin.swift?raw";
 import { RadicalAdapter } from "../../../src/core/adapter/adapter.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../../../src/core/context/native-context.ts";
-import type { PluginManifest } from "../../../src/core/plugins/plugins.ts";
-import { generateAndroid } from "../../../src/native/android/android.ts";
 import { AssetGenerationFailed } from "../../../src/native/assets/errors.ts";
+import {
+  iosSplashResourceName,
+  AssetGenerator,
+} from "../../../src/native/assets/native-assets.ts";
 import type { AssetGeneration } from "../../../src/native/assets/native-assets.ts";
-import { AssetGenerator } from "../../../src/native/assets/native-assets.ts";
+import { generateIos } from "../../../src/native/ios/generate.ts";
 import {
   NativeMetadata,
   nativeMetadataLayer,
 } from "../../../src/native/shared/native-metadata.ts";
 import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
-import launch from "../../../templates/android/launch.html?raw";
-import activity from "../../../templates/android/MainActivity.java?raw";
-import gradle from "../../../templates/android/radical.gradle?raw";
-import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
-import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
-import fallback from "../../../templates/offline.html?raw";
+import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
+import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
+import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";
+import activity from "../../../templates/ios/RadicalViewController.swift?raw";
+import offlinePage from "../../../templates/offline.html?raw";
 import { adapterOutputs, fakeAdapter } from "../../fixtures/adapter.ts";
 import { echo } from "../../fixtures/echo-plugin.ts";
 import { image } from "../../fixtures/image.ts";
 
-const destination = "/app/.radical/android";
-const mainActivity = `${destination}/android/app/src/main/java/dev/radical/example/MainActivity.java`;
+const destination = "/app/.radical/ios";
+const appDelegate = `${destination}/ios/App/App/AppDelegate.swift`;
 
 /** Per-test files and command results, with no SDK, processes or real disk. */
 const defaultConfig = { appId: "dev.radical.example" };
 const memory = (
   fail = false,
   config: unknown = defaultConfig,
-  manifest: PluginManifest = echo
+  url = "http://192.168.1.2:3000",
+  mismatch = ""
 ) => {
   const files = new Map<string, string>([
-    ["/app/plugins/EchoPlugin.java", echoSource],
-    ["/package/templates/android/RadicalTransitionsPlugin.java", transitions],
+    ["/app/plugins/EchoPlugin.swift", echoSource],
+    ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     [
-      "/package/templates/android/RadicalDataProtectionPlugin.java",
+      "/package/templates/ios/RadicalDataProtectionPlugin.swift",
       dataProtection,
     ],
     [
       "/app/.radical/native.json",
-      JSON.stringify({
-        config,
-        url: "http://192.168.1.2:3000",
-        outputs: adapterOutputs,
-      }),
+      JSON.stringify({ config, url, outputs: adapterOutputs }),
     ],
-    ["/package/templates/android/MainActivity.java", activity],
-    ["/package/templates/offline.html", fallback],
-    ["/package/templates/android/launch.html", launch],
+    ["/package/templates/ios/RadicalViewController.swift", activity],
+    ["/package/templates/ios/LaunchScreen.storyboard", launchScreen],
+    ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
-    ["/package/templates/android/radical.gradle", gradle],
   ]);
   const require = createRequire(import.meta.url);
   for (const [name, version] of Object.entries({
     "@capacitor/core": "8.5.3",
-    "@capacitor/android": "8.6.1",
+    "@capacitor/ios": "8.6.1",
     "@capacitor/device": "8.0.3",
+    "@capacitor/camera": "8.2.6",
   })) {
     files.set(
       require.resolve(`${name}/package.json`),
@@ -147,22 +145,26 @@ const memory = (
         assert.strictEqual(command._tag, "StandardCommand");
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
+          const app = `${command.options.cwd}/ios/App/App`;
           files.set(
-            `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
-            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>'
+            `${app}/AppDelegate.swift`,
+            "import UIKit\n// Capacitor app"
           );
           files.set(
-            `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
-            '<resources><style name="AppTheme.NoActionBarLaunch"><item name="android:background">@drawable/splash</item></style></resources>'
+            `${app}/SceneDelegate.swift`,
+            "window?.rootViewController = CAPBridgeViewController()"
           );
           files.set(
-            `${command.options.cwd}/android/app/build.gradle`,
-            "// Capacitor app"
+            `${app}/Base.lproj/Main.storyboard`,
+            '<viewController customClass="CAPBridgeViewController" customModule="Capacitor"/>'
           );
           files.set(
-            `${command.options.cwd}/android/generated.txt`,
-            "Capacitor 8"
+            `${app}/Info.plist`,
+            "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict></dict></plist>"
           );
+          if (mismatch) {
+            files.set(`${app}/${mismatch}`, "upstream template changed");
+          }
         }
         return ChildProcessSpawner.ExitCode(fail ? 1 : 0);
       }),
@@ -192,16 +194,16 @@ const memory = (
       Layer.succeed(PluginModules, {
         load: (module) =>
           module === "./plugins/echo.ts"
-            ? Effect.succeed({ default: manifest })
+            ? Effect.succeed({ default: echo })
             : Effect.die("Unexpected manifest load"),
       })
     ),
   };
 };
 
-const generate = generateAndroid("/app", "/package");
+const generate = generateIos("/app", "/package");
 
-describe("Android shell generation", () => {
+describe("iOS shell generation", () => {
   it.effect(
     "generates topic-record cleanup even when notifications are disabled",
     () => {
@@ -215,17 +217,10 @@ describe("Android shell generation", () => {
       });
       return Effect.gen(function* () {
         yield* generate;
-        const source =
-          state.files.get(
-            `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
-          ) ?? "";
+        const source = state.files.get(appDelegate) ?? "";
         assert.include(
           source,
-          'getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()'
-        );
-        assert.include(
-          source,
-          'call.reject("Cannot clear notification topic membership")'
+          'UserDefaults.standard.removeObject(forKey: "radical.notificationTopics")'
         );
         assert.notInclude(source, "class RadicalNotificationTopicsPlugin");
       }).pipe(Effect.provide(state.layer));
@@ -241,57 +236,42 @@ describe("Android shell generation", () => {
       });
       return Effect.gen(function* () {
         yield* generate;
-        const source =
-          state.files.get(
-            `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
-          ) ?? "";
+        const source = state.files.get(appDelegate) ?? "";
         assert.include(source, "class RadicalDataProtectionPlugin");
         assert.notInclude(source, "__OFFLINE_SAVED_URL_KEY__");
-        assert.include(source, 'remove("lastOfflineUrl")');
+        assert.include(
+          source,
+          'removeObject(forKey: "radical.lastOfflineURL")'
+        );
         assert.notInclude(source, "RadicalTransitionsPlugin");
         assert.include(
-          state.files.get(mainActivity) ?? "",
+          state.files.get(appDelegate) ?? "",
           "RadicalDataProtectionPlugin"
         );
         assert.notInclude(
-          state.files.get(mainActivity) ?? "",
+          state.files.get(appDelegate) ?? "",
           "RadicalTransitionsPlugin"
         );
       }).pipe(Effect.provide(state.layer));
     }
   );
 
-  it.effect(
-    "generates Echo with matching source path, package and registered class",
-    () =>
-      Effect.gen(function* () {
-        for (const className of [
-          "EchoPlugin",
-          "dev.radical.example.EchoPlugin",
-        ]) {
-          const state = memory(
-            false,
-            {
-              ...defaultConfig,
-              plugins: [{ manifest: "./plugins/echo.ts" }],
-              pluginOptions: { Echo: { prefix: "Native: " } },
-            },
-            { ...echo, android: { ...echo.android, className } }
-          );
-          yield* generate.pipe(Effect.provide(state.layer));
-          const source =
-            state.files.get(
-              `${destination}/android/app/src/main/java/dev/radical/example/EchoPlugin.java`
-            ) ?? "";
-          assert.match(source, /^package dev\.radical\.example;/u);
-          assert.include(source, "public class EchoPlugin extends Plugin");
-          assert.include(
-            state.files.get(mainActivity) ?? "",
-            `registerPlugin(${className}.class);`
-          );
-        }
-      })
-  );
+  it.effect("includes the Echo Swift class used by shell registration", () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      plugins: [{ manifest: "./plugins/echo.ts" }],
+      pluginOptions: { Echo: { prefix: "Native: " } },
+    });
+    return Effect.gen(function* () {
+      yield* generate;
+      const source = state.files.get(appDelegate) ?? "";
+      assert.include(source, "bridge?.registerPluginInstance(EchoPlugin())");
+      assert.include(
+        source,
+        "public class EchoPlugin: CAPPlugin, CAPBridgedPlugin"
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
 
   it.effect(
     "omits disabled internal dependencies, registration and sources",
@@ -310,13 +290,11 @@ describe("Android shell generation", () => {
           state.files.has(`${destination}/node_modules/@capacitor/device`)
         );
         assert.notInclude(
-          state.files.get(mainActivity) ?? "",
+          state.files.get(appDelegate) ?? "",
           "RadicalTransitionsPlugin"
         );
         assert.notInclude(
-          state.files.get(
-            `${destination}/android/app/src/main/java/dev/radical/example/RadicalTransitionsPlugin.java`
-          ) ?? "",
+          state.files.get(appDelegate) ?? "",
           "class RadicalTransitionsPlugin"
         );
       }).pipe(Effect.provide(state.layer));
@@ -328,13 +306,11 @@ describe("Android shell generation", () => {
     return Effect.gen(function* () {
       yield* generate;
       assert.include(
-        state.files.get(mainActivity) ?? "",
-        "registerPlugin(RadicalTransitionsPlugin.class)"
+        state.files.get(appDelegate) ?? "",
+        "registerPluginInstance(RadicalTransitionsPlugin())"
       );
       assert.include(
-        state.files.get(
-          `${destination}/android/app/src/main/java/dev/radical/example/RadicalTransitionsPlugin.java`
-        ) ?? "",
+        state.files.get(appDelegate) ?? "",
         "class RadicalTransitionsPlugin"
       );
     }).pipe(Effect.provide(state.layer));
@@ -358,7 +334,7 @@ describe("Android shell generation", () => {
         )(generatedPackage);
         assert.deepStrictEqual(dependencies, {
           "@capacitor/core": "8.5.3",
-          "@capacitor/android": "8.6.1",
+          "@capacitor/ios": "8.6.1",
           "@capacitor/device": "8.0.3",
         });
         assert.isTrue(
@@ -366,107 +342,230 @@ describe("Android shell generation", () => {
             .get(`${destination}/node_modules/@capacitor/device`)
             ?.endsWith("node_modules/@capacitor/device")
         );
-        assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "android"]);
-        const source = state.files.get(mainActivity) ?? "";
-        const cookie = yield* Schema.decodeUnknownEffect(
+        assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "ios"]);
+        const source = state.files.get(appDelegate) ?? "";
+        const value = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(Schema.String)
-        )(/COOKIE = (?<cookie>.+);/u.exec(source)?.groups?.cookie);
-        const [name, value] = cookie.split("=");
-        assert.strictEqual(name, NATIVE_CONTEXT_COOKIE);
-        const context = yield* Schema.decodeUnknownEffect(
+        )(
+          /let seed = (?<cookie>"[^"]+")\.removingPercentEncoding/u.exec(source)
+            ?.groups?.cookie
+        );
+        assert.include(source, `.name: "${NATIVE_CONTEXT_COOKIE}"`);
+        const context = yield* Schema.decodeEffect(
           Schema.fromJsonString(ShellContextSchema)
         )(decodeURIComponent(value ?? ""));
         assert.deepStrictEqual(context, {
-          platform: "android",
+          platform: "ios",
           shellVersion: "1.2.3",
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
-        assert.include(source, "CookieManager");
-        assert.include(
-          source,
-          `OFFLINE_FALLBACK = ${JSON.stringify(fallback)};`
-        );
-        assert.notInclude(source, "__OFFLINE_FALLBACK__");
-        assert.include(source, "bars.top / density");
-        assert.include(source, 'context.put("safeArea", area)');
-        assert.include(
-          source,
-          "WindowCompat.setDecorFitsSystemWindows(getWindow(), false)"
-        );
-        assert.notInclude(source, "v.setPadding(");
-        assert.include(source, "if (!started)");
+        assert.include(source, "httpCookieStore.setCookie");
+        assert.include(source, "view.window != nil");
+        assert.include(source, "let insets = view.safeAreaInsets");
+        assert.include(source, "override func viewSafeAreaInsetsDidChange()");
+        assert.include(source, "self.view.safeAreaInsets != insets");
+        assert.include(source, "contentInsetAdjustmentBehavior = .automatic");
         assert.include(source, "window.__radical");
-        const nativeConfig = yield* Schema.decodeEffect(
+        assert.include(source, 'HTTPCookiePropertyKey("HttpOnly"): "TRUE"');
+        assert.include(
+          source,
+          ".sameSitePolicy: HTTPCookieStringPolicy.sameSiteLax"
+        );
+        assert.include(source, "if secure");
+        assert.include(
+          source,
+          "private func startNavigation() { super.viewDidLoad() }"
+        );
+        assert.notInclude(source, "__COOKIE_VALUE__");
+        assert.include(source, '["http://192.168.1.2:3000"]');
+        assert.include(
+          state.files.get(
+            `${destination}/ios/App/App/Base.lproj/Main.storyboard`
+          ) ?? "",
+          'customClass="RadicalViewController" customModule="App" customModuleProvider="target"'
+        );
+        assert.strictEqual(
+          state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`),
+          "window?.rootViewController = RadicalViewController()"
+        );
+        assert.strictEqual(
+          state.files.get(`${destination}/ios/App/App/Info.plist`),
+          "<plist><dict><key>Nested</key><dict><key>Keep</key><true/></dict><key>WKAppBoundDomains</key><array><string>192.168.1.2</string></array><key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>\n</dict>\n</plist>"
+        );
+        assert.include(source, "decisionHandler(.cancel)");
+        assert.include(
+          source,
+          'origins.contains("\\(scheme)://\\(host)\\(suffix)")'
+        );
+        assert.include(source, "configuration.websiteDataStore = .default()");
+        assert.include(source, "loadHTMLString(");
+        assert.include(source, "x-radical-offline-fallback");
+        assert.include(source, "radical.lastOfflineURL");
+        assert.include(source, "errorPathURL: bridge?.config.errorPathURL");
+        assert.include(source, "guard allowed(url) || url == errorPathURL");
+        assert.include(source, "recoveryCancellations.insert(navigation)");
+        assert.include(source, "recoveryCancellations.remove($0) != nil");
+        assert.include(
+          source,
+          "handleFailure(webView, navigation: navigation, error: error)"
+        );
+        const config = yield* Schema.decodeEffect(
           Schema.fromJsonString(
             Schema.Struct({
-              android: Schema.Struct({
-                resolveServiceWorkerRequests: Schema.Boolean,
-              }),
-              plugins: Schema.Struct({
-                SystemBars: Schema.Struct({ insetsHandling: Schema.String }),
+              ios: Schema.Struct({
+                limitsNavigationsToAppBoundDomains: Schema.Boolean,
               }),
             })
           )
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
-        assert.isFalse(nativeConfig.android.resolveServiceWorkerRequests);
-        assert.deepStrictEqual(nativeConfig.plugins.SystemBars, {
-          insetsHandling: "disable",
-        });
-        assert.include(source, "addDocumentStartJavaScript(view, GUARD");
-        assert.include(
-          state.files.get(`${destination}/android/app/build.gradle`) ?? "",
-          "apply from: 'radical.gradle'"
-        );
-        assert.notInclude(source, "__APP_ID__");
-        assert.notInclude(source, "__COOKIE__");
-        assert.include(source, 'Arrays.asList("http://192.168.1.2:3000")');
-        assert.include(
-          state.files.get(`${destination}/capacitor.config.json`) ?? "",
-          '"cleartext":true'
-        );
+        assert.isTrue(config.ios.limitsNavigationsToAppBoundDomains);
       }).pipe(Effect.provide(state.layer));
     }
   );
 
   it.effect(
-    "renders one mixed-scheme cookie and keeps HTTPS-only hosts Secure",
+    "deduplicates exact origins and omits ATS exceptions for HTTPS",
     () => {
-      const state = memory(false, {
-        ...defaultConfig,
-        allowlist: [
-          "https://192.168.1.2",
-          "https://secure.test",
-          "https://secure.test:8443",
-        ],
-      });
+      const state = memory(
+        false,
+        {
+          ...defaultConfig,
+          allowlist: [
+            "https://app.test",
+            "https://app.test:8443",
+            "https://app.test:8443",
+          ],
+        },
+        "https://app.test"
+      );
       return Effect.gen(function* () {
         yield* generate;
-        const source = state.files.get(mainActivity) ?? "";
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(source, '["https://app.test", "https://app.test:8443"]');
+        const plist =
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
         assert.include(
-          source,
-          'cookies.setCookie("http://192.168.1.2:3000", COOKIE + "; Path=/; HttpOnly; SameSite=Lax");'
+          plist,
+          "<key>WKAppBoundDomains</key><array><string>app.test</string></array>"
         );
-        assert.include(
-          source,
-          'cookies.setCookie("https://secure.test", COOKIE + "; Path=/; HttpOnly; SameSite=Lax; Secure");'
-        );
-        assert.strictEqual(source.match(/cookies.setCookie/gu)?.length, 2);
+        assert.notInclude(plist, "NSAppTransportSecurity");
       }).pipe(Effect.provide(state.layer));
     }
   );
 
-  it.effect("rejects an Android template missing the cookie anchor", () => {
-    const state = memory();
-    state.files.set(
-      "/package/templates/android/MainActivity.java",
-      activity.replace("__COOKIES__", "")
+  it.effect(
+    "writes camera usage text with replacement patterns literally into Info.plist",
+    () => {
+      const usageDescription = "Price $& tax $' after $` before $$ total";
+      const photoLibraryUsageDescription = "Pick $& or $$";
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { camera: true },
+        pluginOptions: {
+          Camera: { usageDescription, photoLibraryUsageDescription },
+        },
+      });
+      return Effect.gen(function* () {
+        yield* generate;
+        const plist =
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+        assert.include(
+          plist,
+          `<key>NSCameraUsageDescription</key><string>${usageDescription.replaceAll("&", "&amp;")}</string><key>NSPhotoLibraryUsageDescription</key><string>${photoLibraryUsageDescription.replaceAll("&", "&amp;")}</string>\n</dict>\n</plist>`
+        );
+        assert.strictEqual(plist.match(/<\/plist>/gu)?.length, 1);
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "accepts ten app-bound hosts and rejects an eleventh before spawning",
+    () =>
+      Effect.gen(function* () {
+        const allowlist = Array.from(
+          { length: 9 },
+          (_, index) => `https://host${index}.test`
+        );
+        const accepted = memory(
+          false,
+          { ...defaultConfig, allowlist },
+          "https://app.test"
+        );
+        yield* generate.pipe(Effect.provide(accepted.layer));
+        assert.strictEqual(accepted.commands.length, 1);
+        const rejected = memory(
+          false,
+          {
+            ...defaultConfig,
+            allowlist: [...allowlist, "https://eleven.test"],
+          },
+          "https://app.test"
+        );
+        const error = yield* Effect.flip(
+          generate.pipe(Effect.provide(rejected.layer))
+        );
+        assert.strictEqual(error._tag, "InvalidConfig");
+        assert.isEmpty(rejected.commands);
+        assert.isFalse(rejected.files.has(appDelegate));
+      })
+  );
+
+  it.effect("renders one cookie per host with the shared Secure policy", () => {
+    const state = memory(
+      false,
+      {
+        ...defaultConfig,
+        allowlist: [
+          "https://app.test",
+          "https://secure.test",
+          "https://secure.test:8443",
+        ],
+      },
+      "http://app.test:3000"
     );
     return Effect.gen(function* () {
-      const error = yield* Effect.flip(generate);
-      assert.strictEqual(error._tag, "NativeTemplateMismatch");
-      assert.deepStrictEqual(state.commands, []);
+      yield* generate;
+      const source = state.files.get(appDelegate) ?? "";
+      assert.include(
+        source,
+        'for (hostname, origin, secure) in [("app.test", "http://app.test:3000", false), ("secure.test", "https://secure.test", true)]'
+      );
+      assert.include(source, 'if secure { properties[.secure] = "TRUE" }');
+      assert.include(source, "decisionHandler(.allow)");
+      assert.include(source, 'fatalError("Radical requires Capacitor WebView');
     }).pipe(Effect.provide(state.layer));
   });
+
+  it.effect(
+    "keeps the previous shell when Capacitor controller or ATS anchors change",
+    () =>
+      Effect.gen(function* () {
+        for (const file of [
+          "SceneDelegate.swift",
+          "Base.lproj/Main.storyboard",
+          "Info.plist",
+        ]) {
+          const state = memory(false, defaultConfig, "http://app.test", file);
+          state.files.set(`${destination}/previous.txt`, "usable shell");
+          const error = yield* Effect.flip(
+            generate.pipe(Effect.provide(state.layer))
+          );
+          assert.strictEqual(error._tag, "NativeTemplateMismatch");
+          if (error._tag === "NativeTemplateMismatch") {
+            assert.isTrue(error.file.endsWith(file));
+          }
+          assert.strictEqual(
+            state.files.get(`${destination}/previous.txt`),
+            "usable shell"
+          );
+          assert.isFalse(
+            [...state.files.keys()].some((key) =>
+              key.startsWith(`${destination}.next/`)
+            )
+          );
+        }
+      })
+  );
 
   it.effect(
     "replaces stale files and produces identical project content on rerun",
@@ -521,35 +620,35 @@ describe("Android shell generation", () => {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "InvalidConfig");
         assert.deepStrictEqual(state.commands, []);
-        assert.isFalse(state.files.has(mainActivity));
+        assert.isFalse(state.files.has(appDelegate));
       }).pipe(Effect.provide(state.layer));
     }
   );
 });
 
-describe("android app identity", () => {
+describe("ios app identity", () => {
   it.effect(
-    "reports invalid android fallback and explicit ids with an actionable typed error",
+    "reports invalid ios fallback and explicit ids with an actionable typed error",
     () =>
       Effect.gen(function* () {
         for (const config of [
-          { appId: "dev.class.app" },
-          { ...defaultConfig, android: { packageId: "dev.class.app" } },
+          { appId: "dev.my_app" },
+          { ...defaultConfig, ios: { bundleId: "dev.my_app" } },
         ]) {
           const state = memory(false, config);
           const error = yield* Effect.flip(
             generate.pipe(Effect.provide(state.layer))
           );
           assert.strictEqual(error._tag, "InvalidConfig");
-          assert.include(error.message, "android");
-          assert.include(error.message, "dev.class.app");
-          assert.include(error.message, "android.packageId");
-          assert.include(error.message, "Java keyword");
+          assert.include(error.message, "ios");
+          assert.include(error.message, "dev.my_app");
+          assert.include(error.message, "ios.bundleId");
+          assert.include(error.message, "letters, digits and hyphens");
           assert.isEmpty(state.commands);
         }
         const state = memory(false, {
-          appId: "dev.class.app",
-          android: { packageId: "dev.valid.app" },
+          appId: "dev.my_app",
+          ios: { bundleId: "dev.valid.app" },
         });
         yield* generate.pipe(Effect.provide(state.layer));
         assert.include(
@@ -566,7 +665,7 @@ describe("android app identity", () => {
       const config = {
         ...defaultConfig,
         name: "Shared",
-        android: { name: "Platform name", packageId: "dev.custom.shell" },
+        ios: { name: "Platform name", bundleId: "dev.custom.shell" },
         icon: "icon.png",
         splash: { image: "splash.png", backgroundColor: "#241044" },
       };
@@ -584,7 +683,28 @@ describe("android app identity", () => {
           appId: "dev.custom.shell",
           appName: "Platform name",
         });
-        assert.strictEqual(state.assetCalls[0].platform, "android");
+        assert.strictEqual(state.assetCalls[0].platform, "ios");
+        const storyboard =
+          state.files.get(
+            `${destination}/ios/App/App/Base.lproj/LaunchScreen.storyboard`
+          ) ?? "";
+        assert.include(
+          storyboard,
+          `red="${0x24 / 255}" green="${0x10 / 255}" blue="${0x44 / 255}"`
+        );
+        assert.include(
+          storyboard,
+          'secondItem="launch-view" secondAttribute="top"'
+        );
+        const source = state.files.get(appDelegate) ?? "";
+        const firstName = iosSplashResourceName(state.assetCalls[0].assets);
+        assert.include(source, `let splashName = "${firstName}"`);
+        assert.include(storyboard, `image="${firstName}"`);
+        assert.include(storyboard, `<image name="${firstName}"`);
+        assert.include(source, "view.addSubview(splash)");
+        assert.include(source, "proxy.onDocumentReady = { [weak self] in");
+        assert.include(source, "self?.startupSplash?.removeFromSuperview()");
+        assert.include(source, "onDocumentReady?()");
         assert.strictEqual(state.assetCalls[0].backgroundColor, "#241044");
         const first = state.assetCalls[0].assets;
         state.binaries.set("/app/icon.png", yield* image(1024, "#ff0000"));
@@ -594,7 +714,7 @@ describe("android app identity", () => {
           JSON.stringify({
             config: {
               ...config,
-              android: { ...config.android, name: "Renamed shell" },
+              ios: { ...config.ios, name: "Renamed shell" },
             },
             url: "http://192.168.1.2:3000",
           })
@@ -605,6 +725,18 @@ describe("android app identity", () => {
           '"appName":"Renamed shell"'
         );
         assert.strictEqual(state.assetCalls.length, 2);
+        const secondName = iosSplashResourceName(state.assetCalls[1].assets);
+        assert.notStrictEqual(firstName, secondName);
+        assert.include(
+          state.files.get(appDelegate) ?? "",
+          `let splashName = "${secondName}"`
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/ios/App/App/Base.lproj/LaunchScreen.storyboard`
+          ) ?? "",
+          `image="${secondName}"`
+        );
         assert.notDeepEqual(
           state.assetCalls[1].assets.find(
             ({ file }) => file === "icon-only.png"
@@ -616,28 +748,6 @@ describe("android app identity", () => {
             ?.bytes,
           first.find(({ file }) => file === "splash.png")?.bytes
         );
-        assert.include(
-          state.files.get(
-            `${destination}/android/app/src/main/res/values/styles.xml`
-          ) ?? "",
-          '<item name="windowSplashScreenBackground">#241044</item>'
-        );
-        assert.include(
-          state.files.get(
-            `${destination}/android/app/src/main/res/values/styles.xml`
-          ) ?? "",
-          '<item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>'
-        );
-        const prefix = `${destination}/android/app/src/main/java/dev/custom/shell`;
-        assert.include(
-          state.files.get(`${prefix}/MainActivity.java`) ?? "",
-          "package dev.custom.shell;"
-        );
-        assert.include(
-          state.files.get(`${prefix}/RadicalTransitionsPlugin.java`) ?? "",
-          "package dev.custom.shell;"
-        );
-        assert.isFalse(state.files.has(mainActivity));
       }).pipe(Effect.provide(state.layer));
     }
   );
@@ -674,7 +784,7 @@ describe("android app identity", () => {
   });
 });
 
-describe("bundled android shell", () => {
+describe("bundled ios shell", () => {
   it.effect(
     "packages a fake adapter's SPA outputs and keeps navigation local",
     () => {
@@ -720,8 +830,8 @@ describe("bundled android shell", () => {
         )(state.files.get(`${destination}/capacitor.config.json`) ?? "");
         assert.isUndefined(config.server.url);
         assert.deepStrictEqual(config.server.allowNavigation, []);
-        const source = state.files.get(mainActivity) ?? "";
-        assert.include(source, "https://localhost");
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(source, "capacitor://localhost");
         assert.notInclude(source, '"https://external.example"');
         assert.include(source, "RadicalTransitionsPlugin");
         assert.include(source, "window.__radicalNativeContext=");
@@ -729,9 +839,15 @@ describe("bundled android shell", () => {
           state.files.get(`${destination}/package.json`) ?? "",
           "@capacitor/device"
         );
-        assert.include(source, "BUNDLED = true");
-        assert.include(source, "BUNDLED ? URL :");
-        assert.include(source, "BUNDLED ? super.shouldInterceptRequest");
+        assert.notInclude(
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "",
+          "WKAppBoundDomains"
+        );
+        assert.include(
+          state.files.get(`${destination}/capacitor.config.json`) ?? "",
+          '"limitsNavigationsToAppBoundDomains":false'
+        );
+        assert.include(source, "if !true {");
       }).pipe(
         Effect.provide(
           Layer.mergeAll(

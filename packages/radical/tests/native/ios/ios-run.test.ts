@@ -3,7 +3,7 @@ import { Effect, Fiber, FileSystem, Layer, Sink, Stream } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { TestClock } from "effect/testing";
 
-import { runIos } from "../../../src/native/ios/ios.ts";
+import { runIos } from "../../../src/native/ios/run.ts";
 
 const project = "/app/.radical/ios";
 const memory = (
