@@ -10,19 +10,47 @@ const escape = (text: string) =>
 /** Validate even callers that construct config directly, before modifying a project. */
 export const cameraDeclarations = (config: RadicalConfig) =>
   Effect.gen(function* () {
-    if (config.internalPlugins?.camera !== true) {
+    if (
+      config.internalPlugins?.camera !== true &&
+      config.internalPlugins?.videoStream !== true
+    ) {
       return { android: "", ios: "" };
     }
-    const camera = yield* Schema.decodeUnknownEffect(CameraConfigSchema)(
-      config.pluginOptions?.Camera
-    ).pipe(
-      Effect.mapError(
-        (error) => new InvalidConfig({ message: `Camera: ${error.message}` })
-      )
-    );
+    const video =
+      config.internalPlugins?.videoStream === true
+        ? yield* Schema.decodeUnknownEffect(
+            Schema.Struct({
+              usageDescription: CameraConfigSchema.fields.usageDescription,
+            })
+          )(config.pluginOptions?.VideoStream).pipe(
+            Effect.mapError(
+              (error) =>
+                new InvalidConfig({ message: `VideoStream: ${error.message}` })
+            )
+          )
+        : undefined;
+    const camera =
+      config.internalPlugins?.camera === true
+        ? yield* Schema.decodeUnknownEffect(CameraConfigSchema)(
+            config.pluginOptions?.Camera
+          ).pipe(
+            Effect.mapError(
+              (error) =>
+                new InvalidConfig({ message: `Camera: ${error.message}` })
+            )
+          )
+        : undefined;
+    // iOS shares one camera key: still-camera purpose first, then video.
+    const purposes = [
+      ...new Set(
+        [camera?.usageDescription, video?.usageDescription].filter(
+          (purpose): purpose is string => purpose !== undefined
+        )
+      ),
+    ].join(" ");
     return {
       android:
         '<uses-permission android:name="android.permission.CAMERA" /><uses-feature android:name="android.hardware.camera" android:required="false" />',
-      ios: `<key>NSCameraUsageDescription</key><string>${escape(camera.usageDescription)}</string><key>NSPhotoLibraryUsageDescription</key><string>${escape(camera.photoLibraryUsageDescription)}</string>`,
+      ios: `<key>NSCameraUsageDescription</key><string>${escape(purposes)}</string>${camera ? `<key>NSPhotoLibraryUsageDescription</key><string>${escape(camera.photoLibraryUsageDescription)}</string>` : ""}`,
     };
   });

@@ -122,7 +122,7 @@ radical({
 });
 ```
 
-Regenerate both shells after enabling it. Generation adds Android `CAMERA` with optional camera hardware, and iOS `NSCameraUsageDescription` plus `NSPhotoLibraryUsageDescription`. Both descriptions must contain non-whitespace text and no invalid XML control characters. Camera is disabled by default so existing apps gain no camera permissions.
+Regenerate both shells after enabling it. Generation adds Android `CAMERA` with optional camera hardware, and iOS `NSCameraUsageDescription` plus `NSPhotoLibraryUsageDescription`. Both descriptions must contain non-whitespace text and no invalid XML control characters. When both camera and video stream are enabled, the single iOS camera description joins the still-camera purpose followed by the video purpose with a space. Identical descriptions appear once, and generation XML-escapes the combined string once. Photo-library access is declared only when the still camera is enabled. Android emits one shared `CAMERA` permission. Camera is disabled by default so existing apps gain no camera permissions.
 
 ```tsx
 import { useCamera, useCameraPermission } from "radical/react";
@@ -200,3 +200,7 @@ function Attachments() {
 Browsers capture through `<input type="file" accept="image/*" capture="environment">`. Desktop browsers usually offer file selection; mobile browsers decide whether to offer a camera. Permission checks use the Permissions API where supported and otherwise report `"prompt"`. Requests require getUserMedia in a secure context and immediately stop the temporary stream. A successful file selection does not imply camera permission was granted.
 
 Both hooks guard server rendering, ignore duplicate actions while busy, interrupt pending work on unmount, and clear state when the provider changes. Browser inputs and readers are cleaned up on success, failure, and interruption. Capacitor cannot dismiss an open native picker on interruption; keep one camera hook mounted until the picker closes. Android process-death restoration is not included. See the [example route](apps/example/src/routes/camera.tsx), [camera decision](docs/adr/0005-camera-capability-hooks.md), and [verification record](docs/verification/camera.md).
+
+## Live video
+
+`useVideoStream` from `radical/react` previews the camera through a viewfinder cut-out, scans QR codes, and exposes start, stop, camera switching, zoom, torch, and frame-rate state. Enable `internalPlugins.videoStream` and provide `pluginOptions.VideoStream.usageDescription`. Browser previews use `getUserMedia`; QR detection requires `BarcodeDetector`. See the [package API](packages/radical/README.md#live-video), [plugin decision](docs/adr/0007-live-video-stream.md), and [device verification](docs/verification/video.md).

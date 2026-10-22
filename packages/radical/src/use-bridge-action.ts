@@ -78,7 +78,27 @@ export const useBridgeAction = <A, E>() => {
     },
     [layer]
   );
+  const cancel = useCallback(() => {
+    const owner = active.current;
+    if (owner.layer === layer && owner.fiber) {
+      Effect.runFork(
+        Fiber.interrupt(owner.fiber).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              if (owner.live && active.current === owner) {
+                setSnapshot({
+                  layer,
+                  state: { loading: false, value: undefined, error: undefined },
+                });
+              }
+            })
+          )
+        )
+      );
+    }
+  }, [layer]);
   return {
+    cancel,
     ...(snapshot.layer === layer
       ? snapshot.state
       : { loading: false, value: undefined, error: undefined }),

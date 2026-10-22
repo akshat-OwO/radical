@@ -6,6 +6,7 @@ packages:
 catalogMode: prefer
 
 catalog:
+  "@capgo/camera-preview": 8.14.2
   "@capacitor-community/file-opener": 8.0.1
   "@capacitor/android": ^8.5.3
   "@capacitor/app-launcher": 8.0.1
@@ -45,3 +46,5 @@ peerDependencyRules:
 
 allowBuilds:
   sharp: true
+minimumReleaseAgeExclude:
+  - "@capgo/camera-preview@8.14.2"

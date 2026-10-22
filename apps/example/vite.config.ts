@@ -15,8 +15,16 @@ const config = {
   icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
   splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
-  internalPlugins: { camera: true, filePicker: true, intents: true },
+  internalPlugins: {
+    camera: true,
+    videoStream: true,
+    filePicker: true,
+    intents: true,
+  },
   pluginOptions: {
+    VideoStream: {
+      usageDescription: "Show a live camera preview and scan QR codes.",
+    },
     Echo: { prefix: "Native: " },
     Camera: {
       photoLibraryUsageDescription:

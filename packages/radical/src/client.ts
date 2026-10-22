@@ -131,3 +131,18 @@ export {
   NoHandler,
 } from "./intents.ts";
 export type { IntentError, OpenableFile, OpenFileOptions } from "./intents.ts";
+
+export {
+  startVideoStream,
+  videoStreamLive,
+  BrowserVideoStream,
+  BrowserVideoStreamLive,
+  VideoStreamInfoSchema,
+} from "./video-stream.ts";
+export type {
+  VideoStreamInfo,
+  VideoStreamOptions,
+  VideoStreamSession,
+  VideoStreamError,
+  CameraFacing,
+} from "./video-stream.ts";

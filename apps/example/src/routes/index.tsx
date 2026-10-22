@@ -76,6 +76,7 @@ const Home = () => {
       <Link to="/details">Slide to details</Link>{" "}
       <Link to="/about">Fade to about</Link>
       <Link to="/camera">Camera capture and permission</Link>
+      <Link to="/video">Live video and QR scanning</Link>
       <Link to="/files">Files and intents</Link>
       <h2>Safe area</h2>
       <pre data-testid="safe-area">{JSON.stringify(safeArea)}</pre>

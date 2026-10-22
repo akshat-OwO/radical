@@ -19,6 +19,12 @@ export type BridgeError =
 export interface InjectedBridge {
   readonly getPlatform: () => string;
   readonly convertFileSrc?: (path: string) => string;
+  readonly nativeCallback?: (
+    plugin: string,
+    method: string,
+    options: Readonly<Record<string, unknown>>,
+    callback?: (value: unknown, error?: unknown) => void
+  ) => string;
   readonly nativePromise: (
     plugin: string,
     method: string,
@@ -42,6 +48,14 @@ export class Bridge extends Context.Service<
   Bridge,
   {
     readonly runtime: Effect.Effect<Runtime>;
+    readonly listen?: (
+      plugin: string,
+      event: string,
+      receive: (value: unknown) => void
+    ) => Effect.Effect<
+      Effect.Effect<void>,
+      BridgeUnavailable | BridgeCallFailed
+    >;
     /** Native events retain their latest value across page startup. */
     readonly observe: (
       event: string,
@@ -85,6 +99,46 @@ export const bridgeLayer = (
         return () => {
           events.removeEventListener(event, listener);
         };
+      }),
+    listen: (plugin, event, receive) =>
+      Effect.suspend<
+        Effect.Effect<void>,
+        BridgeUnavailable | BridgeCallFailed,
+        never
+      >(() => {
+        const bridge = read();
+        if (!bridge?.nativeCallback) {
+          return Effect.fail(
+            new BridgeUnavailable({ plugin, method: "addListener" })
+          );
+        }
+        let active = true;
+        return Effect.try({
+          try: () =>
+            bridge.nativeCallback?.(
+              plugin,
+              "addListener",
+              { eventName: event },
+              (value, error) => {
+                if (active && error === undefined) {
+                  receive(value);
+                }
+              }
+            ),
+          catch: (cause) =>
+            new BridgeCallFailed({ plugin, method: "addListener", cause }),
+        }).pipe(
+          Effect.map((callbackId) =>
+            Effect.sync(() => {
+              active = false;
+              // Capacitor declares removeListener RETURN_NONE; it never resolves a nativePromise.
+              bridge.nativeCallback?.(plugin, "removeListener", {
+                eventName: event,
+                callbackId,
+              });
+            })
+          )
+        );
       }),
     call: (plugin, method, options) =>
       Effect.suspend<unknown, BridgeUnavailable | BridgeCallFailed, never>(

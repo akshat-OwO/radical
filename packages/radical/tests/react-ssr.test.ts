@@ -11,6 +11,7 @@ import {
   useCameraPermission,
   useFilePicker,
   useIntent,
+  useVideoStream,
 } from "../src/react.ts";
 import { useBridgeEffect } from "../src/use-bridge-effect.ts";
 
@@ -116,6 +117,31 @@ it.effect("guards file picker and intent actions during server rendering", () =>
         createElement(RadicalProvider, { layer }, createElement(FilesProbe))
       ),
       "<p>files idle</p>"
+    );
+  })
+);
+
+const VideoProbe = () => {
+  const stream = useVideoStream({ viewfinder: { current: null } });
+  assert.isFalse(stream.running);
+  assert.isFalse(stream.loading);
+  stream.start();
+  stream.stop();
+  stream.switchCamera();
+  stream.setZoom(2);
+  stream.setTorch(true);
+  return createElement("p", null, "video idle");
+};
+it.effect("guards video stream actions during server rendering", () =>
+  Effect.sync(() => {
+    const layer = bridgeLayer(() =>
+      assert.fail("Video read bridge during SSR")
+    );
+    assert.strictEqual(
+      renderToString(
+        createElement(RadicalProvider, { layer }, createElement(VideoProbe))
+      ),
+      "<p>video idle</p>"
     );
   })
 );
