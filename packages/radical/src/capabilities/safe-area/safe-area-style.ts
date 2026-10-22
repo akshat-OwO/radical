@@ -1,3 +1,4 @@
+import { browserContext } from "../../core/context/browser-context.ts";
 import type {
   NativeContext,
   SafeArea,
@@ -5,9 +6,10 @@ import type {
 
 export const zeroSafeArea: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 
-/** Bundled documents keep identical env() props across prerender, hydration, and live native CSS updates. */
+/** Missing loader data uses browser context, including SSR-disabled document shells.
+ * Bundled documents keep identical env() props across prerender, hydration, and live native CSS updates. */
 export const safeAreaStyle = (
-  context: NativeContext,
+  context: NativeContext = browserContext(),
   mode: "remote" | "bundled" = "remote"
 ) => ({
   "--radical-safe-area-top":
