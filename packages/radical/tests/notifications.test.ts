@@ -329,7 +329,7 @@ it.effect(
       }).pipe(Effect.provide(modules));
       assert.deepStrictEqual(
         local.map((value) => value.selector),
-        ["localNotificationsPlugin", "badgePlugin"]
+        ["networkPlugin", "localNotificationsPlugin", "badgePlugin"]
       );
       const push = yield* resolvePlugins({
         ...config,

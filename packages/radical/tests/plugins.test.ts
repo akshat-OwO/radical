@@ -171,6 +171,24 @@ describe("native plugin manifests", () => {
       assert.strictEqual(plugins[1].manifest, transitionsPlugin);
     })
   );
+  for (const flag of ["notifications", "pushNotifications"] as const) {
+    it.effect(`includes network when only ${flag} is enabled`, () =>
+      Effect.gen(function* () {
+        const plugins = yield* resolvePlugins({
+          appId: "dev.radical.test",
+          internalPlugins: { network: false, [flag]: true },
+        }).pipe(Effect.provide(modules({})));
+        const network = plugins.filter(
+          ({ manifest }) => manifest.id === "network"
+        );
+        assert.strictEqual(network.length, 1);
+        assert.strictEqual(
+          network[0].manifest.dependencies["@capacitor/network"],
+          "8.0.1"
+        );
+      })
+    );
+  }
   it.effect("does not load or emit disabled plugins", () =>
     Effect.gen(function* () {
       const plugins = yield* resolvePlugins({ ...config, plugins: [] }).pipe(

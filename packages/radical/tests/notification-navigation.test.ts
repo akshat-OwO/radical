@@ -2,7 +2,7 @@ import { assert, it } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Layer, Option } from "effect";
 
 import { RadicalAdapter } from "../src/adapter.ts";
-import { Bridge, bridgeTestLayer } from "../src/bridge.ts";
+import { Bridge, BridgeUnavailable, bridgeTestLayer } from "../src/bridge.ts";
 import { BrowserNetwork } from "../src/browser-network.ts";
 import { Unavailable } from "../src/camera-schema.ts";
 import {
@@ -195,6 +195,47 @@ for (const runtime of ["browser", "android", "ios"] as const) {
             calls,
             connected ? [] : ["dev.test.app:/offline-route?item=1#x"]
           );
+        })
+    );
+  }
+}
+
+for (const runtime of ["android", "ios"] as const) {
+  for (const found of [false, true]) {
+    it.effect(
+      `live ${runtime} selection tries snapshots with unavailable status and match=${found}`,
+      () =>
+        Effect.gen(function* () {
+          const calls: string[] = [];
+          const dependencies = Layer.merge(
+            bridgeTestLayer(runtime, (plugin, method) => {
+              assert.strictEqual(plugin, "Network");
+              assert.strictEqual(method, "getStatus");
+              return Effect.fail(new BridgeUnavailable({ plugin, method }));
+            }),
+            Layer.succeed(BrowserNetwork, {
+              current: Effect.die("Native must use Network"),
+              listen: () => Effect.die("Unexpected subscription"),
+            })
+          );
+          const layer = notificationSnapshotsLayer({
+            restore: (route, appId) =>
+              Effect.sync(() => {
+                calls.push(`${appId}:${route}`);
+                return found;
+              }),
+          }).pipe(Layer.provide(dependencies));
+          const restored = yield* Effect.gen(function* () {
+            const snapshots = yield* NotificationSnapshots;
+            return yield* snapshots.restore(
+              "/offline-route?item=1#x",
+              "dev.test.app"
+            );
+          }).pipe(Effect.provide(layer));
+          assert.strictEqual(restored, found);
+          assert.deepStrictEqual(calls, [
+            "dev.test.app:/offline-route?item=1#x",
+          ]);
         })
     );
   }

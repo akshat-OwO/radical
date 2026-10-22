@@ -193,15 +193,23 @@ const optInPlugins = [
   ["haptics", hapticsPlugin],
 ] as const;
 
+const enabledInternalPlugins = (config: RadicalConfig) => {
+  const notifications =
+    config.internalPlugins?.notifications === true ||
+    config.internalPlugins?.pushNotifications === true;
+  return {
+    ...config.internalPlugins,
+    notifications,
+    network: config.internalPlugins?.network === true || notifications,
+  };
+};
+
 export const resolvePlugins = (config: RadicalConfig) =>
   Effect.gen(function* () {
     const plugins: EnabledPlugin[] = [];
+    const internalPlugins = enabledInternalPlugins(config);
     for (const [flag, manifest] of optInPlugins) {
-      if (
-        config.internalPlugins?.[flag] === true ||
-        (flag === "notifications" &&
-          config.internalPlugins?.pushNotifications === true)
-      ) {
+      if (internalPlugins[flag] === true) {
         plugins.push({
           manifest,
           module: "radical/internal-plugins",

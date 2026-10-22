@@ -72,14 +72,13 @@ export const notificationSnapshotsLayer = (
         restore: (route: string, appId: string) =>
           getNetworkStatus.pipe(
             Effect.provide(services),
-            Effect.mapError(
-              (cause) => new Unavailable({ reason: String(cause) })
-            ),
-            Effect.flatMap((status) =>
-              status.connected
-                ? Effect.succeed(false)
-                : storage.restore(route, appId)
-            )
+            Effect.matchEffect({
+              onFailure: () => storage.restore(route, appId),
+              onSuccess: (status) =>
+                status.connected
+                  ? Effect.succeed(false)
+                  : storage.restore(route, appId),
+            })
           ),
       };
     })
