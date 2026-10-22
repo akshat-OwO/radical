@@ -4,46 +4,42 @@ description: "Enable slide or fade transitions with TanStack Router."
 ---
 
 <Steps>
-
 <Step>
 
 ### Install transitions
 
-In `src/router.tsx`, import `radical/transitions.css`.
-
-After creating the router, call `browserTransitions(router)` from `radical/tanstack-start-client` once.
-
-</Step>
-
-<Step>
-
-### Select a route transition
-
-On each destination route, set a transition:
+Configure `src/router.tsx` once after creating the router:
 
 ```ts
-staticData: { radical: { transition: "slide" } },
+import "radical/transitions.css";
+import { browserTransitions } from "radical/tanstack-start-client";
+
+const transitions = browserTransitions(router);
+// Retain transitions.cancel() and transitions.dispose() for teardown.
 ```
 
-To use a fade, set `transition: "fade"` instead.
-
 </Step>
-
 <Step>
 
-### Regenerate and verify navigation
+### Choose a transition
 
-If you disabled `internalPlugins.transitions`, enable it and regenerate both shells.
+Set destination route static data:
 
-Navigate through Router links or `router.navigate` to check the transition. Use history back to check the reverse slide.
+```ts
+staticData: { radical: { transition: "slide" } }, // or "fade"
+```
 
 </Step>
+<Step>
 
+### Verify navigation
+
+If disabled, enable `internalPlugins.transitions` and [regenerate](/docs/guides/run-on-a-device#prerequisites) before navigating through Router links.
+
+You see the transition and a reverse slide on history back.
+
+</Step>
 </Steps>
-
-For cancellation and teardown, retain the installer's returned `cancel()` and `dispose()` methods. See [Transitions reference](/docs/reference/transitions).
-
-## Check the native sequence
 
 <Mermaid
   title="One native overlay ID per navigation"
@@ -68,4 +64,4 @@ For cancellation and teardown, retain the installer's returned `cancel()` and `d
 `}
 />
 
-Check that a failed commit still removes its overlay. See [Transitions reference](/docs/reference/transitions) for timeout and reduced-motion behavior.
+Check that failed commits remove overlays. See [timeouts and reduced motion](/docs/reference/transitions).

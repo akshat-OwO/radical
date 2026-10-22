@@ -4,32 +4,35 @@ description: "Schedule a reminder, cancel it, and update the app badge."
 ---
 
 <Steps>
-
 <Step>
 
-### Enable local notifications
+### Enable notifications
 
-Install `@capacitor/local-notifications@8.3.1`, `@capawesome/capacitor-badge@8.0.4`, and `@capacitor/network@8.0.1`.
+Apply [capability setup](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.notifications: true`:
 
-Set `internalPlugins.notifications: true` and regenerate both shells.
+```sh
+pnpm add @capacitor/local-notifications@8.3.1 @capawesome/capacitor-badge@8.0.4 @capacitor/network@8.0.1
+```
 
 </Step>
-
 <Step>
 
-### Request display permission
+### Request permission
 
-Call `useNotificationPermission()` and `useNotifications()` from `radical/react`.
+Connect a user action to:
 
-From a user action, call `permission.request()`.
+```ts
+const permission = useNotificationPermission(); // radical/react
+const notifications = useNotifications();
+permission.request();
+```
 
 </Step>
-
 <Step>
 
 ### Schedule a reminder
 
-To schedule a reminder, call:
+Call from a button after permission is granted:
 
 ```ts
 notifications.schedule({
@@ -40,62 +43,80 @@ notifications.schedule({
 });
 ```
 
-</Step>
+You see the reminder when the OS delivers it.
 
+</Step>
 <Step>
 
-### Cancel, badge, or navigate
+### Add controls
 
-To cancel that reminder, call `notifications.cancel(22)`.
+Connect the required actions:
 
-If the launcher supports badges, call `notifications.setBadge(1)` or `notifications.clearBadge()`.
-
-To navigate on a notification tap, install the app-scoped watcher described in [Handle notification taps](/docs/guides/notification-navigation).
+| Action | Call or guide |
+| --- | --- |
+| Cancel | `notifications.cancel(22)` |
+| Badge, where supported | `notifications.setBadge(1)`, `.clearBadge()` |
+| Tap navigation | [App-scoped watcher](/docs/guides/notification-navigation) |
+| Native push | [Firebase setup](/docs/guides/firebase) |
 
 </Step>
-
 </Steps>
 
-Keep the browser page open for browser reminders. For native push, follow [Configure Firebase push](/docs/guides/firebase). See [Notifications reference](/docs/reference/notifications) for inputs and errors.
+Keep the page open for browser reminders. See [inputs and errors](/docs/reference/notifications).
 
-## Request exact alarms on Android
+## Request exact alarms
+
+<Tabs items={["Android", "iOS"]}>
+<Tab value="Android">
 
 <Steps>
-
 <Step>
 
-### Check exact-alarm access
+### Request access
 
-Call `useExactAlarmPermission()` from `radical/react`.
+After the initial check, offer a separate request button only for `"denied"`:
 
-Wait for the initial check to finish. If `exactAlarms.value` is `"denied"`, offer a separate button that calls `exactAlarms.request()`.
+```ts
+const exactAlarms = useExactAlarmPermission(); // radical/react
+// Request button:
+exactAlarms.request();
+// Refresh after external settings changes:
+exactAlarms.check();
+```
 
 </Step>
-
 <Step>
 
-### Grant access in settings
+### Return from settings
 
-In Android's **Alarms & reminders** settings, allow exact alarms and return to your app.
-
-Wait for the request to return `"granted"` before enabling the schedule button.
+Allow **Alarms & reminders**, then wait for `"granted"` before enabling scheduling.
 
 </Step>
-
 <Step>
 
-### Schedule and inspect the result
+### Schedule again
 
-From the schedule button's click handler, call `notifications.schedule()` with `delaySeconds: 5`. Radical computes the scheduled time for this call.
+Call `notifications.schedule()` from the button with `delaySeconds: 5`.
 
-Inspect `notifications.value` after scheduling. If `value.warning?.code` is `"OS-PLUG-LNOT-0017"`, tell the user that Android scheduled an inexact alarm.
-
-After the user grants access, schedule that reminder again to replace the inexact alarm.
+| Result | Action |
+| --- | --- |
+| `value.warning?.code === "OS-PLUG-LNOT-0017"` | Tell the user the alarm is inexact |
+| Access granted after inexact scheduling | Reschedule the same reminder to replace it |
 
 </Step>
-
 </Steps>
 
-Request access before scheduling so time spent in Android settings does not consume the reminder's delay. To refresh the setting after a user changes it outside your app, call `exactAlarms.check()`.
+<Callout type="warning">
+  Request access before scheduling; time in settings consumes an existing
+  reminder's delay.
+</Callout>
 
-See [Exact alarms and schedule results](/docs/reference/notifications#exact-alarms-and-schedule-results) for Android defaults, exceptions, and policy limits.
+</Tab>
+<Tab value="iOS">
+
+Use display permission above; Android exact-alarm settings do not apply.
+
+</Tab>
+</Tabs>
+
+See [exact-alarm limits](/docs/reference/notifications#exact-alarms-and-schedule-results).

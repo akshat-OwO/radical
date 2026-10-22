@@ -4,32 +4,35 @@ description: "Obtain an identity token in Android and iOS shells."
 ---
 
 <Steps>
-
 <Step>
 
 ### Create OAuth clients
 
-In Google Cloud, create a web OAuth client and an iOS OAuth client. Match the iOS client to your configured bundle identifier.
+Configure Google Cloud clients:
 
-For Android, configure the OAuth client with the package identifier and signing certificate fingerprint for your build.
+| Client  | Match                                            |
+| ------- | ------------------------------------------------ |
+| Web     | Backend audience                                 |
+| iOS     | Bundle identifier                                |
+| Android | Package identifier and build signing fingerprint |
 
 </Step>
-
 <Step>
 
 ### Enable sign-in
 
-Install `@capawesome/capacitor-google-sign-in@0.1.4`.
+Apply [capability setup](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.googleSignIn: true`:
 
-Set `internalPlugins.googleSignIn: true`.
+```sh
+pnpm add @capawesome/capacitor-google-sign-in@0.1.4
+```
 
 </Step>
-
 <Step>
 
-### Set public client identifiers
+### Configure identifiers
 
-Read your public client identifiers from environment variables in Vite config:
+Set both environment variables to `.apps.googleusercontent.com` identifiers before generation:
 
 ```ts
 pluginOptions: {
@@ -40,30 +43,27 @@ pluginOptions: {
 },
 ```
 
-Set both environment variables before generation. Use values ending in `.apps.googleusercontent.com`. Do not commit real identifiers in the example config.
+Keep real identifiers out of example config.
 
 </Step>
-
 <Step>
 
-### Regenerate the shells
+### Sign in
 
-Regenerate both shells. Radical writes the iOS `GIDClientID` and reversed URL scheme.
+Connect a button to:
 
-</Step>
+```ts
+const google = useGoogleSignIn(); // radical/react
+google.signIn();
+```
 
-<Step>
-
-### Sign in and verify the token
-
-Call `useGoogleSignIn()` from `radical/react` and invoke `signIn()` from a button.
-
-After success, send `value.idToken` to your backend for verification and session creation. Do not treat an unverified token as an authenticated session.
-
-Handle `GoogleSignInCancelled` separately from configuration failures.
+Handle `GoogleSignInCancelled` separately.
 
 </Step>
-
 </Steps>
 
-The default browser implementation returns `GoogleSignInUnavailable`. For a browser flow, provide your own `BrowserGoogleSignIn` service. See [Google sign-in reference](/docs/reference/google-sign-in).
+<Callout type="warning">
+  Verify `value.idToken` on your backend before creating a session.
+</Callout>
+
+See [browser service and errors](/docs/reference/google-sign-in).

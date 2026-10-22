@@ -4,29 +4,27 @@ description: "Display device metadata after mount."
 ---
 
 <Steps>
-
 <Step>
 
-### Enable device info
+### Read device state
 
-Keep `internalPlugins.device` enabled. It is enabled by default.
+Keep the default `internalPlugins.device` enabled and call:
 
-</Step>
+```ts
+const device = useDeviceInfo(); // radical/react
+```
 
-<Step>
+| State     | Render                          |
+| --------- | ------------------------------- |
+| `loading` | Placeholder                     |
+| `error`   | Handled `_tag`                  |
+| Success   | `value.platform`, `value.model` |
 
-### Read the hook state
-
-In your component, call `useDeviceInfo()` from `radical/react`.
-
-While `loading` is true, display a placeholder.
-
-If `error` exists, display or handle its `_tag`.
-
-Otherwise, read `value.platform`, `value.model`, and the other [device fields](/docs/reference/device-info).
+You see [device metadata](/docs/reference/device-info) after mount.
 
 </Step>
-
 </Steps>
 
-For Effect callers, run `getDeviceInfo.pipe(Effect.provide(BridgeLive))` after mount. Do not use browser device information to authorize a request.
+<Callout type="warning">
+  Do not authorize requests with browser device information.
+</Callout>

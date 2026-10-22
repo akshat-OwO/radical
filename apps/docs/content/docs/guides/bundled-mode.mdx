@@ -3,13 +3,14 @@ title: "Switch to bundled mode"
 description: "Package the UI while keeping server functions on your API origin."
 ---
 
-<Steps>
+See the [delivery flow and authentication constraints](/docs/explanation/delivery-modes).
 
+<Steps>
 <Step>
 
-### Select bundled delivery
+### Configure delivery
 
-Set `mode: "bundled"` and `origin` to your API's HTTP origin in `vite.config.ts`:
+Pass this config to both `tanstackStart(tanstackStartOptions(config))` and `radical(config)` from `radical/tanstack-start`:
 
 ```ts
 const config = {
@@ -19,15 +20,12 @@ const config = {
 } satisfies RadicalConfig;
 ```
 
-Pass the same config to `tanstackStart(tanstackStartOptions(config))` and `radical(config)` from `radical/tanstack-start`.
-
 </Step>
-
 <Step>
 
-### Configure Start requests
+### Configure Start
 
-In `src/start.ts`, use the virtual config for SSR and server-function fetch:
+Set `src/start.ts`:
 
 ```ts
 import { createStart } from "@tanstack/react-start";
@@ -43,12 +41,11 @@ export const startInstance = createStart(() => ({
 ```
 
 </Step>
-
 <Step>
 
-### Wrap the API handler
+### Wrap the API
 
-On the API server, wrap the Start handler with `withBundledRequests` from `radical/tanstack-start-server`. Keep this explicit opt-in when you switch modes:
+Keep the explicit bundled-request wrapper in `src/server.ts`:
 
 ```ts
 import {
@@ -68,39 +65,65 @@ export default {
 ```
 
 </Step>
-
 <Step>
 
-### Prepare hydration and offline startup
+### Configure the root
 
-In the root route loader, use `Effect.runPromise(localNativeContext())` for bundled mode. Keep the remote-mode server-function loader for remote mode.
+Apply the [complete root setup](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) for each mode:
 
-For bundled rendering, wrap `<Outlet />` in TanStack Router's `<ClientOnly>`.
+<Tabs items={["Bundled", "Remote"]}>
+<Tab value="Bundled">
 
-Apply `safeAreaStyle(nativeContext, config.mode)` to the document. In a mount effect, run `Effect.runSync(mountNativeContext())` for bundled mode.
+```tsx
+// Root loader:
+Effect.runPromise(localNativeContext());
+// Route component:
+<ClientOnly>
+  <Outlet />
+</ClientOnly>;
+// Mount effect:
+Effect.runSync(mountNativeContext());
+```
 
-Pass `mode: config.mode` to `registerOffline` so bundled mode skips worker registration.
+Keep startup loaders independent of unavailable APIs.
 
-For other API requests, use `createRadicalFetch(config)`. Keep initial route loaders independent of the API if the app must start without it.
+</Tab>
+<Tab value="Remote">
+
+Keep the server-function native-context loader and render `<Outlet />` directly.
+
+</Tab>
+</Tabs>
+
+| Shared setup | Use |
+| --- | --- |
+| Document style | `safeAreaStyle(nativeContext, config.mode)` |
+| Offline registration | `registerOffline({ mode: config.mode, ... })` |
+| Other API requests | `createRadicalFetch(config)` |
+| Build outputs | Keep Start's `dist/client`, `_shell.html`, and Vite base `/` |
 
 </Step>
-
 <Step>
 
-### Regenerate the shells
+### Run the shell
 
-Regenerate with `pnpm exec radical android` or `pnpm exec radical ios` from the app directory. To generate without launching, add `--generate-only`.
+[Regenerate and launch](/docs/guides/run-on-a-device).
+
+You see the packaged UI without fetching its initial document from the API.
 
 </Step>
-
 </Steps>
 
-To serve the API locally, build the app and run `pnpm exec vp preview --host 0.0.0.0 --port 4173` from the app directory. Set `origin` to the address the device can reach.
+For a local API, build, then run from the app directory:
 
-<Callout type="warning" title="Keep CORS at the API handler">
-  If you customize Vite CORS, use `cors: false` or an origin callback returning
-  `false` for both bundled origins. Static origin lists can consume preflights
-  before `withBundledRequests`.
+```sh
+pnpm exec vp preview --host 0.0.0.0 --port 4173
+```
+
+Set `origin` to a device-reachable address.
+
+<Callout type="warning">
+  Custom Vite CORS must use `cors: false` or an origin callback returning
+  `false` for both bundled origins. Static lists can consume preflights before
+  `withBundledRequests`.
 </Callout>
-
-Keep Start's `dist/client`, `_shell.html`, and Vite base `/`. The [example root route](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) has the complete mode-dependent setup. For authentication constraints, read [Delivery modes](/docs/explanation/delivery-modes).

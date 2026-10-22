@@ -3,39 +3,71 @@ title: "Run on a device"
 description: "Choose a native target and connect a remote-mode shell to your server."
 ---
 
+## Prerequisites
+
+Install Node.js 22.18+, pnpm, and Vite+; start with an [integrated app](/docs/tutorials/create-an-app).
+
+For capability guides, install dependencies from the app directory, set the specified flags in Vite config, then regenerate:
+
+<Tabs items={["Android", "iOS"]}>
+<Tab value="Android">
+
+```sh
+pnpm exec radical android --generate-only
+```
+
+</Tab>
+<Tab value="iOS">
+
+```sh
+pnpm exec radical ios --generate-only
+```
+
+</Tab>
+</Tabs>
+
+See the [generation pipeline](/docs/explanation/native-shells).
+
+## Launch a target
+
 <Tabs items={["Android", "iOS"]}>
 <Tab value="Android">
 
 <Steps>
 <Step>
 
-### Prepare the target
+### Prepare Android
 
-Install the Android SDK, platform tools, a compatible JDK, and an AVD, or authorize a USB device. Set `ANDROID_HOME` or `ANDROID_SDK_ROOT`, or put `adb` and `emulator` on `PATH`.
+Install the SDK, platform tools, compatible JDK, and an AVD or authorized USB device.
+
+| Tool discovery | Set                                           |
+| -------------- | --------------------------------------------- |
+| SDK            | `ANDROID_HOME` or `ANDROID_SDK_ROOT`          |
+| Executables    | Alternatively, `adb` and `emulator` on `PATH` |
 
 </Step>
 <Step>
 
-### Connect the server
+### Connect localhost
 
-For localhost, reverse the server port and set `devHost: "localhost"`:
+Start Vite on port 5173 with `devHost: "localhost"`, then reverse the port:
 
 ```sh
 adb -s YOUR_SERIAL reverse tcp:5173 tcp:5173
 ```
 
-Start Vite on port 5173 before generating. For a LAN connection, follow **Use a LAN server** below.
-
 </Step>
 <Step>
 
-### Generate and launch
+### Launch
 
-Pass an adb serial or installed AVD name from the app directory:
+Pass a serial or installed AVD name from the app directory:
 
 ```sh
 pnpm exec radical android --target YOUR_SERIAL_OR_AVD
 ```
+
+You see your app on the selected target.
 
 </Step>
 </Steps>
@@ -48,7 +80,7 @@ pnpm exec radical android --target YOUR_SERIAL_OR_AVD
 
 ### Select a simulator
 
-On macOS with Xcode, list available simulator UDIDs:
+On macOS with Xcode, list simulator UDIDs:
 
 ```sh
 xcrun simctl list devices available
@@ -57,29 +89,35 @@ xcrun simctl list devices available
 </Step>
 <Step>
 
-### Generate and launch
+### Launch
 
-From the app directory, pass the simulator UDID:
+Run from the app directory:
 
 ```sh
 pnpm exec radical ios --target YOUR_SIMULATOR_UDID
 ```
 
-For a physical device, generate with `radical ios --generate-only`. Open `.radical/ios/ios/App` in Xcode, configure signing, and run there.
+You see your app in the simulator.
 
 </Step>
 </Steps>
+
+For physical devices, generate only, open `.radical/ios/ios/App` in Xcode, configure signing, and run.
 
 </Tab>
 </Tabs>
 
 ## Use a LAN server
 
-Bind Vite with `--host 0.0.0.0` and set `devHost` to the reachable address. Update or remove `origin` if it overrides the recorded dev URL.
+| Setting   | Value                                      |
+| --------- | ------------------------------------------ |
+| Vite bind | `--host 0.0.0.0`                           |
+| `devHost` | Device-reachable address                   |
+| `origin`  | Update or remove if overriding the dev URL |
 
 <Callout type="warning">
-  For remote offline support, use HTTPS. Plain HTTP LAN origins cannot register
-  service workers.
+  Remote offline support requires HTTPS; plain HTTP LAN origins cannot register
+  workers.
 </Callout>
 
-See [CLI reference](/docs/reference/cli) for target defaults and [Native shell generation](/docs/explanation/native-shells) for the pipeline.
+See [target defaults](/docs/reference/cli).

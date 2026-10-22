@@ -4,42 +4,46 @@ description: "Configure generated Android and iOS names and images."
 ---
 
 <Steps>
-
 <Step>
 
 ### Set identity
 
-Set a shared `appId` and `name` in your Radical config.
+Set shared identity and optional platform overrides:
 
-If a platform needs another identity, set `android.packageId`, `android.name`, `ios.bundleId`, or `ios.name`.
+```ts
+appId: "dev.example.app",
+name: "My app",
+// android: { packageId: "dev.example.android", name: "Android app" },
+// ios: { bundleId: "dev.example.ios", name: "iOS app" },
+```
 
 </Step>
-
 <Step>
 
-### Prepare source images
+### Add images
 
-Add a square PNG or JPEG icon of at least 1024 pixels per side.
-
-Add a square PNG or JPEG splash image of at least 2732 pixels per side.
-
-Configure paths relative to the app root:
+Configure app-relative PNG or JPEG paths and opaque six-digit RGB colors:
 
 ```ts
 icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
 splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
 ```
 
-</Step>
+| Image  | Minimum square dimensions |
+| ------ | ------------------------- |
+| Icon   | 1024 × 1024               |
+| Splash | 2732 × 2732               |
 
+</Step>
 <Step>
 
-### Regenerate the shells
+### Generate assets
 
-Regenerate both shells with `radical android --generate-only` and `radical ios --generate-only` from the app directory.
+[Regenerate the shells](/docs/guides/run-on-a-device#prerequisites).
+
+You see the configured name, icon, and splash in the generated app.
 
 </Step>
-
 </Steps>
 
-Use opaque six-digit RGB hex colors. See [Config reference](/docs/reference/config) for validation rules.
+See [config validation](/docs/reference/config).

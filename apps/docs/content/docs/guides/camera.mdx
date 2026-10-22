@@ -4,18 +4,18 @@ description: "Enable still-camera capture and a single-image library picker."
 ---
 
 <Steps>
-
 <Step>
 
-### Enable the camera
+### Enable capture
 
-Install `@capacitor/camera@8.2.6` in your app.
+Apply the [capability setup](/docs/guides/run-on-a-device#prerequisites) with this dependency and config:
 
-Set `internalPlugins.camera: true`.
-
-Add both usage descriptions to your config:
+```sh
+pnpm add @capacitor/camera@8.2.6
+```
 
 ```ts
+internalPlugins: { camera: true },
 pluginOptions: {
 	Camera: {
 		usageDescription: "Take a photo to attach to your report.",
@@ -25,42 +25,41 @@ pluginOptions: {
 ```
 
 </Step>
-
 <Step>
 
-### Regenerate the shells
+### Connect actions
 
-Regenerate both shells.
+Connect these `radical/react` hooks to user actions:
+
+```ts
+const camera = useCamera();
+const permission = useCameraPermission();
+// Buttons:
+permission.request();
+camera.capture();
+camera.choose();
+// After returning from settings:
+permission.check();
+```
 
 </Step>
-
 <Step>
 
-### Connect the hooks
+### Show the image
 
-In a component, call `useCamera()` and `useCameraPermission()` from `radical/react`.
+Disable actions while `camera.loading` and render successful results:
 
-To request permission from a user action, call `permission.request()`.
+```tsx
+<img src={camera.value.dataUrl} alt="Selected attachment" />
+```
 
-To capture, call `camera.capture()`. To choose one image, call `camera.choose()`.
-
-</Step>
-
-<Step>
-
-### Display the result
-
-While `camera.loading` is true, disable the action button. On success, display `<img src={camera.value.dataUrl} alt="Selected attachment" />`.
-
-If the user returns from system settings, call `permission.check()` to refresh the state.
+You see the captured or selected photo.
 
 </Step>
-
 </Steps>
 
 <Callout type="warning">
-  Keep the hook mounted until the native picker closes. Interruption cannot
-  dismiss it.
+  Keep the hook mounted until the picker closes. Interruption cannot dismiss it.
 </Callout>
 
-See [Camera reference](/docs/reference/camera) for errors and browser behavior.
+See [errors and browser behavior](/docs/reference/camera).

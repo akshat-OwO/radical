@@ -4,46 +4,47 @@ description: "Enable native screen protection and delete local WebView data."
 ---
 
 <Steps>
-
 <Step>
 
 ### Enable protection
 
-Set `internalPlugins.dataProtection: true` and regenerate both shells.
-
-Call `useDataProtection()` from `radical/react`.
+[Configure and regenerate](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.dataProtection: true`.
 
 </Step>
-
 <Step>
 
-### Protect the sensitive flow
+### Protect content
 
-Before showing sensitive content, call `protection.setEnabled(true)`.
+Enable protection before showing sensitive content and disable it when the flow ends:
 
-Read the returned status to determine which protections the platform supports.
+```ts
+const protection = useDataProtection(); // radical/react
+protection.setEnabled(true);
+// After the sensitive flow:
+protection.setEnabled(false);
+```
 
-When the protected flow ends, call `protection.setEnabled(false)`. Unmount does not disable protection.
+Read the returned status for supported protections.
 
 </Step>
-
 <Step>
 
-### Clear local data
+### Clear data
 
-Before clearing data, stop app writes, close other tabs, and close IndexedDB connections.
+Stop writes, close other tabs and IndexedDB connections, then call from an explicit user action:
 
-From an explicit user action, call `protection.clearWebData()`.
+```ts
+protection.clearWebData();
+```
 
-If `error` exists, handle the failure before assuming local data is gone.
+After success, reload or show your signed-out screen.
 
 </Step>
-
 </Steps>
 
 <Callout type="warning">
-  Clearing can fail after partial deletion. Handle errors before assuming local
-  data is gone.
+  Unmount does not disable protection. Clearing can fail after partial deletion;
+  handle `protection.error` before assuming data is gone.
 </Callout>
 
-After success, reload or navigate to your signed-out screen. See [Data protection reference](/docs/reference/data-protection) for deletion scope and platform limits.
+See [deletion scope and platform limits](/docs/reference/data-protection).
