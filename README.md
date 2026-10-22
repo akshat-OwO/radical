@@ -204,3 +204,22 @@ Both hooks guard server rendering, ignore duplicate actions while busy, interrup
 ## Live video
 
 `useVideoStream` from `radical/react` previews the camera through a viewfinder cut-out, scans QR codes, and exposes start, stop, camera switching, zoom, torch, and frame-rate state. Enable `internalPlugins.videoStream` and provide `pluginOptions.VideoStream.usageDescription`. Browser previews use `getUserMedia`; QR detection requires `BarcodeDetector`. See the [package API](packages/radical/README.md#live-video), [plugin decision](docs/adr/0007-live-video-stream.md), and [device verification](docs/verification/video.md).
+
+## Haptic feedback
+
+Install `@capacitor/haptics@8.0.2`, enable `internalPlugins: { haptics: true }`, and regenerate both shells. Haptics is opt-in and needs no runtime permission prompt.
+
+```tsx
+import { useHapticFeedback } from "radical/react";
+
+function SaveButton() {
+  const feedback = useHapticFeedback();
+  return <button onClick={feedback.success}>Saved</button>;
+}
+```
+
+The hook returns stable `light()`, `medium()`, `heavy()`, `success()`, `warning()`, `error()`, `selection()`, and `impact(style?)` callbacks. Impact styles are `"LIGHT"`, `"MEDIUM"`, and `"HEAVY"`; `impact()` defaults to medium. `loading` marks an in-flight call, `value: true` marks completion, and `failure` contains `BridgeError` or `HapticFeedbackFailed`. The failure field leaves `error()` available as the notification helper. Completion confirms the call, not physical vibration.
+
+Each hook suppresses overlapping actions and interrupts pending work on unmount or provider replacement. Actions remain idle during server rendering. Browser feedback uses `navigator.vibrate` with approximate patterns. Missing APIs and a `false` return are successful no-ops, including browsers that block vibration. A thrown browser exception becomes `HapticFeedbackFailed`. Native devices without a haptic engine also complete without feedback.
+
+Effect callers import `hapticImpact(style?)`, `hapticNotification(type)`, and `hapticSelection` from `radical/client`. Notification types are `"SUCCESS"`, `"WARNING"`, and `"ERROR"`. Supply `Bridge` and the injectable `BrowserHaptics` service, or use `hapticsLive(effect)` to supply `BrowserHapticsLive`. See [ADR 0008](docs/adr/0008-haptics.md) and [device verification](docs/verification/haptics.md).

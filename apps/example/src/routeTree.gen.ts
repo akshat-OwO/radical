@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as CameraRouteImport } from './routes/camera'
 import { Route as DetailsRouteImport } from './routes/details'
 import { Route as FilesRouteImport } from './routes/files'
+import { Route as HapticsRouteImport } from './routes/haptics'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
 import { Route as VideoRouteImport } from './routes/video'
@@ -43,6 +44,11 @@ const FilesRoute = FilesRouteImport.update({
   path: '/files',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HapticsRoute = HapticsRouteImport.update({
+  id: '/haptics',
+  path: '/haptics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfflineRouteRoute = OfflineRouteRouteImport.update({
   id: '/offline-route',
   path: '/offline-route',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
+  '/haptics': typeof HapticsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
   '/video': typeof VideoRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
+  '/haptics': typeof HapticsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
   '/video': typeof VideoRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/camera': typeof CameraRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
+  '/haptics': typeof HapticsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
   '/video': typeof VideoRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/camera'
     | '/details'
     | '/files'
+    | '/haptics'
     | '/offline-route'
     | '/online-route'
     | '/video'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/camera'
     | '/details'
     | '/files'
+    | '/haptics'
     | '/offline-route'
     | '/online-route'
     | '/video'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/camera'
     | '/details'
     | '/files'
+    | '/haptics'
     | '/offline-route'
     | '/online-route'
     | '/video'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   CameraRoute: typeof CameraRoute
   DetailsRoute: typeof DetailsRoute
   FilesRoute: typeof FilesRoute
+  HapticsRoute: typeof HapticsRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
   VideoRoute: typeof VideoRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FilesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/haptics': {
+      id: '/haptics'
+      path: '/haptics'
+      fullPath: '/haptics'
+      preLoaderRoute: typeof HapticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/offline-route': {
       id: '/offline-route'
       path: '/offline-route'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   CameraRoute: CameraRoute,
   DetailsRoute: DetailsRoute,
   FilesRoute: FilesRoute,
+  HapticsRoute: HapticsRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
   VideoRoute: VideoRoute,

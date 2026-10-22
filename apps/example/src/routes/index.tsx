@@ -78,6 +78,7 @@ const Home = () => {
       <Link to="/camera">Camera capture and permission</Link>
       <Link to="/video">Live video and QR scanning</Link>
       <Link to="/files">Files and intents</Link>
+      <Link to="/haptics">Haptic feedback</Link>
       <h2>Safe area</h2>
       <pre data-testid="safe-area">{JSON.stringify(safeArea)}</pre>
       <h2>CSS variables</h2>

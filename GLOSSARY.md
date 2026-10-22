@@ -44,6 +44,10 @@ _Avoid_: Video recording, capture session
 The transparent area of the app UI through which the camera preview is visible.\
 _Avoid_: Camera modal, scanner screen
 
+**Haptic feedback**:\
+Touch feedback for an impact, notification, or selection change.\
+_Avoid_: Buzz, rumble
+
 **Intent**:\
 A request to hand a URL or file to another app on the device.\
 _Avoid_: Share, deep link
