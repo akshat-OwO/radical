@@ -57,21 +57,32 @@ const flags = [
   "transitions",
 ] as const satisfies readonly InternalPluginFlag[];
 
+// Historical defaults must stay independent of the registry under test.
+const legacyDefaults = {
+  googleSignIn: false,
+  dataProtection: false,
+  network: false,
+  notifications: false,
+  pushNotifications: false,
+  videoStream: false,
+  camera: false,
+  filePicker: false,
+  haptics: false,
+  intents: false,
+  device: true,
+  transitions: true,
+} as const satisfies Readonly<Record<InternalPluginFlag, boolean>>;
+
 const combination = (
   index: number,
-  states: readonly (boolean | undefined)[]
+  combinationFlags: readonly InternalPluginFlag[] = flags
 ) => {
   const config: Partial<Record<InternalPluginFlag, boolean>> = {};
   let remaining = index;
 
-  for (const flag of flags) {
-    const value = states[remaining % states.length];
-
-    if (value !== undefined) {
-      config[flag] = value;
-    }
-
-    remaining = Math.floor(remaining / states.length);
+  for (const flag of combinationFlags) {
+    config[flag] = remaining % 2 === 1;
+    remaining = Math.floor(remaining / 2);
   }
 
   return config;
@@ -92,7 +103,7 @@ const pluginOptions = {
 describe("internal plugin registry", () => {
   it.effect("accepts every registry flag in the config schema", () =>
     Effect.gen(function* () {
-      const internalPlugins = combination(2 ** flags.length - 1, [false, true]);
+      const internalPlugins = combination(2 ** flags.length - 1);
 
       const config = yield* Schema.decodeUnknownEffect(RadicalConfigSchema, {
         onExcessProperty: "error",
@@ -102,13 +113,13 @@ describe("internal plugin registry", () => {
     })
   );
   it.effect(
-    "matches the previous ordered plugin set for all 531441 omitted/false/true flag combinations",
+    "matches the previous ordered plugin set for all 4096 explicit boolean combinations",
     () =>
       Effect.sync(() => {
         assert.deepStrictEqual(Record.keys(internalPluginRegistry), [...flags]);
 
-        for (let index = 0; index < 3 ** flags.length; index += 1) {
-          const config = combination(index, [undefined, false, true]);
+        for (let index = 0; index < 2 ** flags.length; index += 1) {
+          const config = combination(index);
           const plugins = resolveInternalPlugins(config);
           assert.deepStrictEqual(
             plugins.map(({ manifest }) => manifest.id),
@@ -116,6 +127,38 @@ describe("internal plugin registry", () => {
           );
         }
       })
+  );
+  it.effect(
+    "uses each flag's legacy default when omitted across all 2048 boolean combinations of the other flags",
+    () =>
+      Effect.sync(() => {
+        // Defaults apply independently before dependency closure. Every effective
+        // boolean configuration is covered above; vary each omission in every
+        // boolean context to cover defaults without repeating the ternary matrix.
+        for (const omittedFlag of flags) {
+          const otherFlags = flags.filter((flag) => flag !== omittedFlag);
+
+          for (let index = 0; index < 2 ** otherFlags.length; index += 1) {
+            const config = combination(index, otherFlags);
+
+            assert.deepStrictEqual(
+              resolveInternalPlugins(config).map(({ manifest }) => manifest.id),
+              legacyPlugins({
+                ...config,
+                [omittedFlag]: legacyDefaults[omittedFlag],
+              })
+            );
+          }
+        }
+      })
+  );
+  it.effect("uses the legacy defaults when all flags are omitted", () =>
+    Effect.sync(() => {
+      assert.deepStrictEqual(
+        resolveInternalPlugins({}).map(({ manifest }) => manifest.id),
+        legacyPlugins(legacyDefaults)
+      );
+    })
   );
   it.effect(
     "validates the same ordered plugin set through resolvePlugins for all 4096 boolean combinations",
@@ -127,7 +170,7 @@ describe("internal plugin registry", () => {
         });
 
         for (let index = 0; index < 2 ** flags.length; index += 1) {
-          const internalPlugins = combination(index, [false, true]);
+          const internalPlugins = combination(index);
 
           const plugins = yield* resolvePlugins({
             appId: "dev.test.app",
