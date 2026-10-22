@@ -2,7 +2,7 @@
 export const capacitorScopes =
   "^@(?:capacitor|capacitor-community|capgo|capawesome)/";
 export const capacitorAllowedFiles = [
-  "packages/radical/src/internal-plugins.ts",
-  "packages/radical/src/native-project.ts",
-  "packages/radical/src/native-assets.ts",
+  "packages/radical/src/core/plugins/internal-plugins.ts",
+  "packages/radical/src/native/shared/native-project.ts",
+  "packages/radical/src/native/assets/native-assets.ts",
 ];

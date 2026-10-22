@@ -28,7 +28,7 @@ curl -fsS -b 'radical-context=%7B%22platform%22%3A%22ios%22%2C%22safeArea%22%3A%
 curl -fsS -b 'radical-context=malformed' http://localhost:5173/
 ```
 
-The first and third responses show browser context with zero insets. The second shows iOS with the supplied insets and shell version. The [shared cookie contract](../../packages/radical/src/native-context.ts) defines the format.
+The first and third responses show browser context with zero insets. The second shows iOS with the supplied insets and shell version. The [shared cookie contract](../../packages/radical/src/core/context/native-context.ts) defines the format.
 
 To verify browser offline behavior, build and preview the production app:
 
