@@ -4,12 +4,23 @@ import react from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import vitest from "ultracite/oxlint/vitest";
 
+import {
+  capacitorAllowedFiles,
+  capacitorScopes,
+} from "./packages/radical/tests/capacitor-boundary-policy.ts";
+
 export default defineConfig({
   env: core.env,
   extends: [core, react, tanstack, vitest],
   ignorePatterns: [...(core.ignorePatterns ?? []), "**/dist/**", ".radical/**"],
   options: { typeAware: true },
   overrides: [
+    {
+      // Only the plugin manifest and shell generators may depend on Capacitor.
+      // Keep this exact allowlist in sync with ADR 0003; tests need no exception.
+      files: capacitorAllowedFiles,
+      rules: { "no-restricted-imports": "off" },
+    },
     {
       files: ["packages/radical/src/**/*.ts"],
       // Effect factories and the Vite Promise boundary do not use async functions.
@@ -22,6 +33,20 @@ export default defineConfig({
     },
   ],
   rules: {
+    "no-restricted-imports": [
+      "error",
+      {
+        patterns: [
+          {
+            // Whole scopes cover official and third-party plugins, plus subpaths.
+            regex: capacitorScopes,
+            allowTypeImports: false,
+            message:
+              "Keep Capacitor dependencies inside internal-plugins.ts, native-project.ts, or native-assets.ts. Use Radical's bridge and plugin manifests elsewhere.",
+          },
+        ],
+      },
+    ],
     // Effect.gen takes anonymous generator functions.
     "func-names": ["error", "always", { generators: "never" }],
     "vitest/no-standalone-expect": [
