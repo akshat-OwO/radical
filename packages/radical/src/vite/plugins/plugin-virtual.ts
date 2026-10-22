@@ -3,8 +3,10 @@ import path from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect, FileSystem, Layer } from "effect";
 import type { Plugin } from "vite";
+import { defaultAllowedOrigins } from "vite";
 
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
+import { bundledOrigins } from "../../core/bundled/bundled-request.ts";
 import {
   NativeMetadata,
   nativeMetadataLayer,
@@ -82,6 +84,23 @@ export const nativePlugins = (
             server: {
               host: user.server?.host ?? "0.0.0.0",
               watch: { ignored: ["**/.radical/**"] },
+              ...(config.mode === "bundled" && user.server?.cors === undefined
+                ? {
+                    cors: {
+                      origin: (origin, callback) => {
+                        // A false callback result skips Vite's CORS middleware entirely.
+                        // Preview inherits server.cors unless preview.cors is explicit.
+                        const policy = bundledOrigins.some(
+                          (bundled) => bundled === origin
+                        )
+                          ? false
+                          : defaultAllowedOrigins;
+                        // @ts-expect-error Vite's callback type omits the valid null success argument.
+                        callback(null, policy);
+                      },
+                    },
+                  }
+                : {}),
             },
           }))
         )
