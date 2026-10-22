@@ -1,0 +1,58 @@
+---
+title: "Switch to bundled mode"
+description: "Package the UI while keeping server functions on your API origin."
+---
+
+1. Set `mode: "bundled"` and `origin` to your API's HTTP origin in `vite.config.ts`:
+
+```ts
+const config = {
+  appId: "dev.example.app",
+  mode: "bundled",
+  origin: "https://api.example.com",
+} satisfies RadicalConfig;
+```
+
+2. Pass the same config to `tanstackStart(tanstackStartOptions(config))` and `radical(config)` from `radical/tanstack-start`.
+3. In `src/start.ts`, use the virtual config for SSR and server-function fetch:
+
+```ts
+import { createStart } from "@tanstack/react-start";
+import { createRadicalFetch } from "radical/client";
+import { createRadicalRequestMiddleware } from "radical/tanstack-start-server";
+import { config } from "virtual:radical/config";
+
+export const startInstance = createStart(() => ({
+  defaultSsr: config.mode !== "bundled",
+  requestMiddleware: [...createRadicalRequestMiddleware()],
+  serverFns: { fetch: createRadicalFetch(config) },
+}));
+```
+
+4. On the API server, wrap the Start handler with `withBundledRequests` from `radical/tanstack-start-server`. Keep this explicit opt-in when you switch modes:
+
+```ts
+import {
+  createStartHandler,
+  defaultStreamHandler,
+} from "@tanstack/react-start/server";
+import {
+  offlineHandler,
+  withBundledRequests,
+} from "radical/tanstack-start-server";
+
+export default {
+  fetch: withBundledRequests(
+    createStartHandler(offlineHandler(defaultStreamHandler))
+  ),
+};
+```
+
+5. In the root route loader, use `Effect.runPromise(localNativeContext())` for bundled mode. Keep the remote-mode server-function loader for remote mode.
+6. For bundled rendering, wrap `<Outlet />` in TanStack Router's `<ClientOnly>`.
+7. Apply `safeAreaStyle(nativeContext, config.mode)` to the document. In a mount effect, run `Effect.runSync(mountNativeContext())` for bundled mode.
+8. Pass `mode: config.mode` to `registerOffline` so bundled mode skips worker registration.
+9. For other API requests, use `createRadicalFetch(config)`. Keep initial route loaders independent of the API if the app must start without it.
+10. Regenerate with `pnpm exec radical android` or `pnpm exec radical ios` from the app directory. To generate without launching, add `--generate-only`.
+
+Keep Start's `dist/client`, `_shell.html`, and Vite base `/`. The [example root route](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) has the complete mode-dependent setup. For authentication constraints, read [Delivery modes](/docs/explanation/delivery-modes).

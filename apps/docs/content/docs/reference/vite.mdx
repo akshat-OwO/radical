@@ -1,0 +1,66 @@
+---
+title: "Vite plugin and TanStack Start adapter"
+description: "Build-time plugins, virtual modules, and framework integration."
+---
+
+## `radical/vite`
+
+`radical(config, adapterLayer?)` returns the core Vite plugin named `radical:config`. Config validation occurs before dev or build. The optional layer supplies `RadicalAdapter` for framework operations.
+
+The plugin resolves enabled manifests, validates options, generates typed plugin declarations, and maintains native metadata. Its dev-server integration records the actual protocol and port with the selected `devHost`.
+
+Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `InvalidConfig`, `InvalidPlugin`, `PluginDependencyConflict`, `AdapterUnavailable`, and `RadicalAdapter`. Adapter types are `RadicalCore`, `RadicalRoute`, `RadicalNavigation`, and `AdapterOutputs`.
+
+`RadicalAdapter` is an Effect service with `name`, optional `vite(core)`, `routes`, `provideRequestContext(get)`, `navigation`, and `outputs`. `RadicalNavigation` contains `navigate(to, options?)`, `onBeforeNavigate(callback)`, and `onAfterNavigate(callback)`. `outputs` returns `Effect<AdapterOutputs>` with these fields:
+
+| Field | Type | Contract |
+| --- | --- | --- |
+| `clientDir` | `string` | Client build output directory. |
+| `spaShell` | `string`, optional | SPA shell path relative to `clientDir`. |
+| `exposedHeaders` | `readonly string[]`, optional | Response headers exposed to bundled clients through CORS when supplied to the core `withBundledRequests(handler, outputs?)`. Omitted or empty arrays add no exposed headers. |
+
+## Virtual modules
+
+| Module | Export | Contract |
+| --- | --- | --- |
+| `virtual:radical/config` | `config` | Browser-safe `appId`, `mode`, and optional `origin`. Omitted mode resolves to `"remote"`. |
+| `virtual:radical/plugins` | `plugins` | Typed clients keyed by enabled manifest IDs and command names. Requires `Bridge` when commands run. |
+
+`.radical/plugins.d.ts` declares both modules. Vite startup and `radical typegen` generate the declarations. Custom manifest commands and errors retain their schema-derived types.
+
+## `radical/tanstack-start`
+
+`radical(config)` returns the core plugin with `TanStackStartAdapter`, plus the remote-mode offline build plugin. Bundled mode omits the worker build.
+
+`tanstackStartOptions(config)` returns `{ spa: { enabled: config.mode === "bundled" } }`. The adapter's outputs are `clientDir: "dist/client"`, `spaShell: "_shell.html"`, and `exposedHeaders: ["x-tss-serialized", "x-tss-raw", "x-tss-error"]`.
+
+`TanStackStartAdapter` supplies request context and outputs. Its navigation methods fail with `AdapterUnavailable`. The implemented adapter's `routes` Effect returns an empty list. Offline eligibility comes from the selected route at request time, not a build-time route list.
+
+`RadicalRouteOptions` augments `staticData.radical` with optional `offline: boolean` and `transition: "slide" | "fade"`.
+
+## `radical/tanstack-start-server`
+
+| Export | Contract |
+| --- | --- |
+| `createRadicalMiddleware(get?)` | Start middleware adding `nativeContext` to request context. The optional reader returns `Effect<NativeContext>`. |
+| `radicalMiddleware` | Default instance using `getNativeContext`. |
+| `radicalRequestMiddleware` | Standard server-function CSRF middleware followed by Radical context middleware. |
+| `createRadicalRequestMiddleware()` | Explicit bundled-server opt-in. Allows the two exact bundled origins through the server-function CSRF origin checks. |
+| `withBundledRequests(handler)` | Wraps the core CORS helper with the TanStack Start adapter outputs. Exposes `x-tss-serialized`, `x-tss-raw`, and `x-tss-error` to the two exact bundled origins. |
+| `offlineHandler(handler)` | Sets `x-radical-offline` to `1` only when the deepest selected route has `offline: true`, otherwise `0`, then delegates. |
+
+Middleware exports also appear in `radical/tanstack-start` for build-side integration. The server entry keeps server middleware out of browser imports.
+
+## `radical/tanstack-start-client`
+
+Exports `browserTransitions`, `BrowserTransitionOptions`, `tanstackStartAdapterLayer(router)`, `RadicalRouteOptions`, and `NavigationFailed`.
+
+`tanstackStartAdapterLayer(router)` supplies live navigation and fixed outputs. Its request-context operation fails with `AdapterUnavailable`. Its routes list is empty. `browserTransitions` is also re-exported from `radical/tanstack-start`.
+
+## Generated offline output
+
+The remote build emits `radical-sw.js` and `radical-manifest.json` into the client output. The manifest contains `buildId`, `cachePrefix`, `assets`, and `fallback`. The fallback is `${base}offline.html`. There is no public `cachePattern` config field.
+
+`radical/offline-entry` exposes the worker installation entry for the build. It is not a React lifecycle API.
+
+Source: [Vite implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/vite), [TanStack adapter](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/adapters/tanstack-start).

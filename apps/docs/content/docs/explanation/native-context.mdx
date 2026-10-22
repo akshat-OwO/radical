@@ -1,0 +1,22 @@
+---
+title: "Native context"
+description: "Why presentation data reaches server rendering before the bridge runs."
+---
+
+A server-rendered document needs the shell's platform and safe-area insets before browser JavaScript starts. Waiting for a bridge call would render the first document with browser defaults and then move content after hydration.
+
+Remote shells set the `radical-context` cookie natively on allowed origins before the first load. Ordinary WebView requests carry that cookie, including fetches, forms, and worker requests. The server parses the cookie into a validated context.
+
+Bundled shells cannot depend on that cookie for their API origin. They inject context into the local document before page scripts, and `createRadicalFetch` attaches `x-radical-context` to eligible API requests. The server reader prefers the header when present.
+
+## Hydration and live insets have different owners
+
+Remote rendering starts with server context. Bundled rendering starts with a stable browser context and CSS `env()` expressions. After mount, `mountNativeContext` hands live CSS values to the shell. This avoids different style props between prerender and hydration.
+
+Later safe-area changes reach CSS directly and React through `radicalSafeArea` events. Insets describe system UI boundaries, not keyboard height. Your framework still owns rendering and route data.
+
+## Context cannot identify a trusted caller
+
+Any client can send a cookie or header with these values. Validation proves shape, not origin or identity. `getNativeContext` accepts a header without authenticating the caller and falls back to browser context on malformed data. Authorization must use your application's authentication mechanism.
+
+The [architecture decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0001-framework-agnostic-native-shell-plugin.md) and [bundled-mode decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0004-bundled-mode.md) record the transport choices. [Server reference](/docs/reference/server) describes parsing.

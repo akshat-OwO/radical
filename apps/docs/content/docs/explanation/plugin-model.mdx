@@ -1,0 +1,18 @@
+---
+title: "The plugin model"
+description: "Why capability enablement controls native output."
+---
+
+Every native command needs a JavaScript contract and a native implementation. Radical keeps the command contract in an Effect Schema manifest. The same manifest supplies argument types, result validation, error mapping, native registration, and dependency requirements.
+
+Custom plugins are disabled until your config lists their manifest. Internal capabilities use the same contract, with a registry that owns defaults and implications. Device info and transitions are enabled by default. Optional capabilities add native dependencies and permissions only when enabled.
+
+## Implications represent runtime dependencies
+
+Notifications use network status for offline tap navigation, so `notifications` enables `network`. Push adds local notification and badge behavior, so `pushNotifications` enables `notifications`. An explicit false flag does not remove a dependency required by another enabled capability.
+
+Build-only platform contributions stay separate from browser-safe manifests. Camera descriptions, Firebase copies, entitlements, and runtime defines compose in the resolved build plan. A conflicting plist value fails generation rather than depending on plugin order.
+
+The generated virtual module contains typed clients for enabled manifests. Type generation does not install missing packages or implement native methods. Native regeneration remains necessary after changing the plugin set.
+
+The [plugin manifest decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0003-native-plugin-manifests.md) records validation and composition rules. [Add a typed native plugin](/docs/guides/custom-plugins) contains the authoring workflow.

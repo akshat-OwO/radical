@@ -1,0 +1,24 @@
+---
+title: "Run on a device"
+description: "Choose a native target and connect a remote-mode shell to your server."
+---
+
+1. For Android, install the SDK, platform tools, a compatible JDK, and an AVD or authorize a USB device. Set `ANDROID_HOME` or `ANDROID_SDK_ROOT`, or put `adb` and `emulator` on `PATH`.
+2. For an Android target, pass an adb serial or installed AVD name:
+
+```sh
+pnpm exec radical android --target YOUR_SERIAL_OR_AVD
+```
+
+3. For a localhost server on a connected Android device, run `adb -s YOUR_SERIAL reverse tcp:5173 tcp:5173`. Set `devHost: "localhost"` and start Vite on port 5173 before generating.
+4. For a LAN server, bind Vite with `--host 0.0.0.0`. Set `devHost` to the reachable host address. If `origin` is configured, update or remove it so it does not override the recorded dev URL.
+5. For iOS, list available simulator UDIDs with `xcrun simctl list devices available`.
+6. To select an iOS simulator, pass its UDID:
+
+```sh
+pnpm exec radical ios --target YOUR_SIMULATOR_UDID
+```
+
+7. For a physical iOS device, generate with `radical ios --generate-only`. Open the generated Xcode project under `.radical/ios/ios/App`, configure signing, and run through Xcode.
+
+For remote offline support on a physical device, use HTTPS. Plain HTTP LAN origins do not qualify for service workers. The [CLI reference](/docs/reference/cli) describes target selection and generated paths.

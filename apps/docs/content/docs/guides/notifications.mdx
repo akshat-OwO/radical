@@ -1,0 +1,25 @@
+---
+title: "Schedule a local notification"
+description: "Schedule a reminder, cancel it, and update the app badge."
+---
+
+1. Install `@capacitor/local-notifications@8.3.1`, `@capawesome/capacitor-badge@8.0.4`, and `@capacitor/network@8.0.1`.
+2. Set `internalPlugins.notifications: true` and regenerate both shells.
+3. Call `useNotificationPermission()` and `useNotifications()` from `radical/react`.
+4. From a user action, call `permission.request()`.
+5. To schedule a reminder, call:
+
+```ts
+notifications.schedule({
+  id: 22,
+  title: "Your report is ready",
+  delaySeconds: 5,
+  route: "/reports",
+});
+```
+
+6. To cancel that reminder, call `notifications.cancel(22)`.
+7. If the launcher supports badges, call `notifications.setBadge(1)` or `notifications.clearBadge()`.
+8. To navigate on a notification tap, install the app-scoped watcher described in [Handle notification taps](/docs/guides/notification-navigation).
+
+Keep the browser page open for browser reminders. For native push, follow [Configure Firebase push](/docs/guides/firebase). See [Notifications reference](/docs/reference/notifications) for inputs and errors.

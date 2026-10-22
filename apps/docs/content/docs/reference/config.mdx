@@ -1,0 +1,72 @@
+---
+title: "Radical config"
+description: "Every field accepted by RadicalConfigSchema in radical/vite."
+---
+
+Radical accepts a config object passed to `radical(config)` in Vite config. There is no separate `radical.config` file loader. `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, and `InvalidConfig` are exported from `radical/vite`.
+
+## App and delivery fields
+
+| Field | Type | Default and constraints |
+| --- | --- | --- |
+| `appId` | `string`, required | Dot-separated segments. Each starts with a letter and contains letters, digits, or underscores. Identifies web cache storage and supplies native identifier defaults. |
+| `mode` | `"remote"` or `"bundled"` | Omitted means remote behavior. |
+| `origin` | HTTP origin | Required in bundled mode. An exact `http:` or `https:` origin without path, trailing slash, query, or wildcard. In remote mode, overrides the recorded dev URL. |
+| `allowlist` | Array of HTTP origins | Additional remote-mode document origins. Ports are significant. Bundled mode permits only its local document origin. |
+| `devHost` | `string` | Letters, digits, dots, and hyphens. Defaults to the first external IPv4 address, then `127.0.0.1`. Controls the recorded URL, not Vite's bind address. |
+| `name` | Nonempty string | Shared native display name. |
+| `appName` | Nonempty string | Legacy fallback after `name`. |
+| `android.name` | Nonempty string | Overrides the shared name on Android. |
+| `android.packageId` | `string` | Defaults to `appId`. At least two dot-separated segments starting with a letter. Letters, digits, and underscores allowed. Java keywords forbidden. |
+| `ios.name` | Nonempty string | Overrides the shared name on iOS. |
+| `ios.bundleId` | `string` | Defaults to `appId`. At least two dot-separated segments containing letters, digits, or hyphens. |
+
+Display names resolve as platform `name`, shared `name`, legacy `appName`, then `appId`. Remote iOS generation permits at most ten distinct server and allowlist hostnames.
+
+## Image fields
+
+| Field | Type | Constraints |
+| --- | --- | --- |
+| `icon` | Path string or `{ image, backgroundColor? }` | Square PNG or JPEG, at least 1024 pixels per side. Relative to the app root. |
+| `icon.image` | Nonempty path | Same constraints as string-form `icon`. |
+| `icon.backgroundColor` | `#RRGGBB` | Optional opaque RGB background. |
+| `splash.image` | Nonempty path | Square PNG or JPEG, at least 2732 pixels per side. Relative to the app root. |
+| `splash.backgroundColor` | `#RRGGBB`, required with splash | Composites transparent source pixels. Shared by light and dark appearances. |
+
+Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGenerationFailed`. These are generation failures, not client API exports.
+
+## Plugin fields
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `plugins` | Array of `{ manifest, selector? }` | Custom manifest module paths. Disabled unless listed. |
+| `plugins[].manifest` | Nonempty string | Module path relative to the app root. |
+| `plugins[].selector` | JavaScript identifier | Named manifest export. Omitted selects the default export. |
+| `pluginOptions` | Record of unknown values | Decoded by each enabled manifest's config schema, keyed by its config selector. |
+| `internalPlugins` | Object of optional booleans | Enables internal capabilities. Implications take precedence over explicit false values. |
+
+`device` and `transitions` default to true. These flags default to false: `camera`, `videoStream`, `filePicker`, `intents`, `haptics`, `network`, `googleSignIn`, `notifications`, `pushNotifications`, and `dataProtection`.
+
+`pushNotifications` implies `notifications`. `notifications` implies `network`.
+
+## Internal plugin options
+
+| Selector       | Required fields when enabled                       |
+| -------------- | -------------------------------------------------- |
+| `Camera`       | `usageDescription`, `photoLibraryUsageDescription` |
+| `VideoStream`  | `usageDescription`                                 |
+| `GoogleSignIn` | `webClientId`, `iosClientId`                       |
+
+Camera descriptions require non-whitespace text without invalid XML control characters. Shared camera purposes compose once into the iOS camera description. Google identifiers match letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`.
+
+## Firebase fields
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `notifications.android.googleServices` | Nonempty path | App-owned Firebase JSON copied into the generated Android project. |
+| `notifications.ios.googleServiceInfo` | Nonempty path | App-owned Firebase plist copied into the generated iOS project. |
+| `notifications.ios.environment` | `"development"` or `"production"` | APNs entitlement. Defaults to `"development"`. |
+
+Firebase paths do not enable push by themselves. Missing runtime push configuration produces `MissingPushConfiguration`. Invalid main config produces `InvalidConfig`; manifest failures produce `InvalidPlugin` or `PluginDependencyConflict`.
+
+Source: [config schema](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/vite/config.ts), [internal registry](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/plugins/internal-plugin-registry.ts).

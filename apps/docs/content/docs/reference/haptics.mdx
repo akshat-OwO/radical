@@ -1,0 +1,22 @@
+---
+title: "Haptics API"
+description: "Impact, notification, and selection feedback."
+---
+
+Native enablement is `internalPlugins.haptics`. The dependency is `@capacitor/haptics@8.0.2`. No runtime permission prompt is required.
+
+| Client export | Arguments | Result |
+| --- | --- | --- |
+| `hapticImpact(style?)` | `"LIGHT"`, `"MEDIUM"`, or `"HEAVY"`. Default `"MEDIUM"`. | Effect of void |
+| `hapticNotification(type)` | `"SUCCESS"`, `"WARNING"`, or `"ERROR"` | Effect of void |
+| `hapticSelection` | Effect value with no arguments | Effect of void |
+
+These Effects require `Bridge | BrowserHaptics`. `hapticsLive(effect)` supplies `BrowserHapticsLive`. `BrowserHaptics` provides injectable `vibrate(pattern)` behavior. `ImpactStyleSchema` and `NotificationTypeSchema` validate inputs. Their types are `ImpactStyle` and `NotificationType`.
+
+Browsers use approximate vibration patterns. Missing APIs and a false `navigator.vibrate` result are successful no-ops. A browser exception becomes `HapticFeedbackFailed`, which carries `cause`. Devices without a haptic engine can also complete without vibration.
+
+`HapticError` is `BridgeError | HapticFeedbackFailed`. Invalid typed style or notification input at runtime becomes `BridgeDecodeError`.
+
+`useHapticFeedback()` exposes `light`, `medium`, `heavy`, `success`, `warning`, `error`, `selection`, and `impact`, plus action state. The failure field is `failure`; `error()` is an action. A completed action sets `value` to `true`.
+
+Source: [haptics implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/haptics).

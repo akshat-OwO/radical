@@ -1,0 +1,23 @@
+{
+  "pages": [
+    "config",
+    "cli",
+    "vite",
+    "client",
+    "server",
+    "react",
+    "plugins",
+    "camera",
+    "data-protection",
+    "device-info",
+    "files",
+    "google-sign-in",
+    "haptics",
+    "network",
+    "notifications",
+    "safe-area",
+    "transitions",
+    "video-stream"
+  ],
+  "title": "Reference"
+}

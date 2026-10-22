@@ -1,0 +1,23 @@
+---
+title: "Network API"
+description: "Current connectivity and a stream of changes."
+---
+
+Native enablement is `internalPlugins.network`. The dependency is `@capacitor/network@8.0.1`. Notifications also enable this capability through the internal registry.
+
+`getNetworkStatus` is an Effect of `NetworkStatus`. `watchNetworkStatus` is a Stream of `NetworkStatus`. Both require `Bridge | BrowserNetwork` and fail with `BridgeError`.
+
+| Field | Values |
+| --- | --- |
+| `connected` | Boolean describing local connectivity. Does not prove endpoint reachability. |
+| `connectionType` | `wifi`, `cellular`, `none`, `unknown`, `ethernet`, `bluetooth`, `wimax`, or `other` |
+
+Native types are `wifi`, `cellular`, `none`, and `unknown`. Offline status uses `none`. Browser type support varies. An online browser without type information reports `unknown`.
+
+`NetworkStatusSchema` and `NetworkTypeSchema` validate results. The stream subscribes before its initial read, suppresses duplicate statuses, and retains the latest pending status. Scope closure removes the listener.
+
+`networkLive(effect)` provides `BrowserNetworkLive`. `browserNetworkLayer(read)` builds a layer from a browser network source. `BrowserNetwork` separates current status and event subscription for tests.
+
+`useNetworkStatus()` returns loading state, `value`, and `error`. It starts after mount and updates live. Native listener absence produces `BridgeUnavailable`. Malformed native results or events produce `BridgeDecodeError`.
+
+Source: [network implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/network).

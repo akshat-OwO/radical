@@ -1,0 +1,42 @@
+---
+title: "Plugin manifest API"
+description: "Schema-defined native commands and generation metadata."
+---
+
+`radical/plugins` exports `definePlugin`, `PluginManifestSchema`, `CommandSchema`, `callPlugin`, `createPluginClient`, and the `PluginManifest` and `PluginClient` types.
+
+`definePlugin(manifest)` preserves concrete schema types. Validation occurs before generation. `createPluginClient(manifest)` creates typed command functions. `callPlugin(plugin, method, command, args)` encodes arguments, calls the bridge, and decodes the result. Both client forms return Effects requiring `Bridge`.
+
+## Manifest fields
+
+| Field | Contract |
+| --- | --- |
+| `id` | Identifier used as the generated client key. Starts with a letter, followed by letters, digits, or underscores. |
+| `bridge` | Native bridge name, with the same identifier rules. |
+| `dependencies` | Record of npm package names to nonempty version requirements. Required, including when empty. |
+| `commands` | Record of command identifiers to `{ args, result, errors }`. |
+| `config` | Optional `{ selector, schema }`. Reads `pluginOptions[selector]`. |
+| `android` | Optional `{ className, sources, dependencies }`. |
+| `ios` | Optional `{ className, sources, dependencies }`. |
+
+Each command's `args` and `result` are Effect Schema codecs. `errors` maps native rejection codes to codecs for tagged errors. Arguments must encode to an object accepted by the bridge.
+
+Native error mapping decodes `{ ...cause.data, _tag: cause.code }`. An undeclared code, non-object data, or failed error decode remains `BridgeCallFailed`. Invalid arguments and results produce `BridgeDecodeError`.
+
+## Native metadata
+
+Each source entry is `{ file, source }`: destination filename and source path relative to the manifest module. Android `className` can be a qualified Java name. Android dependencies map Gradle `group:artifact` to version requirements.
+
+The iOS `className` is an identifier. iOS dependencies are `{ url, version, product }` entries. URLs must be HTTPS; `product` is an identifier. Generation adds sources, registration, npm dependencies, Gradle dependencies, and SPM products only for enabled manifests.
+
+Custom config entries use `{ manifest, selector? }` in the main config. `selector` chooses a named export; otherwise the module's default export is selected.
+
+## Internal manifest exports
+
+`radical/internal-plugins` exports `devicePlugin`, `transitionsPlugin`, `cameraPlugin`, `filePickerPlugin`, `appLauncherPlugin`, `fileOpenerPlugin`, `videoStreamPlugin`, `hapticsPlugin`, `networkPlugin`, `googleSignInPlugin`, `dataProtectionPlugin`, `localNotificationsPlugin`, `firebaseMessagingPlugin`, `badgePlugin`, and `notificationTopicsPlugin`.
+
+These use the same manifest contract as custom plugins. The internal registry owns defaults and capability implications.
+
+Generation errors are `InvalidPlugin`, `PluginDependencyConflict`, or `InvalidConfig`. Disabled plugins contribute no native sources or configuration.
+
+Source: [manifest implementation](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/plugins/plugins.ts).

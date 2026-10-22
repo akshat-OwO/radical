@@ -1,0 +1,22 @@
+---
+title: "The bridge"
+description: "Why native commands use services and schemas."
+---
+
+The WebView and the native shell run in different runtimes. Capacitor supplies the transport between JavaScript calls and registered native plugins. Radical wraps that transport in the `Bridge` Effect service.
+
+A command crosses two validation boundaries. Its argument schema encodes the input before the native call. Its result schema decodes the returned value. Invalid data becomes `BridgeDecodeError`, while a rejected native call becomes `BridgeCallFailed`.
+
+## Errors remain part of the command contract
+
+A manifest can declare native rejection codes and tagged error schemas. Radical maps a known code and valid error data to the declared error. That lets your application handle a specific failure with `Effect.catchTag`.
+
+Unknown rejection codes stay bridge failures. Radical does not pretend that an unexpected native error matches a declared capability error. The [bridge reference in the repository](https://github.com/akshat-OwO/radical/blob/main/docs/reference/bridge.md) records the transport details.
+
+## Browser behavior stays replaceable
+
+The bridge detects `browser`, `android`, or `ios` when the Effect runs. Capability operations choose native commands or browser services based on that runtime. Browser services provide file inputs, media access, network events, and other web behavior. Some capabilities, such as default Google sign-in and native push, have no default browser equivalent.
+
+Effect layers make the boundary testable. An app can provide an in-memory bridge and browser service without a native project, network request, or device. React hooks own those Effects after mount and release pending work on unmount.
+
+The [plugin decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0003-native-plugin-manifests.md) explains the shared manifest contract. [Client reference](/docs/reference/client) lists the public bridge APIs.

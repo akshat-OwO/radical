@@ -1,0 +1,35 @@
+---
+title: "Camera API"
+description: "Still-photo operations, permissions, and typed failures."
+---
+
+Native enablement is `internalPlugins.camera`. The required dependency is `@capacitor/camera@8.2.6`. The config selector is `Camera`, with required `usageDescription` and `photoLibraryUsageDescription` strings.
+
+## Operations
+
+| `radical/client` export   | Result             | Requirements              |
+| ------------------------- | ------------------ | ------------------------- |
+| `capturePhoto`            | `Photo`            | `Bridge`, `BrowserCamera` |
+| `choosePhoto`             | `Photo`            | `Bridge`, `BrowserCamera` |
+| `checkCameraPermission`   | `CameraPermission` | `Bridge`, `BrowserCamera` |
+| `requestCameraPermission` | `CameraPermission` | `Bridge`, `BrowserCamera` |
+
+These are Effect values, not functions. `cameraLive(effect)` provides `BrowserCameraLive`. `BrowserCamera` is injectable for tests. `PhotoSchema` and `CameraPermissionSchema` validate results.
+
+`Photo` has `dataUrl`, `mimeType`, and optional `width` and `height`. Dimensions are decoded after orientation correction. The data URL remains valid after hook unmount. `choosePhoto` selects one image.
+
+`CameraPermission` is `"granted" | "denied" | "prompt"`. A check can return `"denied"` without failure. A denied request fails with `PermissionDenied`.
+
+## Runtime behavior
+
+Native capture requests camera permission and does not save to the gallery. Android generation adds one `CAMERA` permission and optional camera hardware. iOS generation adds camera and photo-library usage descriptions.
+
+Browsers use an image file input with `capture="environment"` for capture. The browser decides whether the input opens a camera or file selection. Permission checks use the Permissions API when available, otherwise report `"prompt"`. Permission requests use `getUserMedia` in a secure context and stop the temporary stream.
+
+## Errors and hooks
+
+`CameraError` is `PermissionDenied | Cancelled | Unavailable | BridgeError`. Known native permission and cancellation errors map to the capability errors. Unknown native failures remain `BridgeCallFailed`. Invalid bridge results remain `BridgeDecodeError`.
+
+`useCamera()` exposes `capture`, `choose`, and action state. `useCameraPermission()` checks after mount and exposes `check` and `request`. Both hooks come from `radical/react`.
+
+Source: [camera implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/camera).

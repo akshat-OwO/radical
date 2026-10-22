@@ -1,0 +1,28 @@
+---
+title: "Keep visited routes available offline"
+description: "Add remote-mode snapshots and an offline fallback."
+---
+
+1. For a route that can display a stored document, set its static data:
+
+```ts
+staticData: { radical: { offline: true } },
+```
+
+2. In `src/server.ts`, wrap `defaultStreamHandler` with `offlineHandler` from `radical/tanstack-start-server`.
+3. Add your offline fallback at `public/offline.html`.
+4. In a root mount effect, register the worker:
+
+```ts
+void registerOffline({
+  mode: config.mode,
+  production: import.meta.env.PROD,
+  base: import.meta.env.BASE_URL,
+});
+```
+
+5. Build and serve the production app over HTTPS or trustworthy localhost. Do not use a plain HTTP LAN address for worker tests.
+6. After worker activation, visit the offline route through a document navigation. To store a query variant, visit that exact URL.
+7. Stop the UI server. Reopen the stored URL to check its snapshot. Open an unvisited URL to check the offline fallback.
+
+For shell startup checks and platform limits, use the [Android verification record](https://github.com/akshat-OwO/radical/blob/main/docs/verification/android-offline.md) and [iOS verification record](https://github.com/akshat-OwO/radical/blob/main/docs/verification/ios-offline.md). For bundled mode, package the UI instead of registering the remote worker.

@@ -38,3 +38,6 @@ dist-ssr
 # App-owned Firebase configuration
 google-services.json
 GoogleService-Info.plist
+
+# Fumadocs generated content
+.source/
