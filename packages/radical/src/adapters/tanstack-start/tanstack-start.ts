@@ -7,6 +7,7 @@ import type { RadicalConfig } from "../../vite/config.ts";
 import { offlineBuild } from "../../vite/offline-build.ts";
 import { radical as corePlugin } from "../../vite/vite.ts";
 import { createRadicalMiddleware } from "./tanstack-middleware.ts";
+import { tanstackOutputs } from "./tanstack-outputs.ts";
 
 export type { RadicalRouteOptions } from "./tanstack-route-data.ts";
 
@@ -33,14 +34,16 @@ export const TanStackStartAdapter = /* @__PURE__ */ Layer.suspend(() =>
       onBeforeNavigate: () => unavailable("onBeforeNavigate"),
       onAfterNavigate: () => unavailable("onAfterNavigate"),
     }),
-    outputs: Effect.succeed({ clientDir: "dist/client" }),
+    outputs: tanstackOutputs,
   })
 );
 
 /** Register next to tanstackStart(); the host framework still owns rendering. */
 export const radical = (config: RadicalConfig): PluginOption[] => [
-  corePlugin(config),
-  ...(config.mode === "bundled" ? [] : [offlineBuild(config)]),
+  corePlugin(config, TanStackStartAdapter),
+  ...(config.mode === "bundled"
+    ? []
+    : [offlineBuild(config, TanStackStartAdapter)]),
 ];
 
 export { NavigationFailed } from "../../core/adapter/errors.ts";

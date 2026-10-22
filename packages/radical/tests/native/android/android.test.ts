@@ -5,6 +5,7 @@ import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../../../apps/example/plugins/EchoPlugin.java?raw";
+import { RadicalAdapter } from "../../../src/core/adapter/adapter.ts";
 import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
@@ -14,6 +15,10 @@ import { generateAndroid } from "../../../src/native/android/android.ts";
 import { AssetGenerationFailed } from "../../../src/native/assets/errors.ts";
 import type { AssetGeneration } from "../../../src/native/assets/native-assets.ts";
 import { AssetGenerator } from "../../../src/native/assets/native-assets.ts";
+import {
+  NativeMetadata,
+  nativeMetadataLayer,
+} from "../../../src/native/shared/native-metadata.ts";
 import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launch from "../../../templates/android/launch.html?raw";
 import activity from "../../../templates/android/MainActivity.java?raw";
@@ -21,6 +26,7 @@ import gradle from "../../../templates/android/radical.gradle?raw";
 import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../../../templates/offline.html?raw";
+import { adapterOutputs, fakeAdapter } from "../../fixtures/adapter.ts";
 import { echo } from "../../fixtures/echo-plugin.ts";
 import { image } from "../../fixtures/image.ts";
 
@@ -43,7 +49,11 @@ const memory = (
     ],
     [
       "/app/.radical/native.json",
-      JSON.stringify({ config, url: "http://192.168.1.2:3000" }),
+      JSON.stringify({
+        config,
+        url: "http://192.168.1.2:3000",
+        outputs: adapterOutputs,
+      }),
     ],
     ["/package/templates/android/MainActivity.java", activity],
     ["/package/templates/offline.html", fallback],
@@ -666,7 +676,7 @@ describe("android app identity", () => {
 
 describe("bundled android shell", () => {
   it.effect(
-    "packages SPA assets and keeps navigation local with both internal plugins",
+    "packages a fake adapter's SPA outputs and keeps navigation local",
     () => {
       const state = memory(false, {
         ...defaultConfig,
@@ -675,11 +685,20 @@ describe("bundled android shell", () => {
         allowlist: ["https://external.example"],
       });
       state.files.set(
-        "/app/dist/client/_shell.html",
+        "/app/web/public/entry.html",
         "<!doctype html><title>SPA shell</title>"
       );
-      state.files.set("/app/dist/client/assets/app.js", "application code");
+      state.files.set("/app/web/public/assets/app.js", "application code");
       return Effect.gen(function* () {
+        const adapter = yield* RadicalAdapter;
+        const outputs = yield* adapter.outputs;
+        const metadata = yield* NativeMetadata;
+        const saved = yield* metadata.read("/app");
+        state.files.set(
+          "/app/.radical/native.json",
+          JSON.stringify({ config: saved.config, url: saved.url })
+        );
+        yield* metadata.update("/app", saved.config, undefined, outputs);
         yield* generate;
         assert.strictEqual(
           state.files.get(`${destination}/www/index.html`),
@@ -713,9 +732,52 @@ describe("bundled android shell", () => {
         assert.include(source, "BUNDLED = true");
         assert.include(source, "BUNDLED ? URL :");
         assert.include(source, "BUNDLED ? super.shouldInterceptRequest");
-      }).pipe(Effect.provide(state.layer));
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            state.layer,
+            fakeAdapter,
+            nativeMetadataLayer.pipe(Layer.provide(state.layer))
+          )
+        )
+      );
     }
   );
+  for (const outputs of [undefined, { clientDir: "web/public" }]) {
+    it.effect(
+      `rejects ${outputs === undefined ? "missing adapter outputs" : "an adapter without a SPA shell"} before replacing a bundled project`,
+      () => {
+        const state = memory(false, {
+          ...defaultConfig,
+          mode: "bundled",
+          origin: "https://api.example",
+        });
+        state.files.set(
+          "/app/.radical/native.json",
+          JSON.stringify({
+            config: {
+              ...defaultConfig,
+              mode: "bundled",
+              origin: "https://api.example",
+            },
+            url: "https://api.example",
+            outputs,
+          })
+        );
+        state.files.set(`${destination}/previous.txt`, "usable shell");
+        return Effect.gen(function* () {
+          const error = yield* Effect.flip(generate);
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "adapter");
+          assert.strictEqual(
+            state.files.get(`${destination}/previous.txt`),
+            "usable shell"
+          );
+          assert.isEmpty(state.commands);
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
   it.effect(
     "rejects missing SPA output before replacing an existing shell",
     () => {
@@ -728,7 +790,7 @@ describe("bundled android shell", () => {
       return Effect.gen(function* () {
         const error = yield* Effect.flip(generate);
         assert.strictEqual(error._tag, "InvalidConfig");
-        assert.include(error.message, "_shell.html");
+        assert.include(error.message, "entry.html");
         assert.strictEqual(
           state.files.get(`${destination}/previous.txt`),
           "usable shell"

@@ -31,7 +31,7 @@ After changing config or source images, refresh [native metadata](#native-metada
 
 [`NativeMetadata`](src/native/shared/native-metadata.ts) owns `.radical/native.json`, its Schema, and its FileSystem-backed Layer. Config resolution, dev-server listening, CLI preparation, and shell generation use its `read` and `update` operations.
 
-The record contains the validated radical `config` and an HTTP or HTTPS `url`. An update replaces the config and selects the listening URL first, then `config.origin`, then the previous valid URL. Config writes therefore preserve the dev URL when no origin is configured. Without any URL, an update leaves the file unchanged; a first dev start writes it after the server selects a port.
+The record contains the validated radical `config`, an HTTP or HTTPS `url`, and optional adapter `outputs`. Config resolution records the adapter's `clientDir` and optional `spaShell`. The shell path is relative to `clientDir`. Native generation reads those outputs through this service after the build. URL-only updates preserve outputs, and adapter updates replace them. An update replaces the config and selects the listening URL first, then `config.origin`, then the previous valid URL. Config writes therefore preserve the dev URL when no origin is configured. Without any URL, an update leaves the file unchanged; a first dev start writes it after the server selects a port.
 
 Reads fail for missing or invalid metadata. Updates treat missing or invalid previous metadata as absent and replace it when a URL is available. Other filesystem errors propagate. The CLI resolves production config before reading metadata and builds the UI when `config.mode` is `bundled`.
 
@@ -62,7 +62,7 @@ The middleware list preserves Start's same-origin CSRF checks for server functio
 
 Server functions read the typed `context.nativeContext`. A route loader can call a server function and expose its result to components through `Route.useLoaderData()`, including during server rendering. See the [example route](../../apps/example/src/routes/index.tsx).
 
-The adapter's `provideRequestContext(get)` creates request middleware with a custom Effect reader. Routes remain empty, outputs remain Start's `dist/client`, and navigation operations still fail with `AdapterUnavailable`.
+The adapter's `provideRequestContext(get)` creates request middleware with a custom Effect reader. Routes remain empty, outputs report Start's standard client directory and SPA shell, and navigation operations still fail with `AdapterUnavailable`.
 
 ## Offline routes
 

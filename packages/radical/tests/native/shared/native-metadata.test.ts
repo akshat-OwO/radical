@@ -14,6 +14,28 @@ const config = { appId: "dev.example.app" };
 const url = "http://localhost:5173";
 
 describe("native metadata", () => {
+  it.effect(
+    "persists adapter outputs across dev URL and config updates",
+    () => {
+      const memory = metadataMemory();
+      return Effect.gen(function* () {
+        const metadata = yield* NativeMetadata;
+        const outputs = { clientDir: "web/public", spaShell: "entry.html" };
+        yield* metadata.update("/app", config, url, outputs);
+        yield* metadata.update(
+          "/app",
+          { ...config, name: "Renamed" },
+          "http://localhost:4000"
+        );
+        assert.deepStrictEqual((yield* metadata.read("/app")).outputs, outputs);
+        const next = { clientDir: "build/browser" };
+        yield* metadata.update("/app", config, url, next);
+        assert.deepStrictEqual((yield* metadata.read("/app")).outputs, next);
+      }).pipe(
+        Effect.provide(nativeMetadataLayer.pipe(Layer.provide(memory.layer)))
+      );
+    }
+  );
   it.effect("keeps the dev URL while replacing config", () => {
     const memory = metadataMemory(JSON.stringify({ config, url }));
     return Effect.gen(function* () {

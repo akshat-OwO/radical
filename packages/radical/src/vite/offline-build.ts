@@ -4,9 +4,11 @@ import { createRequire } from "node:module";
 import path from "node:path";
 
 import { Effect, Schema } from "effect";
+import type { Layer } from "effect";
 import type * as Vite from "vite";
 import type { Plugin } from "vite";
 
+import { RadicalAdapter } from "../core/adapter/adapter.ts";
 import { offlineCachePrefix } from "../core/offline/offline-protocol.ts";
 import type { RadicalConfig } from "./config.ts";
 import { resolveOfflineEntry } from "./package-paths.ts";
@@ -22,23 +24,33 @@ const attempt = <A>(operation: () => Promise<A>) =>
     catch: (cause) => new OfflineBuildError({ cause }),
   });
 
-export const offlineBuild = (config: RadicalConfig): Plugin => {
+export const offlineBuild = (
+  config: RadicalConfig,
+  adapterLayer: Layer.Layer<RadicalAdapter>
+): Plugin => {
   let base = "/";
   let clientDir = "";
   return {
     name: "radical:offline",
     apply: "build",
-    configResolved: (resolved) => {
-      ({ base } = resolved);
-      clientDir = path.resolve(
-        resolved.root,
-        resolved.environments.client?.build.outDir ?? "dist/client"
-      );
-    },
+    configResolved: (resolved) =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          ({ base } = resolved);
+          const adapter = yield* RadicalAdapter;
+          const outputs = yield* adapter.outputs;
+          clientDir = path.resolve(resolved.root, outputs.clientDir);
+        }).pipe(Effect.provide(adapterLayer))
+      ),
     writeBundle: {
       order: "post",
       handler(_output, bundle) {
-        if (this.environment.name !== "client") {
+        if (
+          path.resolve(
+            this.environment.config.root,
+            this.environment.config.build.outDir
+          ) !== clientDir
+        ) {
           return Promise.resolve();
         }
         return Effect.runPromise(

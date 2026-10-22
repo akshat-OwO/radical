@@ -4,6 +4,7 @@ import { Effect, Layer } from "effect";
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { AdapterUnavailable } from "../../core/adapter/errors.ts";
 import { tanstackNavigation } from "./tanstack-navigation.ts";
+import { tanstackOutputs } from "./tanstack-outputs.ts";
 
 export type { RadicalRouteOptions } from "./tanstack-route-data.ts";
 
@@ -22,6 +23,6 @@ export const tanstackStartAdapterLayer = (router: AnyRouter) =>
           new AdapterUnavailable({ operation: "provideRequestContext" })
         ),
       navigation: Effect.succeed(tanstackNavigation(router)),
-      outputs: Effect.succeed({ clientDir: "dist/client" }),
+      outputs: tanstackOutputs,
     })
   );
