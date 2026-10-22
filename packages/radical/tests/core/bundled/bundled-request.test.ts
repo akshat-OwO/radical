@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
 import { tanstackStartOptions } from "../../../src/adapters/tanstack-start/tanstack-start.ts";
+import { RadicalAdapter } from "../../../src/core/adapter/adapter.ts";
 import {
   bundledOrigins,
   localNativeContext,
@@ -12,6 +13,7 @@ import {
 import { withBundledRequests } from "../../../src/core/bundled/bundled-server.ts";
 import { encodeNativeContextCookie } from "../../../src/core/context/native-context.ts";
 import { getNativeContext } from "../../../src/entry/server.ts";
+import { fakeAdapter } from "../../fixtures/adapter.ts";
 
 const config = { mode: "bundled", origin: "https://api.example" } as const;
 const context = {
@@ -221,17 +223,48 @@ describe("bundled requests", () => {
 });
 
 describe("bundled API CORS", () => {
+  it.effect("preserves exposed headers when the adapter declares none", () =>
+    Effect.gen(function* () {
+      for (const outputs of [{}, { exposedHeaders: [] }]) {
+        const handler = withBundledRequests(
+          () =>
+            new Response(null, {
+              headers: { "access-control-expose-headers": "x-existing" },
+            }),
+          outputs
+        );
+        const response = yield* attempt(
+          async () =>
+            await handler(
+              new Request(config.origin, {
+                headers: { origin: bundledOrigins[0] },
+              })
+            )
+        );
+        assert.strictEqual(
+          response.headers.get("access-control-expose-headers"),
+          "x-existing"
+        );
+      }
+    })
+  );
   it.effect(
-    "answers credentialed preflights without running the handler and exposes Start protocol headers",
+    "answers credentialed preflights and exposes the fake adapter headers",
     () =>
       Effect.gen(function* () {
         let calls = 0;
+        const adapter = yield* RadicalAdapter;
+        const outputs = yield* adapter.outputs;
         const handler = withBundledRequests(() => {
           calls += 1;
           return new Response("ok", {
-            headers: { "x-tss-serialized": "true" },
+            headers: {
+              "x-example-result": "true",
+              "access-control-expose-headers": "x-existing",
+              vary: "Accept-Encoding",
+            },
           });
-        });
+        }, outputs);
         for (const origin of bundledOrigins) {
           const preflight = yield* attempt(
             async () =>
@@ -274,15 +307,19 @@ describe("bundled API CORS", () => {
           response.headers.get("access-control-allow-origin"),
           bundledOrigins[0]
         );
-        assert.include(
-          response.headers.get("access-control-expose-headers") ?? "",
-          "x-tss-serialized"
+        assert.strictEqual(
+          response.headers.get("access-control-expose-headers"),
+          "x-existing, x-example-result, x-example-error"
+        );
+        assert.strictEqual(
+          response.headers.get("vary"),
+          "Accept-Encoding, Origin"
         );
         assert.strictEqual(
           yield* attempt(async () => await response.text()),
           "ok"
         );
-      })
+      }).pipe(Effect.provide(fakeAdapter))
   );
   it.effect(
     "retains response headers and varies CORS for denied, absent and same-origin requests",
@@ -291,7 +328,11 @@ describe("bundled API CORS", () => {
         const source = new Response("remote", {
           headers: { vary: "Accept-Encoding" },
         });
-        const handler = withBundledRequests(() => source);
+        const adapter = yield* RadicalAdapter;
+        const handler = withBundledRequests(
+          () => source,
+          yield* adapter.outputs
+        );
         for (const origin of [
           "",
           config.origin,
@@ -312,7 +353,8 @@ describe("bundled API CORS", () => {
           assert.include(response.headers.get("vary") ?? "", "Accept-Encoding");
           assert.include(response.headers.get("vary") ?? "", "Origin");
           assert.isNull(response.headers.get("access-control-allow-origin"));
+          assert.isNull(response.headers.get("access-control-expose-headers"));
         }
-      })
+      }).pipe(Effect.provide(fakeAdapter))
   );
 });

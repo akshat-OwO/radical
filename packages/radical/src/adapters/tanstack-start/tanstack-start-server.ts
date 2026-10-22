@@ -1,3 +1,18 @@
+import { Effect } from "effect";
+
+import { withBundledRequests as coreBundledRequests } from "../../core/bundled/bundled-server.ts";
+import { tanstackOutputs } from "./tanstack-outputs.ts";
+
+/** Expose Start's response protocol to bundled clients. */
+export const withBundledRequests = (
+  handler: (request: Request) => Response | Promise<Response>
+) =>
+  Effect.runSync(
+    tanstackOutputs.pipe(
+      Effect.map((outputs) => coreBundledRequests(handler, outputs))
+    )
+  );
+
 /** Wrap Start's SSR callback after the router has loaded the selected matches. */
 export const offlineHandler =
   <
