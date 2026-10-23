@@ -6,7 +6,8 @@
     "dev": "vp dev",
     "build": "vp build",
     "typecheck": "tsc --noEmit",
-    "typegen": "radical typegen"
+    "typegen": "radical typegen",
+    "typegen:source": "node --conditions=@akshatowo/radical/source ../../packages/radical/src/entry/cli-main.ts typegen"
   },
   "dependencies": {
     "@akshatowo/radical": "workspace:*",

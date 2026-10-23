@@ -23,6 +23,7 @@ export default defineConfig({
     ],
   },
   run: {
-    cache: true,
+    // Readiness must repeat the checks with dist absent on every invocation.
+    cache: false,
   },
 });

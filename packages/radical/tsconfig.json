@@ -32,7 +32,8 @@
           "effect/Path"
         ]
       }
-    ]
+    ],
+    "customConditions": ["@akshatowo/radical/source"]
   },
   "include": ["src", "tests", "scripts"]
 }
