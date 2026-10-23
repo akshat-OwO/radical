@@ -293,38 +293,48 @@ const load = async (): Promise<Todo[]> => {
 
 const save = (todos: Todo[]) => writeFile(file, JSON.stringify(todos, null, 2));
 
+// Run one change at a time so overlapping requests never overwrite each other.
+let queue = Promise.resolve();
+
+const update = (change: (todos: Todo[]) => Todo[]) => {
+  const run = queue.then(async () => save(change(await load())));
+  queue = run.catch(() => undefined);
+  return run;
+};
+
 export const listTodos = createServerFn({ method: "GET" }).handler(load);
 
 export const addTodo = createServerFn({ method: "POST" })
   .validator((title: string) => title.trim())
-  .handler(async ({ data }) => {
-    const todos = await load();
-    await save([
+  .handler(({ data }) =>
+    update((todos) => [
       ...todos,
       { id: crypto.randomUUID(), title: data, done: false },
-    ]);
-  });
+    ])
+  );
 
 export const setDone = createServerFn({ method: "POST" })
   .validator((input: { id: string; done: boolean }) => input)
-  .handler(async ({ data }) => {
-    const todos = await load();
-    await save(
+  .handler(({ data }) =>
+    update((todos) =>
       todos.map((todo) =>
         todo.id === data.id ? { ...todo, done: data.done } : todo
       )
-    );
-  });
+    )
+  );
 
 export const removeTodo = createServerFn({ method: "POST" })
   .validator((id: string) => id)
-  .handler(async ({ data }) => {
-    const todos = await load();
-    await save(todos.filter((todo) => todo.id !== data));
-  });
+  .handler(({ data }) =>
+    update((todos) => todos.filter((todo) => todo.id !== data))
+  );
 ```
 
-Each `createServerFn` handler runs only on the server. The client receives a small function that calls it over HTTP, so `node:fs` never reaches the browser bundle. A JSON file keeps the tutorial short. Swap `load` and `save` for a database when you build a real app. The generated `.gitignore` already lists `todos.json`.
+Each `createServerFn` handler runs only on the server. The client receives a small function that calls it over HTTP, so `node:fs` never reaches the browser bundle.
+
+Every change reads the whole file, edits the list, and writes it back. If the browser and the phone both send a change at the same moment, two handlers can read the same old list, and the second write erases the first. `update` puts each change on a queue, so it reads the file only after the previous change is saved. The queue works because one dev server process owns the file.
+
+A JSON file keeps the tutorial short. Use a database when you build a real app, because a database handles concurrent writes for you. The generated `.gitignore` already lists `todos.json`.
 
 <Callout type="info">
   If type checking reports that `validator` does not exist, your TanStack Start
@@ -536,7 +546,7 @@ function Home() {
             search={value === "all" ? {} : { filter: value }}
             className="flex-1 rounded-lg py-2 text-center text-sm font-medium capitalize text-muted"
             activeProps={{ className: "bg-surface text-ink shadow-sm" }}
-            activeOptions={{ includeSearch: true }}
+            activeOptions={{ exact: true, includeSearch: true }}
           >
             {value}
           </Link>
