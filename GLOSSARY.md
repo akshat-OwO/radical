@@ -18,6 +18,14 @@ _Avoid_: Integration, binding, driver
 The framework-agnostic part of radical, built only on web standards and the Vite build.\
 _Avoid_: Engine, runtime (when meaning the whole core)
 
+**Plain API**:\
+The default public API, whose functions and hooks return Promises, React state, and callbacks without exposing Effect types.\
+_Avoid_: Simple API, Promise API
+
+**Effect API**:\
+The public API under `effect/` subpaths that exposes radical's Effects, layers, and services.\
+_Avoid_: Advanced API, core API
+
 ### Native
 
 **App identity**:\
