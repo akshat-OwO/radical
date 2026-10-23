@@ -8,6 +8,7 @@ import defaultComponents from "fumadocs-ui/mdx";
 
 import { FrameworkGrid } from "./framework-grid";
 import { Mermaid } from "./mermaid";
+import { ScreenshotRow } from "./screenshot-row";
 
 export const mdxComponents = {
   ...defaultComponents,
@@ -19,6 +20,7 @@ export const mdxComponents = {
   Folder,
   FrameworkGrid,
   Mermaid,
+  ScreenshotRow,
   Step,
   Steps,
   Tab,
