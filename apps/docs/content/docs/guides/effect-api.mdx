@@ -49,6 +49,23 @@ const result = await Effect.runPromise(echo);
 
 For a manifest outside the generated module, use `createPluginClient(manifest)` from `/effect/plugins`.
 
+## Register the offline worker
+
+In the [client entry](/docs/getting-started/installation#register-the-offline-worker), run `registerOfflineEffect` inside `register` in place of `registerOffline`:
+
+```ts
+import { registerOfflineEffect } from "@akshatowo/radical/effect/client";
+import { Effect } from "effect";
+
+void Effect.runPromise(
+  registerOfflineEffect({
+    mode: config.mode,
+    production: import.meta.env.PROD,
+    base: import.meta.env.BASE_URL,
+  })
+);
+```
+
 ## Share a provider runtime
 
 Inside `RadicalProvider`, retrieve the handle with `useRadicalRuntime()`. Use `getEffectRuntime(handle)` from `/effect/client` to run Effects against the same bridge as hooks and Plain API clients:

@@ -1,7 +1,6 @@
 import {
   localNativeContext,
   mountNativeContext,
-  registerOffline,
   safeAreaStyle,
 } from "@akshatowo/radical/client";
 import { RadicalProvider, useRadicalRuntime } from "@akshatowo/radical/react";
@@ -51,12 +50,6 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
     if (config.mode === "bundled") {
       mountNativeContext();
     }
-
-    void registerOffline({
-      mode: config.mode,
-      production: import.meta.env.PROD,
-      base: import.meta.env.BASE_URL,
-    });
   }, []);
 
   return (

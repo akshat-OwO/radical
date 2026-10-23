@@ -81,11 +81,15 @@ localNativeContext();
 <ClientOnly>
   <Outlet />
 </ClientOnly>;
-// Mount effect:
-mountNativeContext();
+// Inside the root shell component:
+useEffect(() => {
+  if (config.mode === "bundled") {
+    mountNativeContext();
+  }
+}, []);
 ```
 
-Keep startup loaders independent of unavailable APIs.
+Keep `mountNativeContext()` in the root effect: the native-context handoff must run after mount. Keep startup loaders independent of unavailable APIs.
 
 </Tab>
 <Tab value="Remote">
@@ -98,7 +102,7 @@ Keep the server-function native-context loader and render `<Outlet />` directly.
 | Shared setup | Use |
 | --- | --- |
 | Document style | `safeAreaStyle(nativeContext, config.mode)` |
-| Offline registration | `registerOffline({ mode: config.mode, ... })` |
+| Offline registration | `registerOffline({ mode: config.mode, ... })` in the [client entry](/docs/getting-started/installation#register-the-offline-worker); skipped in bundled mode |
 | Other API requests | `createRadicalFetch(config)` |
 | Build outputs | Keep Start's `dist/client`, `_shell.html`, and Vite base `/` |
 
