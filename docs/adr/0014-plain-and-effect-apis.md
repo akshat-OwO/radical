@@ -18,7 +18,7 @@ The plain API is a thin layer over the Effect API, not a second implementation. 
 
 ## Consequences
 
-- Plain subpaths keep the current names (`/plugins`, `/client`, `/react`, `/tanstack-start-client`), and their Effect-returning exports move to `/effect/*`. Effect users of 0.1.0 must update their imports.
+- Plain subpaths keep the current names (`/plugins`, `/client`, `/react`, `/tanstack-start-client`), and their Effect-returning exports move to `/effect/*`. This ships as the breaking 0.2.0 release, and 0.1.0 users who call plugin commands or mount layers must update their imports.
 - Yarn Berry warns about missing peers instead of installing them, so its users run `yarn add effect` once.
 - Getting started installs only `@akshatowo/radical`. The Effect guide adds `effect`.
 - Plugin manifests keep Effect `Schema` codecs, so authoring a custom native plugin still requires `effect`. A plain authoring path, such as accepting Standard Schema validators, is a separate decision.
