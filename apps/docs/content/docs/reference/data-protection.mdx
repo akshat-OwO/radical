@@ -3,6 +3,14 @@ title: "Data protection API"
 description: "Native capture protection and local web data deletion."
 ---
 
+## Plain API
+
+`setDataProtection(enabled)` and `clearWebData()` from `@akshatowo/radical/client` return Promises. `useDataProtection()` exposes state and callbacks.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 Native enablement is `internalPlugins.dataProtection`. Radical supplies the native implementation without an extra capability package.
 
 `setDataProtection(enabled)` returns an Effect of `DataProtectionStatus` requiring `Bridge`. `DataProtectionStatusSchema` validates four booleans: `enabled`, `screenshots`, `recording`, and `appSwitcher`.

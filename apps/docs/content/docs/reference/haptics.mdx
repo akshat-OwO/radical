@@ -3,6 +3,14 @@ title: "Haptics API"
 description: "Impact, notification, and selection feedback."
 ---
 
+## Plain API
+
+`hapticImpact(style?)`, `hapticNotification(type)`, and `hapticSelection()` from `@akshatowo/radical/client` return `Promise<void>`. `useHapticFeedback()` exposes feedback callbacks.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 Native enablement is `internalPlugins.haptics`. The dependency is `@capacitor/haptics@8.0.2`. No runtime permission prompt is required.
 
 | Client export | Arguments | Result |

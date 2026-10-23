@@ -3,6 +3,14 @@ title: "Network API"
 description: "Current connectivity and a stream of changes."
 ---
 
+## Plain API
+
+`getNetworkStatus()` from `@akshatowo/radical/client` returns `Promise<NetworkStatus>`. `useNetworkStatus()` subscribes to changes and removes its listener on unmount.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 Native enablement is `internalPlugins.network`. The dependency is `@capacitor/network@8.0.1`. Notifications also enable this capability through the internal registry.
 
 `getNetworkStatus` is an Effect of `NetworkStatus`. `watchNetworkStatus` is a Stream of `NetworkStatus`. Both require `Bridge | BrowserNetwork` and fail with `BridgeError`.

@@ -9,7 +9,9 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["vite-plus/client"]
+    "types": ["vite-plus/client"],
+    "customConditions": ["@akshatowo/radical/source"],
+    "resolveJsonModule": true
   },
   "include": ["src", "vite.config.ts", "plugins", ".radical/plugins.d.ts"]
 }

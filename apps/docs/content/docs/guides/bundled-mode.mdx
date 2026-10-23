@@ -76,13 +76,13 @@ Apply the [complete root setup](https://github.com/akshat-OwO/radical/blob/main/
 
 ```tsx
 // Root loader:
-Effect.runPromise(localNativeContext());
+localNativeContext();
 // Route component:
 <ClientOnly>
   <Outlet />
 </ClientOnly>;
 // Mount effect:
-Effect.runSync(mountNativeContext());
+mountNativeContext();
 ```
 
 Keep startup loaders independent of unavailable APIs.

@@ -1,14 +1,11 @@
 import {
-  BridgeLive,
-  NotificationSnapshotsLive,
-  watchNotificationNavigation,
   localNativeContext,
   mountNativeContext,
   registerOffline,
   safeAreaStyle,
 } from "@akshatowo/radical/client";
-import { RadicalProvider } from "@akshatowo/radical/react";
-import { tanstackStartAdapterLayer } from "@akshatowo/radical/tanstack-start-client";
+import { RadicalProvider, useRadicalRuntime } from "@akshatowo/radical/react";
+import { watchNotificationNavigation } from "@akshatowo/radical/tanstack-start-client";
 import {
   useRouter,
   ClientOnly,
@@ -18,7 +15,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Fiber, Layer } from "effect";
 import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
@@ -29,25 +25,18 @@ const readNativeContext = createServerFn({ method: "GET" }).handler(
 
 const NotificationNavigation = () => {
   const router = useRouter();
+  const runtime = useRadicalRuntime();
   useEffect(() => {
-    const fiber = Effect.runFork(
-      Effect.scoped(
-        watchNotificationNavigation({ appId: config.appId, push: true })
-      ).pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            BridgeLive,
-            NotificationSnapshotsLive.pipe(Layer.provide(BridgeLive)),
-            tanstackStartAdapterLayer(router)
-          )
-        )
-      )
+    const stop = watchNotificationNavigation(
+      router,
+      { appId: config.appId, push: true },
+      runtime
     );
 
     return () => {
-      Effect.runFork(Fiber.interrupt(fiber));
+      void stop();
     };
-  }, [router]);
+  }, [router, runtime]);
 
   return null;
 };
@@ -60,7 +49,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (config.mode === "bundled") {
-      Effect.runSync(mountNativeContext());
+      mountNativeContext();
     }
 
     void registerOffline({
@@ -90,7 +79,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 export const Route = createRootRoute({
   loader: async () =>
     config.mode === "bundled"
-      ? await Effect.runPromise(localNativeContext())
+      ? localNativeContext()
       : await readNativeContext(),
   head: () => ({
     meta: [

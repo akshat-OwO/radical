@@ -3,6 +3,14 @@ title: "Notifications API"
 description: "Local reminders, native push, topic state, badges, and tap navigation."
 ---
 
+## Plain API
+
+Operations from `@akshatowo/radical/client` return Promises. Effect values listed below become functions, such as `await registerPush()` and `await checkNotificationPermission()`. React apps can use `useNotifications()`, `useNotificationPermission()`, and `useExactAlarmPermission()`. Navigation uses `watchNotificationNavigation(router, options, runtime?)` from `@akshatowo/radical/tanstack-start-client`, which returns an asynchronous disposer.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 `internalPlugins.notifications` enables local notifications, badges, and network. `internalPlugins.pushNotifications` also enables Firebase messaging and topic storage. Dependencies are `@capacitor/local-notifications@8.3.1`, `@capawesome/capacitor-badge@8.0.4`, `@capacitor/network@8.0.1`, and, for push, `@capacitor-firebase/messaging@8.5.2`.
 
 ## Client operations

@@ -300,9 +300,6 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(redis@6.3.0)
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
       semver:
         specifier: 'catalog:'
         version: 7.8.5
@@ -391,6 +388,9 @@ importers:
       '@types/semver':
         specifier: 'catalog:'
         version: 7.8.0
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
       happy-dom:
         specifier: ^20.0.0
         version: 20.14.6

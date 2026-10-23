@@ -8,6 +8,8 @@ description: "Enable a Schema-defined manifest and call its commands."
 
 ### Define the manifest
 
+Plugin authoring uses Effect Schema. Install `effect` directly with `pnpm add effect@^4.0.5` before writing a manifest. Calling an enabled plugin through the Plain API does not require importing Effect.
+
 Copy the [Echo manifest](https://github.com/akshat-OwO/radical/blob/main/apps/example/plugins/echo.ts), following the [manifest contract](/docs/reference/plugins).
 
 </Step>
@@ -40,20 +42,23 @@ pnpm exec radical typegen
 
 ### Call the command
 
-Run this Effect from your lifecycle or event handler:
+Call the Plain API from your lifecycle or event handler:
 
 ```ts
-import { Effect } from "effect";
-import { BridgeLive } from "@akshatowo/radical/client";
 import { plugins } from "virtual:radical/plugins";
+import { EchoRejected } from "./plugins/echo";
 
-const echo = plugins.echo.echo({ text: "hello" }).pipe(
-  Effect.catchTag("EchoRejected", (error) =>
-    Effect.succeed({ text: error.reason })
-  ),
-  Effect.provide(BridgeLive)
-);
+try {
+  const result = await plugins.echo.echo({ text: "hello" });
+  console.log(result.text);
+} catch (error) {
+  if (error instanceof EchoRejected) {
+    console.log(error.reason);
+  }
+}
 ```
+
+Inside a provider, use `createPlugins(useRadicalRuntime())` to share its runtime. For typed composition, import `plugins` from `virtual:radical/effect/plugins` and follow the [Effect API guide](/docs/guides/effect-api).
 
 You receive the native Echo result or handled rejection.
 

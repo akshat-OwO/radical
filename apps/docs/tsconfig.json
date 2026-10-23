@@ -17,7 +17,9 @@
       }
     ],
     "allowJs": true,
-    "incremental": true
+    "incremental": true,
+    "customConditions": ["@akshatowo/radical/source"],
+    "allowImportingTsExtensions": true
   },
   "include": [
     "next-env.d.ts",

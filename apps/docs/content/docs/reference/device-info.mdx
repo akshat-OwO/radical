@@ -3,6 +3,14 @@ title: "Device info API"
 description: "The shared native and browser device result."
 ---
 
+## Plain API
+
+`getDeviceInfo()` from `@akshatowo/radical/client` returns `Promise<DeviceInfo>`. `useDeviceInfo()` exposes loading, value, and error state.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 `internalPlugins.device` defaults to true. The native dependency is `@capacitor/device`, with the package's declared compatible version range `^8.0.3`.
 
 `getDeviceInfo` is an Effect of `DeviceInfo` requiring `Bridge`, with `BridgeError` failures. `DeviceInfoSchema` validates the common result.

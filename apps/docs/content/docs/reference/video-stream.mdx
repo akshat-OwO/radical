@@ -3,6 +3,14 @@ title: "Video stream API"
 description: "Scoped camera preview, controls, and QR detection."
 ---
 
+## Plain API
+
+Use `useVideoStream({ viewfinder, facing?, onDetect? })` from `@akshatowo/radical/react`. The hook owns startup, controls, and session disposal on unmount.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 Native enablement is `internalPlugins.videoStream`. The dependency is `@capgo/camera-preview@8.14.2`. `pluginOptions.VideoStream.usageDescription` is required.
 
 ## Session contract

@@ -6,13 +6,21 @@ import {
   useContext,
   useEffect,
   useState,
+  useMemo,
+  useSyncExternalStore,
 } from "react";
-import type { ReactNode } from "react";
+import type { Context, ReactElement, ReactNode } from "react";
 
 import { zeroSafeArea } from "../capabilities/safe-area/safe-area-style.ts";
 import { BridgeLive } from "../core/bridge/bridge.ts";
 import type { Bridge } from "../core/bridge/bridge.ts";
 import type { NativeContext } from "../core/context/native-context.ts";
+import {
+  createEffectRuntime,
+  defaultRuntime,
+  runtimeBridgeLayer,
+} from "../plain/runtime.ts";
+import type { RadicalRuntime } from "../plain/runtime.ts";
 
 export type BridgeState<A, E> =
   | {
@@ -43,29 +51,93 @@ export const NativeContextContext = createContext<NativeContext>({
   shellVersion: null,
 });
 
+export const RuntimeContext: Context<RadicalRuntime> =
+  createContext(defaultRuntime);
+
 export const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
 
-/** Supply one stable layer for every capability hook in this subtree. */
+const runtimeOwner = (
+  layer: Layer.Layer<Bridge>,
+  supplied?: RadicalRuntime
+) => {
+  let runtime = supplied ?? createEffectRuntime(layer);
+  let disposed = false;
+  const listeners = new Set<() => void>();
+
+  return {
+    snapshot: () => runtime,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    setup: () => {
+      if (disposed) {
+        runtime = createEffectRuntime(layer);
+        disposed = false;
+
+        for (const listener of listeners) {
+          listener();
+        }
+      }
+
+      const owned = runtime;
+
+      return () => {
+        if (!supplied) {
+          disposed = true;
+          void owned.dispose();
+        }
+      };
+    },
+  };
+};
+
+/** Effect API provider accepts an injectable bridge layer. */
 export const RadicalProvider = ({
   layer = BridgeLive,
   children,
   nativeContext,
+  runtime: supplied,
 }: {
   readonly layer?: Layer.Layer<Bridge>;
+  readonly runtime?: RadicalRuntime;
   readonly children?: ReactNode;
   readonly nativeContext?: NativeContext;
-}) =>
-  createElement(
-    BridgeContext.Provider,
-    { value: layer },
-    nativeContext
-      ? createElement(
-          NativeContextContext.Provider,
-          { value: nativeContext },
-          children
-        )
-      : children
+}): ReactElement => {
+  const owner = useMemo(() => runtimeOwner(layer, supplied), [layer, supplied]);
+
+  const runtime = useSyncExternalStore(
+    owner.subscribe,
+    owner.snapshot,
+    owner.snapshot
   );
+
+  useEffect(() => owner.setup(), [owner]);
+
+  const bridge = useMemo(() => runtimeBridgeLayer(runtime), [runtime]);
+
+  return createElement(
+    RuntimeContext.Provider,
+    { value: runtime },
+    createElement(
+      BridgeContext.Provider,
+      { value: bridge },
+      nativeContext
+        ? createElement(
+            NativeContextContext.Provider,
+            { value: nativeContext },
+            children
+          )
+        : children
+    )
+  );
+};
+
+export const useRadicalRuntime = (): RadicalRuntime =>
+  useContext(RuntimeContext);
 
 /** Effects must have stable identity. Nothing executes until React commits. */
 export const useBridgeEffect = <A, E>(
