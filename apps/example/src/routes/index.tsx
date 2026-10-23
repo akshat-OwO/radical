@@ -1,56 +1,47 @@
-import { BridgeLive } from "@akshatowo/radical/client";
-import { useDeviceInfo, useSafeArea } from "@akshatowo/radical/react";
+import {
+  useDeviceInfo,
+  useSafeArea,
+  useRadicalRuntime,
+} from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
-import { useEffect, useState } from "react";
-import { plugins } from "virtual:radical/plugins";
+import { useEffect, useMemo, useState } from "react";
+import { createPlugins } from "virtual:radical/plugins";
+
+import { EchoRejected } from "../../plugins/echo.ts";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
 );
 
 const Home = () => {
+  const runtime = useRadicalRuntime();
+  const plugins = useMemo(() => createPlugins(runtime), [runtime]);
   const [echo, setEcho] = useState("Ready");
 
-  const runEcho = (text: string) => {
-    Effect.runFork(
-      plugins.echo.echo({ text }).pipe(
-        Effect.provide(BridgeLive),
-        Effect.match({
-          onFailure: (error) =>
-            error._tag === "EchoRejected"
-              ? `EchoRejected: ${error.reason}`
-              : error._tag,
-          onSuccess: (result) => result.text,
-        }),
-        Effect.tap((value) =>
-          Effect.sync(() => {
-            setEcho(value);
-          })
-        )
-      )
-    );
+  const runEcho = async (text: string) => {
+    try {
+      const result = await plugins.echo.echo({ text });
+      setEcho(result.text);
+    } catch (error) {
+      setEcho(
+        error instanceof EchoRejected
+          ? `EchoRejected: ${error.reason}`
+          : String(error)
+      );
+    }
   };
 
   const device = useDeviceInfo();
   const safeArea = useSafeArea();
   const [nativeContext, setNativeContext] = useState("Not requested");
 
-  const callServer = () => {
-    Effect.runFork(
-      Effect.tryPromise(async () => await readNativeContext()).pipe(
-        Effect.match({
-          onSuccess: (value) => JSON.stringify(value, null, 2),
-          onFailure: () => "Server unavailable",
-        }),
-        Effect.tap((value) =>
-          Effect.sync(() => {
-            setNativeContext(value);
-          })
-        )
-      )
-    );
+  const callServer = async () => {
+    try {
+      setNativeContext(JSON.stringify(await readNativeContext(), null, 2));
+    } catch {
+      setNativeContext("Server unavailable");
+    }
   };
 
   const [css, setCSS] = useState("");
@@ -104,7 +95,7 @@ const Home = () => {
       <button
         type="button"
         onClick={() => {
-          runEcho("hello");
+          void runEcho("hello");
         }}
       >
         Call echo
@@ -112,14 +103,19 @@ const Home = () => {
       <button
         type="button"
         onClick={() => {
-          runEcho("deny");
+          void runEcho("deny");
         }}
       >
         Reject echo
       </button>
       <pre>{echo}</pre>
       <h2>Native context</h2>
-      <button type="button" onClick={callServer}>
+      <button
+        type="button"
+        onClick={() => {
+          void callServer();
+        }}
+      >
         Call server function
       </button>
       <pre>{nativeContext}</pre>

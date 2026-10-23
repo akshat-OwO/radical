@@ -470,7 +470,7 @@ describe("native plugin manifests", () => {
         );
         assert.include(
           pluginVirtualSource("/app", enabled),
-          '"echo": createPluginClient(manifest0)'
+          '"echo": createPluginClient(manifest0, runtime)'
         );
         assert.include(
           pluginTypeSource("/app", enabled),

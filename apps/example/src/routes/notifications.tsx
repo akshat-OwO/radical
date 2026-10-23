@@ -1,13 +1,12 @@
-import { NotificationScheduleResultSchema } from "@akshatowo/radical/client";
+import { isNotificationScheduleResult } from "@akshatowo/radical/client";
 import {
   useExactAlarmPermission,
   useNotificationPermission,
   useNotifications,
 } from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Schema } from "effect";
 
-const isScheduleResult = Schema.is(NotificationScheduleResultSchema);
+const isScheduleResult = isNotificationScheduleResult;
 
 const Notifications = () => {
   const exactAlarms = useExactAlarmPermission();

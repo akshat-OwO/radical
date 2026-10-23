@@ -21,20 +21,113 @@
   "type": "module",
   "exports": {
     "./transitions.css": "./dist/transitions.css",
-    "./client": "./dist/client.mjs",
-    "./native-context": "./dist/native-context.mjs",
-    "./offline-entry": "./dist/offline-entry.mjs",
-    "./server": "./dist/server.mjs",
-    "./tanstack-start-client": "./dist/tanstack-start-client.mjs",
-    "./tanstack-start": "./dist/tanstack-start.mjs",
-    "./tanstack-start-server": "./dist/tanstack-start-server.mjs",
-    "./vite": "./dist/vite.mjs",
+    "./client": {
+      "@akshatowo/radical/source": "./src/plain/client.ts",
+      "default": "./dist/client.mjs"
+    },
+    "./native-context": {
+      "@akshatowo/radical/source": "./src/plain/native-context.ts",
+      "default": "./dist/native-context.mjs"
+    },
+    "./offline-entry": {
+      "@akshatowo/radical/source": "./src/core/offline/offline-main.ts",
+      "default": "./dist/offline-entry.mjs"
+    },
+    "./server": {
+      "@akshatowo/radical/source": "./src/plain/server.ts",
+      "default": "./dist/server.mjs"
+    },
+    "./tanstack-start-client": {
+      "@akshatowo/radical/source": "./src/plain/tanstack-start-client.ts",
+      "default": "./dist/tanstack-start-client.mjs"
+    },
+    "./tanstack-start": {
+      "@akshatowo/radical/source": "./src/plain/tanstack-start.ts",
+      "default": "./dist/tanstack-start.mjs"
+    },
+    "./tanstack-start-server": {
+      "@akshatowo/radical/source": "./src/plain/tanstack-start-server.ts",
+      "default": "./dist/tanstack-start-server.mjs"
+    },
+    "./vite": {
+      "@akshatowo/radical/source": "./src/plain/vite.ts",
+      "default": "./dist/vite.mjs"
+    },
     "./package.json": "./package.json",
-    "./react": "./dist/react.mjs",
-    "./plugins": "./dist/plugins.mjs",
-    "./internal-plugins": "./dist/internal-plugins.mjs"
+    "./react": {
+      "@akshatowo/radical/source": "./src/plain/react.ts",
+      "default": "./dist/react.mjs"
+    },
+    "./plugins": {
+      "@akshatowo/radical/source": "./src/plain/plugins.ts",
+      "default": "./dist/plugins.mjs"
+    },
+    "./internal-plugins": {
+      "@akshatowo/radical/source": "./src/core/plugins/internal-plugins.ts",
+      "default": "./dist/internal-plugins.mjs"
+    },
+    "./effect/client": {
+      "@akshatowo/radical/source": "./src/effect/client.ts",
+      "default": "./dist/effect/client.mjs"
+    },
+    "./effect/plugins": {
+      "@akshatowo/radical/source": "./src/core/plugins/plugins.ts",
+      "default": "./dist/effect/plugins.mjs"
+    },
+    "./effect/server": {
+      "@akshatowo/radical/source": "./src/entry/server.ts",
+      "default": "./dist/effect/server.mjs"
+    },
+    "./effect/native-context": {
+      "@akshatowo/radical/source": "./src/core/context/native-context.ts",
+      "default": "./dist/effect/native-context.mjs"
+    },
+    "./effect/react": {
+      "@akshatowo/radical/source": "./src/effect/react.ts",
+      "default": "./dist/effect/react.mjs"
+    },
+    "./effect/vite": {
+      "@akshatowo/radical/source": "./src/vite/vite.ts",
+      "default": "./dist/effect/vite.mjs"
+    },
+    "./effect/tanstack-start": {
+      "@akshatowo/radical/source": "./src/adapters/tanstack-start/tanstack-start.ts",
+      "default": "./dist/effect/tanstack-start.mjs"
+    },
+    "./effect/tanstack-start-client": {
+      "@akshatowo/radical/source": "./src/adapters/tanstack-start/tanstack-start-client.ts",
+      "default": "./dist/effect/tanstack-start-client.mjs"
+    },
+    "./effect/tanstack-start-server": {
+      "@akshatowo/radical/source": "./src/adapters/tanstack-start/tanstack-start-server.ts",
+      "default": "./dist/effect/tanstack-start-server.mjs"
+    }
   },
   "publishConfig": {
+    "exports": {
+      "./transitions.css": "./dist/transitions.css",
+      "./client": "./dist/client.mjs",
+      "./native-context": "./dist/native-context.mjs",
+      "./offline-entry": "./dist/offline-entry.mjs",
+      "./server": "./dist/server.mjs",
+      "./tanstack-start-client": "./dist/tanstack-start-client.mjs",
+      "./tanstack-start": "./dist/tanstack-start.mjs",
+      "./tanstack-start-server": "./dist/tanstack-start-server.mjs",
+      "./vite": "./dist/vite.mjs",
+      "./package.json": "./package.json",
+      "./react": "./dist/react.mjs",
+      "./plugins": "./dist/plugins.mjs",
+      "./internal-plugins": "./dist/internal-plugins.mjs",
+      "./effect/client": "./dist/effect/client.mjs",
+      "./effect/plugins": "./dist/effect/plugins.mjs",
+      "./effect/server": "./dist/effect/server.mjs",
+      "./effect/native-context": "./dist/effect/native-context.mjs",
+      "./effect/react": "./dist/effect/react.mjs",
+      "./effect/vite": "./dist/effect/vite.mjs",
+      "./effect/tanstack-start": "./dist/effect/tanstack-start.mjs",
+      "./effect/tanstack-start-client": "./dist/effect/tanstack-start-client.mjs",
+      "./effect/tanstack-start-server": "./dist/effect/tanstack-start-server.mjs"
+    },
     "access": "public"
   },
   "scripts": {
@@ -45,7 +138,6 @@
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
-    "effect": "catalog:",
     "semver": "catalog:",
     "sharp": "catalog:"
   },
@@ -76,6 +168,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/semver": "catalog:",
+    "effect": "catalog:",
     "happy-dom": "^20.0.0",
     "ignore": "catalog:",
     "react": "19.3.1",
@@ -105,6 +198,7 @@
     "@capgo/camera-preview": "8.14.2",
     "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
+    "effect": "^4.0.5",
     "react": "^18.0.0 || ^19.0.0",
     "vite": ">=8.0.0"
   },

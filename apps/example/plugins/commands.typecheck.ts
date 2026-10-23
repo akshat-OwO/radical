@@ -1,29 +1,25 @@
-import type {
-  Bridge,
-  BridgeCallFailed,
-  BridgeDecodeError,
-  BridgeUnavailable,
-} from "@akshatowo/radical/client";
-// oxlint-disable typescript/no-unsafe-call, typescript/no-unsafe-member-access -- Negative type assertions intentionally call missing properties.
-import type { Effect } from "effect";
-import { plugins } from "virtual:radical/plugins";
+import type { plugins } from "virtual:radical/plugins";
 
-import type { EchoRejected } from "./echo.ts";
+type Assert<T extends true> = T;
 
-/** Compile-time assertions for the generated virtual module. Never invoked. */
-export const checkPluginTypes = () => {
-  const result: Effect.Effect<
-    { readonly text: string },
-    EchoRejected | BridgeCallFailed | BridgeDecodeError | BridgeUnavailable,
-    Bridge
-  > = plugins.echo.echo({ text: "hello" });
+export type PlainResult = Assert<
+  ReturnType<typeof plugins.echo.echo> extends Promise<{
+    readonly text: string;
+  }>
+    ? true
+    : false
+>;
 
-  // @ts-expect-error Native commands require the manifest's argument type.
-  plugins.echo.echo({ text: 1 });
-  // @ts-expect-error Only declared commands exist.
-  plugins.echo.missing({});
-  // @ts-expect-error Only enabled plugins exist.
-  plugins.disabled.echo({});
+export type PlainArgs = Assert<
+  Parameters<typeof plugins.echo.echo>[0] extends { readonly text: string }
+    ? true
+    : false
+>;
 
-  return result;
-};
+export type EnabledCommands = Assert<
+  keyof typeof plugins.echo extends "echo" ? true : false
+>;
+
+export type EnabledPlugins = Assert<
+  "disabled" extends keyof typeof plugins ? false : true
+>;
