@@ -1,10 +1,10 @@
 # Radical
 
-Radical runs server-rendered web apps inside Android and iOS WebView shells. A Vite plugin generates the native projects. Effect APIs and React hooks connect your UI to native capabilities. TanStack Start is the implemented framework adapter.
+Radical runs your web app inside Android and iOS WebView shells, loaded from an HTTP origin or packaged as SPA assets. A Vite plugin generates the native projects. Effect APIs and React hooks connect your UI to native capabilities. TanStack Start is the implemented framework adapter.
 
 ## Get started
 
-Create your own app with [Getting started](apps/docs/content/docs/getting-started/index.mdx). The [installation guide](apps/docs/content/docs/getting-started/installation.mdx) includes every file needed for a standalone TanStack Start project, then [native setup](apps/docs/content/docs/getting-started/native.mdx) takes the same UI to Android or iOS.
+Create your own app with [Getting started](apps/docs/content/docs/getting-started/index.mdx). The [installation guide](apps/docs/content/docs/getting-started/installation.mdx) scaffolds a TanStack Start app with the TanStack CLI and adds Radical, then [native setup](apps/docs/content/docs/getting-started/native.mdx) takes the same UI to Android or iOS.
 
 Install Radical in your app:
 

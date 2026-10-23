@@ -1,17 +1,25 @@
 ---
-title: "Radical runs your web app in native shells"
-description: "An introduction to Radical for developers who already use server-rendered web apps."
+title: "Introduction"
+description: "Run your web app in Android and iOS shells with access to native capabilities."
 ---
 
-Radical runs a web UI in Android and iOS WebViews. The Vite plugin generates the native projects; an Effect bridge connects the UI to native capabilities. Your framework keeps routing, rendering, data fetching, and HTTP handling.
+Radical runs your web app inside Android and iOS WebViews. It loads the UI from an HTTP origin in remote mode or packages SPA assets in bundled mode.
 
-TanStack Start is the implemented adapter. React hooks expose capabilities; custom plugins use Effect Schema manifests.
+The framework-agnostic Vite plugin generates native projects. An Effect bridge and React hooks expose native capabilities. Your app keeps control of routing, rendering, data fetching, and HTTP handling.
+
+## Works with your framework
+
+TanStack Start is the only supported framework adapter today. It supports both remote and bundled mode.
+
+<FrameworkGrid />
+
+## Explore the docs
 
 <Cards>
   <Card
     title="Getting started"
     href="/docs/getting-started"
-    description="Install Radical in your own project and run browser and native apps."
+    description="Create a TanStack Start app with Radical and run it in a browser or native shell."
   />
   <Card
     title="Change an existing app"
@@ -37,7 +45,7 @@ TanStack Start is the implemented adapter. React hooks expose capabilities; cust
 | Remote, the default | Configured HTTP origin | Documents and data | Visited route snapshots or packaged fallback |
 | Bundled | Packaged SPA assets | API and server functions | Packaged UI; remote data needs app-owned handling |
 
-Both modes share the native bridge. Browser behavior depends on each capability.
+Both modes share the native bridge. Browser support depends on each capability.
 
 ## Platform boundaries
 

@@ -3,7 +3,7 @@ title: "Run on Android or iOS"
 description: "Open your browser app in a native shell connected to the development server."
 ---
 
-Complete [installation](/docs/getting-started/installation) first. Keep `pnpm dev` running on port 5173 with `devHost: "localhost"` in `vite.config.ts`.
+Complete [installation](/docs/getting-started/installation) first. Keep `pnpm dev` running on port 3000 with `devHost: "localhost"` in `vite.config.ts`.
 
 Run every command below from your app directory. Install the native dependencies for the platform you want to run.
 
@@ -29,11 +29,11 @@ adb devices
 Use the emulator's serial in both commands:
 
 ```sh
-adb -s YOUR_SERIAL reverse tcp:5173 tcp:5173
+adb -s YOUR_SERIAL reverse tcp:3000 tcp:3000
 pnpm exec radical android --target YOUR_SERIAL
 ```
 
-Radical generates the Android project, builds it, and launches the app. You see **My app** with `platform: "android"`. Port reversal lets the Android shell reach the computer's development server at `localhost:5173`.
+Radical generates the Android project, builds it, and launches the app. You see **My app** with `platform: "android"`. Port reversal lets the Android shell reach the computer's development server at `localhost:3000`.
 
 For an authorized USB device, use its serial in the same commands. See [device targets and LAN access](/docs/guides/run-on-a-device) for other connection options.
 
@@ -66,7 +66,7 @@ For a physical iPhone, follow [physical-device signing and LAN setup](/docs/guid
 
 ## Keep the server reachable
 
-Remote mode needs the web server for documents and server functions. If the shell cannot connect, check that `pnpm dev` is still running on port 5173. On Android, repeat port reversal after reconnecting the device.
+Remote mode needs the web server for documents and server functions. If the shell cannot connect, check that `pnpm dev` is still running on port 3000. On Android, repeat port reversal after reconnecting the device.
 
 Changing native flags or assets requires regeneration. Run `pnpm exec radical android` or `pnpm exec radical ios` again. Use `--generate-only` to create the project without building or launching it.
 

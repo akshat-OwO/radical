@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-description: "Create a standalone TanStack Start project with Radical and run it in a browser."
+description: "Create a TanStack Start project with the official CLI, add Radical, and run it in a browser."
 ---
 
 Create an app that displays device information. The setup below uses the same APIs as Radical's [example app](https://github.com/akshat-OwO/radical/tree/main/apps/example), with a single route and no optional capabilities.
@@ -18,58 +18,33 @@ You need React and TypeScript knowledge to change the app. Android Studio and Xc
 
 The package is `@akshatowo/radical`. The CLI command is `radical`.
 
-## Create the project
+## Create a TanStack Start project
 
-Run these commands in the directory where you keep your projects:
+Use the CLI from TanStack's [Getting Started guide](https://tanstack.com/start/latest/docs/framework/react/getting-started):
 
 ```sh
-mkdir my-app
+npx @tanstack/cli@latest create my-app --framework React --build-tool vite --package-manager pnpm --blank --no-toolchain --no-intent --no-git --no-install --non-interactive
 cd my-app
-pnpm init
-pnpm add @akshatowo/radical@0.1.0
-pnpm add @tanstack/react-start@1.169.3 @tanstack/react-router@1.170.45 react@19.3.1 react-dom@19.3.1 effect@^4.0.5
-pnpm add -D vite@^8.0.0 @vitejs/plugin-react@^6.0.0 typescript@^7.0.2 @types/react@^19.2.0 @types/react-dom@^19.2.0 @types/node@^24
-mkdir -p src/routes public
+pnpm install
 ```
 
-Keep the dependencies pnpm adds to `package.json`. Add `"type": "module"` and these scripts:
+`--blank` creates one route without starter UI, Tailwind, devtools, or tests. The remaining flags select React, Vite, and pnpm, skip optional setup, and disable prompts.
 
-```json
-{
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
-    "build": "vite build",
-    "typecheck": "tsc --noEmit"
-  }
-}
+The CLI generates `vite.config.ts`, `tsconfig.json`, `src/router.tsx`, `src/styles.css`, and the root and index routes. Keep the generated router, dependencies, and package scripts. The `dev` script uses port 3000.
+
+## Add Radical
+
+Install Radical and Effect:
+
+```sh
+pnpm add @akshatowo/radical@0.1.0 effect@^4.0.5
 ```
 
-The versions above match the framework versions used by the repository example. This is a manual setup based on TanStack's [build from scratch guide](https://tanstack.com/start/latest/docs/framework/react/build-from-scratch). No app generator or repository clone is required.
+If pnpm reports an ignored build script for `sharp`, run `pnpm approve-builds` and approve `sharp`. Radical uses it to generate native assets.
 
-## Configure TypeScript and Vite
+### Configure Vite
 
-Create `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "types": ["vite/client"]
-  },
-  "include": ["src", "vite.config.ts", ".radical/plugins.d.ts"]
-}
-```
-
-Create `vite.config.ts`:
+Replace the generated `vite.config.ts`:
 
 ```ts
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -89,6 +64,7 @@ const config = {
 } satisfies RadicalConfig;
 
 export default defineConfig({
+  resolve: { tsconfigPaths: true },
   plugins: [
     tanstackStart(tanstackStartOptions(config)),
     radical(config),
@@ -99,9 +75,21 @@ export default defineConfig({
 
 Keep the React plugin after Start. Remote mode loads the UI from the development server. `devHost` tells the native shell which host to connect to.
 
-## Register request middleware
+### Include generated plugin types
 
-Create `src/start.ts`:
+Add `.radical/plugins.d.ts` to the generated `tsconfig.json` include list. Keep the generated compiler options:
+
+```json
+{
+  "include": ["**/*.ts", "**/*.tsx", ".radical/plugins.d.ts"]
+}
+```
+
+Add `.radical/` to the generated `.gitignore`.
+
+### Register request middleware
+
+Create `src/start.ts`. The blank template does not generate this file:
 
 ```ts
 import { createStart } from "@tanstack/react-start";
@@ -120,7 +108,7 @@ declare module "@tanstack/react-start" {
 
 The middleware supplies typed native context to server functions and SSR. Keep the whole middleware list so Start's server-function CSRF checks stay enabled.
 
-Create `src/server.ts`:
+Create `src/server.ts`. This new file replaces Start's default server entry:
 
 ```ts
 import {
@@ -136,29 +124,9 @@ export default {
 
 This keeps Start's streaming SSR handler and adds route-level offline response headers. Offline routes remain opt-in.
 
-## Create the router
+### Add the root document and provider
 
-Create `src/router.tsx`:
-
-```tsx
-import { createRouter } from "@tanstack/react-router";
-import { routeTree } from "./routeTree.gen";
-
-export const getRouter = () =>
-  createRouter({ routeTree, scrollRestoration: true });
-
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: ReturnType<typeof getRouter>;
-  }
-}
-```
-
-Start generates `src/routeTree.gen.ts` when you run the development server. Do not create that file yourself.
-
-## Add the root document and provider
-
-Create `src/routes/__root.tsx`:
+Replace the generated `src/routes/__root.tsx`:
 
 ```tsx
 import {
@@ -223,11 +191,13 @@ export const Route = createRootRoute({
 });
 ```
 
+This replacement uses inline safe-area styles instead of the generated `src/styles.css`. You can leave that unused stylesheet in place.
+
 The root loader reads context on the server. `RadicalProvider` gives hooks the same context during SSR and hydration, while `safeAreaStyle` supplies inset variables for the page padding.
 
-## Add the first route
+### Replace the first route
 
-Create `src/routes/index.tsx`:
+Replace the generated `src/routes/index.tsx`:
 
 ```tsx
 import { createFileRoute } from "@tanstack/react-router";
@@ -251,7 +221,9 @@ const Home = () => {
 export const Route = createFileRoute("/")({ component: Home });
 ```
 
-Create `public/offline.html` as a standalone document with no external assets:
+### Add the offline fallback
+
+Create the `public` directory. Add `public/offline.html` as a standalone document with no external assets:
 
 ```html
 <!doctype html>
@@ -276,15 +248,15 @@ Start the development server from `my-app`:
 pnpm dev
 ```
 
-Open `http://localhost:5173`. You see **My app** and device information with `platform: "web"`. The hook reports loading during SSR and reads browser information after mount.
+Open `http://localhost:3000`. You see **My app** and device information with `platform: "web"`. The hook reports loading during SSR and reads browser information after mount.
 
 Keep the server running. In a second terminal, check the app:
 
 ```sh
-pnpm typecheck
+pnpm exec tsc --noEmit
 pnpm build
 ```
 
-Run the server once before type checking so Start generates the route tree. Production builds generate offline assets; service worker registration stays disabled during development.
+Run the server once before type checking so Start generates `src/routeTree.gen.ts`. The template has no `typecheck` script, so use `pnpm exec tsc --noEmit`. Production builds generate offline assets; service worker registration stays disabled during development.
 
 Continue with [project structure](/docs/getting-started/project-structure) or [run on Android or iOS](/docs/getting-started/native).

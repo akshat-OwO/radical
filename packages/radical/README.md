@@ -1,6 +1,6 @@
 # @akshatowo/radical
 
-Run server-rendered web apps inside Android and iOS WebView shells. Radical generates native projects from your Vite config and connects React hooks and Effect APIs to device capabilities. TanStack Start owns routing and server rendering.
+Run your web app inside Android and iOS WebView shells, loaded from an HTTP origin or packaged as SPA assets. Radical generates native projects from your Vite config and connects React hooks and Effect APIs to device capabilities. The Vite core is framework-agnostic. TanStack Start is the only supported framework adapter today.
 
 ## Get started
 
@@ -10,7 +10,7 @@ Install Radical in your app:
 pnpm add @akshatowo/radical
 ```
 
-Follow [installation](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/getting-started/installation.mdx) for a standalone TanStack Start app with every required file, middleware, SSR handler, and root provider. No Radical repository clone is required.
+Follow [installation](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/getting-started/installation.mdx) to scaffold a TanStack Start app with the TanStack CLI and add Radical. No Radical repository clone is required.
 
 Then review [project structure](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/getting-started/project-structure.mdx) and [run on Android or iOS](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/getting-started/native.mdx). The CLI command remains `radical`:
 
