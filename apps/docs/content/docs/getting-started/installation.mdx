@@ -141,9 +141,8 @@ Add these imports:
 
 ```tsx
 import { createServerFn } from "@tanstack/react-start";
-import { registerOffline, safeAreaStyle } from "@akshatowo/radical/client";
+import { safeAreaStyle } from "@akshatowo/radical/client";
 import { RadicalProvider } from "@akshatowo/radical/react";
-import { useEffect } from "react";
 import type { CSSProperties } from "react";
 ```
 
@@ -169,14 +168,6 @@ Inside the existing shell component, before its `return`, add:
 const { nativeContext } = Route.useLoaderData();
 const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
   safeAreaStyle(nativeContext, "remote");
-
-useEffect(() => {
-  void registerOffline({
-    mode: "remote",
-    production: import.meta.env.PROD,
-    base: import.meta.env.BASE_URL,
-  });
-}, []);
 ```
 
 Add `style={rootStyle}` to the existing `<html>` element. If it already has a style, merge the objects with `style={{ ...existingStyle, ...rootStyle }}`. Keep its other attributes.
@@ -210,6 +201,42 @@ main {
   padding-left: calc(var(--radical-safe-area-left) + 16px);
 }
 ```
+
+### Register the offline worker
+
+Register the worker from the client entry instead of a React effect. Create `src/client.tsx`, or add the registration to your existing client entry:
+
+```tsx
+import { registerOffline } from "@akshatowo/radical/client";
+import { StartClient } from "@tanstack/react-start/client";
+import { startTransition, StrictMode } from "react";
+import { hydrateRoot } from "react-dom/client";
+
+startTransition(() => {
+  hydrateRoot(
+    document,
+    <StrictMode>
+      <StartClient />
+    </StrictMode>
+  );
+});
+
+const register = () => {
+  void registerOffline({
+    mode: "remote",
+    production: import.meta.env.PROD,
+    base: import.meta.env.BASE_URL,
+  });
+};
+
+if (document.readyState === "complete") {
+  register();
+} else {
+  window.addEventListener("load", register, { once: true });
+}
+```
+
+TanStack Start picks up `src/client.tsx` automatically. The entry runs once in the browser, so StrictMode and navigation cannot repeat registration. Waiting for `load` keeps worker installation from competing with the initial page load.
 
 ### Add a device route
 

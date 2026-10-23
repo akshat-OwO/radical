@@ -16,7 +16,7 @@ Disposal interrupts pending runtime commands and waits for resource cleanup. The
 | Export | Contract |
 | --- | --- |
 | `detectRuntime()` | Synchronous `"browser"`, `"android"`, or `"ios"`; SSR reports browser |
-| `registerOffline({ production, mode?, base? })` | `Promise<void>`; registers the worker only in a production browser with service-worker support and remote mode |
+| `registerOffline({ production, mode?, base? })` | `Promise<void>`; registers the worker only in a production browser with service-worker support and remote mode. Call it from the [client entry](/docs/getting-started/installation#register-the-offline-worker) |
 | `shouldRegister({ production, browser })` | Conjunction of the two flags |
 | `createRadicalFetch(config)` | Fetch-compatible function routing eligible bundled requests to the configured origin |
 | `localNativeContext()` | Browser context before mount, then validated injected context |
