@@ -1,0 +1,712 @@
+---
+title: "Build a todo app"
+description: "Create a TanStack Start app, add Radical in remote mode, build a todo list, and run it on the web, Android, and iOS."
+---
+
+In this tutorial you build a small todo app and run the same code in a browser, an Android emulator, and an iOS simulator. You create a TanStack Start project with Tailwind, add Radical in remote mode, write the app, and then open it in each native shell.
+
+The todos live in a JSON file on the development server. Every client reads and writes that one file, so a todo you add in the browser also appears on the phone.
+
+## Before you start
+
+You need:
+
+- Node.js 22.18 or later and pnpm.
+- Android Studio with an emulator, for the Android step.
+- macOS with Xcode and an iOS simulator, for the iOS step.
+
+You can finish the web part without either native toolchain.
+
+## Create the project
+
+Create a TanStack Start app with the TanStack CLI:
+
+```sh
+npx @tanstack/cli@latest create todo --framework React --package-manager pnpm --no-examples --no-toolchain
+cd todo
+```
+
+The standard template includes Tailwind CSS v4, so you do not need an add-on. `--no-examples` skips the demo pages. Run the command without flags if you prefer to answer the prompts yourself.
+
+The CLI installs dependencies and generates a route tree. You now have `src/routes/__root.tsx`, `src/routes/index.tsx`, `src/router.tsx`, and `src/styles.css`.
+
+## Add Radical
+
+Install Radical and allow its `sharp` build script. Radical uses `sharp` to generate app icons and splash screens.
+
+```sh
+pnpm add @akshatowo/radical@0.2.0
+pnpm approve-builds sharp
+```
+
+The next steps set up **remote mode**. In remote mode the native shell is a WebView that loads your app from a running server. The server renders pages and runs server functions for every client, the same way it does for a browser.
+
+### Configure Vite
+
+Replace `vite.config.ts`:
+
+```ts title="vite.config.ts"
+import { defineConfig } from "vite";
+import {
+  radical,
+  tanstackStartOptions,
+} from "@akshatowo/radical/tanstack-start";
+import type { RadicalConfig } from "@akshatowo/radical/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+
+const config = {
+  appId: "dev.example.todo",
+  name: "Todo",
+  mode: "remote",
+  devHost: "localhost",
+  internalPlugins: { haptics: true },
+} satisfies RadicalConfig;
+
+const viteConfig = defineConfig({
+  resolve: { tsconfigPaths: true },
+  plugins: [
+    tailwindcss(),
+    tanstackStart(tanstackStartOptions(config)),
+    radical(config),
+    viteReact(),
+  ],
+});
+
+export default viteConfig;
+```
+
+`appId` and `name` identify the app on the device. `devHost` tells the native shell which host runs the dev server. `internalPlugins.haptics` adds the native haptics plugin, which the app uses when you complete a todo.
+
+The generated config also loads `devtools()` from `@tanstack/devtools-vite`. This config leaves it out. With a native shell connected, its console pipe can echo server warnings between the server and the client until the dev server stops responding.
+
+### Include generated types
+
+Radical writes plugin types to `.radical/`. Add them to the `include` list in `tsconfig.json`:
+
+```json title="tsconfig.json"
+{
+  "include": ["**/*.ts", "**/*.tsx", ".radical/plugins.d.ts"]
+}
+```
+
+Keep the generated compiler options. Then add `.radical/` to `.gitignore`. The folder also holds the generated Android and Xcode projects.
+
+### Register the request middleware
+
+Create `src/start.ts`:
+
+```ts title="src/start.ts"
+import { createStart } from "@tanstack/react-start";
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [...createRadicalRequestMiddleware()],
+}));
+
+declare module "@tanstack/react-start" {
+  interface Register {
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>;
+  }
+}
+```
+
+The native shell sends details about the device with each request, such as the platform and the safe-area insets. The middleware reads those details and adds `nativeContext` to the context of every server function and SSR render.
+
+### Wrap the SSR handler
+
+Create `src/server.ts`:
+
+```ts title="src/server.ts"
+import {
+  createStartHandler,
+  defaultStreamHandler,
+} from "@tanstack/react-start/server";
+import { offlineHandler } from "@akshatowo/radical/tanstack-start-server";
+
+export default {
+  fetch: createStartHandler(offlineHandler(defaultStreamHandler)),
+};
+```
+
+`offlineHandler` keeps Start's streaming renderer and adds the response headers that Radical's offline worker reads. Routes stay online-only unless you opt them in.
+
+### Register the offline worker
+
+Create `src/client.tsx`:
+
+```tsx title="src/client.tsx"
+import { registerOffline } from "@akshatowo/radical/client";
+import { StartClient } from "@tanstack/react-start/client";
+import { startTransition, StrictMode } from "react";
+import { hydrateRoot } from "react-dom/client";
+
+startTransition(() => {
+  hydrateRoot(
+    document,
+    <StrictMode>
+      <StartClient />
+    </StrictMode>
+  );
+});
+
+const register = () => {
+  void registerOffline({
+    mode: "remote",
+    production: import.meta.env.PROD,
+    base: import.meta.env.BASE_URL,
+  });
+};
+
+if (document.readyState === "complete") {
+  register();
+} else {
+  window.addEventListener("load", register, { once: true });
+}
+```
+
+Start uses `src/client.tsx` as the client entry when the file exists. The worker registers once, after the page loads, and only in production builds.
+
+### Add the offline page
+
+Create `public/offline.html`. The shell shows this page when it cannot reach the server.
+
+```html title="public/offline.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connection unavailable</title>
+  </head>
+  <body>
+    <h1>Connection unavailable</h1>
+    <p>Connect to the internet, then <a href="/">try again</a>.</p>
+  </body>
+</html>
+```
+
+### Update the root route
+
+Replace `src/routes/__root.tsx`:
+
+```tsx title="src/routes/__root.tsx"
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { safeAreaStyle } from "@akshatowo/radical/client";
+import { RadicalProvider } from "@akshatowo/radical/react";
+import type { CSSProperties, ReactNode } from "react";
+
+import appCss from "../styles.css?url";
+
+const readNativeContext = createServerFn({ method: "GET" }).handler(
+  ({ context }) => context.nativeContext
+);
+
+export const Route = createRootRoute({
+  loader: async () => ({ nativeContext: await readNativeContext() }),
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
+      { title: "Todo" },
+    ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500&family=Schibsted+Grotesk:wght@700&display=swap",
+      },
+      { rel: "stylesheet", href: appCss },
+    ],
+  }),
+  shellComponent: RootDocument,
+});
+
+function RootDocument({ children }: { children: ReactNode }) {
+  const { nativeContext } = Route.useLoaderData();
+  const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
+    safeAreaStyle(nativeContext, "remote");
+
+  return (
+    <html lang="en" style={rootStyle}>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <RadicalProvider nativeContext={nativeContext}>
+          {children}
+        </RadicalProvider>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+This file does three things:
+
+- The loader reads `nativeContext` on the server. SSR and hydration then render with the same values, so React reports no mismatch.
+- `safeAreaStyle` sets four CSS variables, such as `--radical-safe-area-top`, on `<html>`. On a phone they hold the size of the status bar and home indicator. In a browser they fall back to `env(safe-area-inset-*)`.
+- `RadicalProvider` gives Radical hooks, such as `useHapticFeedback`, access to the native bridge.
+
+`viewport-fit=cover` lets the page draw under the system bars. The CSS variables then decide where content starts. The root also drops the generated devtools panel, which would cover part of a phone screen.
+
+## Build the todo app
+
+Start the dev server and keep it running for the rest of the tutorial:
+
+```sh
+pnpm dev
+```
+
+Vite serves the app at `http://localhost:3000`.
+
+### Store todos on the server
+
+Create `src/lib/todos.ts`:
+
+```ts title="src/lib/todos.ts"
+import { createServerFn } from "@tanstack/react-start";
+import { readFile, writeFile } from "node:fs/promises";
+
+export type Todo = { id: string; title: string; done: boolean };
+
+const file = "todos.json";
+
+const load = async (): Promise<Todo[]> => {
+  try {
+    return JSON.parse(await readFile(file, "utf8"));
+  } catch {
+    return [];
+  }
+};
+
+const save = (todos: Todo[]) => writeFile(file, JSON.stringify(todos, null, 2));
+
+export const listTodos = createServerFn({ method: "GET" }).handler(load);
+
+export const addTodo = createServerFn({ method: "POST" })
+  .validator((title: string) => title.trim())
+  .handler(async ({ data }) => {
+    const todos = await load();
+    await save([
+      ...todos,
+      { id: crypto.randomUUID(), title: data, done: false },
+    ]);
+  });
+
+export const setDone = createServerFn({ method: "POST" })
+  .validator((input: { id: string; done: boolean }) => input)
+  .handler(async ({ data }) => {
+    const todos = await load();
+    await save(
+      todos.map((todo) =>
+        todo.id === data.id ? { ...todo, done: data.done } : todo
+      )
+    );
+  });
+
+export const removeTodo = createServerFn({ method: "POST" })
+  .validator((id: string) => id)
+  .handler(async ({ data }) => {
+    const todos = await load();
+    await save(todos.filter((todo) => todo.id !== data));
+  });
+```
+
+Each `createServerFn` handler runs only on the server. The client receives a small function that calls it over HTTP, so `node:fs` never reaches the browser bundle. A JSON file keeps the tutorial short. Swap `load` and `save` for a database when you build a real app. The generated `.gitignore` already lists `todos.json`.
+
+<Callout type="info">
+  If type checking reports that `validator` does not exist, your TanStack Start
+  version names it `inputValidator`. Rename the three calls.
+</Callout>
+
+### Add the styles
+
+Replace `src/styles.css`:
+
+```css title="src/styles.css"
+@import "tailwindcss";
+
+@theme {
+  --color-paper: oklch(97.6% 0.011 88);
+  --color-surface: oklch(99.6% 0.004 88);
+  --color-ink: oklch(21% 0.025 170);
+  --color-muted: oklch(49% 0.024 165);
+  --color-rule: oklch(86.5% 0.022 140);
+  --color-accent: oklch(50% 0.13 160);
+  --color-accent-deep: oklch(42% 0.11 162);
+  --color-accent-soft: oklch(88% 0.08 160);
+  --color-accent-ink: oklch(99% 0.006 160);
+  --font-display: "Schibsted Grotesk", ui-sans-serif, sans-serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+}
+
+html,
+body {
+  overflow-x: clip;
+  background: var(--color-paper);
+}
+
+body {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keep content clear of the status bar, notch, and home indicator. */
+.app {
+  padding-top: calc(var(--radical-safe-area-top, 0px) + 2rem);
+  padding-right: calc(var(--radical-safe-area-right, 0px) + 1.25rem);
+  padding-bottom: calc(var(--radical-safe-area-bottom, 0px) + 2rem);
+  padding-left: calc(var(--radical-safe-area-left, 0px) + 1.25rem);
+}
+
+.btn {
+  height: 3rem;
+  padding: 0 1.25rem;
+  border-radius: 10px;
+  background: linear-gradient(var(--color-accent), var(--color-accent-deep));
+  color: var(--color-accent-ink);
+  font-weight: 500;
+  box-shadow:
+    inset 0 1px 0 oklch(100% 0 0 / 0.35),
+    0 0 0 1px var(--color-accent-deep),
+    0 3px 0 var(--color-accent-deep);
+  transition: transform 120ms ease-out;
+}
+
+.btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 1px var(--color-accent-deep);
+}
+
+.check {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 -2px 0 var(--color-rule),
+    0 0 0 1px var(--color-rule);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.check::after {
+  content: "";
+  width: 0.7rem;
+  height: 0.4rem;
+  border-bottom: 2px solid var(--color-accent-deep);
+  border-left: 2px solid var(--color-accent-deep);
+  transform: translateY(-2px) rotate(-45deg) scale(0);
+  transition: transform 120ms ease-out;
+}
+
+.check:checked {
+  background: var(--color-accent-soft);
+  box-shadow:
+    inset 0 -2px 0 color-mix(in oklab, var(--color-accent) 30%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--color-accent) 40%, transparent);
+}
+
+.check:checked::after {
+  transform: translateY(-2px) rotate(-45deg) scale(1);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .check,
+  .check::after {
+    transition: none;
+  }
+}
+```
+
+The `@theme` block turns each token into Tailwind utilities, such as `bg-paper`, `text-muted`, and `font-display`. The `.app` class adds the Radical safe-area variables to normal padding. In a browser they resolve to `0px`, so the layout matches a plain web page. The button and checkbox classes hold the styles that would make long class lists in JSX.
+
+### Write the todo page
+
+Replace `src/routes/index.tsx`:
+
+```tsx title="src/routes/index.tsx"
+import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
+import { useHapticFeedback } from "@akshatowo/radical/react";
+import { useState } from "react";
+import type { FormEvent } from "react";
+
+import { addTodo, listTodos, removeTodo, setDone } from "#/lib/todos";
+
+const filters = ["all", "open", "done"] as const;
+type Filter = (typeof filters)[number];
+
+export const Route = createFileRoute("/")({
+  validateSearch: (search): { filter?: Filter } =>
+    filters.includes(search.filter as Filter) && search.filter !== "all"
+      ? { filter: search.filter as Filter }
+      : {},
+  loader: () => listTodos(),
+  component: Home,
+});
+
+function Home() {
+  const todos = Route.useLoaderData();
+  const { filter = "all" } = Route.useSearch();
+  const router = useRouter();
+  const feedback = useHapticFeedback();
+  const [title, setTitle] = useState("");
+
+  const open = todos.filter((todo) => !todo.done).length;
+  const shown = todos.filter((todo) =>
+    filter === "all" ? true : todo.done === (filter === "done")
+  );
+
+  const add = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    await addTodo({ data: title });
+    setTitle("");
+    feedback.light();
+    await router.invalidate();
+  };
+
+  const toggle = async (id: string, done: boolean) => {
+    await setDone({ data: { id, done } });
+    if (done) feedback.success();
+    await router.invalidate();
+  };
+
+  const remove = async (id: string) => {
+    await removeTodo({ data: id });
+    await router.invalidate();
+  };
+
+  return (
+    <main className="app mx-auto min-h-dvh max-w-xl">
+      <header className="flex items-baseline justify-between gap-4">
+        <h1 className="font-display text-4xl font-bold tracking-tight">
+          Today
+        </h1>
+        <p className="font-mono text-sm text-muted">{open} open</p>
+      </header>
+
+      <form onSubmit={add} className="mt-6 flex gap-2">
+        <label htmlFor="title" className="sr-only">
+          New todo
+        </label>
+        <input
+          id="title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Add something to do"
+          autoComplete="off"
+          className="h-12 min-w-0 flex-1 rounded-[10px] border border-rule bg-surface px-4 text-base placeholder:text-muted focus-visible:border-accent"
+        />
+        <button type="submit" className="btn">
+          Add
+        </button>
+      </form>
+
+      <nav className="mt-6 flex gap-1 rounded-xl bg-rule/40 p-1">
+        {filters.map((value) => (
+          <Link
+            key={value}
+            to="/"
+            search={value === "all" ? {} : { filter: value }}
+            className="flex-1 rounded-lg py-2 text-center text-sm font-medium capitalize text-muted"
+            activeProps={{ className: "bg-surface text-ink shadow-sm" }}
+            activeOptions={{ includeSearch: true }}
+          >
+            {value}
+          </Link>
+        ))}
+      </nav>
+
+      {shown.length === 0 ? (
+        <p className="mt-12 text-center text-muted">
+          {filter === "done"
+            ? "Nothing finished yet."
+            : "Nothing to do. Add the first thing above."}
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-rule overflow-hidden rounded-[14px] border border-rule bg-surface">
+          {shown.map((todo) => (
+            <li key={todo.id} className="flex items-center gap-3 px-4 py-3">
+              <input
+                id={todo.id}
+                type="checkbox"
+                checked={todo.done}
+                onChange={(event) => toggle(todo.id, event.target.checked)}
+                className="check"
+              />
+              <label
+                htmlFor={todo.id}
+                className={`min-w-0 flex-1 break-words py-1 ${
+                  todo.done ? "text-muted line-through" : ""
+                }`}
+              >
+                {todo.title}
+              </label>
+              <button
+                type="button"
+                onClick={() => remove(todo.id)}
+                aria-label={`Remove ${todo.title}`}
+                className="grid size-9 place-content-center rounded-lg text-muted hover:bg-paper hover:text-ink"
+              >
+                <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+                  <path
+                    d="M4 4l8 8M12 4l-8 8"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+  );
+}
+```
+
+How the page works:
+
+- The loader calls `listTodos` on the server during SSR, and over HTTP after that. The page arrives with the list already rendered.
+- Each mutation calls a server function and then `router.invalidate()`, which runs the loader again. The list always shows what is in `todos.json`, and React state holds no second copy.
+- The filter lives in the URL as `?filter=open` or `?filter=done`. `validateSearch` drops unknown values, so a reload or a shared link keeps the same view.
+- `useHapticFeedback` comes from Radical. On a phone, `feedback.success()` plays the native success pattern when you complete a todo. In a browser it uses the Vibration API where one exists and does nothing elsewhere. The code needs no platform checks.
+
+## Try it in the browser
+
+Open `http://localhost:3000` and try the app:
+
+1. Add three or four todos. Each one appears at the bottom of the list, and the count next to **Today** goes up.
+2. Tick one. The checkbox turns mint and the title gets a line through it.
+3. Select **Open** and **Done**. The URL changes, and the list shows only the matching todos.
+4. Reload the page. Every todo is still there, because the server stores them in `todos.json` in the project folder. Open that file to see the data.
+
+The app is still a normal TanStack Start app. In a desktop browser, Radical's middleware and provider change nothing you can see. The safe-area variables resolve to `0px`, and haptic calls do nothing.
+
+Check the project before you move to a device:
+
+```sh
+pnpm exec tsc --noEmit
+pnpm build
+```
+
+## Run it on Android and iOS
+
+Keep `pnpm dev` running. In remote mode each native shell loads the page from that server, so every change you save shows up on the phone too.
+
+Install the native packages. Capacitor runs the native side, the device plugin is on by default, and the haptics plugin backs `useHapticFeedback`.
+
+```sh
+pnpm add @capacitor/core@^8.5.3 @capacitor/android@^8.5.3 @capacitor/ios@^8.5.3 @capacitor/device@^8.0.3 @capacitor/haptics@8.0.2
+pnpm add -D @capacitor/cli@^8.5.3
+```
+
+### Android
+
+Start an emulator from Android Studio's Device Manager, then find its serial:
+
+```sh
+adb devices
+```
+
+Forward the dev server port and launch the app:
+
+```sh
+adb -s emulator-5554 reverse tcp:3000 tcp:3000
+pnpm exec radical android --target emulator-5554
+```
+
+`adb reverse` makes `localhost:3000` on the emulator point at port 3000 on your computer. Without it, the shell cannot reach the dev server. Radical generates the Android project in `.radical/android`, builds it with Gradle, and opens the app.
+
+<Callout type="warning">
+  The Gradle build needs JDK 21. If it fails with `Unsupported class file major
+  version`, point `JAVA_HOME` at JDK 21. On macOS, run `export
+  JAVA_HOME=$(/usr/libexec/java_home -v 21)`.
+</Callout>
+
+### iOS
+
+List your simulators and copy a UDID:
+
+```sh
+xcrun simctl list devices available
+```
+
+Launch the app:
+
+```sh
+pnpm exec radical ios --target YOUR_SIMULATOR_UDID
+```
+
+Radical generates an Xcode project in `.radical/ios`, builds it, installs the app, and opens it. The simulator shares your computer's network, so `localhost:3000` works without port forwarding.
+
+### What to look for
+
+The todos you added in the browser are already on the phone, because every client calls the same server functions. Add a todo on the phone and reload the browser to see it there too.
+
+On the phone, the heading starts below the status bar and the list stays clear of the home indicator. The `--radical-safe-area-*` variables now hold real inset values from the shell. When you tick a todo on a physical device, you feel a short success vibration. Simulators and emulators do not vibrate.
+
+Edit a class in `src/routes/index.tsx` and save. The browser and both phones update, because they all load the page from the same Vite server.
+
+## Web, Android, and iOS
+
+The same `src/routes/index.tsx` runs in all three.
+
+<ScreenshotRow
+  shots={[
+    {
+      src: "/tutorials/todo-app/web.png",
+      alt: "The todo app in a desktop browser",
+      label: "Web",
+      width: 1280,
+      height: 800,
+    },
+    {
+      src: "/tutorials/todo-app/android.png",
+      alt: "The todo app on a Pixel 9 emulator",
+      label: "Android",
+      width: 534,
+      height: 1200,
+    },
+    {
+      src: "/tutorials/todo-app/ios.png",
+      alt: "The todo app on an iPhone 17 Pro simulator",
+      label: "iOS",
+      width: 552,
+      height: 1200,
+    },
+  ]}
+/>
+
+## Next steps
+
+- [Make routes work offline](/docs/guides/offline-routes) so the list opens without a connection.
+- [Bundle the app](/docs/guides/bundled-mode) to ship it without a running server.
+- [Run on a physical device](/docs/guides/run-on-a-device) to feel the haptics.
