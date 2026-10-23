@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
   useMemo,
+  useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
 
@@ -54,6 +55,45 @@ export const RuntimeContext = createContext<RadicalRuntime>(defaultRuntime);
 
 export const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
 
+const runtimeOwner = (
+  layer: Layer.Layer<Bridge>,
+  supplied?: RadicalRuntime
+) => {
+  let runtime = supplied ?? createEffectRuntime(layer);
+  let disposed = false;
+  const listeners = new Set<() => void>();
+
+  return {
+    snapshot: () => runtime,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    setup: () => {
+      if (disposed) {
+        runtime = createEffectRuntime(layer);
+        disposed = false;
+
+        for (const listener of listeners) {
+          listener();
+        }
+      }
+
+      const owned = runtime;
+
+      return () => {
+        if (!supplied) {
+          disposed = true;
+          void owned.dispose();
+        }
+      };
+    },
+  };
+};
+
 /** Effect API provider accepts an injectable bridge layer. */
 export const RadicalProvider = ({
   layer = BridgeLive,
@@ -66,35 +106,17 @@ export const RadicalProvider = ({
   readonly children?: ReactNode;
   readonly nativeContext?: NativeContext;
 }) => {
-  const runtime = useMemo(
-    () => supplied ?? createEffectRuntime(layer),
-    [supplied, layer]
+  const owner = useMemo(() => runtimeOwner(layer, supplied), [layer, supplied]);
+
+  const runtime = useSyncExternalStore(
+    owner.subscribe,
+    owner.snapshot,
+    owner.snapshot
   );
 
+  useEffect(() => owner.setup(), [owner]);
+
   const bridge = useMemo(() => runtimeBridgeLayer(runtime), [runtime]);
-
-  const ownership = useMemo<{
-    readonly runtime: RadicalRuntime;
-    pending?: Fiber.Fiber<void>;
-  }>(() => ({ runtime }), [runtime]);
-
-  useEffect(() => {
-    if (ownership.pending) {
-      Effect.runFork(Fiber.interrupt(ownership.pending));
-    }
-
-    return () => {
-      if (!supplied) {
-        // React StrictMode replays setup after cleanup in the same commit.
-        // Yield once so that replay can retain the owner before final disposal.
-        ownership.pending = Effect.runFork(
-          Effect.yieldNow.pipe(
-            Effect.andThen(Effect.promise(ownership.runtime.dispose))
-          )
-        );
-      }
-    };
-  }, [ownership, supplied]);
 
   return createElement(
     RuntimeContext.Provider,

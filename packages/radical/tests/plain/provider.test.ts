@@ -1,80 +1,157 @@
 // @vitest-environment happy-dom
 import { assert, it } from "@effect/vitest";
 import { Deferred, Effect, Layer } from "effect";
-import { StrictMode, createElement } from "react";
+import { StrictMode, createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-import { getDeviceInfo } from "../../src/capabilities/device-info/device-info.ts";
 import { Bridge, bridgeTestLayer } from "../../src/core/bridge/bridge.ts";
 import {
+  createEffectRuntime,
+  defaultRuntime,
+  getEffectRuntime,
+} from "../../src/plain/runtime.ts";
+import type { RadicalRuntime } from "../../src/plain/runtime.ts";
+import {
   RadicalProvider,
-  useBridgeEffect,
+  useRadicalRuntime,
 } from "../../src/react/use-bridge-effect.ts";
 
-it.effect(
-  "retains one runtime through StrictMode replay and disposes it on unmount",
-  () =>
-    Effect.gen(function* () {
-      const loaded = yield* Deferred.make<boolean>();
+const trackedBridge = Effect.gen(function* () {
+  const released = yield* Deferred.make<boolean>();
 
-      const released = yield* Deferred.make<boolean>();
-      let acquisitions = 0;
+  const bridge = yield* Bridge.pipe(
+    Effect.provide(bridgeTestLayer("android", () => Effect.never))
+  );
 
-      const bridge = yield* Bridge.pipe(
-        Effect.provide(bridgeTestLayer("browser", () => Effect.never))
-      );
+  return {
+    released,
+    layer: Layer.effect(
+      Bridge,
+      Effect.acquireRelease(Effect.succeed(bridge), () =>
+        Deferred.succeed(released, true)
+      )
+    ),
+  };
+});
 
-      const layer = Layer.effect(
-        Bridge,
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            acquisitions += 1;
+const harness = Effect.gen(function* () {
+  const root = createRoot(document.createElement("div"));
+  let current = defaultRuntime;
 
-            return bridge;
-          }),
-          () => Deferred.succeed(released, true)
-        )
-      );
+  const Probe = () => {
+    const runtime = useRadicalRuntime();
+    useLayoutEffect(() => {
+      current = runtime;
+    }, [runtime]);
 
-      const read = getDeviceInfo.pipe(
-        Effect.tap(() => Deferred.succeed(loaded, true))
-      );
+    return null;
+  };
 
-      const Probe = () => {
-        useBridgeEffect(read);
+  const unmount = () => {
+    flushSync(() => {
+      root.unmount();
+    });
+  };
 
-        return null;
-      };
+  yield* Effect.addFinalizer(() => Effect.sync(unmount));
 
-      const container = document.createElement("div");
-
-      const root = createRoot(container);
-
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
-          flushSync(() => {
-            root.unmount();
-          });
-        })
-      );
+  return {
+    unmount,
+    render: (layer: Layer.Layer<Bridge>, runtime?: RadicalRuntime) => {
       flushSync(() => {
         root.render(
           createElement(
             StrictMode,
             null,
-            createElement(RadicalProvider, { layer }, createElement(Probe))
+            createElement(
+              RadicalProvider,
+              { layer, runtime },
+              createElement(Probe)
+            )
           )
         );
       });
+      assert.notStrictEqual(current, defaultRuntime);
 
-      yield* Deferred.await(loaded);
+      return current;
+    },
+  };
+});
 
-      assert.strictEqual(acquisitions, 1);
-      flushSync(() => {
-        root.unmount();
-      });
+const readBridge = (runtime: RadicalRuntime) =>
+  Effect.promise(
+    async () =>
+      await getEffectRuntime(runtime).runPromise(
+        Bridge.pipe(Effect.flatMap((bridge) => bridge.runtime))
+      )
+  );
 
-      yield* Deferred.await(released);
+it.effect("StrictMode replay leaves the owned runtime usable", () =>
+  Effect.gen(function* () {
+    const { layer } = yield* trackedBridge;
+    const view = yield* harness;
+    const runtime = view.render(layer);
+
+    assert.strictEqual(yield* readBridge(runtime), "android");
+  }).pipe(Effect.scoped)
+);
+
+it.effect("unmount disposes the owned runtime", () =>
+  Effect.gen(function* () {
+    const { layer, released } = yield* trackedBridge;
+    const view = yield* harness;
+    const runtime = view.render(layer);
+    yield* readBridge(runtime);
+    view.unmount();
+    yield* Deferred.await(released);
+  }).pipe(Effect.scoped)
+);
+
+it.effect("changing the layer disposes the previous owned runtime", () =>
+  Effect.gen(function* () {
+    const first = yield* trackedBridge;
+    const second = yield* trackedBridge;
+    const view = yield* harness;
+    const previous = view.render(first.layer);
+    yield* readBridge(previous);
+    const next = view.render(second.layer);
+    yield* Deferred.await(first.released);
+    assert.notStrictEqual(previous, next);
+    assert.strictEqual(yield* readBridge(next), "android");
+    assert.isFalse(yield* Deferred.isDone(second.released));
+  }).pipe(Effect.scoped)
+);
+
+it.effect(
+  "a supplied runtime stays caller-owned across prop changes and unmount",
+  () =>
+    Effect.gen(function* () {
+      const first = yield* trackedBridge;
+      const second = yield* trackedBridge;
+      const supplied = createEffectRuntime(first.layer);
+      yield* Effect.addFinalizer(() => Effect.promise(supplied.dispose));
+      const view = yield* harness;
+      assert.strictEqual(view.render(first.layer, supplied), supplied);
+      yield* readBridge(supplied);
+      assert.strictEqual(view.render(second.layer, supplied), supplied);
+      view.render(second.layer);
+      view.unmount();
+      assert.isFalse(yield* Deferred.isDone(first.released));
+      assert.strictEqual(yield* readBridge(supplied), "android");
     }).pipe(Effect.scoped)
+);
+
+it.effect("supplying a runtime disposes the previous owned runtime", () =>
+  Effect.gen(function* () {
+    const first = yield* trackedBridge;
+    const second = yield* trackedBridge;
+    const supplied = createEffectRuntime(second.layer);
+    yield* Effect.addFinalizer(() => Effect.promise(supplied.dispose));
+    const view = yield* harness;
+    yield* readBridge(view.render(first.layer));
+    assert.strictEqual(view.render(first.layer, supplied), supplied);
+    yield* Deferred.await(first.released);
+    assert.strictEqual(yield* readBridge(supplied), "android");
+  }).pipe(Effect.scoped)
 );
