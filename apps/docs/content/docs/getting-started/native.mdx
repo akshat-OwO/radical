@@ -3,7 +3,11 @@ title: "Run on Android or iOS"
 description: "Open your browser app in a native shell connected to the development server."
 ---
 
-Complete [installation](/docs/getting-started/installation) first. Keep `pnpm dev` running on port 3000 with `devHost: "localhost"` in `vite.config.ts`.
+Complete [installation](/docs/getting-started/installation) first. Keep `pnpm dev` running with `devHost: "localhost"` in `vite.config.ts`.
+
+The commands below assume port 3000. If Vite prints another port, use that port in the Android reversal command.
+
+Add a link to `/device` in your existing page or navigation so you can reach the device route inside the native shell.
 
 Run every command below from your app directory. Install the native dependencies for the platform you want to run.
 
@@ -33,7 +37,7 @@ adb -s YOUR_SERIAL reverse tcp:3000 tcp:3000
 pnpm exec radical android --target YOUR_SERIAL
 ```
 
-Radical generates the Android project, builds it, and launches the app. You see **My app** with `platform: "android"`. Port reversal lets the Android shell reach the computer's development server at `localhost:3000`.
+Radical generates the Android project, builds it, and launches the app. Open `/device` in the app to see **My app** with `platform: "android"`. Port reversal lets the Android shell reach the computer's development server at `localhost:3000`.
 
 For an authorized USB device, use its serial in the same commands. See [device targets and LAN access](/docs/guides/run-on-a-device) for other connection options.
 
@@ -60,13 +64,13 @@ Launch one using its UDID:
 pnpm exec radical ios --target YOUR_SIMULATOR_UDID
 ```
 
-Radical generates the Xcode project, builds it, and opens your app. You see **My app** with `platform: "ios"`. The simulator reaches the host's `localhost` without port forwarding.
+Radical generates the Xcode project, builds it, and opens your app. Open `/device` in the app to see **My app** with `platform: "ios"`. The simulator reaches the host's `localhost` without port forwarding.
 
 For a physical iPhone, follow [physical-device signing and LAN setup](/docs/guides/run-on-a-device).
 
 ## Keep the server reachable
 
-Remote mode needs the web server for documents and server functions. If the shell cannot connect, check that `pnpm dev` is still running on port 3000. On Android, repeat port reversal after reconnecting the device.
+Remote mode needs the web server for documents and server functions. If the shell cannot connect, check that `pnpm dev` is still running at the URL printed by Vite. On Android, repeat port reversal after reconnecting the device.
 
 Changing native flags or assets requires regeneration. Run `pnpm exec radical android` or `pnpm exec radical ios` again. Use `--generate-only` to create the project without building or launching it.
 

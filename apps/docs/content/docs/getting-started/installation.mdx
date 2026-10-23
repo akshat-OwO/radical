@@ -3,11 +3,11 @@ title: "Installation"
 description: "Create a TanStack Start project with the official CLI, add Radical, and run it in a browser."
 ---
 
-Create an app that displays device information. The setup below uses the same APIs as Radical's [example app](https://github.com/akshat-OwO/radical/tree/main/apps/example), with a single route and no optional capabilities.
+Create an app that displays device information. The setup below uses the same APIs as Radical's [example app](https://github.com/akshat-OwO/radical/tree/main/apps/example), without changing your existing pages or add-ons.
 
 ## Prerequisites
 
-Install Node.js 22.18 or later and pnpm. Check your tools:
+Install Node.js 22.18 or later and a package manager. The examples use pnpm. Check your tools:
 
 ```sh
 node --version
@@ -23,14 +23,16 @@ The package is `@akshatowo/radical`. The CLI command is `radical`.
 Use the CLI from TanStack's [Getting Started guide](https://tanstack.com/start/latest/docs/framework/react/getting-started):
 
 ```sh
-npx @tanstack/cli@latest create my-app --framework React --build-tool vite --package-manager pnpm --blank --no-toolchain --no-intent --no-git --no-install --non-interactive
-cd my-app
-pnpm install
+npx @tanstack/cli@latest create
 ```
 
-`--blank` creates one route without starter UI, Tailwind, devtools, or tests. The remaining flags select React, Vite, and pnpm, skip optional setup, and disable prompts.
+Choose a project name, TanStack Start with React, and Vite. Select any package manager and add-ons you want, including Tailwind, shadcn, Neon, and devtools. Use Start rather than the router-only option.
 
-The CLI generates `vite.config.ts`, `tsconfig.json`, `src/router.tsx`, `src/styles.css`, and the root and index routes. Keep the generated router, dependencies, and package scripts. The `dev` script uses port 3000.
+Enter the generated project directory. If you skipped dependency installation, install dependencies now. The commands below use pnpm. Use your chosen package manager's equivalents.
+
+Keep the generated routes, stylesheets, dependencies, and package scripts. Follow each add-on's setup instructions, including environment variables for database and authentication integrations.
+
+With TanStack CLI 0.72.0, the generated Neon demo uses an older server-function API. If type checking reports that `inputValidator` does not exist in `src/routes/demo/neon.tsx`, change `.inputValidator(...)` to `.validator(...)`. Keep the validation callback. See [TanStack server-function validation](https://tanstack.com/start/latest/docs/framework/react/guide/server-functions#basic-parameters).
 
 ## Add Radical
 
@@ -44,17 +46,14 @@ If pnpm reports an ignored build script for `sharp`, run `pnpm approve-builds` a
 
 ### Configure Vite
 
-Replace the generated `vite.config.ts`:
+Add these imports and the Radical config to `vite.config.ts`:
 
 ```ts
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import react from "@vitejs/plugin-react";
 import {
   radical,
   tanstackStartOptions,
 } from "@akshatowo/radical/tanstack-start";
 import type { RadicalConfig } from "@akshatowo/radical/vite";
-import { defineConfig } from "vite";
 
 const config = {
   appId: "dev.example.myapp",
@@ -62,22 +61,26 @@ const config = {
   mode: "remote",
   devHost: "localhost",
 } satisfies RadicalConfig;
-
-export default defineConfig({
-  resolve: { tsconfigPaths: true },
-  plugins: [
-    tanstackStart(tanstackStartOptions(config)),
-    radical(config),
-    react(),
-  ],
-});
 ```
 
-Keep the React plugin after Start. Remote mode loads the UI from the development server. `devHost` tells the native shell which host to connect to.
+If the generated file already names its Vite configuration `config`, rename that binding and its default export to `viteConfig`.
+
+In the existing plugins array, pass the Radical options to `tanstackStart` and add `radical(config)`:
+
+```ts
+plugins: [
+  // Keep existing plugins here, including Tailwind, devtools, and database plugins.
+  tanstackStart(tanstackStartOptions(config)),
+  radical(config), // [!code ++]
+  viteReact(),
+],
+```
+
+Keep the generated React plugin's name and place it after Start. If `tanstackStart` already has options, spread `...tanstackStartOptions(config)` into that object. Merge its `spa.enabled` value into any existing `spa` options. Keep the other Start options. Remote mode loads the UI from the development server. `devHost` tells the native shell which host to connect to.
 
 ### Include generated plugin types
 
-Add `.radical/plugins.d.ts` to the generated `tsconfig.json` include list. Keep the generated compiler options:
+Append `.radical/plugins.d.ts` to the existing `tsconfig.json` include list. Keep all existing entries and compiler options. For example:
 
 ```json
 {
@@ -89,7 +92,7 @@ Add `.radical/` to the generated `.gitignore`.
 
 ### Register request middleware
 
-Create `src/start.ts`. The blank template does not generate this file:
+If `src/start.ts` does not exist, create it:
 
 ```ts
 import { createStart } from "@tanstack/react-start";
@@ -106,9 +109,11 @@ declare module "@tanstack/react-start" {
 }
 ```
 
+If `src/start.ts` already exists, add the middleware import and prepend `...createRadicalRequestMiddleware()` to its existing `requestMiddleware` array. Keep the other middleware, Start options, and module registration. Add the `Register.config` declaration above if it is missing. Use your existing Start instance export in that declaration.
+
 The middleware supplies typed native context to server functions and SSR. Keep the whole middleware list so Start's server-function CSRF checks stay enabled.
 
-Create `src/server.ts`. This new file replaces Start's default server entry:
+If `src/server.ts` does not exist, create it:
 
 ```ts
 import {
@@ -122,88 +127,97 @@ export default {
 };
 ```
 
+If `src/server.ts` already exists, import `offlineHandler` and wrap the SSR callback passed to `createStartHandler`. For example, change `createStartHandler(defaultStreamHandler)` to `createStartHandler(offlineHandler(defaultStreamHandler))`. Wrap a custom SSR callback the same way. Keep the surrounding request handler and exports. `offlineHandler` wraps the SSR callback, not the exported `fetch` handler.
+
 This keeps Start's streaming SSR handler and adds route-level offline response headers. Offline routes remain opt-in.
 
-### Add the root document and provider
+### Add the root loader and provider
 
-Replace the generated `src/routes/__root.tsx`:
+Edit `src/routes/__root.tsx`. Keep the existing document, head links, stylesheets, header, and devtools.
+
+Add these imports:
 
 ```tsx
-import {
-  createRootRoute,
-  HeadContent,
-  Outlet,
-  Scripts,
-} from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { registerOffline, safeAreaStyle } from "@akshatowo/radical/client";
 import { RadicalProvider } from "@akshatowo/radical/react";
 import { useEffect } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
+```
 
+Add a server function above the root route:
+
+```tsx
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => context.nativeContext
 );
-
-const RootDocument = ({ children }: { children: ReactNode }) => {
-  const nativeContext = Route.useLoaderData();
-  const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
-    safeAreaStyle(nativeContext, "remote");
-
-  useEffect(() => {
-    void registerOffline({
-      mode: "remote",
-      production: import.meta.env.PROD,
-      base: import.meta.env.BASE_URL,
-    });
-  }, []);
-
-  return (
-    <html lang="en" style={rootStyle}>
-      <head>
-        <HeadContent />
-        <style>{`body { margin: 0; } main { box-sizing: border-box; min-height: 100dvh; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 16px) calc(var(--radical-safe-area-left) + 16px); } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
-      </head>
-      <body>
-        <RadicalProvider nativeContext={nativeContext}>
-          {children}
-        </RadicalProvider>
-        <Scripts />
-      </body>
-    </html>
-  );
-};
-
-export const Route = createRootRoute({
-  loader: () => readNativeContext(),
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1, viewport-fit=cover",
-      },
-      { title: "My app" },
-    ],
-  }),
-  shellComponent: RootDocument,
-  component: Outlet,
-});
 ```
 
-This replacement uses inline safe-area styles instead of the generated `src/styles.css`. You can leave that unused stylesheet in place.
+Add a loader to the existing `createRootRoute` or `createRootRouteWithContext` options:
 
-The root loader reads context on the server. `RadicalProvider` gives hooks the same context during SSR and hydration, while `safeAreaStyle` supplies inset variables for the page padding.
+```tsx
+loader: async () => ({ nativeContext: await readNativeContext() }),
+```
 
-### Replace the first route
+If the root already has a loader, keep its work and add `nativeContext: await readNativeContext()` to its returned object. Keep any existing loader data.
 
-Replace the generated `src/routes/index.tsx`:
+Inside the existing shell component, before its `return`, add:
+
+```tsx
+const { nativeContext } = Route.useLoaderData();
+const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
+  safeAreaStyle(nativeContext, "remote");
+
+useEffect(() => {
+  void registerOffline({
+    mode: "remote",
+    production: import.meta.env.PROD,
+    base: import.meta.env.BASE_URL,
+  });
+}, []);
+```
+
+Add `style={rootStyle}` to the existing `<html>` element. If it already has a style, merge the objects with `style={{ ...existingStyle, ...rootStyle }}`. Keep its other attributes.
+
+Inside the existing body, wrap `{children}` with the provider:
+
+```tsx
+<RadicalProvider nativeContext={nativeContext}>{children}</RadicalProvider>
+```
+
+You can also include the existing header, footer, and devtools inside the provider if they use Radical hooks. Keep `<Scripts />` and the rest of the shell.
+
+Append `viewport-fit=cover` to the existing viewport meta content in `head`:
+
+```tsx
+{
+  name: "viewport",
+  content: "width=device-width, initial-scale=1, viewport-fit=cover",
+},
+```
+
+Keep the other meta entries and head links, including the generated stylesheet link. The root loader supplies the same native context during SSR and hydration.
+
+`safeAreaStyle` supplies the CSS variables `--radical-safe-area-top`, `--radical-safe-area-right`, `--radical-safe-area-bottom`, and `--radical-safe-area-left`. Optionally use them in your stylesheet or Tailwind arbitrary values to pad content around system bars. For example:
+
+```css
+main {
+  padding-top: calc(var(--radical-safe-area-top) + 16px);
+  padding-right: calc(var(--radical-safe-area-right) + 16px);
+  padding-bottom: calc(var(--radical-safe-area-bottom) + 16px);
+  padding-left: calc(var(--radical-safe-area-left) + 16px);
+}
+```
+
+### Add a device route
+
+Create `src/routes/device.tsx`. Keep your existing home page:
 
 ```tsx
 import { createFileRoute } from "@tanstack/react-router";
 import { useDeviceInfo } from "@akshatowo/radical/react";
 
-const Home = () => {
+const Device = () => {
   const device = useDeviceInfo();
 
   return (
@@ -218,12 +232,12 @@ const Home = () => {
   );
 };
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/device")({ component: Device });
 ```
 
 ### Add the offline fallback
 
-Create the `public` directory. Add `public/offline.html` as a standalone document with no external assets:
+Create the `public` directory if it does not exist. Add `public/offline.html` as a standalone document with no external assets:
 
 ```html
 <!doctype html>
@@ -242,13 +256,13 @@ Create the `public` directory. Add `public/offline.html` as a standalone documen
 
 ## Run in the browser
 
-Start the development server from `my-app`:
+Start the development server from your project directory:
 
 ```sh
 pnpm dev
 ```
 
-Open `http://localhost:3000`. You see **My app** and device information with `platform: "web"`. The hook reports loading during SSR and reads browser information after mount.
+Open `/device` at the URL printed by Vite, for example `http://localhost:3000/device`. You see **My app** and device information with `platform: "web"`. The hook reports loading during SSR and reads browser information after mount.
 
 Keep the server running. In a second terminal, check the app:
 
@@ -257,6 +271,6 @@ pnpm exec tsc --noEmit
 pnpm build
 ```
 
-Run the server once before type checking so Start generates `src/routeTree.gen.ts`. The template has no `typecheck` script, so use `pnpm exec tsc --noEmit`. Production builds generate offline assets; service worker registration stays disabled during development.
+Run the server once before type checking so Start generates `src/routeTree.gen.ts`. Use `pnpm exec tsc --noEmit` if your template has no typecheck script. Production builds generate offline assets; service worker registration stays disabled during development.
 
 Continue with [project structure](/docs/getting-started/project-structure) or [run on Android or iOS](/docs/getting-started/native).
