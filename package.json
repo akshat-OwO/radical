@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "node packages/radical/scripts/clean-dist.ts && vp run @radical/example#typegen:source && vp run @radical/docs#typecheck && ultracite check && vp run @radical/example#typecheck && vp run @akshatowo/radical#build && vp run @radical/example#typegen && vp run @radical/docs#build && vp check && vp run -r typecheck && vp run -r test",
     "prepare": "vp config",
     "check": "ultracite check",
     "fix": "ultracite fix"
