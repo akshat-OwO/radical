@@ -3,6 +3,14 @@ title: "Google sign-in API"
 description: "Native identity tokens and browser service injection."
 ---
 
+## Plain API
+
+`googleSignIn()` from `@akshatowo/radical/client` returns `Promise<GoogleIdentity>`. `useGoogleSignIn()` exposes state, cancellation, and a sign-in callback.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 Native enablement is `internalPlugins.googleSignIn`. The dependency is `@capawesome/capacitor-google-sign-in@0.1.4`.
 
 | Configuration | Contract |

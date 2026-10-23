@@ -1,0 +1,73 @@
+---
+title: "Use the Effect API"
+description: "Compose typed commands and share the provider runtime."
+---
+
+Install Effect directly when your app imports it:
+
+```sh
+pnpm add @akshatowo/radical@0.2.0 effect@^4.0.5
+```
+
+Radical declares Effect as a required peer and keeps it external in every package entry. Your app and both Radical APIs use the same installed copy.
+
+## Choose imports
+
+The Plain API uses existing subpaths. The Effect API adds `/effect/` before the same name:
+
+| Plain API                | Effect API                      |
+| ------------------------ | ------------------------------- |
+| `/client`                | `/effect/client`                |
+| `/plugins`               | `/effect/plugins`               |
+| `/react`                 | `/effect/react`                 |
+| `/server`                | `/effect/server`                |
+| `/native-context`        | `/effect/native-context`        |
+| `/vite`                  | `/effect/vite`                  |
+| `/tanstack-start`        | `/effect/tanstack-start`        |
+| `/tanstack-start-client` | `/effect/tanstack-start-client` |
+| `/tanstack-start-server` | `/effect/tanstack-start-server` |
+
+`/offline-entry` and `/transitions.css` are unchanged. `/internal-plugins` contains authoring manifests, which retain Effect Schema codecs. Custom plugin authoring requires a direct `effect` dependency with either API.
+
+## Run a typed command
+
+Generated Effect clients use the same enabled manifests as the Plain API:
+
+```ts
+import { Effect } from "effect";
+import { BridgeLive } from "@akshatowo/radical/effect/client";
+import { plugins } from "virtual:radical/effect/plugins";
+
+const echo = plugins.echo.echo({ text: "hello" }).pipe(
+  Effect.catchTag("EchoRejected", (error) =>
+    Effect.succeed({ text: error.reason })
+  ),
+  Effect.provide(BridgeLive)
+);
+const result = await Effect.runPromise(echo);
+```
+
+For a manifest outside the generated module, use `createPluginClient(manifest)` from `/effect/plugins`.
+
+## Share a provider runtime
+
+Inside `RadicalProvider`, retrieve the handle with `useRadicalRuntime()`. Use `getEffectRuntime(handle)` from `/effect/client` to run Effects against the same bridge as hooks and Plain API clients:
+
+```ts
+import {
+  getEffectRuntime,
+  getDeviceInfo,
+} from "@akshatowo/radical/effect/client";
+import { useRadicalRuntime } from "@akshatowo/radical/react";
+
+const runtime = useRadicalRuntime();
+const readDevice = () => getEffectRuntime(runtime).runPromise(getDeviceInfo);
+```
+
+The provider disposes runtimes it creates. When you pass a `runtime` prop, you own it and call `await runtime.dispose()` after its last user unmounts. Disposal interrupts pending runtime commands and releases acquired services.
+
+For tests or custom bridge services, `createRadicalRuntime(layer)` from `/effect/client` accepts a `Layer<Bridge>`. The provider from `/effect/react` also accepts a `layer` prop. Capability browser layers and adapter layers remain explicit dependencies of Effect programs. Use the matching `cameraLive`, `networkLive`, and other capability helpers when needed.
+
+## Migrate from 0.1
+
+Move imports of Effects, services, layers, Streams, and schemas to `/effect/*`. Plain plugin commands now return Promises, offline registration uses `registerOffline`, and root notification navigation uses the disposer-returning installer from `/tanstack-start-client`. `getNativeContext` and `encodeNativeContextCookie` return Promises at the existing subpaths.

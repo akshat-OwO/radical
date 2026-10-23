@@ -17,7 +17,8 @@
     "firebase",
     "notification-navigation",
     "data-protection",
-    "custom-plugins"
+    "custom-plugins",
+    "effect-api"
   ],
   "title": "How-to guides"
 }

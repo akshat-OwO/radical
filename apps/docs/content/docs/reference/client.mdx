@@ -1,67 +1,36 @@
 ---
 title: "Client entry point"
-description: "Exports from @akshatowo/radical/client and the shared Effect service contract."
+description: "Plain API operations, runtime ownership, and errors."
 ---
 
-`@akshatowo/radical/client` contains browser-safe runtime APIs. Capability Effects require `Bridge`; capability-specific browser services remain dependencies even when a call runs natively. The `*Live(effect)` helpers supply the default browser service. `BridgeLive` supplies the actual bridge.
+`@akshatowo/radical/client` exports the Plain API. Operations return Promises and reject with tagged error classes. React hooks provide state and callbacks from `@akshatowo/radical/react`.
 
-## Bridge exports
+## Runtime ownership
+
+`createRadicalRuntime()` returns a handle with `dispose(): Promise<void>`. `RadicalProvider` creates one runtime per provider, or accepts a caller-owned `runtime`. `useRadicalRuntime()` retrieves that handle. `createPluginClient(manifest, runtime)` and generated `createPlugins(runtime)` share the provider's bridge. Standalone calls share a lazy default runtime.
+
+Disposal interrupts pending runtime commands and waits for resource cleanup. The [Effect API](/docs/guides/effect-api) can run typed programs against the same runtime.
+
+## Lifecycle and bundled requests
 
 | Export | Contract |
 | --- | --- |
-| `detectRuntime()` | Synchronous `"browser"`, `"android"`, or `"ios"`. Server rendering reports browser. |
-| `RuntimeSchema`, `Runtime` | Runtime validation and type. |
-| `Bridge` | Effect service with `runtime`, `call`, `observe`, and optional `listen`. |
-| `BridgeLive` | Lazy service that reads Capacitor and shell events. |
-| `bridgeLayer(read, readEvents?)` | Layer from injected bridge and event readers. |
-| `bridgeTestLayer(runtime, call, observe?)` | In-memory layer for a selected runtime. |
-| `callBridge(plugin, method, schema, options?)` | Validates a native result with the supplied schema. Requires `Bridge`. |
-| `InjectedBridge` | Capacitor bridge subset accepted by `bridgeLayer`. |
-
-`BridgeError` is `BridgeUnavailable | BridgeCallFailed | BridgeDecodeError`.
-
-| Error | Fields | Meaning |
-| --- | --- | --- |
-| `BridgeUnavailable` | `plugin`, `method` | Bridge or native listener support unavailable. |
-| `BridgeCallFailed` | `plugin`, `method`, `cause` | Native call rejects or throws. |
-| `BridgeDecodeError` | `plugin`, `method`, `cause` | Arguments or returned values fail schema validation. |
-
-Common capability errors are `PermissionDenied`, `Cancelled`, and `Unavailable`. `Unavailable` carries `reason`.
-
-## Offline exports
-
-| Registration API | Contract |
-| --- | --- |
-| `registerOfflineEffect({ production, mode?, base? })` | Effect registering `${base}radical-sw.js` at scope `base`; base defaults to `/` |
-| Required conditions | Browser, production, service-worker support, and mode other than `"bundled"` |
-| `registerOffline(options)` | Promise facade |
-| `ServiceWorkerRegistrationError` | Carries `cause` |
+| `detectRuntime()` | Synchronous `"browser"`, `"android"`, or `"ios"`; SSR reports browser |
+| `registerOffline({ production, mode?, base? })` | `Promise<void>`; registers the worker only in a production browser with service-worker support and remote mode |
 | `shouldRegister({ production, browser })` | Conjunction of the two flags |
+| `createRadicalFetch(config)` | Fetch-compatible function routing eligible bundled requests to the configured origin |
+| `localNativeContext()` | Promise of browser context before mount, then validated injected context |
+| `mountNativeContext()` | Marks the mount handoff and applies native safe-area CSS variables |
+| `browserContext()` | Browser platform, zero insets, null shell version |
+| `safeAreaStyle(context?, mode?)` | Document CSS variables |
+| `isNotificationScheduleResult(value)` | Type guard for notification hook results |
 
-## Bundled request exports
+## Capabilities
 
-| Export | Contract |
-| --- | --- |
-| `createRadicalFetch(config)` | Returns a fetch-compatible function. Rewrites eligible bundled-shell requests to `config.origin`, includes credentials, and attaches validated native context. Other runtimes retain fetch semantics. |
-| `localNativeContext(read?)` | Effect returning browser context until the mount handoff, then validated injected context. |
-| `mountNativeContext(read?)` | Effect marking the mount handoff and applying native safe-area CSS variables. |
-| `browserContext()` | Browser platform, zero insets, and null shell version. |
-| `RequestFailed` | Typed fetch or Request-construction failure with `cause`. |
+`getDeviceInfo()`, camera and permission operations, file selection, intents, haptics, network status, Google sign-in, notifications, and data protection return Promises. Their result types match the capability hooks. Scoped video sessions, network subscriptions, and safe-area subscriptions are available through the React hooks or Effect API.
 
-## Capability exports
+## Failures
 
-The following reference pages list operations, schemas, types, errors, injectable services, and live helpers exported through this entry:
+`BridgeError` is `BridgeUnavailable | BridgeCallFailed | BridgeDecodeError`. Each error retains its `_tag` and class identity. Common capability errors include `PermissionDenied`, `Cancelled`, and `Unavailable`. Registration failures use `ServiceWorkerRegistrationError`; fetch failures use `RequestFailed`.
 
-- [Camera](/docs/reference/camera)
-- [Data protection](/docs/reference/data-protection)
-- [Device info](/docs/reference/device-info)
-- [Files and intents](/docs/reference/files)
-- [Google sign-in](/docs/reference/google-sign-in)
-- [Haptics](/docs/reference/haptics)
-- [Network](/docs/reference/network)
-- [Notifications](/docs/reference/notifications)
-- [Safe area](/docs/reference/safe-area)
-- [Transitions](/docs/reference/transitions)
-- [Video stream](/docs/reference/video-stream)
-
-Source: [client exports](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/entry/client.ts).
+Services, layers, Streams, schema codecs, and `registerOfflineEffect` are exported from `@akshatowo/radical/effect/client`.

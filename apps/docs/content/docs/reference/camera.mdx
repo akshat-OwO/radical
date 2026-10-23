@@ -3,11 +3,19 @@ title: "Camera API"
 description: "Still-photo operations, permissions, and typed failures."
 ---
 
+## Plain API
+
+`capturePhoto()`, `choosePhoto()`, `checkCameraPermission()`, and `requestCameraPermission()` from `@akshatowo/radical/client` return Promises. `useCamera()` and `useCameraPermission()` expose state and callbacks.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
 Native enablement is `internalPlugins.camera`. The required dependency is `@capacitor/camera@8.2.6`. The config selector is `Camera`, with required `usageDescription` and `photoLibraryUsageDescription` strings.
 
 ## Operations
 
-| `@akshatowo/radical/client` export | Result | Requirements |
+| `@akshatowo/radical/effect/client` export | Result | Requirements |
 | --- | --- | --- |
 | `capturePhoto` | `Photo` | `Bridge`, `BrowserCamera` |
 | `choosePhoto` | `Photo` | `Bridge`, `BrowserCamera` |

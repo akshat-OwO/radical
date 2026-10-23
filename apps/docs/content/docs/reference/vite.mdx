@@ -5,7 +5,7 @@ description: "Build-time plugins, virtual modules, and framework integration."
 
 ## `@akshatowo/radical/vite`
 
-`radical(config, adapterLayer?)` returns the core Vite plugin named `radical:config`. Config validation occurs before dev or build. The optional layer supplies `RadicalAdapter` for framework operations.
+`radical(config)` returns the core Vite plugin named `radical:config`. Config validation occurs before dev or build. Custom adapter layers use `radical(config, adapterLayer)` from `@akshatowo/radical/effect/vite`.
 
 The plugin resolves enabled manifests, validates options, generates typed plugin declarations, and maintains native metadata. Its dev-server integration records the actual protocol and port with the selected `devHost`.
 
@@ -18,24 +18,16 @@ The plugin resolves enabled manifests, validates options, generates typed plugin
 | Preview precedence | `preview.cors`, then inherited `server.cors` |
 | Custom policy for bundled requests | `cors: false` or an origin callback returning false for bundled origins; API handler owns CORS |
 
-Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `InvalidConfig`, `InvalidPlugin`, `PluginDependencyConflict`, `AdapterUnavailable`, and `RadicalAdapter`. Adapter types are `RadicalCore`, `RadicalRoute`, `RadicalNavigation`, and `AdapterOutputs`.
-
-`RadicalAdapter` is an Effect service with `name`, optional `vite(core)`, `routes`, `provideRequestContext(get)`, `navigation`, and `outputs`. `RadicalNavigation` contains `navigate(to, options?)`, `onBeforeNavigate(callback)`, and `onAfterNavigate(callback)`. `outputs` returns `Effect<AdapterOutputs>` with these fields:
-
-| Field | Type | Contract |
-| --- | --- | --- |
-| `clientDir` | `string` | Client build output directory. |
-| `spaShell` | `string`, optional | SPA shell path relative to `clientDir`. |
-| `exposedHeaders` | `readonly string[]`, optional | Response headers exposed to bundled clients through CORS when supplied to the core `withBundledRequests(handler, outputs?)`. Omitted or empty arrays add no exposed headers. |
+Plain exports include `RadicalConfig`, `InvalidConfig`, `InvalidPlugin`, and `PluginDependencyConflict`. Schemas, validation Effects, `RadicalAdapter`, and adapter contracts live in `@akshatowo/radical/effect/vite`.
 
 ## Virtual modules
 
 | Module | Export | Contract |
 | --- | --- | --- |
 | `virtual:radical/config` | `config` | Browser-safe `appId`, `mode`, and optional `origin`. Omitted mode resolves to `"remote"`. |
-| `virtual:radical/plugins` | `plugins` | Typed clients keyed by enabled manifest IDs and command names. Requires `Bridge` when commands run. |
+| `virtual:radical/plugins` | `plugins` | Typed clients keyed by enabled manifest IDs and command names. Commands return Promises. `createPlugins(runtime?)` binds the same clients to a provider runtime. |
 
-`.radical/plugins.d.ts` declares both modules. Vite startup and `radical typegen` generate the declarations. Custom manifest commands and errors retain their schema-derived types.
+`.radical/plugins.d.ts` declares these modules and `virtual:radical/effect/plugins`, whose clients return Effects requiring `Bridge`. Vite startup and `radical typegen` generate the declarations. Custom manifest commands and errors retain their schema-derived types.
 
 ## `@akshatowo/radical/tanstack-start`
 
@@ -46,15 +38,13 @@ Exports include `RadicalConfig`, `RadicalConfigSchema`, `validateConfig`, `Inval
 | `clientDir` | `"dist/client"` |
 | `spaShell` | `"_shell.html"` |
 | `exposedHeaders` | `["x-tss-serialized", "x-tss-raw", "x-tss-error"]` |
-| `TanStackStartAdapter` | Provides request context and outputs; navigation fails with `AdapterUnavailable` |
-| `routes` | Effect returns empty list; offline eligibility uses selected route at request time |
 | `RadicalRouteOptions` | `staticData.radical` with optional `offline: boolean` and `transition: "slide" \| "fade"` |
 
 ## `@akshatowo/radical/tanstack-start-server`
 
 | Export | Contract |
-| --- | --- |
-| `createRadicalMiddleware(get?)` | Start middleware adding `nativeContext` to request context. The optional reader returns `Effect<NativeContext>`. |
+| --- | --- | --- |
+| `createRadicalMiddleware(get?)` | Start middleware adding `nativeContext` to request context. The optional reader returns `NativeContext | Promise<NativeContext>`. |
 | `radicalMiddleware` | Default instance using `getNativeContext`. |
 | `radicalRequestMiddleware` | Standard server-function CSRF middleware followed by Radical context middleware. |
 | `createRadicalRequestMiddleware()` | Explicit bundled-server opt-in. Allows the two exact bundled origins through the server-function CSRF origin checks. |
@@ -65,9 +55,9 @@ Middleware exports also appear in `@akshatowo/radical/tanstack-start` for build-
 
 ## `@akshatowo/radical/tanstack-start-client`
 
-Exports `browserTransitions`, `BrowserTransitionOptions`, `tanstackStartAdapterLayer(router)`, `RadicalRouteOptions`, and `NavigationFailed`.
+Exports `browserTransitions`, `BrowserTransitionOptions`, `RadicalRouteOptions`, `NavigationFailed`, and `watchNotificationNavigation(router, options, runtime?)`.
 
-`tanstackStartAdapterLayer(router)` supplies live navigation and fixed outputs. Its request-context operation fails with `AdapterUnavailable`. Its routes list is empty. `browserTransitions` is also re-exported from `@akshatowo/radical/tanstack-start`.
+`watchNotificationNavigation` returns an asynchronous disposer. Options are `{ appId, push?, onError? }`. The watcher uses the provider runtime when supplied. The adapter layers are available from the matching `/effect/tanstack-start` and `/effect/tanstack-start-client` subpaths.
 
 ## Generated offline output
 

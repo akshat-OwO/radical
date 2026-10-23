@@ -12,11 +12,10 @@ description: "Public exports from @akshatowo/radical/react."
       type: "NativeContext",
       description: "Initial safe-area state.",
     },
-    layer: {
-      type: "Layer<Bridge>",
-      default: "BridgeLive",
+    runtime: {
+      type: "RadicalRuntime",
       description:
-        "Stable custom layer replaces the bridge for all descendant hooks.",
+        "Optional shared runtime. When omitted, the provider creates and disposes its own runtime.",
     },
   }}
 />
@@ -52,6 +51,8 @@ Device and network hooks start with `loading: true`, undefined `value`, and unde
 
 Each hook exports its named state type, such as `CameraState`, `NetworkStatusState`, and `DataProtectionState`. `DeviceInfo`, `SafeArea`, `BridgeError`, camera types, file types, video result types, haptic types, network types, Google identity types, and data-protection types are re-exported here.
 
-`PermissionDenied`, `Cancelled`, `Unavailable`, `NoHandler`, `GoogleSignInCancelled`, `GoogleSignInMisconfigured`, and `GoogleSignInUnavailable` are exported error classes. Notification schemas and error types are available from `@akshatowo/radical/client` rather than `@akshatowo/radical/react`.
+`PermissionDenied`, `Cancelled`, `Unavailable`, `NoHandler`, `GoogleSignInCancelled`, `GoogleSignInMisconfigured`, and `GoogleSignInUnavailable` are exported error classes. Notification types and errors are available from `@akshatowo/radical/client`; schemas are available from `@akshatowo/radical/effect/client` rather than `@akshatowo/radical/react`.
 
 Source: [React exports](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/react/react.ts).
+
+`useRadicalRuntime()` returns the provider handle. Pass it to `createPluginClient(manifest, runtime)` or generated `createPlugins(runtime)` to use the same bridge as the hooks. A supplied runtime belongs to the caller, which calls `await runtime.dispose()`. The Effect API provider at `@akshatowo/radical/effect/react` also accepts `layer` for service injection.

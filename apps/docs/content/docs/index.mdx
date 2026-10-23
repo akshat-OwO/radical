@@ -5,7 +5,7 @@ description: "Run your web app in Android and iOS shells with access to native c
 
 Radical runs your web app inside Android and iOS WebViews. It loads the UI from an HTTP origin in remote mode or packages SPA assets in bundled mode.
 
-The framework-agnostic Vite plugin generates native projects. An Effect bridge and React hooks expose native capabilities. Your app keeps control of routing, rendering, data fetching, and HTTP handling.
+The framework-agnostic Vite plugin generates native projects. The Plain API and React hooks expose native capabilities. The Effect API provides typed composition through `/effect/*` subpaths. Your app keeps control of routing, rendering, data fetching, and HTTP handling.
 
 ## Works with your framework
 
@@ -29,7 +29,7 @@ TanStack Start is the only supported framework adapter today. It supports both r
   <Card
     title="Look up an API"
     href="/docs/reference/config"
-    description="Find config fields, Effect services, hooks, and errors."
+    description="Find config fields, client operations, hooks, and errors."
   />
   <Card
     title="Understand the design"

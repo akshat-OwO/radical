@@ -10,24 +10,21 @@ description: "Own notification navigation in the app scope."
 
 In the root component's mount effect, use `useRouter()` and the [example imports](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx):
 
-```ts
-const fiber = Effect.runFork(
-  Effect.scoped(
-    watchNotificationNavigation({ appId: config.appId, push: true })
-  ).pipe(
-    Effect.provide(
-      Layer.mergeAll(
-        BridgeLive,
-        NotificationSnapshotsLive.pipe(Layer.provide(BridgeLive)),
-        tanstackStartAdapterLayer(router)
-      )
-    )
-  )
-);
-// Effect cleanup:
-return () => {
-  Effect.runFork(Fiber.interrupt(fiber));
-};
+```tsx
+import { watchNotificationNavigation } from "@akshatowo/radical/tanstack-start-client";
+import { useRadicalRuntime } from "@akshatowo/radical/react";
+
+const runtime = useRadicalRuntime();
+useEffect(() => {
+  const stop = watchNotificationNavigation(
+    router,
+    { appId: config.appId, push: true },
+    runtime
+  );
+  return () => {
+    void stop();
+  };
+}, [router, runtime]);
 ```
 
 Keep the watcher mounted across screen changes.
