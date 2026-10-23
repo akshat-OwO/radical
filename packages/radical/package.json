@@ -1,7 +1,7 @@
 {
   "name": "@akshatowo/radical",
   "version": "0.0.0",
-  "description": "Run server-rendered web apps inside native Android and iOS WebView shells.",
+  "description": "Run your web app inside native Android and iOS WebView shells, from an HTTP origin or bundled SPA assets.",
   "bugs": "https://github.com/akshat-OwO/radical/issues",
   "license": "MIT",
   "repository": {

@@ -50,10 +50,10 @@ Install the SDK, platform tools, compatible JDK, and an AVD or authorized USB de
 
 ### Connect localhost
 
-Start Vite on port 5173 with `devHost: "localhost"`, then reverse the port:
+Start the dev server with `devHost: "localhost"`, then reverse its port. The TanStack CLI template uses port 3000; use the port Vite prints if yours differs:
 
 ```sh
-adb -s YOUR_SERIAL reverse tcp:5173 tcp:5173
+adb -s YOUR_SERIAL reverse tcp:3000 tcp:3000
 ```
 
 </Step>

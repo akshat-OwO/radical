@@ -6,6 +6,7 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultComponents from "fumadocs-ui/mdx";
 
+import { FrameworkGrid } from "./framework-grid";
 import { Mermaid } from "./mermaid";
 
 export const mdxComponents = {
@@ -16,6 +17,7 @@ export const mdxComponents = {
   File,
   Files,
   Folder,
+  FrameworkGrid,
   Mermaid,
   Step,
   Steps,
