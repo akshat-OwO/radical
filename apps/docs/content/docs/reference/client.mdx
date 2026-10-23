@@ -3,7 +3,7 @@ title: "Client entry point"
 description: "Plain API operations, runtime ownership, and errors."
 ---
 
-`@akshatowo/radical/client` exports the Plain API. Operations return Promises and reject with tagged error classes. React hooks provide state and callbacks from `@akshatowo/radical/react`.
+`@akshatowo/radical/client` exports the Plain API. Bridge operations return Promises and reject with tagged error classes. `localNativeContext()` returns `NativeContext` synchronously, and `mountNativeContext()` returns `void`. Offline registration returns a Promise because service-worker registration is asynchronous. React hooks provide state and callbacks from `@akshatowo/radical/react`.
 
 ## Runtime ownership
 
@@ -19,7 +19,7 @@ Disposal interrupts pending runtime commands and waits for resource cleanup. The
 | `registerOffline({ production, mode?, base? })` | `Promise<void>`; registers the worker only in a production browser with service-worker support and remote mode |
 | `shouldRegister({ production, browser })` | Conjunction of the two flags |
 | `createRadicalFetch(config)` | Fetch-compatible function routing eligible bundled requests to the configured origin |
-| `localNativeContext()` | Promise of browser context before mount, then validated injected context |
+| `localNativeContext()` | Browser context before mount, then validated injected context |
 | `mountNativeContext()` | Marks the mount handoff and applies native safe-area CSS variables |
 | `browserContext()` | Browser platform, zero insets, null shell version |
 | `safeAreaStyle(context?, mode?)` | Document CSS variables |

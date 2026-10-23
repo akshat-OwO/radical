@@ -19,7 +19,7 @@ The framework-agnostic part of radical, built only on web standards and the Vite
 _Avoid_: Engine, runtime (when meaning the whole core)
 
 **Plain API**:\
-The default public API, whose functions and hooks return Promises, React state, and callbacks without exposing Effect types.\
+The default public API, whose functions and hooks return values, Promises, React state, and callbacks without exposing Effect types.\
 _Avoid_: Simple API, Promise API
 
 **Effect API**:\

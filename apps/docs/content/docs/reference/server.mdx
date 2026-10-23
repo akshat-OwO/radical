@@ -7,7 +7,7 @@ description: "Request parsing and bundled CORS exports from @akshatowo/radical/s
 
 | Reader behavior | Contract |
 | --- | --- |
-| Result | `Promise<NativeContext>` |
+| Result | `NativeContext` |
 | Precedence | `x-radical-context` header whenever present; otherwise `radical-context` cookie |
 | Invalid URI or schema | Browser context |
 | Trust | No authentication or origin check |
@@ -44,7 +44,7 @@ The wrapper does not authenticate callers or replace the framework's CSRF config
 
 `safeAreaStyle(context?, mode?)` returns the document CSS variables. Missing context uses browser defaults. `SafeArea` is an exported type. `NativeContext` is available from `@akshatowo/radical/native-context`.
 
-`@akshatowo/radical/native-context` exports cookie and header constants, `encodeNativeContextCookie`, `safeAreaStyle`, `zeroSafeArea`, and context types. `encodeNativeContextCookie` returns a Promise encoding a shell context as URI-encoded JSON.
+`@akshatowo/radical/native-context` exports cookie and header constants, `encodeNativeContextCookie`, `safeAreaStyle`, `zeroSafeArea`, and context types. `encodeNativeContextCookie` returns a string containing the shell context as URI-encoded JSON.
 
 Source: [bundled CORS implementation](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/bundled/bundled-server.ts), [server entry](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/entry/server.ts), [context module](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/context/native-context.ts).
 

@@ -70,4 +70,4 @@ For tests or custom bridge services, `createRadicalRuntime(layer)` from `/effect
 
 ## Migrate from 0.1
 
-Move imports of Effects, services, layers, Streams, and schemas to `/effect/*`. Plain plugin commands now return Promises, offline registration uses `registerOffline`, and root notification navigation uses the disposer-returning installer from `/tanstack-start-client`. `getNativeContext` and `encodeNativeContextCookie` return Promises at the existing subpaths.
+Move imports of Effects, services, layers, Streams, and schemas to `/effect/*`. Plain plugin commands now return Promises, offline registration uses `registerOffline`, and root notification navigation uses the disposer-returning installer from `/tanstack-start-client`. `getNativeContext` and `localNativeContext` return `NativeContext` directly. `encodeNativeContextCookie` returns a string directly.
