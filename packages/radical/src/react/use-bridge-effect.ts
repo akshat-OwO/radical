@@ -9,7 +9,7 @@ import {
   useMemo,
   useSyncExternalStore,
 } from "react";
-import type { ReactNode } from "react";
+import type { Context, ReactElement, ReactNode } from "react";
 
 import { zeroSafeArea } from "../capabilities/safe-area/safe-area-style.ts";
 import { BridgeLive } from "../core/bridge/bridge.ts";
@@ -51,7 +51,8 @@ export const NativeContextContext = createContext<NativeContext>({
   shellVersion: null,
 });
 
-export const RuntimeContext = createContext<RadicalRuntime>(defaultRuntime);
+export const RuntimeContext: Context<RadicalRuntime> =
+  createContext(defaultRuntime);
 
 export const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
 
@@ -105,7 +106,7 @@ export const RadicalProvider = ({
   readonly runtime?: RadicalRuntime;
   readonly children?: ReactNode;
   readonly nativeContext?: NativeContext;
-}) => {
+}): ReactElement => {
   const owner = useMemo(() => runtimeOwner(layer, supplied), [layer, supplied]);
 
   const runtime = useSyncExternalStore(
