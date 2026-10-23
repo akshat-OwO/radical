@@ -7,4 +7,4 @@ export { safeAreaStyle, withBundledRequests } from "../entry/server.ts";
 export type { SafeArea } from "../entry/server.ts";
 
 export const getNativeContext = (request: Request) =>
-  Effect.runPromise(getContext(request));
+  Effect.runSync(getContext(request));

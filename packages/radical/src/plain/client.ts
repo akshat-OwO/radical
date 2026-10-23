@@ -112,8 +112,8 @@ export const registerOffline = (options: {
   readonly base?: string;
 }): Promise<void> => Effect.runPromise(registerOfflineEffect(options));
 
-export const localNativeContext = (): Promise<NativeContext> =>
-  Effect.runPromise(localContext());
+export const localNativeContext = (): NativeContext =>
+  Effect.runSync(localContext());
 
 export const mountNativeContext = (): void => {
   Effect.runSync(mountContext());

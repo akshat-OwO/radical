@@ -79,7 +79,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 export const Route = createRootRoute({
   loader: async () =>
     config.mode === "bundled"
-      ? await localNativeContext()
+      ? localNativeContext()
       : await readNativeContext(),
   head: () => ({
     meta: [

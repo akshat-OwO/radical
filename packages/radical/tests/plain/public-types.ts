@@ -1,5 +1,13 @@
-import type { getDeviceInfo, registerOffline } from "../../src/plain/client.ts";
-import type { encodeNativeContextCookie } from "../../src/plain/native-context.ts";
+import type {
+  getDeviceInfo,
+  localNativeContext,
+  mountNativeContext,
+  registerOffline,
+} from "../../src/plain/client.ts";
+import type {
+  encodeNativeContextCookie,
+  NativeContext,
+} from "../../src/plain/native-context.ts";
 import type {
   RadicalProvider,
   useRadicalRuntime,
@@ -26,14 +34,22 @@ export type RegistrationPromise = Assert<
   ReturnType<typeof registerOffline> extends Promise<void> ? true : false
 >;
 
-export type ContextPromise = Assert<
-  ReturnType<typeof getNativeContext> extends Promise<object> ? true : false
+export type RequestContextValue = Assert<
+  ReturnType<typeof getNativeContext> extends NativeContext ? true : false
 >;
 
-export type CookiePromise = Assert<
-  ReturnType<typeof encodeNativeContextCookie> extends Promise<string>
+export type LocalContextValue = Assert<
+  ReturnType<typeof localNativeContext> extends NativeContext ? true : false
+>;
+
+export type MountReturnsVoid = Assert<
+  ReturnType<typeof mountNativeContext> extends ReturnType<() => void>
     ? true
     : false
+>;
+
+export type CookieValue = Assert<
+  ReturnType<typeof encodeNativeContextCookie> extends string ? true : false
 >;
 
 export type TransitionHasNoLayer = Assert<

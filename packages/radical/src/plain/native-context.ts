@@ -16,6 +16,5 @@ export {
   zeroSafeArea,
 } from "../core/context/native-context.ts";
 
-export const encodeNativeContextCookie = (
-  context: ShellContext
-): Promise<string> => Effect.runPromise(encodeCookie(context));
+export const encodeNativeContextCookie = (context: ShellContext): string =>
+  Effect.runSync(encodeCookie(context));
