@@ -52,8 +52,34 @@ final class RadicalViewController: CAPBridgeViewController {
                 webView?.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil)
             }
         }
-        // viewport-fit=cover keeps safe-area padding in CSS; UIKit still adjusts for the keyboard.
-        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // Capacitor's .never leaves safe-area padding to the page.
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChangeFrame(_:)),
+            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)),
+            name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    @objc private func keyboardWillChangeFrame(_ notification: Notification) {
+        guard let window = view.window,
+              let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let keyboardFrame = view.convert(frame, from: window.screen.coordinateSpace)
+        let coveredHeight = view.bounds.intersection(keyboardFrame).height
+        updateKeyboardInset(coveredHeight)
+    }
+
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        updateKeyboardInset(0)
+    }
+
+    private func updateKeyboardInset(_ height: CGFloat) {
+        guard let scrollView = webView?.scrollView else { return }
+        scrollView.contentInset.bottom = height
+        scrollView.verticalScrollIndicatorInsets.bottom = height
     }
 
     override func viewDidLayoutSubviews() {

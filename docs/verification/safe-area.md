@@ -1,20 +1,41 @@
 # Safe-area revision verification
 
-Verified on 2026-10-20 with Pixel_9, Android 16, and iPhone Duo, iOS 27.1, in the T3 Code Device panel.
+## iOS keyboard and screen edges
 
-## iOS keyboard
+Verified on 2026-10-24 using the remote-mode example at `http://localhost:4173`, the booted iPhone 17 Pro on iOS 26.5, and iPhone Duo on iOS 27.1. Both shells built, installed, and launched through the CLI:
 
-The failure reproduces on the Duo inner display, 951 × 669 points. With `contentInsetAdjustmentBehavior = .never`, WebKit leaves the focused bottom field behind the keyboard. The cover display, 466 × 678 points, scrolls the same field correctly with either inset behavior. Testing only the cover display misses the regression.
+```sh
+pnpm --filter @akshatowo/radical exec vp pack
+pnpm --filter @radical/example exec vp dev --host localhost --port 4173
+# Run the CLI from apps/example in another terminal.
+pnpm exec radical ios --target F69D9CE5-20E1-4388-9EBA-27B1782EEF75
+pnpm exec radical ios --target 88BEE7A3-757E-40C4-A789-5E3259B6B673
+```
 
-Changing the inset behavior to `.automatic` lets UIKit account for the keyboard and scroll the focused field above it on both displays. The WebView remains the controller's full-window root view. The hook, cookie, and CSS values remain `top: 0, right: 84, bottom: 34, left: 0` on the inner display. The keyboard height does not enter the safe-area cookie.
+The shipped approach uses scroll insets. The controller preserves Capacitor's default `.never`, observes keyboard will-change-frame and will-hide, converts screen coordinates into view coordinates, and applies the covered height to the bottom content and vertical indicator insets. Hide resets both to zero. Observers are removed on deinitialization. WebKit revealed the field and Submit on the inner display with these insets, so the frame-resize fallback was unnecessary. Safe-area reporting still reads only `view.safeAreaInsets`.
 
-The PR base already uses Capacitor's default `.never`. This PR adds `viewport-fit=cover` and a bottom form, exposing the failure on the inner display. The regression is not evidence that the PR changed Capacitor's default inset behavior.
+For verification, the example temporarily added a 6 px green `position: fixed; bottom: 0` marker and repeated its hook, CSS, and server cookie diagnostics immediately above the existing bottom form. Focusing the field requested the server context after one second, while the keyboard was visible. Those temporary page edits were restored after capture. The non-white page background is the example's existing `#dae9f5`.
 
-![Inner display with the field behind the keyboard using never](safe-area/ios-keyboard-before.png)
+- **Pass:** iPhone 17 Pro has no white strip under the home indicator. The fixed green marker reaches the bottom screen edge.
+- **Pass:** Duo inner display, 951 × 669 points, reveals both the focused field and Submit above the keyboard.
+- **Pass:** Duo cover portrait, 466 × 678 points, reveals the focused field and Submit above the keyboard.
+- **Not run:** Duo cover landscape. Both `orientation landscape-left` and `orientation landscape-right` reported success, but display 1 remained 1398 × 2034 pixels with the portrait keyboard. The attempted-rotation capture below is evidence of this limitation, not a landscape pass.
+- **Pass:** dismissing the inner-display keyboard restores the full page without a bottom gap.
+- **Pass:** inner-display hook, CSS, and the server's cookie-derived context remain `top: 0, right: 84, bottom: 34, left: 0` while the keyboard is open and after dismissal.
 
-![Inner display with the field and Submit above the keyboard using automatic](safe-area/ios-keyboard-after.png)
+The devices were opened in the T3 Device panel and driven with agent-device. Fold commands sent the hinge event but returned `CoreDevice reported no hinge angle sample: Unknown option '--device'`. Panel changes were confirmed from the active screenshot and its dimensions; hinge angles remain unverified. Capture Duo cover with `xcrun simctl io <UDID> screenshot --display=1 <path>` and inner with `--display=3`. The default display can be black on the inactive panel.
 
-The fold tool returns `CoreDevice reported no hinge angle sample: Unknown option '--device'` after sending the hinge event. The screenshot dimensions confirm that the app moved from the cover to the inner display; the hinge angle itself remains unverified.
+![iPhone 17 Pro background and fixed marker reach the bottom edge](safe-area/ios-17-pro-edge-no-strip.png)
+
+![Duo inner field, Submit, and unchanged safe-area diagnostics above the keyboard](safe-area/ios-duo-inner-keyboard-inset.png)
+
+![Duo inner after keyboard dismissal with no bottom gap](safe-area/ios-duo-inner-dismissed-no-gap.png)
+
+![Duo cover portrait field and Submit above the keyboard](safe-area/ios-duo-cover-portrait-keyboard.png)
+
+![Attempted cover landscape rotation still produces a portrait screen](safe-area/ios-duo-cover-landscape-attempt-still-portrait.png)
+
+The earlier `.automatic` fix restored keyboard scrolling but also added UIKit's bottom safe-area inset on top of CSS padding. The explicit keyboard insets replace that setting. The historical regression capture remains available as [the field hidden with no keyboard handling](safe-area/ios-keyboard-before.png).
 
 ## Android keyboard
 
