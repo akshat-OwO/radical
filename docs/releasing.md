@@ -80,10 +80,28 @@ The release pipeline is prepared in a separate PR. Merge it after the manual rel
 
 Allow direct `npm publish` for that publisher. Create the GitHub `release` environment and configure any desired reviewers before running a release. The pipeline uses OIDC credentials. It does not need an `NPM_TOKEN`. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 
-Push `v0.1.1` for a stable release, or `v0.2.0-alpha.1` for the `alpha` npm dist-tag. Stable releases use `latest`. Prereleases cannot use the reserved `latest` channel. Build metadata and numeric-only prerelease channels are rejected. Manual dispatch accepts the same version and defaults to a dry run.
+For production releases, merge `main` into the long-lived `stable` branch. Run `.github/workflows/release.yml` with **Run workflow**, select `stable`, enter the version, and clear **dry_run**. The workflow creates the release tag after publishing.
+
+Use `0.1.1` for a stable release, or `0.2.0-alpha.1` for the `alpha` npm dist-tag. The workflow also accepts pushed `v*` tags. Stable releases use `latest`. Prereleases cannot use the reserved `latest` channel. Build metadata and numeric-only prerelease channels are rejected. Manual dispatch accepts the same version and defaults to a dry run.
 
 The pipeline runs `vp run ready`, stamps and builds the package, and verifies a clean install of the tarball. It publishes and attaches that same tarball to the GitHub release. Dry runs publish nothing.
 
 If the automated `publish` job succeeds but `github-release` fails, select **Re-run failed jobs** on that workflow run. GitHub reruns `github-release` with the same verified tarball and the original tag and commit. The successful `publish` job does not rerun, so recovery never calls `npm publish` again. If the GitHub release already exists, the job succeeds without recreating it.
 
 Do not select **Re-run all jobs** or dispatch a new run to recover a failed `github-release` job. Preflight still rejects versions that already exist on npm.
+
+## Deploy production docs after a release
+
+Configure the docs Vercel project before the first release from `stable`:
+
+1. Add `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` to the GitHub `release` environment secrets. Use the docs project's ID.
+2. In Vercel, set **Settings → Environments → Production → Branch Tracking** to `stable`. Keep the project's root directory at `apps/docs`.
+3. Merge `main` into `stable` after the deployment workflow and `apps/docs/vercel.json` changes land.
+
+The `docs` job shares the `release` environment's approval policy. It runs only after `github-release` succeeds and checks out the exact preflight SHA. If that SHA is not an ancestor of `origin/stable`, the job skips deployment with a notice. This keeps main-branch prereleases outside `stable` from deploying production docs. Dry runs do not deploy.
+
+`apps/docs/vercel.json` disables Git deployments for `stable`. Merges to `stable` do not deploy docs. After changing Vercel's production branch, `main` and pull requests keep their preview deployments.
+
+The job installs Vercel CLI `65.2.0` and runs `vercel pull`, `vercel build --prod`, and `vercel deploy --prebuilt --prod` from the repository root. The single-project link lives at `.vercel/project.json` in the repository root. With the pulled root-directory setting of `apps/docs`, the build writes to `apps/docs/.vercel/output`, and the prebuilt deployment reads that same directory. See [Vercel build](https://vercel.com/docs/cli/build) and [prebuilt deployments](https://vercel.com/docs/cli/deploy#prebuilt).
+
+Deployment stays in `release.yml` because tags created with `GITHUB_TOKEN` do not trigger another tag-push workflow. If only `docs` fails, use **Re-run failed jobs** to retry deployment without republishing npm.
