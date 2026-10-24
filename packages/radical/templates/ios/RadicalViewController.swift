@@ -13,6 +13,8 @@ final class RadicalViewController: CAPBridgeViewController {
     private var laidOut = false
     private var lastInsets: UIEdgeInsets?
     private var safeAreaScript: WKUserScript?
+    private var keyboardEndFrame: CGRect?
+    private var keyboardScreen: UIScreen?
 
     override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
         let configuration = super.webViewConfiguration(for: instanceConfiguration)
@@ -52,13 +54,57 @@ final class RadicalViewController: CAPBridgeViewController {
                 webView?.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil)
             }
         }
-        // viewport-fit=cover keeps safe-area padding in CSS; UIKit still adjusts for the keyboard.
-        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // Capacitor's .never leaves safe-area padding to the page.
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChangeFrame(_:)),
+            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)),
+            name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    @objc private func keyboardWillChangeFrame(_ notification: Notification) {
+        guard let window = view.window,
+              let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let screen = (notification.object as? UIScreen) ?? window.screen
+        keyboardEndFrame = frame
+        keyboardScreen = screen
+        updateKeyboardInsetFromLayout()
+    }
+
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        keyboardEndFrame = nil
+        keyboardScreen = nil
+        updateKeyboardInset(0)
+    }
+
+    private func updateKeyboardInsetFromLayout() {
+        guard let window = view.window,
+              let frame = keyboardEndFrame, let screen = keyboardScreen,
+              screen === window.screen else {
+            updateKeyboardInset(0)
+            return
+        }
+        let keyboardFrame = view.convert(frame, from: screen.coordinateSpace)
+        let covered = view.bounds.intersection(keyboardFrame)
+        let coveredHeight = !covered.isNull && keyboardFrame.maxY >= view.bounds.maxY - 1
+            ? covered.height : 0
+        updateKeyboardInset(coveredHeight)
+    }
+
+    private func updateKeyboardInset(_ height: CGFloat) {
+        guard let scrollView = webView?.scrollView else { return }
+        scrollView.contentInset.bottom = height
+        scrollView.verticalScrollIndicatorInsets.bottom = height
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         laidOut = true
+        updateKeyboardInsetFromLayout()
         updateSafeArea()
     }
 

@@ -338,6 +338,61 @@ describe("iOS shell generation", () => {
   );
 
   it.effect(
+    "emits layout-aware docked keyboard insets without safe-area adjustment",
+    () => {
+      const state = memory();
+
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(appDelegate) ?? "";
+        assert.notInclude(source, "contentInsetAdjustmentBehavior");
+        assert.include(
+          source,
+          "UIResponder.keyboardWillChangeFrameNotification"
+        );
+        assert.include(source, "UIResponder.keyboardWillHideNotification");
+        assert.include(
+          source,
+          "NotificationCenter.default.removeObserver(self"
+        );
+        assert.include(
+          source,
+          "view.convert(frame, from: screen.coordinateSpace)"
+        );
+        assert.include(source, "keyboardFrame.maxY >= view.bounds.maxY - 1");
+        assert.include(source, "scrollView.contentInset.bottom = height");
+        assert.include(
+          source,
+          "scrollView.verticalScrollIndicatorInsets.bottom = height"
+        );
+        assert.include(
+          source,
+          "let covered = view.bounds.intersection(keyboardFrame)"
+        );
+        assert.include(source, "!covered.isNull && keyboardFrame.maxY");
+        assert.include(
+          source,
+          "let screen = (notification.object as? UIScreen) ?? window.screen"
+        );
+        assert.include(source, "keyboardEndFrame = frame");
+        assert.include(source, "keyboardScreen = screen");
+        assert.include(
+          source,
+          "screen === window.screen else {\n            updateKeyboardInset(0)"
+        );
+        assert.include(
+          source,
+          "keyboardEndFrame = nil\n        keyboardScreen = nil\n        updateKeyboardInset(0)"
+        );
+        assert.include(
+          source,
+          "super.viewDidLayoutSubviews()\n        laidOut = true\n        updateKeyboardInsetFromLayout()"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
     "emits a Capacitor project with the native-context cookie and Swift window and safe-area guards",
     () => {
       const state = memory();
@@ -393,7 +448,6 @@ describe("iOS shell generation", () => {
         assert.include(source, "let insets = view.safeAreaInsets");
         assert.include(source, "override func viewSafeAreaInsetsDidChange()");
         assert.include(source, "self.view.safeAreaInsets != insets");
-        assert.include(source, "contentInsetAdjustmentBehavior = .automatic");
         assert.include(source, "window.__radical");
         assert.include(source, 'HTTPCookiePropertyKey("HttpOnly"): "TRUE"');
         assert.include(
