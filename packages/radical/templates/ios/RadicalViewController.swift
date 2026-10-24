@@ -89,8 +89,9 @@ final class RadicalViewController: CAPBridgeViewController {
             return
         }
         let keyboardFrame = view.convert(frame, from: screen.coordinateSpace)
-        let coveredHeight = keyboardFrame.maxY >= view.bounds.maxY - 1
-            ? max(0, view.bounds.maxY - keyboardFrame.minY) : 0
+        let covered = view.bounds.intersection(keyboardFrame)
+        let coveredHeight = !covered.isNull && keyboardFrame.maxY >= view.bounds.maxY - 1
+            ? covered.height : 0
         updateKeyboardInset(coveredHeight)
     }
 

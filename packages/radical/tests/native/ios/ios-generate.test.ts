@@ -367,8 +367,9 @@ describe("iOS shell generation", () => {
         );
         assert.include(
           source,
-          "max(0, view.bounds.maxY - keyboardFrame.minY) : 0"
+          "let covered = view.bounds.intersection(keyboardFrame)"
         );
+        assert.include(source, "!covered.isNull && keyboardFrame.maxY");
         assert.include(
           source,
           "let screen = (notification.object as? UIScreen) ?? window.screen"
