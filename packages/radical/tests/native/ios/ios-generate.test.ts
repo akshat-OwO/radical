@@ -338,17 +338,14 @@ describe("iOS shell generation", () => {
   );
 
   it.effect(
-    "emits keyboard-only insets without automatic safe-area adjustment",
+    "emits layout-aware docked keyboard insets without safe-area adjustment",
     () => {
       const state = memory();
 
       return Effect.gen(function* () {
         yield* generate;
         const source = state.files.get(appDelegate) ?? "";
-        assert.notInclude(
-          source,
-          "contentInsetAdjustmentBehavior = .automatic"
-        );
+        assert.notInclude(source, "contentInsetAdjustmentBehavior");
         assert.include(
           source,
           "UIResponder.keyboardWillChangeFrameNotification"
@@ -360,18 +357,36 @@ describe("iOS shell generation", () => {
         );
         assert.include(
           source,
-          "view.convert(frame, from: window.screen.coordinateSpace)"
+          "view.convert(frame, from: screen.coordinateSpace)"
         );
-        assert.include(
-          source,
-          "view.bounds.intersection(keyboardFrame).height"
-        );
+        assert.include(source, "keyboardFrame.maxY >= view.bounds.maxY - 1");
         assert.include(source, "scrollView.contentInset.bottom = height");
         assert.include(
           source,
           "scrollView.verticalScrollIndicatorInsets.bottom = height"
         );
-        assert.include(source, "updateKeyboardInset(0)");
+        assert.include(
+          source,
+          "max(0, view.bounds.maxY - keyboardFrame.minY) : 0"
+        );
+        assert.include(
+          source,
+          "let screen = (notification.object as? UIScreen) ?? window.screen"
+        );
+        assert.include(source, "keyboardEndFrame = frame");
+        assert.include(source, "keyboardScreen = screen");
+        assert.include(
+          source,
+          "screen === window.screen else {\n            updateKeyboardInset(0)"
+        );
+        assert.include(
+          source,
+          "keyboardEndFrame = nil\n        keyboardScreen = nil\n        updateKeyboardInset(0)"
+        );
+        assert.include(
+          source,
+          "super.viewDidLayoutSubviews()\n        laidOut = true\n        updateKeyboardInsetFromLayout()"
+        );
       }).pipe(Effect.provide(state.layer));
     }
   );

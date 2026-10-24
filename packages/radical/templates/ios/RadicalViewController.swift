@@ -13,6 +13,8 @@ final class RadicalViewController: CAPBridgeViewController {
     private var laidOut = false
     private var lastInsets: UIEdgeInsets?
     private var safeAreaScript: WKUserScript?
+    private var keyboardEndFrame: CGRect?
+    private var keyboardScreen: UIScreen?
 
     override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
         let configuration = super.webViewConfiguration(for: instanceConfiguration)
@@ -67,13 +69,29 @@ final class RadicalViewController: CAPBridgeViewController {
     @objc private func keyboardWillChangeFrame(_ notification: Notification) {
         guard let window = view.window,
               let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let keyboardFrame = view.convert(frame, from: window.screen.coordinateSpace)
-        let coveredHeight = view.bounds.intersection(keyboardFrame).height
-        updateKeyboardInset(coveredHeight)
+        let screen = (notification.object as? UIScreen) ?? window.screen
+        keyboardEndFrame = frame
+        keyboardScreen = screen
+        updateKeyboardInsetFromLayout()
     }
 
     @objc private func keyboardWillHide(_ notification: Notification) {
+        keyboardEndFrame = nil
+        keyboardScreen = nil
         updateKeyboardInset(0)
+    }
+
+    private func updateKeyboardInsetFromLayout() {
+        guard let window = view.window,
+              let frame = keyboardEndFrame, let screen = keyboardScreen,
+              screen === window.screen else {
+            updateKeyboardInset(0)
+            return
+        }
+        let keyboardFrame = view.convert(frame, from: screen.coordinateSpace)
+        let coveredHeight = keyboardFrame.maxY >= view.bounds.maxY - 1
+            ? max(0, view.bounds.maxY - keyboardFrame.minY) : 0
+        updateKeyboardInset(coveredHeight)
     }
 
     private func updateKeyboardInset(_ height: CGFloat) {
@@ -85,6 +103,7 @@ final class RadicalViewController: CAPBridgeViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         laidOut = true
+        updateKeyboardInsetFromLayout()
         updateSafeArea()
     }
 
