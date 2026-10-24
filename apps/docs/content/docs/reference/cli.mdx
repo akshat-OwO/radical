@@ -23,6 +23,8 @@ Resolves the current config and generates `.radical/android`. In bundled mode, b
 
 The SDK path resolves from `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Otherwise `adb` and `emulator` resolve through `PATH`.
 
+The generated project pins the Gradle daemon to JDK 21 in `.radical/android/android/gradle/gradle-daemon-jvm.properties`, including with `--generate-only`. `JAVA_HOME` and the default `java` only launch Gradle; they do not choose the build JDK. Gradle uses an installed JDK 21 or downloads one on the first build, which needs network access. If Gradle can neither find nor download JDK 21, the build fails with a toolchain error that names Java 21. Running `./gradlew` in the generated project behaves the same way.
+
 ## `radical ios`
 
 Resolves the config and generates `.radical/ios`. In bundled mode, builds the UI before generation. Without `--generate-only`, builds a Debug simulator app with `xcodebuild`, installs it through `simctl`, and launches it.

@@ -1,7 +1,17 @@
 import { createRequire } from "node:module";
 
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
+import {
+  Effect,
+  FileSystem,
+  Layer,
+  Path,
+  PlatformError,
+  Schema,
+  Stdio,
+  Terminal,
+} from "effect";
+import { Command } from "effect/cli";
 import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../../../apps/example/plugins/EchoPlugin.java?raw";
@@ -11,6 +21,8 @@ import {
   ShellContextSchema,
 } from "../../../src/core/context/native-context.ts";
 import type { PluginManifest } from "../../../src/core/plugins/plugins.ts";
+import { CliNative, cliNativeLayer, makeCli } from "../../../src/entry/cli.ts";
+import { CliVite } from "../../../src/entry/prepare-native.ts";
 import { generateAndroid } from "../../../src/native/android/generate.ts";
 import { AssetGenerationFailed } from "../../../src/native/assets/errors.ts";
 import type { AssetGeneration } from "../../../src/native/assets/native-assets.ts";
@@ -19,7 +31,10 @@ import {
   NativeMetadata,
   nativeMetadataLayer,
 } from "../../../src/native/shared/native-metadata.ts";
+import { BuildPlanApi } from "../../../src/vite/build-plan-api.ts";
+import { resolveBuildPlan } from "../../../src/vite/build-plan.ts";
 import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
+import daemonJvm from "../../../templates/android/gradle-daemon-jvm.properties?raw";
 import launch from "../../../templates/android/launch.html?raw";
 import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";
@@ -61,6 +76,7 @@ const memory = (
     ["/package/templates/android/launch.html", launch],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
     ["/package/templates/android/radical.gradle", gradle],
+    ["/package/templates/android/gradle-daemon-jvm.properties", daemonJvm],
   ]);
 
   const require = createRequire(import.meta.url);
@@ -79,7 +95,7 @@ const memory = (
   const commands: string[][] = [];
   const binaries = new Map<string, Uint8Array>();
   const assetCalls: AssetGeneration[] = [];
-  const control = { failAssets: false };
+  const control = { failAssets: false, existingDaemonJvm: false };
 
   const fs = FileSystem.layerNoop({
     readFile: (name) =>
@@ -112,9 +128,22 @@ const memory = (
             )
           : Effect.succeed(content);
       }),
-    writeFileString: (name, content) =>
-      Effect.sync(() => {
+    writeFileString: (name, content, options) =>
+      Effect.suspend(() => {
+        if (options?.flag === "wx" && files.has(name)) {
+          return Effect.fail(
+            PlatformError.systemError({
+              _tag: "AlreadyExists",
+              module: "FileSystem",
+              method: "writeFileString",
+              pathOrDescriptor: name,
+            })
+          );
+        }
+
         files.set(name, content);
+
+        return Effect.void;
       }),
     copy: (from, to) =>
       Effect.sync(() => {
@@ -156,6 +185,14 @@ const memory = (
 
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
+
+          if (control.existingDaemonJvm) {
+            files.set(
+              `${command.options.cwd}/android/gradle/gradle-daemon-jvm.properties`,
+              "toolchainVersion=25"
+            );
+          }
+
           files.set(
             `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>'
@@ -214,6 +251,139 @@ const memory = (
 const generate = generateAndroid("/app", "/package");
 
 describe("Android shell generation", () => {
+  for (const mode of ["remote", "bundled"] as const) {
+    for (const generateOnly of [false, true]) {
+      it.effect(
+        `pins JDK 21 with cross-platform download URLs in ${mode} mode${generateOnly ? " with --generate-only" : ""}`,
+        () => {
+          const config = {
+            ...defaultConfig,
+            mode,
+            origin: "https://api.example",
+          };
+
+          const state = memory(false, config);
+          state.files.set("/app/web/public/entry.html", "<!doctype html>");
+
+          const plan = resolveBuildPlan(config).pipe(
+            Effect.provide(state.layer)
+          );
+
+          const cliLayer = Layer.mergeAll(
+            Path.layer,
+            Stdio.layerTest({}),
+            Layer.succeed(
+              Terminal.Terminal,
+              Terminal.make({
+                columns: Effect.succeed(80),
+                rows: Effect.succeed(24),
+                readInput: Effect.die("Unexpected input"),
+                readLine: Effect.die("Unexpected input"),
+                display: () => Effect.void,
+              })
+            ),
+            Layer.succeed(CliVite, {
+              resolve: () =>
+                Effect.succeed({
+                  root: "/app",
+                  plugins: [
+                    {
+                      name: "radical:config",
+                      api: new BuildPlanApi(() => plan),
+                    },
+                  ],
+                }),
+              build: Effect.void,
+            }),
+            Layer.effect(
+              CliNative,
+              Effect.gen(function* () {
+                const native = yield* CliNative;
+
+                return {
+                  ...native,
+                  generateAndroid: (root, _packageRoot, prepared) =>
+                    generateAndroid(root, "/package", prepared),
+                  runAndroid: () =>
+                    Effect.die("Generate-only must not launch Android"),
+                };
+              })
+            ).pipe(Layer.provide(cliNativeLayer))
+          );
+
+          return Effect.gen(function* () {
+            yield* generateOnly
+              ? Command.runWith(makeCli("/app"), {
+                  version: "0.0.0",
+                  renderErrors: false,
+                })(["android", "--generate-only"])
+              : generate;
+
+            const properties =
+              state.files.get(
+                `${destination}/android/gradle/gradle-daemon-jvm.properties`
+              ) ?? "";
+
+            assert.strictEqual(properties, daemonJvm);
+            assert.include(properties, "toolchainVersion=21\n");
+
+            for (const platform of [
+              "MAC_OS.AARCH64",
+              "MAC_OS.X86_64",
+              "LINUX.AARCH64",
+              "LINUX.X86_64",
+              "WINDOWS.X86_64",
+            ]) {
+              assert.match(
+                properties,
+                new RegExp(
+                  `^toolchainUrl\\.${platform.replaceAll(".", "\\.")}=https\\\\://api\\.foojay\\.io/disco/v3\\.0/ids/[a-f0-9]+/redirect$`,
+                  "mu"
+                )
+              );
+            }
+
+            assert.notInclude(properties, "toolchainVendor");
+            assert.notInclude(properties, "org.gradle.java.home");
+            assert.strictEqual(state.commands.length, 1);
+          }).pipe(Effect.provide(Layer.mergeAll(cliLayer, state.layer)));
+        }
+      );
+    }
+  }
+
+  it.effect(
+    "rejects pre-existing daemon JVM criteria and keeps the previous shell",
+    () => {
+      const state = memory();
+      state.control.existingDaemonJvm = true;
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.strictEqual(error._tag, "NativeTemplateMismatch");
+
+        if (error._tag === "NativeTemplateMismatch") {
+          assert.strictEqual(
+            error.file,
+            `${destination}.next/android/gradle/gradle-daemon-jvm.properties`
+          );
+          assert.include(error.anchor, "absent");
+        }
+
+        assert.strictEqual(
+          state.files.get(`${destination}/previous.txt`),
+          "usable shell"
+        );
+        assert.isFalse(
+          [...state.files.keys()].some((key) =>
+            key.startsWith(`${destination}.next/`)
+          )
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
   it.effect(
     "generates topic-record cleanup even when notifications are disabled",
     () => {

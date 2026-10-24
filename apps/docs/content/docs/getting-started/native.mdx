@@ -13,7 +13,7 @@ Run every command below from your app directory. Install the native dependencies
 
 ## Android
 
-Install Android Studio with the Android SDK, Android SDK Platform-Tools, and a JDK compatible with Capacitor 8. Create an Android Virtual Device in Device Manager and start it. See [Capacitor's environment setup](https://capacitorjs.com/docs/getting-started/environment-setup) for toolchain requirements.
+Install Android Studio with the Android SDK and Android SDK Platform-Tools. Gradle builds with JDK 21, and your default Java can be any version. Gradle uses an installed JDK 21 or downloads one, so the first build on a machine without JDK 21 needs network access. Create an Android Virtual Device in Device Manager and start it. See [Capacitor's environment setup](https://capacitorjs.com/docs/getting-started/environment-setup) for toolchain requirements.
 
 Set `ANDROID_HOME` or `ANDROID_SDK_ROOT` to your SDK directory. Put `adb` and `emulator` on `PATH`.
 

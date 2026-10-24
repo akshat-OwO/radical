@@ -656,9 +656,10 @@ pnpm exec radical android --target emulator-5554
 `adb reverse` makes `localhost:3000` on the emulator point at port 3000 on your computer. Without it, the shell cannot reach the dev server. Radical generates the Android project in `.radical/android`, builds it with Gradle, and opens the app.
 
 <Callout type="warning">
-  The Gradle build needs JDK 21. If it fails with `Unsupported class file major
-  version`, point `JAVA_HOME` at JDK 21. On macOS, run `export
-  JAVA_HOME=$(/usr/libexec/java_home -v 21)`.
+  Gradle builds with JDK 21, whatever your default Java is. It uses an installed
+  JDK 21 or downloads one, so the first build on a machine without JDK 21 needs
+  network access. If it can neither find nor download one, the build fails with
+  a toolchain error that names Java 21.
 </Callout>
 
 ### iOS

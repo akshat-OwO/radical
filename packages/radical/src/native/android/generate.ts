@@ -15,7 +15,10 @@ import {
   readNativeProject,
   renderTemplate,
 } from "../shared/native-project.ts";
-import { replaceAnchor } from "../shared/native-template.ts";
+import {
+  NativeTemplateMismatch,
+  replaceAnchor,
+} from "../shared/native-template.ts";
 import { safeAreaUpdateScript } from "../shared/shell-events.ts";
 
 /**
@@ -47,6 +50,10 @@ export const generateAndroid = (
 
     const gradleTemplate = yield* fs.readFileString(
       path.join(packageRoot, "templates/android/radical.gradle")
+    );
+
+    const daemonJvmTemplate = yield* fs.readFileString(
+      path.join(packageRoot, "templates/android/gradle-daemon-jvm.properties")
     );
 
     const replacements = {
@@ -88,6 +95,24 @@ export const generateAndroid = (
 
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
+        const daemonJvmPath = path.join(
+          staging,
+          "android/gradle/gradle-daemon-jvm.properties"
+        );
+
+        yield* fs
+          .writeFileString(daemonJvmPath, daemonJvmTemplate, { flag: "wx" })
+          .pipe(
+            Effect.mapError((error) =>
+              error.reason._tag === "AlreadyExists"
+                ? new NativeTemplateMismatch({
+                    file: daemonJvmPath,
+                    anchor: "absent Gradle daemon JVM criteria file",
+                  })
+                : error
+            )
+          );
+
         const manifestPath = path.join(
           staging,
           "android/app/src/main/AndroidManifest.xml"
