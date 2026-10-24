@@ -1,3 +1,8 @@
+declare module "*.properties?raw" {
+  const content: string;
+  export default content;
+}
+
 declare module "*.java?raw" {
   const content: string;
   export default content;
