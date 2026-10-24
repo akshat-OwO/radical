@@ -199,3 +199,54 @@ jobs:
             --verify-tag --title "radical v$VERSION" --generate-notes \
             --notes "The attached tarball is the published npm package. This tag records source with a placeholder version; stamp $VERSION before rebuilding." \
             --prerelease="$IS_PRERELEASE" --latest="$MAKE_LATEST"
+
+  docs:
+    if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+    needs: [preflight, github-release]
+    runs-on: ubuntu-latest
+    # Share the release approval policy and Vercel secrets.
+    environment: release
+    permissions:
+      contents: read
+    defaults:
+      run:
+        # The single-project link and prebuilt output both live at the repo root.
+        working-directory: ${{ github.workspace }}
+    env:
+      SHA: ${{ needs.preflight.outputs.sha }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check that the release belongs to stable
+        id: stable
+        run: |
+          git fetch origin stable:refs/remotes/origin/stable
+          if git merge-base --is-ancestor "$SHA" origin/stable; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping production docs because $SHA is not an ancestor of origin/stable."
+          fi
+      - uses: voidzero-dev/setup-vp@v1.21.2
+        if: ${{ steps.stable.outputs.deploy == 'true' }}
+        with:
+          node-version: "24"
+          cache: true
+      - name: Install Vercel CLI
+        if: ${{ steps.stable.outputs.deploy == 'true' }}
+        working-directory: ${{ runner.temp }}
+        run: npm install --global vercel@65.2.0
+      - name: Pull production docs settings
+        if: ${{ steps.stable.outputs.deploy == 'true' }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build production docs
+        if: ${{ steps.stable.outputs.deploy == 'true' }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy production docs
+        if: ${{ steps.stable.outputs.deploy == 'true' }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
