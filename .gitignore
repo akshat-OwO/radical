@@ -49,3 +49,6 @@ GoogleService-Info.plist
 .next/
 next-env.d.ts
 *.tsbuildinfo
+
+# Vercel project links and build output
+.vercel/

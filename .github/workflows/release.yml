@@ -210,7 +210,8 @@ jobs:
       contents: read
     defaults:
       run:
-        # The single-project link and prebuilt output both live at the repo root.
+        # The project link is at repo-root .vercel/project.json.
+        # Build and prebuilt deploy use apps/docs/.vercel/output.
         working-directory: ${{ github.workspace }}
     env:
       SHA: ${{ needs.preflight.outputs.sha }}

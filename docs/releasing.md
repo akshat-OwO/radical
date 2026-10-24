@@ -102,6 +102,6 @@ The `docs` job shares the `release` environment's approval policy. It runs only 
 
 `apps/docs/vercel.json` disables Git deployments for `stable`. Merges to `stable` do not deploy docs. After changing Vercel's production branch, `main` and pull requests keep their preview deployments.
 
-The job installs Vercel CLI `65.2.0` and runs `vercel pull`, `vercel build --prod`, and `vercel deploy --prebuilt --prod` from the repository root. The single-project link uses the pulled `apps/docs` root-directory setting for the build and keeps `.vercel/output` at the repository root for deployment. See [Vercel build](https://vercel.com/docs/cli/build) and [prebuilt deployments](https://vercel.com/docs/cli/deploy#prebuilt).
+The job installs Vercel CLI `65.2.0` and runs `vercel pull`, `vercel build --prod`, and `vercel deploy --prebuilt --prod` from the repository root. The single-project link lives at `.vercel/project.json` in the repository root. With the pulled root-directory setting of `apps/docs`, the build writes to `apps/docs/.vercel/output`, and the prebuilt deployment reads that same directory. See [Vercel build](https://vercel.com/docs/cli/build) and [prebuilt deployments](https://vercel.com/docs/cli/deploy#prebuilt).
 
 Deployment stays in `release.yml` because tags created with `GITHUB_TOKEN` do not trigger another tag-push workflow. If only `docs` fails, use **Re-run failed jobs** to retry deployment without republishing npm.
