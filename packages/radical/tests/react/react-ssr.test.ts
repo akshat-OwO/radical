@@ -78,6 +78,11 @@ it.effect(
           {
             nativeContext: {
               platform: "ios",
+              windowLayout: {
+                widthClass: "compact" as const,
+                posture: "flat" as const,
+                hinge: null,
+              },
               safeArea: area,
               shellVersion: "1",
             },

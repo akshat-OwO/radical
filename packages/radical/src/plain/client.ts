@@ -451,3 +451,7 @@ export const watchLocation = (
     Effect.runFork(Fiber.interrupt(fiber));
   };
 };
+
+export { windowLayoutStyle } from "../capabilities/window-layout/window-layout-style.ts";
+
+export type { WindowLayout } from "../core/context/native-context.ts";

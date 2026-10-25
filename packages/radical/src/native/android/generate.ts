@@ -19,7 +19,10 @@ import {
   NativeTemplateMismatch,
   replaceAnchor,
 } from "../shared/native-template.ts";
-import { safeAreaUpdateScript } from "../shared/shell-events.ts";
+import {
+  safeAreaUpdateScript,
+  windowLayoutUpdateScript,
+} from "../shared/shell-events.ts";
 
 /**
  * Runs at document start, before any page script, in every frame. A top-level
@@ -74,6 +77,7 @@ export const generateAndroid = (
       __BUNDLED__: String(native.bundled),
       __APP_ID__: native.identity.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
+      __WINDOW_LAYOUT_SCRIPT__: JSON.stringify(windowLayoutUpdateScript),
       __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "android"),
       __URL__: JSON.stringify(url),
       __COOKIES__: native.cookies

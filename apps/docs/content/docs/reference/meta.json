@@ -17,6 +17,7 @@
     "network",
     "notifications",
     "safe-area",
+    "window-layout",
     "transitions",
     "video-stream"
   ],

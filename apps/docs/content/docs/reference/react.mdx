@@ -27,6 +27,7 @@ Hooks do not invoke browser APIs during render. Effects start after commit. Unmo
 | Hook | Actions and result |
 | --- | --- |
 | `useDeviceInfo()` | Starts after mount. `{ loading, value, error }`. Value is `DeviceInfo`. |
+| `useWindowLayout()` | Returns width class, posture, and hinge. Provider layout first, then live updates. |
 | `useSafeArea()` | Returns `SafeArea` directly. Initial provider insets, then live updates. |
 | `useCamera()` | `capture()`, `choose()`, `loading`, `value?: Photo`, `error`. |
 | `useCameraPermission()` | `check()`, `request()`, `loading`, `value?: CameraPermission`, `error`. Checks after mount. |

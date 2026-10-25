@@ -167,10 +167,11 @@ export const readNativeProject = (
         )
       );
 
-    // Template seed only. Shells replace safeArea before writing any cookie.
+    // Template seed only. Shells measure presentation context before writing any cookie.
     const cookie = yield* encodeNativeContextCookie({
       platform,
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+      windowLayout: { widthClass: "compact", posture: "flat", hinge: null },
       shellVersion: version,
     });
 

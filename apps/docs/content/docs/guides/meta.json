@@ -5,6 +5,7 @@
     "run-on-a-device",
     "app-assets",
     "safe-area",
+    "window-layout",
     "device-info",
     "transitions",
     "camera",

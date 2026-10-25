@@ -19,7 +19,10 @@ import {
   renderTemplate,
 } from "../shared/native-project.ts";
 import { replaceAnchor } from "../shared/native-template.ts";
-import { safeAreaUpdateScript } from "../shared/shell-events.ts";
+import {
+  safeAreaUpdateScript,
+  windowLayoutUpdateScript,
+} from "../shared/shell-events.ts";
 
 export const generateIos = (
   root: string,
@@ -75,6 +78,7 @@ export const generateIos = (
           .join(", "),
         __COOKIE_NAME__: JSON.stringify(NATIVE_CONTEXT_COOKIE),
         __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
+        __WINDOW_LAYOUT_SCRIPT__: JSON.stringify(windowLayoutUpdateScript),
         __COOKIE_VALUE__: JSON.stringify(native.cookie),
       }
     );

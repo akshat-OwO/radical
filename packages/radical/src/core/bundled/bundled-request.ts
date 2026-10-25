@@ -1,6 +1,7 @@
 import { Effect, Schema, flow } from "effect";
 
 import { safeAreaStyle } from "../../capabilities/safe-area/safe-area-style.ts";
+import { windowLayoutStyle } from "../../capabilities/window-layout/window-layout-style.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
 import { browserContext } from "../context/browser-context.ts";
 import {
@@ -65,7 +66,10 @@ export const mountNativeContext = (
     if (target) {
       target.__radicalMounted = true;
 
-      for (const [name, value] of Object.entries(safeAreaStyle(context))) {
+      for (const [name, value] of Object.entries({
+        ...safeAreaStyle(context),
+        ...windowLayoutStyle(context),
+      })) {
         target.document.documentElement.style.setProperty(name, value);
       }
     }

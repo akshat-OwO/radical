@@ -20,6 +20,11 @@ const config = { mode: "bundled", origin: "https://api.example" } as const;
 const context = {
   platform: "android",
   shellVersion: "1.0",
+  windowLayout: {
+    widthClass: "expanded" as const,
+    posture: "tabletop" as const,
+    hinge: { x: 0, y: 400, width: 900, height: 12.5 },
+  },
   safeArea: { top: 24, left: 0, right: 0, bottom: 16 },
 } as const;
 
@@ -63,6 +68,7 @@ describe("bundled requests", () => {
           context
         );
         assert.isTrue(document.__radicalMounted);
+        assert.strictEqual(styles.get("--radical-hinge-height"), "12.5px");
         assert.strictEqual(styles.get("--radical-safe-area-top"), "24px");
         assert.strictEqual(styles.get("--radical-safe-area-bottom"), "16px");
         assert.deepStrictEqual(

@@ -4,5 +4,6 @@ import type { NativeContext } from "./native-context.ts";
 export const browserContext = (): NativeContext => ({
   platform: "browser",
   safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+  windowLayout: { widthClass: "compact", posture: "flat", hinge: null },
   shellVersion: null,
 });

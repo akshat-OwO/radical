@@ -12,11 +12,12 @@ description: "Request parsing and bundled CORS exports from @akshatowo/radical/s
 | Invalid URI or schema | Browser context |
 | Trust | No authentication or origin check |
 
-| Field          | Native value                   | Browser value |
-| -------------- | ------------------------------ | ------------- |
-| `platform`     | `"android"` or `"ios"`         | `"browser"`   |
-| `safeArea`     | `{ top, right, bottom, left }` | Zero insets   |
-| `shellVersion` | Nonempty string                | `null`        |
+| Field | Native value | Browser value |
+| --- | --- | --- |
+| `platform` | `"android"` or `"ios"` | `"browser"` |
+| `windowLayout` | `{ widthClass, posture, hinge }` | `compact`, `flat`, no hinge |
+| `safeArea` | `{ top, right, bottom, left }` | Zero insets |
+| `shellVersion` | Nonempty string | `null` |
 
 Insets are finite, nonnegative CSS pixel values. Native context is untrusted presentation data.
 

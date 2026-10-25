@@ -283,6 +283,11 @@ describe("offline worker", () => {
           "cookie",
           `${NATIVE_CONTEXT_COOKIE}=${yield* encodeNativeContextCookie({
             platform,
+            windowLayout: {
+              widthClass: "compact" as const,
+              posture: "flat" as const,
+              hinge: null,
+            },
             safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
             shellVersion: "1.0",
           })}`
