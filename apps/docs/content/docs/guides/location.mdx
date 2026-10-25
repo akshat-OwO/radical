@@ -18,16 +18,19 @@ Apply the [capability setup](/docs/guides/run-on-a-device#prerequisites) with th
 pnpm add @capacitor/geolocation@8.2.4
 ```
 
-```ts
-internalPlugins: { location: true },
-pluginOptions: {
-	Location: {
-		usageDescription: "Show where you are on the map.",
-		precisePurposes: {
-			followMe: "Follow your exact position while you walk.",
-		},
-	},
-},
+```ts title="vite.config.ts"
+const config = {
+  // ...
+  internalPlugins: { location: true },
+  pluginOptions: {
+    Location: {
+      usageDescription: "Show where you are on the map.",
+      precisePurposes: {
+        followMe: "Follow your exact position while you walk.",
+      },
+    },
+  },
+} satisfies RadicalConfig;
 ```
 
 `usageDescription` explains why the app reads location. It becomes both iOS location usage strings. Each `precisePurposes` key names a feature that needs precise location fixes. iOS shows its text when the app asks for temporary precise location. Regenerate native projects after you change these values.
@@ -64,6 +67,8 @@ useEffect(() => {
 
 `watch.value` holds the latest location fix while `watch.running` is true. The hook also stops its watch on unmount.
 
+A watch survives transient errors. `LocationTimeout`, `Unavailable`, and `LocationServicesOff` set `watch.error`, while `watch.running` stays `true` and `watch.value` keeps the last location fix. The next location fix clears `error`. `PermissionDenied` and bridge errors end the watch.
+
 </Step>
 <Step>
 
@@ -91,7 +96,7 @@ permission.request({ precise: "followMe" });
 
 On iOS, a first request with `precise` shows two prompts: the location grant, then temporary precise location. Temporary precise location expires some time after the app stops being used. While it is active, another precise request succeeds without a prompt. Android 11 and earlier have no approximate choice, so a default request reports `precision: "precise"`.
 
-`precision` reports the actual grant, not the requested one. `enableHighAccuracy` never upgrades location precision; with an approximate grant, fixes stay approximate.
+`precision` reports the actual grant, not the requested one. `enableHighAccuracy` never upgrades location precision; with an approximate grant, fixes stay approximate. On a device, a watch started with `enableHighAccuracy: true` uses high accuracy only while precise location is granted. When the grant changes, Radical restarts the native watch with the matching setting, so a running watch switches to precise location fixes as soon as the user grants precise location. You can request precise location before or after you start the watch.
 
 </Step>
 <Step>
@@ -123,6 +128,7 @@ When location is enabled, Radical's client entry replaces `navigator.geolocation
 - `getCurrentPosition` and `watchPosition` check the permission first. If the state is `prompt`, they ask for approximate location, as a browser would. Concurrent calls share one prompt. If location is not granted, the error callback receives code `1`.
 - `watchPosition` joins the shared watch pool, so a locate control and `useLocationWatch` with the same options run one native watch. `clearWatch` releases it.
 - Errors use the standard `GeolocationPositionError` codes: `1` for `PermissionDenied`, `3` for `LocationTimeout`, and `2` for everything else, including `LocationServicesOff` after the user declines Google's location settings dialog. `message` is the error tag.
+- A watch's error callback receives transient errors, `LocationTimeout`, `Unavailable`, and `LocationServicesOff`, and the watch keeps running with the same ID. `PermissionDenied` and bridge errors end it.
 - Permission changes made through the replacement update `useLocationPermission()` by themselves; you do not need to call `check()`.
 - `navigator.permissions.query({ name: "geolocation" })` returns one shared `PermissionStatus`. Its `state` updates and fires `change` whenever any API checks or requests location permission, and when the app returns from the background, for example from Settings. Other permission names use the WebView's own query.
 

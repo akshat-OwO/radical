@@ -1,10 +1,10 @@
-import { Effect, Fiber, Semaphore, Stream } from "effect";
+import { Effect, Fiber, Semaphore, Stream, Result } from "effect";
 
 import { detectRuntime } from "../../core/bridge/bridge.ts";
 import { defaultRuntime, getEffectRuntime } from "../../plain/runtime.ts";
 import type { RadicalRuntime } from "../../plain/runtime.ts";
 import { LocationPermissionEvents } from "./location-permission-events.ts";
-import { locationLive, watchLocation } from "./location-pool.ts";
+import { locationLive, watchLocationEvents } from "./location-pool.ts";
 import {
   getCurrentLocation,
   checkLocationPermission,
@@ -166,11 +166,13 @@ export const installNavigatorLocation = (
         const fiber = managed.runFork(
           ensurePermission.pipe(
             Effect.andThen(
-              watchLocation(options).pipe(
-                Stream.runForEach((fix) =>
+              watchLocationEvents(options).pipe(
+                Stream.runForEach((result) =>
                   Effect.sync(() => {
-                    if (active) {
-                      success(browserPosition(fix));
+                    if (Result.isFailure(result)) {
+                      failure(onError)(result.failure);
+                    } else if (active) {
+                      success(browserPosition(result.success));
                     }
                   })
                 )

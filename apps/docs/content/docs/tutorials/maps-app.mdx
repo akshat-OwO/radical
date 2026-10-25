@@ -288,6 +288,12 @@ function loadMapLibre() {
       }
       return lib;
     })
+    .catch((error) => {
+      maplibrePromise = null;
+      throw error;
+    });
+  return maplibrePromise;
+}
 ```
 
 Copy both files again when you upgrade `maplibre-gl`.
@@ -952,8 +958,10 @@ function Home() {
 
   const fix = location.value;
 
-  const toggleFollow = () => { // [!code ++]
-    if (permission.value?.precision === "approximate") { // [!code ++]
+  const toggleFollow = () => {
+    // [!code ++]
+    if (permission.value?.precision === "approximate") {
+      // [!code ++]
       permission.request({ precise: "followMe" }); // [!code ++]
     } // [!code ++]
   }; // [!code ++]
@@ -962,7 +970,8 @@ function Home() {
     <main className="screen">
       <header className="bar">
         <h1 className="text-lg">Maps</h1>
-        <PermissionBadge permission={permission.value} /> {/* [!code ++] */}
+        {/* [!code ++] */}
+        <PermissionBadge permission={permission.value} />
       </header>
 
       <div className="relative min-h-0">
@@ -973,16 +982,17 @@ function Home() {
 
       <section className="sheet" aria-label="Your location">
         {fix ? (
-          <div className="flex items-end justify-between gap-4"> {/* [!code ++] */}
-            <p> {/* [!code ++] */}
-              <span className="figure">{formatDistance(fix.accuracy)}</span> {/* [!code ++] */}
-              <br /> {/* [!code ++] */}
-              <span className="text-sm text-ink-3">accuracy</span> {/* [!code ++] */}
-            </p> {/* [!code ++] */}
-            <button type="button" className="btn" onClick={toggleFollow}> {/* [!code ++] */}
-              Follow me {/* [!code ++] */}
-            </button> {/* [!code ++] */}
-          </div> {/* [!code ++] */}
+          // [!code ++:10]
+          <div className="flex items-end justify-between gap-4">
+            <p>
+              <span className="figure">{formatDistance(fix.accuracy)}</span>
+              <br />
+              <span className="text-sm text-ink-3">accuracy</span>
+            </p>
+            <button type="button" className="btn" onClick={toggleFollow}>
+              Follow me
+            </button>
+          </div>
         ) : permission.value?.state === "prompt" ? (
           <button
             type="button"
@@ -1128,12 +1138,14 @@ function Home() {
   }, [granted, getCurrent]);
 
   const fix = location.value;
-  const blocked = blockedBy( // [!code ++]
+  const blocked = blockedBy(
+    // [!code ++]
     permission.value, // [!code ++]
     permission.error ?? location.error // [!code ++]
   ); // [!code ++]
 
-  const retry = () => { // [!code ++]
+  const retry = () => {
+    // [!code ++]
     permission.check(); // [!code ++]
     getCurrent(); // [!code ++]
   }; // [!code ++]
@@ -1158,9 +1170,9 @@ function Home() {
       </div>
 
       <section className="sheet" aria-label="Your location">
-        {blocked ? ( {/* [!code ++] */}
-          <LocationBlocked reason={blocked} onRetry={retry} /> {/* [!code ++] */}
-        ) : fix ? ( {/* [!code ++] */}
+        {blocked ? ( // [!code ++]
+          <LocationBlocked reason={blocked} onRetry={retry} /> // [!code ++]
+        ) : fix ? ( // [!code ++]
           <div className="flex items-end justify-between gap-4">
             <p>
               <span className="figure">{formatDistance(fix.accuracy)}</span>
@@ -1255,7 +1267,8 @@ The blue dot marks the location fix. The circle around it has a radius equal to 
 Update `src/routes/index.tsx`:
 
 ```tsx title="src/routes/index.tsx"
-import { // [!code ++]
+import {
+  // [!code ++]
   useLocation, // [!code ++]
   useLocationPermission, // [!code ++]
   useLocationWatch, // [!code ++]
@@ -1288,7 +1301,8 @@ function Home() {
 
   // Keep the newest fix from either hook, so stopping a watch keeps its last fix. // [!code ++]
   const next = watch.value ?? location.value; // [!code ++]
-  if (next && next !== fix && (!fix || next.timestamp > fix.timestamp)) { // [!code ++]
+  if (next && next !== fix && (!fix || next.timestamp > fix.timestamp)) {
+    // [!code ++]
     setFix(next); // [!code ++]
   } // [!code ++]
 
@@ -1303,7 +1317,8 @@ function Home() {
   };
 
   const toggleFollow = () => {
-    if (watch.running) { // [!code ++]
+    if (watch.running) {
+      // [!code ++]
       watch.stop(); // [!code ++]
       return; // [!code ++]
     } // [!code ++]
@@ -1322,8 +1337,9 @@ function Home() {
 
       <div className="relative min-h-0">
         <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
-          <CenterOn fix={fix} follow={watch.running} /> {/* [!code ++] */}
-          {fix && <UserLocation fix={fix} />} {/* [!code ++] */}
+          {/* [!code ++:2] */}
+          <CenterOn fix={fix} follow={watch.running} />
+          {fix && <UserLocation fix={fix} />}
         </Map>
       </div>
 
@@ -1337,13 +1353,14 @@ function Home() {
               <br />
               <span className="text-sm text-ink-3">accuracy</span>
             </p>
-            <button {/* [!code ++] */}
-              type="button" {/* [!code ++] */}
-              className="btn" {/* [!code ++] */}
-              aria-pressed={watch.running} {/* [!code ++] */}
-              onClick={toggleFollow} {/* [!code ++] */}
-            > {/* [!code ++] */}
-              {watch.running ? "Following" : "Follow me"} {/* [!code ++] */}
+            {/* [!code ++:7] */}
+            <button
+              type="button"
+              className="btn"
+              aria-pressed={watch.running}
+              onClick={toggleFollow}
+            >
+              {watch.running ? "Following" : "Follow me"}
             </button>
           </div>
         ) : permission.value?.state === "prompt" ? (
@@ -1366,7 +1383,7 @@ function Home() {
 What changed:
 
 - `useLocationWatch` keeps a native watch open while `watch.running` is true. `watch.value` holds the latest location fix. The hook stops the watch on unmount.
-- **Follow me** asks for precise location if needed, then calls `watch.start({ enableHighAccuracy: true })`. `enableHighAccuracy` asks for the best fix the current grant allows. It never upgrades location precision by itself.
+- **Follow me** asks for precise location if needed, then calls `watch.start({ enableHighAccuracy: true })`. `enableHighAccuracy` asks for the best fix the current grant allows. It never upgrades location precision by itself, but when the user grants precise location, Radical restarts the running watch with high accuracy. Following then switches to precise location fixes without another tap.
 - While following, `CenterOn` eases the map to each new location fix instead of fitting the accuracy circle.
 - `fix` keeps the newest location fix from either hook, so the dot stays where it was when you stop following.
 
@@ -1602,18 +1619,19 @@ function Home() {
       <div className="relative min-h-0">
         <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
           <CenterOn fix={fix} follow={watch.running} />
-          <DropPins onDrop={add} /> {/* [!code ++] */}
-          {pins.map((pin, index) => ( {/* [!code ++] */}
-            <MapMarker {/* [!code ++] */}
-              key={pin.id} {/* [!code ++] */}
-              longitude={pin.longitude} {/* [!code ++] */}
-              latitude={pin.latitude} {/* [!code ++] */}
-            > {/* [!code ++] */}
-              <MarkerContent className="cursor-default"> {/* [!code ++] */}
-                <span className="pin">{index + 1}</span> {/* [!code ++] */}
-              </MarkerContent> {/* [!code ++] */}
-            </MapMarker> {/* [!code ++] */}
-          ))} {/* [!code ++] */}
+          {/* [!code ++:12] */}
+          <DropPins onDrop={add} />
+          {pins.map((pin, index) => (
+            <MapMarker
+              key={pin.id}
+              longitude={pin.longitude}
+              latitude={pin.latitude}
+            >
+              <MarkerContent className="cursor-default">
+                <span className="pin">{index + 1}</span>
+              </MarkerContent>
+            </MapMarker>
+          ))}
           {fix && <UserLocation fix={fix} />}
         </Map>
       </div>
@@ -1648,7 +1666,8 @@ function Home() {
         ) : (
           <p className="text-ink-3">Finding you</p>
         )}
-        <PinList pins={pins} from={fix} onRemove={remove} /> {/* [!code ++] */}
+        {/* [!code ++] */}
+        <PinList pins={pins} from={fix} onRemove={remove} />
       </section>
     </main>
   );
@@ -1664,12 +1683,13 @@ Map libraries call `navigator.geolocation` directly. In a shell, Radical replace
 ```tsx title="src/routes/index.tsx"
 import {
   Map,
-  MapControls,
+  MapControls, // [!code ++]
   MapMarker,
   MarkerContent,
-} from "@/components/ui/map"; // [!code ++]
+} from "@/components/ui/map";
 
 // Inside <Map>, after {fix && <UserLocation fix={fix} />}:
+// [!code ++]
 <MapControls position="top-right" showLocate />;
 ```
 

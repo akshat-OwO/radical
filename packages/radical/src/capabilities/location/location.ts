@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, Stream, Queue } from "effect";
+import { Effect, Option, Schema, Stream, Queue, Result } from "effect";
 
 import {
   Bridge,
@@ -72,6 +72,10 @@ export const normalizeLocationError = (error: BridgeError): LocationError => {
 
   if (code === "OS-PLUG-GLOC-0003" || code === "OS-PLUG-GLOC-0008") {
     return new PermissionDenied({});
+  }
+
+  if (code === "OS-PLUG-GLOC-0002") {
+    return new Unavailable({ reason: "Position unavailable" });
   }
 
   if (code === "OS-PLUG-GLOC-0010") {
@@ -343,9 +347,40 @@ const publishAccessError = (error: LocationError) =>
     ? publishLocationPermission({ state: "denied", precision: "unknown" })
     : refreshAccessPermission;
 
+/** Acquisition errors are values so callback consumers can keep the same watch alive. */
+export type LocationWatchEvent = Result.Result<LocationFix, LocationError>;
+
+const watchEvent = <R>(acquire: Effect.Effect<LocationFix, LocationError, R>) =>
+  acquire.pipe(
+    Effect.result,
+    Effect.flatMap(
+      (
+        result
+      ): Effect.Effect<
+        LocationWatchEvent,
+        LocationError,
+        Bridge | BrowserLocation
+      > => {
+        if (Result.isSuccess(result)) {
+          return Effect.succeed(result);
+        }
+
+        if (
+          !["LocationTimeout", "Unavailable", "LocationServicesOff"].includes(
+            result.failure._tag
+          )
+        ) {
+          return Effect.fail(result.failure);
+        }
+
+        return publishAccessError(result.failure).pipe(Effect.as(result));
+      }
+    )
+  );
+
 export const rawLocationWatch = (
   options: LocationOptions
-): Stream.Stream<LocationFix, LocationError, Bridge | BrowserLocation> =>
+): Stream.Stream<LocationWatchEvent, LocationError, Bridge | BrowserLocation> =>
   Stream.unwrap(
     Effect.gen(function* () {
       const bridge = yield* Bridge;
@@ -364,7 +399,16 @@ export const rawLocationWatch = (
       if ((yield* bridge.runtime) === "browser") {
         return (yield* BrowserLocation)
           .watch(options)
-          .pipe(Stream.mapEffect(decodeLocationFix), Stream.tap(notify));
+          .pipe(
+            Stream.mapEffect((result) =>
+              watchEvent(
+                Effect.fromResult(result).pipe(
+                  Effect.flatMap(decodeLocationFix),
+                  Effect.tap(notify)
+                )
+              )
+            )
+          );
       }
 
       const configured = yield* nativePositionOptions(options);
@@ -397,9 +441,14 @@ export const rawLocationWatch = (
           }),
         { bufferSize: 1, strategy: "sliding" }
       ).pipe(
-        Stream.mapEffect((result) => native(result)),
-        Stream.mapEffect(decodeNativeLocationFix),
-        Stream.tap(notify)
+        Stream.mapEffect((result) =>
+          watchEvent(
+            native(result).pipe(
+              Effect.flatMap(decodeNativeLocationFix),
+              Effect.tap(notify)
+            )
+          )
+        )
       );
     })
   ).pipe(Stream.tapError(publishAccessError));

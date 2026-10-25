@@ -37,7 +37,7 @@ Hooks do not invoke browser APIs during render. Effects start after commit. Unmo
 | `useNetworkStatus()` | Live `{ loading, value?: NetworkStatus, error }`. |
 | `useLocation()` | `getCurrent(options?)`, `loading`, `value?: LocationFix`, `error`. |
 | `useLocationPermission()` | `check()`, `request(options?)`, `loading`, `value?: LocationPermission`, `error`. Checks after mount and updates when permission changes through any API. Denial resolves `state: "denied"`. |
-| `useLocationWatch()` | `start(options?)`, `stop()`, `running`, `loading` until the first location fix, `value?: LocationFix`, `error`. `start` and `stop` are stable. Stops on unmount. |
+| `useLocationWatch()` | `start(options?)`, `stop()`, `running`, `loading` until the first location fix, `value?: LocationFix`, `error`. Transient errors set `error` and keep the watch running; the next location fix clears it. `start` and `stop` are stable. Stops on unmount. |
 | `useGoogleSignIn()` | `signIn()`, `cancel()`, `loading`, `value?: GoogleIdentity`, `error`. |
 | `useNotificationPermission()` | `check()`, `request()`, `loading`, `value?: NotificationPermission`, `error`. Checks after mount. |
 | `useExactAlarmPermission()` | Checks after mount; `check()`, `request()`, `loading`, `value?: ExactAlarmPermission`, `error`. |

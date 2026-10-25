@@ -16,7 +16,7 @@ import type {
   LocationPermissionState,
   LocationWatchState,
 } from "../../src/react/use-location.ts";
-import { locationFixture } from "../capabilities/location/fixture.ts";
+import { fix, locationFixture } from "../capabilities/location/fixture.ts";
 
 it.effect(
   "location watches start explicitly and stop on stop, provider replacement and unmount",
@@ -75,6 +75,17 @@ it.effect(
         const running = yield* Queue.take(received);
         assert.isTrue(running.running);
         assert.strictEqual(running.value?.latitude, 51);
+        first.fail("OS-PLUG-GLOC-0010");
+        const timedOut = yield* Queue.take(received);
+        assert.strictEqual(timedOut.error?._tag, "LocationTimeout");
+        assert.isTrue(timedOut.running);
+        assert.strictEqual(first.released(), 0);
+        first.emit({ ...fix, timestamp: 200 });
+        const recovered = yield* Queue.take(received);
+        assert.strictEqual(recovered.value?.timestamp, 200);
+        assert.isUndefined(recovered.error);
+        assert.isTrue(recovered.running);
+        assert.strictEqual(first.count(), 1);
         flushSync(() => {
           current().stop();
         });

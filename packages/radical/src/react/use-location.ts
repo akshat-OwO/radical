@@ -1,10 +1,10 @@
-import { Effect, Fiber, Stream } from "effect";
+import { Effect, Fiber, Stream, Result } from "effect";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { LocationPermissionEvents } from "../capabilities/location/location-permission-events.ts";
 import {
   locationLive,
-  watchLocation,
+  watchLocationEvents,
 } from "../capabilities/location/location-pool.ts";
 import {
   getCurrentLocation,
@@ -141,7 +141,8 @@ export const useLocationWatch = (): LocationWatchState => {
 
   const [snapshot, setSnapshot] = useState<{
     layer: typeof layer;
-    fix: LocationFix;
+    fix: LocationFix | undefined;
+    error: LocationError | undefined;
   }>();
 
   const owner = useRef({ layer, live: false });
@@ -158,7 +159,9 @@ export const useLocationWatch = (): LocationWatchState => {
     loading: loading && snapshot?.layer !== layer,
     running: loading,
     value: loading && snapshot?.layer === layer ? snapshot.fix : undefined,
-    error,
+    error:
+      error ??
+      (loading && snapshot?.layer === layer ? snapshot.error : undefined),
     start: useCallback(
       (options) => {
         const { current } = owner;
@@ -172,11 +175,28 @@ export const useLocationWatch = (): LocationWatchState => {
             setSnapshot(undefined);
           }).pipe(
             Effect.andThen(
-              watchLocation(options).pipe(
-                Stream.runForEach((fix) =>
+              watchLocationEvents(options).pipe(
+                Stream.runForEach((result) =>
                   Effect.sync(() => {
                     if (current.live) {
-                      setSnapshot({ layer, fix });
+                      setSnapshot((previous) => {
+                        if (Result.isSuccess(result)) {
+                          return {
+                            layer,
+                            fix: result.success,
+                            error: undefined,
+                          };
+                        }
+
+                        return {
+                          layer,
+                          fix:
+                            previous?.layer === layer
+                              ? previous.fix
+                              : undefined,
+                          error: result.failure,
+                        };
+                      });
                     }
                   })
                 ),

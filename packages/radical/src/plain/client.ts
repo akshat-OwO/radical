@@ -1,4 +1,4 @@
-import { Stream, Fiber, Effect, Schema } from "effect";
+import { Stream, Fiber, Effect, Schema, Result } from "effect";
 
 import {
   capturePhoto as capturePhotoEffect,
@@ -45,7 +45,7 @@ import {
   hapticsLive,
 } from "../capabilities/haptics/haptics.ts";
 import {
-  watchLocation as watchLocationEffect,
+  watchLocationEvents as watchLocationEffect,
   locationLive,
 } from "../capabilities/location/location-pool.ts";
 import {
@@ -429,9 +429,13 @@ export const watchLocation = (
 ): (() => void) => {
   const fiber = getEffectRuntime(runtime).runFork(
     watchLocationEffect(options).pipe(
-      Stream.runForEach((fix) =>
+      Stream.runForEach((result) =>
         Effect.sync(() => {
-          receive(fix);
+          if (Result.isFailure(result)) {
+            onError(result.failure);
+          } else {
+            receive(result.success);
+          }
         })
       ),
       Effect.match({

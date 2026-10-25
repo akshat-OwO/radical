@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Stream, Queue } from "effect";
+import { Context, Effect, Layer, Stream, Queue, Result } from "effect";
 
 import {
   PermissionDenied,
@@ -32,7 +32,10 @@ export class BrowserLocation extends Context.Service<
     ) => Effect.Effect<unknown, BrowserLocationError>;
     readonly watch: (
       options: LocationOptions
-    ) => Stream.Stream<unknown, BrowserLocationError>;
+    ) => Stream.Stream<
+      Result.Result<unknown, BrowserLocationError>,
+      BrowserLocationError
+    >;
     readonly check: Effect.Effect<LocationPermission, Unavailable>;
   }
 >()("radical/BrowserLocation") {}
@@ -67,7 +70,7 @@ export const browserLocationLayer = (read: () => LocationEnvironment) =>
       }),
     watch: (options) =>
       Stream.callback<
-        Effect.Effect<unknown, BrowserLocationError>,
+        Result.Result<unknown, BrowserLocationError>,
         BrowserLocationError
       >(
         (queue) =>
@@ -82,12 +85,12 @@ export const browserLocationLayer = (read: () => LocationEnvironment) =>
               Effect.sync(() =>
                 geo.watchPosition(
                   (fix) => {
-                    Queue.offerUnsafe(queue, Effect.succeed(fix));
+                    Queue.offerUnsafe(queue, Result.succeed(fix));
                   },
                   (error) => {
                     Queue.offerUnsafe(
                       queue,
-                      Effect.fail(browserLocationError(error))
+                      Result.fail(browserLocationError(error))
                     );
                   },
                   options
@@ -102,7 +105,7 @@ export const browserLocationLayer = (read: () => LocationEnvironment) =>
             return yield* Effect.void;
           }),
         { bufferSize: 1, strategy: "sliding" }
-      ).pipe(Stream.mapEffect((result) => result)),
+      ),
     check: Effect.suspend(() => {
       const { permissions } = read();
 

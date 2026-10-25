@@ -1,5 +1,5 @@
 import { assert, it } from "@effect/vitest";
-import { Deferred, Effect, Fiber, Layer, Queue, Stream } from "effect";
+import { Deferred, Effect, Fiber, Layer, Queue, Stream, Result } from "effect";
 import { TestClock } from "effect/testing";
 
 import { openAppSettings } from "../../../src/capabilities/device-info/device-info.ts";
@@ -252,7 +252,7 @@ it.effect(
     Effect.gen(function* () {
       const browser = Layer.succeed(BrowserLocation, {
         current: () => Effect.succeed(fix),
-        watch: () => Stream.make(fix),
+        watch: () => Stream.make(Result.succeed(fix)),
         check: Effect.succeed({
           state: "granted",
           precision: "unknown",
