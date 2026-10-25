@@ -1,3 +1,4 @@
+import { trimPathRight } from "@tanstack/react-router";
 import type { AnyRouter } from "@tanstack/react-router";
 import { Effect, Fiber, Schema } from "effect";
 import { createElement, useContext, useEffect, useMemo } from "react";
@@ -29,14 +30,8 @@ export const tanstackSections = (
   const ownership = sectionOwnership(
     sections,
     router.options.caseSensitive ?? false,
-    (route) =>
-      router.parseLocation({
-        href: route,
-        pathname: route,
-        search: "",
-        hash: "",
-        state: router.state.location.state,
-      }).pathname
+    // `to` is internal; history parsing would apply input rewrites again.
+    (route) => trimPathRight(router.buildLocation({ to: route }).pathname)
   );
 
   sectionOwnerships.set(router, ownership);

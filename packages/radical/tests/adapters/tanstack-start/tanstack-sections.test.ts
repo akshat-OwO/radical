@@ -496,3 +496,186 @@ it.effect("honors explicit case-sensitive router ownership", () =>
     })
   )
 );
+
+for (const kind of ["basepath", "custom input rewrite"] as const) {
+  it.effect(
+    `keeps section declarations in internal coordinates with a ${kind}`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const root = createRootRoute();
+
+          const routes = ["/app", "/other"].map((path) =>
+            createRoute({ getParentRoute: () => root, path })
+          );
+
+          let inputCalls = 0;
+
+          const options: Pick<AnyRouter["options"], "basepath" | "rewrite"> =
+            kind === "basepath"
+              ? { basepath: "/app" }
+              : {
+                  rewrite: {
+                    input: ({ url }) => {
+                      inputCalls += 1;
+                      url.pathname = url.pathname.slice(4) || "/";
+
+                      return url;
+                    },
+                    output: ({ url }) => {
+                      url.pathname = `/app${url.pathname}`;
+
+                      return url;
+                    },
+                  },
+                };
+
+          const router = createRouter({
+            routeTree: root.addChildren(routes),
+            history: createMemoryHistory({
+              initialEntries: ["/app/app?q=1#anchor"],
+            }),
+            origin: "http://localhost",
+            defaultPendingMs: Infinity,
+            defaultPendingMinMs: 0,
+            isServer: false,
+            ...options,
+          });
+
+          yield* Effect.promise(async () => {
+            await router.load();
+          });
+          assert.strictEqual(router.state.location.pathname, "/app");
+          assert.strictEqual(router.state.location.href, "/app?q=1#anchor");
+          assert.strictEqual(
+            router.state.location.publicHref,
+            "/app/app?q=1#anchor"
+          );
+          const callsBefore = inputCalls;
+
+          const binding = tanstackSections(router, [
+            {
+              id: "app",
+              title: "App",
+              route: "/app",
+              icon: { ios: "house", android: "app.svg" },
+            },
+            {
+              id: "other",
+              title: "Other",
+              route: "/other",
+              icon: { ios: "tray", android: "other.svg" },
+            },
+          ]);
+
+          yield* Effect.acquireRelease(
+            binding.mount.pipe(
+              Effect.provide(bridgeTestLayer("browser", () => Effect.void))
+            ),
+            (remove) => Effect.sync(remove)
+          );
+          assert.strictEqual(inputCalls, callsBefore);
+          assert.strictEqual(binding.controller.snapshot().active?.id, "app");
+          yield* binding.controller.update({
+            href: "/unowned",
+            pathname: "/unowned",
+          });
+          assert.isNull(binding.controller.snapshot().active);
+          assert.isTrue(binding.controller.snapshot().hidden);
+          assert.isFalse(crossesSections(router, "/unowned", "/other"));
+          assert.isTrue(crossesSections(router, "/app", "/other"));
+          yield* navigate(router, "/other");
+          assert.strictEqual(binding.controller.snapshot().active?.id, "other");
+
+          const select = () =>
+            Effect.promise(async () => {
+              const pending = Effect.runPromise(
+                binding.controller.select("app")
+              );
+
+              void router.load();
+              await pending;
+            });
+
+          yield* select();
+          assert.strictEqual(router.state.location.href, "/app?q=1#anchor");
+          assert.strictEqual(
+            router.state.location.publicHref,
+            "/app/app?q=1#anchor"
+          );
+          yield* select();
+          assert.strictEqual(router.state.location.href, "/app");
+          assert.strictEqual(router.state.location.publicHref, "/app/app");
+          assert.strictEqual(
+            binding.controller.snapshot().active?.route,
+            "/app"
+          );
+        })
+      )
+  );
+}
+
+it.effect(
+  "keeps descendant ownership when the router adds trailing slashes",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = createRootRoute();
+
+        const router = createRouter({
+          routeTree: root.addChildren(
+            ["/café", "/café/item", "/other"].map((path) =>
+              createRoute({ getParentRoute: () => root, path })
+            )
+          ),
+          history: createMemoryHistory({
+            initialEntries: ["/caf%C3%A9/item/"],
+          }),
+          origin: "http://localhost",
+          defaultPendingMs: Infinity,
+          defaultPendingMinMs: 0,
+          isServer: false,
+          trailingSlash: "always",
+        });
+
+        yield* Effect.promise(async () => {
+          await router.load();
+        });
+        assert.strictEqual(router.state.location.pathname, "/café/item/");
+
+        const binding = tanstackSections(router, [
+          {
+            id: "cafe",
+            title: "Cafe",
+            route: "/caf%C3%A9",
+            icon: { ios: "house", android: "cafe.svg" },
+          },
+          {
+            id: "other",
+            title: "Other",
+            route: "/other",
+            icon: { ios: "tray", android: "other.svg" },
+          },
+        ]);
+
+        yield* Effect.acquireRelease(
+          binding.mount.pipe(
+            Effect.provide(bridgeTestLayer("browser", () => Effect.void))
+          ),
+          (remove) => Effect.sync(remove)
+        );
+        assert.strictEqual(binding.controller.snapshot().active?.id, "cafe");
+        assert.isTrue(crossesSections(router, "/café/item/", "/other/"));
+        yield* Effect.promise(async () => {
+          const pending = Effect.runPromise(binding.controller.select("cafe"));
+          void router.load();
+          await pending;
+        });
+        assert.strictEqual(router.state.location.pathname, "/café/");
+        assert.strictEqual(
+          binding.controller.snapshot().active?.route,
+          "/caf%C3%A9"
+        );
+      })
+    )
+);
