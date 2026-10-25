@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { assert, it } from "@effect/vitest";
 import { Clock, Effect, Layer, Queue } from "effect";
+import { TestClock } from "effect/testing";
 import { createElement, useEffect, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -23,7 +24,7 @@ it.effect(
   () =>
     Effect.scoped(
       Effect.gen(function* () {
-        const first = yield* locationFixture();
+        const first = yield* locationFixture("ios");
         const second = yield* locationFixture("ios");
         const received = yield* Queue.unbounded<LocationWatchState>();
         let snapshot: LocationWatchState | undefined;
@@ -75,28 +76,34 @@ it.effect(
         const running = yield* Queue.take(received);
         assert.isTrue(running.running);
         assert.strictEqual(running.value?.latitude, 51);
+        first.control.emitInitialFix = false;
         first.fail("OS-PLUG-GLOC-0010");
         const timedOut = yield* Queue.take(received);
         assert.strictEqual(timedOut.error?._tag, "LocationTimeout");
         assert.isTrue(timedOut.running);
-        assert.strictEqual(first.released(), 0);
+        assert.strictEqual(yield* Queue.take(first.releases), 1);
+        assert.strictEqual(first.liveSubscriptions(), 0);
+        yield* TestClock.adjust(100);
+        assert.strictEqual(yield* Queue.take(first.starts), 1);
+        assert.strictEqual(yield* Queue.take(first.starts), 2);
         first.emit({ ...fix, timestamp: 200 });
         const recovered = yield* Queue.take(received);
         assert.strictEqual(recovered.value?.timestamp, 200);
         assert.isUndefined(recovered.error);
         assert.isTrue(recovered.running);
-        assert.strictEqual(first.count(), 1);
+        assert.strictEqual(first.count(), 2);
         flushSync(() => {
           current().stop();
         });
-        assert.strictEqual(yield* Queue.take(first.releases), 1);
+        assert.strictEqual(yield* Queue.take(first.releases), 2);
+        first.control.emitInitialFix = true;
         flushSync(() => {
           current().start();
         });
         yield* Queue.take(received);
         const retiredStart = current().start;
         render(second.layer);
-        assert.strictEqual(yield* Queue.take(first.releases), 2);
+        assert.strictEqual(yield* Queue.take(first.releases), 3);
         assert.isFalse(current().running);
         flushSync(retiredStart);
         assert.strictEqual(second.count(), 0);
@@ -104,10 +111,16 @@ it.effect(
           current().start();
         });
         yield* Queue.take(received);
+        second.fail("OS-PLUG-GLOC-0010");
+        const waiting = yield* Queue.take(received);
+        assert.isTrue(waiting.running);
+        assert.strictEqual(waiting.error?._tag, "LocationTimeout");
+        assert.strictEqual(yield* Queue.take(second.releases), 1);
         flushSync(() => {
           root.unmount();
         });
-        assert.strictEqual(yield* Queue.take(second.releases), 1);
+        yield* TestClock.adjust(60_000);
+        assert.strictEqual(second.count(), 1);
       })
     )
 );

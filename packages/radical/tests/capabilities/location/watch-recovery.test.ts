@@ -1,5 +1,6 @@
 import { assert, it } from "@effect/vitest";
 import { Deferred, Effect, Fiber, Layer, Queue, Result, Stream } from "effect";
+import { TestClock } from "effect/testing";
 
 import { browserLocationLayer } from "../../../src/capabilities/location/browser-location.ts";
 import {
@@ -24,112 +25,144 @@ import {
 } from "../../../src/plain/runtime.ts";
 import { fix, locationFixture } from "./fixture.ts";
 
-it.effect(
-  "Plain watches report transient errors and deliver later fixes on the same native subscription",
-  () =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const native = yield* locationFixture();
-        const runtime = createEffectRuntime(native.layer);
-        yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
-        const fixes = yield* Queue.unbounded<number>();
-        const errors = yield* Queue.unbounded<LocationError>();
+for (const platform of ["android", "ios"] as const) {
+  it.effect(
+    `${platform} Plain watches reacquire after timeout and deliver later fixes to the same subscriber`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const native = yield* locationFixture(platform);
+          const runtime = createEffectRuntime(native.layer);
+          yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+          const fixes = yield* Queue.unbounded<number>();
+          const errors = yield* Queue.unbounded<LocationError>();
 
-        const stop = watchPlain(
-          (value) => {
-            Queue.offerUnsafe(fixes, value.timestamp);
-          },
-          (error) => {
-            Queue.offerUnsafe(errors, error);
-          },
-          {},
-          runtime
-        );
+          const stop = watchPlain(
+            (value) => {
+              Queue.offerUnsafe(fixes, value.timestamp);
+            },
+            (error) => {
+              Queue.offerUnsafe(errors, error);
+            },
+            {},
+            runtime
+          );
 
-        yield* Effect.addFinalizer(() => Effect.sync(stop));
-        assert.strictEqual(yield* Queue.take(fixes), 100);
+          yield* Effect.addFinalizer(() => Effect.sync(stop));
+          assert.strictEqual(yield* Queue.take(fixes), 100);
 
-        for (const [code, tag] of [
-          ["0010", "LocationTimeout"],
-          ["0002", "Unavailable"],
-          ["0007", "LocationServicesOff"],
-        ] as const) {
-          native.fail(`OS-PLUG-GLOC-${code}`);
-          assert.strictEqual((yield* Queue.take(errors))._tag, tag);
-          assert.strictEqual(native.released(), 0);
-          native.emit({ ...fix, timestamp: 200 });
-          assert.strictEqual(yield* Queue.take(fixes), 200);
-          assert.strictEqual(native.count(), 1);
-        }
+          native.control.emitInitialFix = false;
 
-        native.fail("OS-PLUG-GLOC-0003");
-        assert.strictEqual(
-          (yield* Queue.take(errors))._tag,
-          "PermissionDenied"
-        );
-        assert.strictEqual(yield* Queue.take(native.releases), 1);
-      })
-    )
-);
+          for (const [code, tag] of [
+            ["0010", "LocationTimeout"],
+            ["0002", "Unavailable"],
+            ["0007", "LocationServicesOff"],
+          ] as const) {
+            native.fail(`OS-PLUG-GLOC-${code}`);
+            assert.strictEqual((yield* Queue.take(errors))._tag, tag);
 
-it.effect(
-  "navigator retains its watch ID through timeout and unavailable callbacks until clearWatch",
-  () =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const native = yield* locationFixture();
-        const runtime = createEffectRuntime(native.layer);
-        yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+            if (code === "0010") {
+              assert.strictEqual(yield* Queue.take(native.releases), 1);
+              assert.strictEqual(native.liveSubscriptions(), 0);
+              native.emit({ ...fix, timestamp: 999 });
+              assert.strictEqual(yield* Queue.size(fixes), 0);
+              yield* TestClock.adjust(100);
+              assert.strictEqual(yield* Queue.take(native.starts), 1);
+              assert.strictEqual(yield* Queue.take(native.starts), 2);
+            }
 
-        const target: Pick<Navigator, "geolocation" | "permissions"> = {
-          geolocation: {
-            getCurrentPosition: () =>
-              assert.fail("Unexpected browser acquisition"),
-            watchPosition: () => assert.fail("Unexpected browser watch"),
-            clearWatch: () => assert.fail("Unexpected browser clear"),
-          },
-          permissions: {
-            query: async () =>
-              await Effect.runPromise(
-                Effect.die("Unexpected browser permission query")
-              ),
-          },
-        };
-
-        const restore = yield* installNavigatorLocation(target, runtime);
-        yield* Effect.addFinalizer(() => restore);
-        const fixes = yield* Queue.unbounded<number>();
-        const errors = yield* Queue.unbounded<number>();
-
-        const id = target.geolocation.watchPosition(
-          (value) => {
-            Queue.offerUnsafe(fixes, value.timestamp);
-          },
-          (failure) => {
-            Queue.offerUnsafe(errors, failure.code);
+            assert.strictEqual(native.released(), 1);
+            native.emit({ ...fix, timestamp: 200 });
+            assert.strictEqual(yield* Queue.take(fixes), 200);
+            assert.strictEqual(native.count(), 2);
           }
-        );
 
-        assert.strictEqual(yield* Queue.take(fixes), 100);
+          native.fail("OS-PLUG-GLOC-0003");
+          assert.strictEqual(
+            (yield* Queue.take(errors))._tag,
+            "PermissionDenied"
+          );
+          assert.strictEqual(yield* Queue.take(native.releases), 2);
+        })
+      )
+  );
 
-        for (const [code, expected] of [
-          ["0010", 3],
-          ["0002", 2],
-          ["0007", 2],
-        ] as const) {
-          native.fail(`OS-PLUG-GLOC-${code}`);
-          assert.strictEqual(yield* Queue.take(errors), expected);
-          assert.strictEqual(native.released(), 0);
-          native.emit({ ...fix, timestamp: 200 });
-          assert.strictEqual(yield* Queue.take(fixes), 200);
-          assert.strictEqual(native.count(), 1);
-        }
+  it.effect(
+    `${platform} navigator retains its watch ID through native timeout recovery until clearWatch`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const native = yield* locationFixture(platform);
+          const runtime = createEffectRuntime(native.layer);
+          yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
 
-        target.geolocation.clearWatch(id);
-        assert.strictEqual(yield* Queue.take(native.releases), 1);
-      })
-    )
-);
+          const target: Pick<Navigator, "geolocation" | "permissions"> = {
+            geolocation: {
+              getCurrentPosition: () =>
+                assert.fail("Unexpected browser acquisition"),
+              watchPosition: () => assert.fail("Unexpected browser watch"),
+              clearWatch: () => assert.fail("Unexpected browser clear"),
+            },
+            permissions: {
+              query: async () =>
+                await Effect.runPromise(
+                  Effect.die("Unexpected browser permission query")
+                ),
+            },
+          };
+
+          const restore = yield* installNavigatorLocation(target, runtime);
+          yield* Effect.addFinalizer(() => restore);
+          const fixes = yield* Queue.unbounded<number>();
+          const errors = yield* Queue.unbounded<number>();
+
+          const id = target.geolocation.watchPosition(
+            (value) => {
+              Queue.offerUnsafe(fixes, value.timestamp);
+            },
+            (failure) => {
+              Queue.offerUnsafe(errors, failure.code);
+            }
+          );
+
+          assert.strictEqual(yield* Queue.take(fixes), 100);
+
+          native.control.emitInitialFix = false;
+
+          for (const [code, expected] of [
+            ["0010", 3],
+            ["0002", 2],
+            ["0007", 2],
+          ] as const) {
+            native.fail(`OS-PLUG-GLOC-${code}`);
+            assert.strictEqual(yield* Queue.take(errors), expected);
+
+            if (code === "0010") {
+              assert.strictEqual(yield* Queue.take(native.releases), 1);
+              assert.strictEqual(native.liveSubscriptions(), 0);
+              native.emit({ ...fix, timestamp: 999 });
+              assert.strictEqual(yield* Queue.size(fixes), 0);
+              yield* TestClock.adjust(100);
+              assert.strictEqual(yield* Queue.take(native.starts), 1);
+              assert.strictEqual(yield* Queue.take(native.starts), 2);
+            }
+
+            assert.strictEqual(native.released(), 1);
+            native.emit({ ...fix, timestamp: 200 });
+            assert.strictEqual(yield* Queue.take(fixes), 200);
+            assert.strictEqual(native.count(), 2);
+          }
+
+          native.fail("OS-PLUG-GLOC-0010");
+          assert.strictEqual(yield* Queue.take(errors), 3);
+          assert.strictEqual(yield* Queue.take(native.releases), 2);
+          target.geolocation.clearWatch(id);
+          yield* TestClock.adjust(60_000);
+          assert.strictEqual(native.count(), 2);
+        })
+      )
+  );
+}
 
 it.effect(
   "browser pool watches retain the browser subscription across timeout and unavailable errors but end on denial",
@@ -366,5 +399,207 @@ for (const terminal of ["PermissionDenied", "BridgeDecodeError"] as const) {
           assert.strictEqual(native.count(), 1);
         })
       )
+  );
+}
+
+for (const platform of ["android", "ios"] as const) {
+  it.effect(
+    `${platform} native timeout recovery backs off to a cap, resets after a fix, and cancels with the last subscriber`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const native = yield* locationFixture(platform);
+          native.control.watchError = "OS-PLUG-GLOC-0010";
+          const runtime = createEffectRuntime(native.layer);
+          yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+          const errors = yield* Queue.unbounded<LocationError>();
+          const fixes = yield* Queue.unbounded<number>();
+
+          const stop = watchPlain(
+            (value) => {
+              Queue.offerUnsafe(fixes, value.timestamp);
+            },
+            (error) => {
+              Queue.offerUnsafe(errors, error);
+            },
+            {},
+            runtime
+          );
+
+          yield* Effect.addFinalizer(() => Effect.sync(stop));
+          let attempts = 1;
+
+          for (const delay of [100, 200, 400, 800, 1600, 3200, 5000, 5000]) {
+            assert.strictEqual(
+              (yield* Queue.take(errors))._tag,
+              "LocationTimeout"
+            );
+            assert.strictEqual(yield* Queue.take(native.releases), attempts);
+            assert.strictEqual(native.liveSubscriptions(), 0);
+            yield* TestClock.adjust(delay - 1);
+            assert.strictEqual(native.count(), attempts);
+            yield* TestClock.adjust(1);
+            attempts += 1;
+            assert.strictEqual(native.count(), attempts);
+          }
+
+          yield* Queue.take(errors);
+          assert.strictEqual(yield* Queue.take(native.releases), attempts);
+          native.control.watchError = "";
+          yield* TestClock.adjust(5000);
+          attempts += 1;
+          assert.strictEqual(yield* Queue.take(fixes), 100);
+          native.fail("OS-PLUG-GLOC-0010");
+          yield* Queue.take(errors);
+          assert.strictEqual(yield* Queue.take(native.releases), attempts);
+          yield* TestClock.adjust(99);
+          assert.strictEqual(native.count(), attempts);
+          yield* TestClock.adjust(1);
+          attempts += 1;
+          assert.strictEqual(yield* Queue.take(fixes), 100);
+          native.fail("OS-PLUG-GLOC-0010");
+          yield* Queue.take(errors);
+          assert.strictEqual(yield* Queue.take(native.releases), attempts);
+          stop();
+          yield* TestClock.adjust(60_000);
+          assert.strictEqual(native.count(), attempts);
+        })
+      )
+  );
+
+  for (const code of ["OS-PLUG-GLOC-0003", "UNKNOWN"] as const) {
+    it.effect(
+      `${platform} stops reacquiring when recovery encounters terminal error ${code}`,
+      () =>
+        Effect.scoped(
+          Effect.gen(function* () {
+            const native = yield* locationFixture(platform);
+            const runtime = createEffectRuntime(native.layer);
+            yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+            const errors = yield* Queue.unbounded<LocationError>();
+            const fixes = yield* Queue.unbounded<number>();
+
+            const stop = watchPlain(
+              (value) => {
+                Queue.offerUnsafe(fixes, value.timestamp);
+              },
+              (error) => {
+                Queue.offerUnsafe(errors, error);
+              },
+              {},
+              runtime
+            );
+
+            yield* Effect.addFinalizer(() => Effect.sync(stop));
+            yield* Queue.take(fixes);
+            native.fail("OS-PLUG-GLOC-0010");
+            yield* Queue.take(errors);
+            yield* Queue.take(native.releases);
+            native.control.watchError = code;
+            yield* TestClock.adjust(100);
+            assert.strictEqual(
+              (yield* Queue.take(errors))._tag,
+              code === "UNKNOWN" ? "BridgeCallFailed" : "PermissionDenied"
+            );
+            assert.strictEqual(yield* Queue.take(native.releases), 2);
+            yield* TestClock.adjust(60_000);
+            assert.strictEqual(native.count(), 2);
+            assert.strictEqual(native.liveSubscriptions(), 0);
+          })
+        )
+    );
+  }
+}
+
+it.effect(
+  "iOS timeout invalidates every native callback and each option group reacquires once",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const native = yield* locationFixture("ios");
+        const runtime = createEffectRuntime(native.layer);
+        yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+        const errors = yield* Queue.unbounded<LocationError>();
+        const first = yield* Queue.unbounded<number>();
+        const second = yield* Queue.unbounded<number>();
+
+        const subscribe = (received: Queue.Queue<number>, timeout: number) =>
+          watchPlain(
+            (value) => {
+              Queue.offerUnsafe(received, value.timestamp);
+            },
+            (error) => {
+              Queue.offerUnsafe(errors, error);
+            },
+            { timeout },
+            runtime
+          );
+
+        const stopFirst = subscribe(first, 1000);
+        const stopSecond = subscribe(second, 2000);
+
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            stopFirst();
+            stopSecond();
+          })
+        );
+        yield* Queue.take(first);
+        yield* Queue.take(second);
+        native.control.emitInitialFix = false;
+        native.fail("OS-PLUG-GLOC-0010");
+        assert.strictEqual(native.liveSubscriptions(), 0);
+        yield* Queue.take(errors);
+        yield* Queue.take(errors);
+        yield* Queue.take(native.releases);
+        yield* Queue.take(native.releases);
+        native.emit({ ...fix, timestamp: 999 });
+        assert.strictEqual(yield* Queue.size(first), 0);
+        assert.strictEqual(yield* Queue.size(second), 0);
+        yield* TestClock.adjust(100);
+        assert.strictEqual(native.count(), 4);
+        assert.strictEqual(native.liveSubscriptions(), 2);
+        native.emit({ ...fix, timestamp: 300 });
+        assert.strictEqual(yield* Queue.take(first), 300);
+        assert.strictEqual(yield* Queue.take(second), 300);
+      })
+    )
+);
+
+for (const [code, tag] of [
+  ["0002", "Unavailable"],
+  ["0009", "LocationServicesOff"],
+] as const) {
+  it.effect(`Android reacquires after native setup failure ${tag}`, () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const native = yield* locationFixture("android");
+        native.control.watchError = `OS-PLUG-GLOC-${code}`;
+        const runtime = createEffectRuntime(native.layer);
+        yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+        const errors = yield* Queue.unbounded<LocationError>();
+        const fixes = yield* Queue.unbounded<number>();
+
+        const stop = watchPlain(
+          (value) => {
+            Queue.offerUnsafe(fixes, value.timestamp);
+          },
+          (error) => {
+            Queue.offerUnsafe(errors, error);
+          },
+          {},
+          runtime
+        );
+
+        yield* Effect.addFinalizer(() => Effect.sync(stop));
+        assert.strictEqual((yield* Queue.take(errors))._tag, tag);
+        assert.strictEqual(yield* Queue.take(native.releases), 1);
+        assert.strictEqual(native.liveSubscriptions(), 0);
+        native.control.watchError = "";
+        yield* TestClock.adjust(100);
+        assert.strictEqual(yield* Queue.take(fixes), 100);
+        assert.strictEqual(native.count(), 2);
+      })
+    )
   );
 }

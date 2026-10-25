@@ -1,5 +1,5 @@
 // oxlint-disable anti-slop/no-unknown-parameters -- The test bridge deliberately accepts malformed native callback payloads.
-import { Effect, Layer, Queue, Schema } from "effect";
+import { Clock, Effect, Layer, Queue, Schema } from "effect";
 
 import {
   Bridge,
@@ -52,6 +52,7 @@ export const androidFix = {
 
 export const locationFixture = (platform: "ios" | "android" = "android") =>
   Effect.gen(function* () {
+    const clock = yield* Clock.Clock;
     const nativeFix = platform === "ios" ? iosSimulatorFix : androidFix;
     const starts = yield* Queue.unbounded<number>();
     const releases = yield* Queue.unbounded<number>();
@@ -61,7 +62,15 @@ export const locationFixture = (platform: "ios" | "android" = "android") =>
     let activityReleased = 0;
     let count = 0;
     let released = 0;
-    let receive: ((value: unknown, error?: BridgeError) => void) | undefined;
+
+    const subscriptions = new Map<
+      number,
+      {
+        receive: (value: unknown, error?: BridgeError) => void;
+        hasFix: boolean;
+      }
+    >();
+
     const activity = new Set<(value: unknown) => void>();
 
     const calls: {
@@ -76,6 +85,8 @@ export const locationFixture = (platform: "ios" | "android" = "android") =>
       androidApiLevel: 36,
       playServicesAvailable: true,
       servicesEnabled: true,
+      emitInitialFix: true,
+      watchError: "",
     };
 
     const state = {
@@ -97,6 +108,36 @@ export const locationFixture = (platform: "ios" | "android" = "android") =>
         state.location = "granted";
       } else if (!control.requestGranted || state.location !== "granted") {
         state.location = "denied";
+      }
+    };
+
+    const fail = (code: string, onlyId?: number) => {
+      for (const [id, subscription] of subscriptions) {
+        if (
+          onlyId !== undefined &&
+          id !== onlyId &&
+          !(platform === "ios" && code === "OS-PLUG-GLOC-0010")
+        ) {
+          continue;
+        }
+
+        subscription.receive(
+          undefined,
+          new BridgeCallFailed({
+            plugin: "Geolocation",
+            method: "watchPosition",
+            cause: { code },
+          })
+        );
+
+        // iOS clears every watch callback on timeout. Android cancels its
+        // timed-out flow, and setup failures may install no location handler.
+        if (
+          code === "OS-PLUG-GLOC-0010" ||
+          (platform === "android" && !subscription.hasFix)
+        ) {
+          subscriptions.delete(id);
+        }
       }
     };
 
@@ -181,45 +222,56 @@ export const locationFixture = (platform: "ios" | "android" = "android") =>
             method: "watchPosition",
             options: _options,
           });
-          receive = (value, error) => {
-            receiveNative(
-              error
-                ? Effect.fail(error)
-                : Schema.decodeUnknownEffect(schema)(value).pipe(
-                    Effect.mapError(
-                      (cause) =>
-                        new BridgeDecodeError({
-                          plugin: "Geolocation",
-                          method: "watchPosition",
-                          cause,
-                        })
+          const id = count;
+
+          const subscription = {
+            hasFix: false,
+            receive: (value: unknown, error?: BridgeError) => {
+              if (error === undefined) {
+                subscription.hasFix = true;
+              }
+
+              receiveNative(
+                error
+                  ? Effect.fail(error)
+                  : Schema.decodeUnknownEffect(schema)(value).pipe(
+                      Effect.mapError(
+                        (cause) =>
+                          new BridgeDecodeError({
+                            plugin: "Geolocation",
+                            method: "watchPosition",
+                            cause,
+                          })
+                      )
                     )
-                  )
-            );
+              );
+            },
           };
 
+          subscriptions.set(id, subscription);
           Queue.offerUnsafe(starts, count);
-          receive(
-            { ...nativeFix, timestamp: control.timestamp },
-            control.servicesEnabled
-              ? undefined
-              : new BridgeCallFailed({
-                  plugin: _plugin,
-                  method: _method,
-                  cause: { code: "OS-PLUG-GLOC-0007" },
-                })
-          );
+
+          if (control.watchError !== "") {
+            fail(control.watchError, id);
+          } else if (!control.servicesEnabled) {
+            fail("OS-PLUG-GLOC-0007", id);
+          } else if (control.emitInitialFix) {
+            subscription.receive({
+              ...nativeFix,
+              timestamp: control.timestamp,
+            });
+          }
 
           return Effect.sync(() => {
             released += 1;
-            receive = undefined;
+            subscriptions.delete(id);
             Queue.offerUnsafe(releases, released);
           });
         }),
     });
 
     return {
-      layer,
+      layer: Layer.merge(layer, Layer.succeed(Clock.Clock, clock)),
       control,
       calls,
       state,
@@ -232,18 +284,12 @@ export const locationFixture = (platform: "ios" | "android" = "android") =>
       count: () => count,
       released: () => released,
       emit: (value: unknown) => {
-        receive?.(value);
+        for (const subscription of subscriptions.values()) {
+          subscription.receive(value);
+        }
       },
-      fail: (code: string) => {
-        receive?.(
-          undefined,
-          new BridgeCallFailed({
-            plugin: "Geolocation",
-            method: "watchPosition",
-            cause: { code },
-          })
-        );
-      },
+      liveSubscriptions: () => subscriptions.size,
+      fail,
       active: (active: boolean) => {
         for (const receiveActivity of activity) {
           receiveActivity({ active });

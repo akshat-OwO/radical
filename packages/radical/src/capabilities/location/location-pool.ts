@@ -1,6 +1,9 @@
 // oxlint-disable eslint/max-classes-per-file -- The structural watch key is private to the pool service.
 import {
   Context,
+  Duration,
+  Result,
+  Schedule,
   Data,
   Effect,
   Layer,
@@ -88,6 +91,55 @@ const watchAccuracy = (requested: boolean) =>
     { bufferSize: 1, strategy: "sliding" }
   ).pipe(Stream.changes);
 
+/** Native timeouts end acquisition on both pinned plugins; the browser retains its watch. */
+const resilientLocationWatch = (options: LocationOptions) =>
+  Stream.unwrap(
+    Effect.gen(function* () {
+      const runtime = yield* (yield* Bridge).runtime;
+
+      if (runtime === "browser") {
+        return rawLocationWatch(options);
+      }
+
+      let failures = 0;
+
+      const backoff = Schedule.spaced("100 millis").pipe(
+        Schedule.modifyDelay(() =>
+          Effect.sync(() => {
+            const delay = Math.min(100 * 2 ** failures, 5000);
+            failures = Math.min(failures + 1, 6);
+
+            return Duration.millis(delay);
+          })
+        )
+      );
+
+      return Stream.suspend(() => {
+        let hasFix = false;
+
+        return rawLocationWatch(options).pipe(
+          Stream.tap((event) =>
+            Effect.sync(() => {
+              if (Result.isSuccess(event)) {
+                hasFix = true;
+                failures = 0;
+              }
+            })
+          ),
+          Stream.takeUntil(
+            (event) =>
+              Result.isFailure(event) &&
+              (event.failure._tag === "LocationTimeout" ||
+                // Android setup errors can finish without installing a location handler.
+                (runtime === "android" && !hasFix))
+          ),
+          // Close the dead native callback before sleeping or acquiring its replacement.
+          Stream.scoped
+        );
+      }).pipe(Stream.repeat(backoff));
+    })
+  );
+
 export class LocationWatchPool extends Context.Service<
   LocationWatchPool,
   {
@@ -113,7 +165,7 @@ export const LocationWatchPoolLive = Layer.effect(
             Stream.zipLatest(watchAccuracy(options.enableHighAccuracy)),
             Stream.switchMap(([active, enableHighAccuracy]) =>
               active
-                ? rawLocationWatch({ ...options, enableHighAccuracy })
+                ? resilientLocationWatch({ ...options, enableHighAccuracy })
                 : Stream.never
             )
           ),
