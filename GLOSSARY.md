@@ -72,6 +72,22 @@ _Avoid_: Server subscription list, audience
 Touch feedback for an impact, notification, or selection change.\
 _Avoid_: Buzz, rumble
 
+**Location**:\
+The native capability that reports where the device is and whether the app may know it.\
+_Avoid_: Geolocation, position, GPS
+
+**Location fix**:\
+One reading of the device's location: coordinates, accuracy, and the time it was measured.\
+_Avoid_: Position, coordinates, ping
+
+**Location precision**:\
+Whether the app may read precise location fixes or only approximate ones.\
+_Avoid_: Accuracy (the error radius of one fix), fine/coarse
+
+**Location services**:\
+The device-wide switch that allows any app to read location, separate from each app's permission.\
+_Avoid_: GPS setting, location toggle
+
 **Google sign-in**:\
 A request for Google to identify a user and issue an identity token to the app.\
 _Avoid_: Google session, Google authorization
