@@ -1089,7 +1089,8 @@ it.effect(
         state.files.get(`${destination}/android/app/radical.gradle`) ?? "",
         "com.google.android.gms:play-services-base:18.5.0"
       );
-      assert.include(source, "handleOnPause");
+      assert.include(source, "handleOnStop");
+      assert.notInclude(source, "handleOnPause");
       assert.include(
         state.files.get(mainActivity) ?? "",
         "RadicalLocationPlugin.class"

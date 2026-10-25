@@ -47,8 +47,9 @@ public class RadicalLocationPlugin extends Plugin {
         value.put("active", active);
         notifyListeners("appStateChange", value, true);
     }
-    @Override protected void handleOnPause() { activity(false); }
-    @Override protected void handleOnResume() { activity(true); }
+    // Visibility, not focus: Google's translucent settings dialog pauses the activity without hiding it.
+    @Override protected void handleOnStop() { activity(false); }
+    @Override protected void handleOnStart() { activity(true); }
     @PluginMethod public void openLocationServicesSettings(PluginCall call) {
         Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         if (intent.resolveActivity(getContext().getPackageManager()) == null) { call.reject("Location settings unavailable"); return; }

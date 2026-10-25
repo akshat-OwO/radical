@@ -114,7 +114,9 @@ const resilientLocationWatch = (options: LocationOptions) =>
         )
       );
 
-      return Stream.suspend(() => {
+      let parked = false;
+
+      const attempt = Stream.suspend(() => {
         let hasFix = false;
 
         return rawLocationWatch(options).pipe(
@@ -126,17 +128,34 @@ const resilientLocationWatch = (options: LocationOptions) =>
               }
             })
           ),
-          Stream.takeUntil(
-            (event) =>
-              Result.isFailure(event) &&
-              (event.failure._tag === "LocationTimeout" ||
-                // Android setup errors can finish without installing a location handler.
-                (runtime === "android" && !hasFix))
-          ),
+          Stream.takeUntil((event) => {
+            if (Result.isSuccess(event)) {
+              return false;
+            }
+
+            const ended =
+              event.failure._tag === "LocationTimeout" ||
+              // Android setup errors can finish without installing a location handler.
+              (runtime === "android" && !hasFix);
+
+            // Each Android acquisition reruns settings resolution, so retrying services off
+            // on a timer would reopen Google's dialog after the user declined it.
+            parked = ended && event.failure._tag === "LocationServicesOff";
+
+            return ended;
+          }),
           // Close the dead native callback before sleeping or acquiring its replacement.
           Stream.scoped
         );
-      }).pipe(Stream.repeat(backoff));
+      });
+
+      // A parked watch waits for the pool to restart it on foreground or accuracy changes.
+      return attempt.pipe(
+        Stream.repeat(backoff.pipe(Schedule.while(() => !parked))),
+        Stream.concat(
+          Stream.suspend(() => (parked ? Stream.never : Stream.empty))
+        )
+      );
     })
   );
 

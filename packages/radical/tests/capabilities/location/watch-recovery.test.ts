@@ -566,10 +566,7 @@ it.effect(
     )
 );
 
-for (const [code, tag] of [
-  ["0002", "Unavailable"],
-  ["0009", "LocationServicesOff"],
-] as const) {
+for (const [code, tag] of [["0002", "Unavailable"]] as const) {
   it.effect(`Android reacquires after native setup failure ${tag}`, () =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -601,5 +598,59 @@ for (const [code, tag] of [
         assert.strictEqual(native.count(), 2);
       })
     )
+  );
+}
+
+for (const code of ["0009", "0007"] as const) {
+  it.effect(
+    `Android parks a watch after setup failure ${code} until the app returns to the foreground`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const native = yield* locationFixture("android");
+          // 0009 is the user declining Google's settings dialog; each acquisition would reopen it.
+          native.control.watchError = `OS-PLUG-GLOC-${code}`;
+          const runtime = createEffectRuntime(native.layer);
+          yield* Effect.addFinalizer(() => Effect.promise(runtime.dispose));
+          const errors = yield* Queue.unbounded<LocationError>();
+          const fixes = yield* Queue.unbounded<number>();
+
+          const stop = watchPlain(
+            (value) => {
+              Queue.offerUnsafe(fixes, value.timestamp);
+            },
+            (error) => {
+              Queue.offerUnsafe(errors, error);
+            },
+            {},
+            runtime
+          );
+
+          yield* Effect.addFinalizer(() => Effect.sync(stop));
+          assert.strictEqual(
+            (yield* Queue.take(errors))._tag,
+            "LocationServicesOff"
+          );
+          assert.strictEqual(yield* Queue.take(native.releases), 1);
+          assert.strictEqual(native.liveSubscriptions(), 0);
+
+          yield* TestClock.adjust(60_000);
+          assert.strictEqual(native.count(), 1);
+          assert.strictEqual(yield* Queue.size(errors), 0);
+
+          native.control.watchError = "";
+          native.active(false);
+          // Let the pool observe the background state before the app returns.
+          yield* TestClock.adjust(1);
+          assert.strictEqual(native.count(), 1);
+          native.active(true);
+          assert.strictEqual(yield* Queue.take(fixes), 100);
+          assert.strictEqual(native.count(), 2);
+          assert.strictEqual(native.liveSubscriptions(), 1);
+
+          yield* TestClock.adjust(60_000);
+          assert.strictEqual(native.count(), 2);
+        })
+      )
   );
 }
