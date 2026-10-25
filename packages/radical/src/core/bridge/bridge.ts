@@ -73,6 +73,18 @@ export class Bridge extends Context.Service<
       Effect.Effect<void>,
       BridgeUnavailable | BridgeCallFailed
     >;
+    /** Callback-returning native methods use their callback id as the release key. */
+    readonly subscribe?: <A, I>(
+      plugin: string,
+      method: string,
+      options: Readonly<Record<string, unknown>>,
+      schema: Schema.Codec<A, I>,
+      receive: (result: Effect.Effect<A, BridgeError>) => void,
+      release: { readonly method: string; readonly key: string }
+    ) => Effect.Effect<
+      Effect.Effect<void>,
+      BridgeUnavailable | BridgeCallFailed
+    >;
     /** Native events retain their latest value across page startup. */
     readonly observe: (
       event: string,
@@ -160,6 +172,63 @@ export const bridgeLayer = (
               });
             })
           )
+        );
+      }),
+    subscribe: (plugin, method, options, schema, receive, release) =>
+      Effect.suspend<
+        Effect.Effect<void>,
+        BridgeUnavailable | BridgeCallFailed,
+        never
+      >(() => {
+        const bridge = read();
+
+        if (!bridge?.nativeCallback || runtimeOf(bridge) === "browser") {
+          return Effect.fail(new BridgeUnavailable({ plugin, method }));
+        }
+
+        let active = true;
+        let callbackId: string | undefined;
+
+        const clear = () => {
+          bridge.nativeCallback?.(plugin, release.method, {
+            [release.key]: callbackId,
+          });
+        };
+
+        return Effect.try({
+          try: () =>
+            bridge.nativeCallback?.(plugin, method, options, (value, error) => {
+              if (!active) {
+                // A permission dialog can finish native acquisition after the first clear.
+                clear();
+
+                return;
+              }
+
+              receive(
+                error === undefined
+                  ? Schema.decodeUnknownEffect(schema)(value).pipe(
+                      Effect.mapError(
+                        (cause) =>
+                          new BridgeDecodeError({ plugin, method, cause })
+                      )
+                    )
+                  : Effect.fail(
+                      new BridgeCallFailed({ plugin, method, cause: error })
+                    )
+              );
+            }),
+          catch: (cause) => new BridgeCallFailed({ plugin, method, cause }),
+        }).pipe(
+          Effect.map((id) => {
+            callbackId = id;
+
+            return Effect.sync(() => {
+              active = false;
+              // clearWatch accepts the native callback id, not a promise result.
+              clear();
+            });
+          })
         );
       }),
     call: (plugin, method, options) =>

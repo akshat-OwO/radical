@@ -31,12 +31,15 @@ const legacyPlugins = (config: InternalPluginConfig) => {
       [config.pushNotifications === true, "firebaseMessaging"],
       [config.pushNotifications === true, "notificationTopics"],
       [config.videoStream === true, "videoStream"],
+      [config.location === true, "location"],
+      [config.location === true, "locationPrecision"],
       [config.camera === true, "camera"],
       [config.filePicker === true, "filePicker"],
       [config.haptics === true, "haptics"],
       [config.intents === true, "appLauncher"],
       [config.intents === true, "fileOpener"],
       [config.device !== false, "device"],
+      [config.device !== false, "settings"],
       [config.transitions !== false, "transitions"],
     ] as const
   ).flatMap(([enabled, id]) => (enabled ? [id] : []));
@@ -49,6 +52,7 @@ const flags = [
   "notifications",
   "pushNotifications",
   "videoStream",
+  "location",
   "camera",
   "filePicker",
   "haptics",
@@ -65,6 +69,7 @@ const legacyDefaults = {
   notifications: false,
   pushNotifications: false,
   videoStream: false,
+  location: false,
   camera: false,
   filePicker: false,
   haptics: false,
@@ -89,6 +94,7 @@ const combination = (
 };
 
 const pluginOptions = {
+  Location: { usageDescription: "Show location" },
   Camera: {
     usageDescription: "Take a photo",
     photoLibraryUsageDescription: "Choose a photo",
@@ -113,7 +119,7 @@ describe("internal plugin registry", () => {
     })
   );
   it.effect(
-    "matches the previous ordered plugin set for all 4096 explicit boolean combinations",
+    "matches the previous ordered plugin set for all 8192 explicit boolean combinations",
     () =>
       Effect.sync(() => {
         assert.deepStrictEqual(Record.keys(internalPluginRegistry), [...flags]);
@@ -129,7 +135,7 @@ describe("internal plugin registry", () => {
       })
   );
   it.effect(
-    "uses each flag's legacy default when omitted across all 2048 boolean combinations of the other flags",
+    "uses each flag's legacy default when omitted across all 4096 boolean combinations of the other flags",
     () =>
       Effect.sync(() => {
         // Defaults apply independently before dependency closure. Every effective
@@ -161,7 +167,7 @@ describe("internal plugin registry", () => {
     })
   );
   it.effect(
-    "validates the same ordered plugin set through resolvePlugins for all 4096 boolean combinations",
+    "validates the same ordered plugin set through resolvePlugins for all 8192 boolean combinations",
     () =>
       Effect.gen(function* () {
         const modules = Layer.succeed(PluginModules, {

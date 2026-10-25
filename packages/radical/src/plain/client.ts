@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Stream, Fiber, Effect, Schema } from "effect";
 
 import {
   capturePhoto as capturePhotoEffect,
@@ -12,7 +12,10 @@ import {
   clearWebData as clearWebDataEffect,
   dataProtectionLive,
 } from "../capabilities/data-protection/data-protection.ts";
-import { getDeviceInfo as getDeviceInfoEffect } from "../capabilities/device-info/device-info.ts";
+import {
+  openAppSettings as openAppSettingsEffect,
+  getDeviceInfo as getDeviceInfoEffect,
+} from "../capabilities/device-info/device-info.ts";
 import type { PickFilesOptions } from "../capabilities/files/file-picker.ts";
 import {
   pickFiles as pickFilesEffect,
@@ -41,6 +44,22 @@ import {
   hapticSelection as hapticSelectionEffect,
   hapticsLive,
 } from "../capabilities/haptics/haptics.ts";
+import {
+  watchLocation as watchLocationEffect,
+  locationLive,
+} from "../capabilities/location/location-pool.ts";
+import {
+  getCurrentLocation as getCurrentLocationEffect,
+  checkLocationPermission as checkLocationPermissionEffect,
+  requestLocationPermission as requestLocationPermissionEffect,
+  openLocationServicesSettings as openLocationServicesSettingsEffect,
+} from "../capabilities/location/location.ts";
+import type {
+  LocationOptions,
+  LocationRequestOptions,
+  LocationFix,
+  LocationError,
+} from "../capabilities/location/location.ts";
 import {
   getNetworkStatus as getNetworkStatusEffect,
   networkLive,
@@ -358,3 +377,73 @@ export {
 export { MissingPushConfiguration } from "../capabilities/notifications/notifications.ts";
 
 export { WebDataClearFailed } from "../capabilities/data-protection/data-protection.ts";
+
+export type {
+  LocationFix,
+  LocationPermission,
+  LocationOptions,
+  LocationRequestOptions,
+  LocationError,
+} from "../capabilities/location/location.ts";
+
+export {
+  LocationServicesOff,
+  LocationTimeout,
+} from "../capabilities/location/location.ts";
+
+export const getCurrentLocation = (
+  options?: LocationOptions,
+  runtime: RadicalRuntime = defaultRuntime
+) =>
+  getEffectRuntime(runtime).runPromise(
+    locationLive(getCurrentLocationEffect(options))
+  );
+
+export const checkLocationPermission = (
+  runtime: RadicalRuntime = defaultRuntime
+) =>
+  getEffectRuntime(runtime).runPromise(
+    locationLive(checkLocationPermissionEffect)
+  );
+
+export const requestLocationPermission = (
+  options?: LocationRequestOptions,
+  runtime: RadicalRuntime = defaultRuntime
+) =>
+  getEffectRuntime(runtime).runPromise(
+    locationLive(requestLocationPermissionEffect(options))
+  );
+
+export const openLocationServicesSettings = (
+  runtime: RadicalRuntime = defaultRuntime
+) => getEffectRuntime(runtime).runPromise(openLocationServicesSettingsEffect);
+
+export const openAppSettings = (runtime: RadicalRuntime = defaultRuntime) =>
+  getEffectRuntime(runtime).runPromise(openAppSettingsEffect);
+
+export const watchLocation = (
+  receive: (fix: LocationFix) => void,
+  onError: (error: LocationError) => void,
+  options?: LocationOptions,
+  runtime: RadicalRuntime = defaultRuntime
+): (() => void) => {
+  const fiber = getEffectRuntime(runtime).runFork(
+    watchLocationEffect(options).pipe(
+      Stream.runForEach((fix) =>
+        Effect.sync(() => {
+          receive(fix);
+        })
+      ),
+      Effect.match({
+        onFailure: onError,
+        onSuccess: () => {
+          /* The caller owns the subscription lifetime. */
+        },
+      })
+    )
+  );
+
+  return () => {
+    Effect.runFork(Fiber.interrupt(fiber));
+  };
+};

@@ -1,0 +1,142 @@
+---
+title: "Show the user's location"
+description: "Read location fixes, ask for precise location, and handle denied permission or location services off."
+---
+
+<Steps>
+<Step>
+
+### Enable location
+
+Apply the [capability setup](/docs/guides/run-on-a-device#prerequisites) with this dependency and config:
+
+```sh
+pnpm add @capacitor/geolocation@8.2.4
+```
+
+```ts
+internalPlugins: { location: true },
+pluginOptions: {
+	Location: {
+		usageDescription: "Show where you are on the map.",
+		precisePurposes: {
+			followMe: "Follow your exact position while you walk.",
+		},
+	},
+},
+```
+
+`usageDescription` explains why the app reads location. It becomes both iOS location usage strings. Each `precisePurposes` key names a feature that needs precise location fixes. iOS shows its text when the app asks for temporary precise location. Regenerate native projects after you change these values.
+
+</Step>
+<Step>
+
+### Connect actions
+
+Connect these `@akshatowo/radical/react` hooks to user actions:
+
+```ts
+const permission = useLocationPermission();
+const location = useLocation();
+// Buttons:
+permission.request();
+location.getCurrent();
+```
+
+`useLocationPermission()` checks after mount. Check and request resolve with `state: "denied"` when the user denied location; they do not fail. Location services being off does not change the result; only location fix and watch operations fail with `LocationServicesOff`. The hook also updates by itself when permission changes through any path: another hook, the Plain or Effect API, the `navigator.geolocation` replacement, or a location fix or watch. It also refreshes when the app resumes, so a user who changes location access in Settings sees the new state when they come back.
+
+To keep a watch open while a component shows it, start it in an effect. `start` and `stop` keep their identity across renders:
+
+```ts
+const watch = useLocationWatch();
+const { start, stop } = watch;
+
+useEffect(() => {
+  if (!following) return;
+  start({ enableHighAccuracy: true });
+  return stop;
+}, [following, start, stop]);
+```
+
+`watch.value` holds the latest location fix while `watch.running` is true. The hook also stops its watch on unmount.
+
+</Step>
+<Step>
+
+### Ask for precise location only where you need it
+
+`permission.request()` asks for approximate location. Pass a `precisePurposes` key when a feature needs precise location:
+
+```ts
+permission.request({ precise: "followMe" });
+```
+
+`permission.value` is `{ state, precision }`:
+
+| `precision`   | Meaning                                                    |
+| ------------- | ---------------------------------------------------------- |
+| `precise`     | Location fixes can be precise.                             |
+| `approximate` | Location fixes are approximate.                            |
+| `unknown`     | No grant yet, or a browser that does not report precision. |
+
+| Platform | Default request | Precise request |
+| --- | --- | --- |
+| iOS | Asks for approximate location | Asks for the grant first if needed, then for temporary precise location with the purpose text. Declining keeps approximate location. |
+| Android 12 and later | Asks for approximate location | Shows the system dialog to grant or upgrade to precise location |
+| Android 11 and earlier | Grants precise location | Grants precise location |
+
+On iOS, a first request with `precise` shows two prompts: the location grant, then temporary precise location. Temporary precise location expires some time after the app stops being used. While it is active, another precise request succeeds without a prompt. Android 11 and earlier have no approximate choice, so a default request reports `precision: "precise"`.
+
+`precision` reports the actual grant, not the requested one. `enableHighAccuracy` never upgrades location precision; with an approximate grant, fixes stay approximate.
+
+</Step>
+<Step>
+
+### Render location state
+
+| State | Render |
+| --- | --- |
+| `permission.value.state === "prompt"` | A button that calls `permission.request()` |
+| `permission.value.state === "denied"` | A button that calls `openAppSettings()` |
+| `error._tag === "PermissionDenied"` from a location fix or watch | A button that calls `openAppSettings()` |
+| `error._tag === "LocationServicesOff"` | A button that calls `openLocationServicesSettings()` |
+| `error._tag === "LocationTimeout"` | A retry action |
+| `location.value` or `watch.value` | `latitude`, `longitude`, and `accuracy` in metres |
+
+`openAppSettings` and `openLocationServicesSettings` come from `@akshatowo/radical/client`. Pass `useRadicalRuntime()` when your provider owns its runtime. Both fail with `Unavailable` in a browser, so show browser instructions instead.
+
+Location services is the device-wide switch. It is separate from the app's permission, so on Android the app can hold a grant while location services is off. iOS reports `denied` for every app while location services is off, so a denied state on iOS can mean either. On Android with Google Play services, the first location request shows Google's dialog when location services or Google Location Accuracy do not meet the request. Accepting continues the same call, and `timeout` starts after the dialog. Declining fails with `LocationServicesOff`. On iOS, `openLocationServicesSettings` opens the app's page in Settings, because iOS has no public link to the Location Services screen.
+
+You see the user's location fix, or a state that tells them how to share it.
+
+</Step>
+</Steps>
+
+## Use map libraries unchanged
+
+When location is enabled, Radical's client entry replaces `navigator.geolocation` in the shell with an implementation backed by the native plugin. Map libraries that call the web API, such as MapLibre's locate control, then use the same native permission and watches as the hooks.
+
+- `getCurrentPosition` and `watchPosition` check the permission first. If the state is `prompt`, they ask for approximate location, as a browser would. Concurrent calls share one prompt. If location is not granted, the error callback receives code `1`.
+- `watchPosition` joins the shared watch pool, so a locate control and `useLocationWatch` with the same options run one native watch. `clearWatch` releases it.
+- Errors use the standard `GeolocationPositionError` codes: `1` for `PermissionDenied`, `3` for `LocationTimeout`, and `2` for everything else, including `LocationServicesOff` after the user declines Google's location settings dialog. `message` is the error tag.
+- Permission changes made through the replacement update `useLocationPermission()` by themselves; you do not need to call `check()`.
+- `navigator.permissions.query({ name: "geolocation" })` returns one shared `PermissionStatus`. Its `state` updates and fires `change` whenever any API checks or requests location permission, and when the app returns from the background, for example from Settings. Other permission names use the WebView's own query.
+
+The replacement is not installed in a plain browser or when `replaceNavigator` is `false`. [Location in shells](/docs/explanation/location) explains why the WebView's own version is not reliable.
+
+## Plain web
+
+In a browser, the hooks use the browser's `navigator.geolocation`, and the replacement is not installed. `precision` is always `unknown`, purpose keys are ignored, and location services off appears as `Unavailable`. A request asks the browser for one location fix and resolves with `state: "denied"` when the user blocks it. Other failures, such as `LocationTimeout`, still fail the request.
+
+## Declare precise location on Google Play
+
+`internalPlugins.location` adds `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` to the Android manifest. Google Play's [location permissions policy](https://support.google.com/googleplay/android-developer/answer/17033915) for apps that target Android 17 (API 37) asks for the minimum location precision each feature needs. It also requires a Play Console declaration for every use of `ACCESS_FINE_LOCATION`. Google states that the declaration is mandatory from January 27, 2027. Check the policy page before you release, because Google can change the dates.
+
+The classic permission dialog stays allowed for ongoing features, such as navigation or follow-me. One-off precise uses need the system `LocationButton`, which Radical does not support yet.
+
+<Callout type="warning">
+  Location is foreground only. Watches pause when the app goes to the background
+  and resume when it returns.
+</Callout>
+
+See [errors and browser behavior](/docs/reference/location). The [maps tutorial](/docs/tutorials/maps-app) builds a full screen with these hooks.

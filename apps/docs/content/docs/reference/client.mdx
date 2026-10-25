@@ -27,7 +27,7 @@ Disposal interrupts pending runtime commands and waits for resource cleanup. The
 
 ## Capabilities
 
-`getDeviceInfo()`, camera and permission operations, file selection, intents, haptics, network status, Google sign-in, notifications, and data protection return Promises. Their result types match the capability hooks. Scoped video sessions, network subscriptions, and safe-area subscriptions are available through the React hooks or Effect API.
+`getDeviceInfo()`, camera and permission operations, file selection, intents, haptics, network status, location, Google sign-in, notifications, and data protection return Promises. Their result types match the capability hooks. `watchLocation(receive, onError, options?)` returns a function that stops the watch. Scoped video sessions, network subscriptions, and safe-area subscriptions are available through the React hooks or Effect API.
 
 ## Failures
 

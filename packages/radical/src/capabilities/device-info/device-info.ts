@@ -1,7 +1,11 @@
 import { Effect } from "effect";
 
 import { Bridge } from "../../core/bridge/bridge.ts";
-import { devicePlugin } from "../../core/plugins/internal-plugins.ts";
+import { Unavailable } from "../../core/errors.ts";
+import {
+  settingsPlugin,
+  devicePlugin,
+} from "../../core/plugins/internal-plugins.ts";
 import { callPlugin } from "../../core/plugins/plugins.ts";
 import type { DeviceInfo } from "./device-info-schema.ts";
 
@@ -81,4 +85,21 @@ export const getDeviceInfo = Effect.gen(function* () {
       typeof navigator === "undefined" ? { userAgent: "" } : navigator
     )
   );
+});
+
+export const openAppSettings = Effect.gen(function* () {
+  const bridge = yield* Bridge;
+
+  if ((yield* bridge.runtime) === "browser") {
+    return yield* new Unavailable({
+      reason: "App settings require a native shell",
+    });
+  }
+
+  return yield* callPlugin(
+    settingsPlugin.bridge,
+    "openAppSettings",
+    settingsPlugin.commands.openAppSettings,
+    {}
+  ).pipe(Effect.asVoid);
 });

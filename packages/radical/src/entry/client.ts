@@ -1,5 +1,9 @@
 import { Effect, Schema } from "effect";
 
+import { installLocationClient } from "../capabilities/location/navigator-location.ts";
+
+Effect.runSync(installLocationClient);
+
 export const shouldRegister = (context: {
   readonly production: boolean;
   readonly browser: boolean;
@@ -287,3 +291,34 @@ export type {
   DataProtectionStatus,
   DataProtectionError,
 } from "../capabilities/data-protection/data-protection.ts";
+
+export {
+  getCurrentLocation,
+  checkLocationPermission,
+  requestLocationPermission,
+  openLocationServicesSettings,
+  LocationFixSchema,
+  LocationPermissionSchema,
+  LocationServicesOff,
+  LocationTimeout,
+  BrowserLocation,
+  BrowserLocationLive,
+  browserLocationLayer,
+} from "../capabilities/location/location.ts";
+
+export type {
+  LocationFix,
+  LocationPermission,
+  LocationOptions,
+  LocationRequestOptions,
+  LocationError,
+} from "../capabilities/location/location.ts";
+
+export {
+  watchLocation,
+  LocationWatchPool,
+  LocationWatchPoolLive,
+  locationLive,
+} from "../capabilities/location/location-pool.ts";
+
+export { openAppSettings } from "../capabilities/device-info/device-info.ts";

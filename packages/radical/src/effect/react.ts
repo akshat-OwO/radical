@@ -69,3 +69,28 @@ export {
 } from "../react/use-bridge-effect.ts";
 
 export { getEffectRuntime } from "../plain/runtime.ts";
+
+export {
+  useLocation,
+  useLocationPermission,
+  useLocationWatch,
+} from "../react/use-location.ts";
+
+export type {
+  LocationState,
+  LocationPermissionState,
+  LocationWatchState,
+} from "../react/use-location.ts";
+
+export type {
+  LocationFix,
+  LocationPermission,
+  LocationOptions,
+  LocationRequestOptions,
+  LocationError,
+} from "../capabilities/location/location.ts";
+
+export {
+  LocationServicesOff,
+  LocationTimeout,
+} from "../capabilities/location/location.ts";

@@ -5,7 +5,8 @@
     "offline-caching",
     "native-shells",
     "plugin-model",
-    "native-context"
+    "native-context",
+    "location"
   ],
   "title": "Explanation"
 }

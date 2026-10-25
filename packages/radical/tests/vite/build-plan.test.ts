@@ -63,6 +63,7 @@ it.effect(
         "transitions",
       ]);
       assert.deepStrictEqual(plan.options, {
+        location: undefined,
         camera: options.Camera,
         videoStream: options.VideoStream,
         googleSignIn: options.GoogleSignIn,
@@ -103,6 +104,7 @@ it.effect(
         "didReceiveRemoteNotification"
       );
       assert.deepStrictEqual(plan.defines, {
+        __RADICAL_LOCATION__: "null",
         __RADICAL_GOOGLE_SIGN_IN__: JSON.stringify(options.GoogleSignIn),
       });
       assert.deepStrictEqual(plan.spm, {
@@ -143,6 +145,7 @@ it.effect(
       assert.deepStrictEqual(plan.files, []);
       assert.deepStrictEqual(plan.copies, []);
       assert.deepStrictEqual(plan.defines, {
+        __RADICAL_LOCATION__: "null",
         __RADICAL_GOOGLE_SIGN_IN__: "null",
       });
     })
@@ -290,3 +293,87 @@ it.effect(
       }
     })
 );
+
+it.effect(
+  "location is opt-in, pins Geolocation and XML-escapes all purpose keys and values",
+  () =>
+    Effect.gen(function* () {
+      const plan = yield* resolve({
+        appId: "dev.test.app",
+        internalPlugins: { location: true },
+        pluginOptions: {
+          Location: {
+            usageDescription: "Find <me> & you",
+            precisePurposes: { "route&key": "Navigate <here>" },
+          },
+        },
+      });
+
+      assert.deepStrictEqual(
+        plan.plugins.find((entry) => entry.manifest.id === "location")?.manifest
+          .dependencies,
+        { "@capacitor/geolocation": "8.2.4" }
+      );
+      assert.deepStrictEqual(plan.android.declarations, [
+        '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+        '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+      ]);
+      assert.strictEqual(
+        plan.ios.plist.NSLocationDefaultAccuracyReduced,
+        "<true/>"
+      );
+      assert.strictEqual(
+        plan.ios.plist.NSLocationWhenInUseUsageDescription,
+        "<string>Find &lt;me&gt; &amp; you</string>"
+      );
+      assert.strictEqual(
+        plan.ios.plist.NSLocationAlwaysAndWhenInUseUsageDescription,
+        plan.ios.plist.NSLocationWhenInUseUsageDescription
+      );
+      assert.strictEqual(
+        plan.ios.plist.NSLocationTemporaryUsageDescriptionDictionary,
+        "<dict><key>route&amp;key</key><string>Navigate &lt;here&gt;</string></dict>"
+      );
+
+      const disabled = yield* resolve({
+        appId: "dev.test.app",
+        internalPlugins: { location: false },
+        pluginOptions: { Location: false },
+      });
+
+      assert.isFalse(
+        disabled.plugins.some((entry) => entry.manifest.id === "location")
+      );
+      assert.isFalse(
+        Object.keys(disabled.ios.plist).some((key) =>
+          key.startsWith("NSLocation")
+        )
+      );
+      assert.deepStrictEqual(disabled.android.declarations, []);
+    })
+);
+
+const invalidLocationOptions: readonly Schema.Json[] = [
+  {},
+  { usageDescription: " " },
+  { usageDescription: "Find me", precisePurposes: { route: "\u0001" } },
+  { usageDescription: "Find me", precisePurposes: { "": "Navigate" } },
+  { usageDescription: "Find me", replaceNavigator: "yes" },
+];
+
+for (const location of invalidLocationOptions) {
+  it.effect(
+    `rejects invalid location options ${JSON.stringify(location)}`,
+    () =>
+      Effect.gen(function* () {
+        assert.strictEqual(
+          (yield* resolve({
+            appId: "dev.test.app",
+            internalPlugins: { location: true },
+            pluginOptions: { Location: location },
+          }).pipe(Effect.flip))._tag,
+          "InvalidPlugin"
+        );
+      })
+  );
+}

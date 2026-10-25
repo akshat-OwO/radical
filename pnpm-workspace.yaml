@@ -31,6 +31,7 @@ catalog:
   "@capacitor/app-launcher": 8.0.1
   "@capacitor/cli": ^8.5.3
   "@capacitor/camera": 8.2.6
+  "@capacitor/geolocation": 8.2.4
   "@capacitor/core": ^8.5.3
   "@capacitor/device": ^8.0.3
   "@capacitor/haptics": 8.0.2

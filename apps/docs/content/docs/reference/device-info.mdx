@@ -5,7 +5,7 @@ description: "The shared native and browser device result."
 
 ## Plain API
 
-`getDeviceInfo()` from `@akshatowo/radical/client` returns `Promise<DeviceInfo>`. `useDeviceInfo()` exposes loading, value, and error state.
+`getDeviceInfo()` from `@akshatowo/radical/client` returns `Promise<DeviceInfo>`. `useDeviceInfo()` exposes loading, value, and error state. `openAppSettings()` opens the app's page in system Settings and returns `Promise<void>`.
 
 ## Effect API
 
@@ -13,7 +13,7 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 
 `internalPlugins.device` defaults to true. The native dependency is `@capacitor/device`, with the package's declared compatible version range `^8.0.3`.
 
-`getDeviceInfo` is an Effect of `DeviceInfo` requiring `Bridge`, with `BridgeError` failures. `DeviceInfoSchema` validates the common result.
+`getDeviceInfo` is an Effect of `DeviceInfo` requiring `Bridge`, with `BridgeError` failures. `openAppSettings` is an Effect of `void` requiring `Bridge`; it fails with `Unavailable` in a browser. `internalPlugins.device` also adds the `RadicalSettings` native plugin that backs it. `DeviceInfoSchema` validates the common result.
 
 | Field | Values |
 | --- | --- |
@@ -39,5 +39,6 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 | Capability | Android | iOS | Browser |
 | --- | --- | --- | --- |
 | Device result | Capacitor device info | Capacitor device info | Derived user-agent info |
+| `openAppSettings` | App details screen | App page in Settings | `Unavailable` |
 
 Source: [device info implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/device-info).

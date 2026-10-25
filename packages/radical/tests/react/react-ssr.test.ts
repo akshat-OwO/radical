@@ -20,6 +20,19 @@ import {
   useVideoStream,
 } from "../../src/react/react.ts";
 import { useBridgeEffect } from "../../src/react/use-bridge-effect.ts";
+import {
+  useLocation,
+  useLocationPermission,
+  useLocationWatch,
+} from "../../src/react/use-location.ts";
+
+const ProbeLocation = () => {
+  assert.isFalse(useLocation().loading);
+  assert.isFalse(useLocationPermission().loading);
+  assert.isFalse(useLocationWatch().running);
+
+  return createElement("p", null, "location idle");
+};
 
 const SafeAreaProbe = () =>
   createElement("pre", null, JSON.stringify(useSafeArea()));
@@ -318,4 +331,21 @@ it.effect("guards data protection and clearing during server rendering", () =>
       "<p>protection idle</p>"
     );
   })
+);
+
+it.effect(
+  "location hooks render idle on the server without reading browser or native APIs",
+  () =>
+    Effect.sync(() => {
+      assert.strictEqual(
+        renderToString(
+          createElement(
+            RadicalProvider,
+            { layer: bridgeLayer(() => assert.fail("SSR bridge read")) },
+            createElement(ProbeLocation)
+          )
+        ),
+        "<p>location idle</p>"
+      );
+    })
 );

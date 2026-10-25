@@ -6,10 +6,12 @@ import {
   googleSignInContributions,
   googleSignInDefaults,
 } from "../capabilities/google-sign-in/google-sign-in-build.ts";
+import { locationContributions } from "../capabilities/location/location-build.ts";
 import { pushNotificationContributions } from "../capabilities/notifications/notification-build.ts";
 import { videoStreamContributions } from "../capabilities/video-stream/video-stream-build.ts";
 import { resolveInternalCapabilities } from "../core/plugins/internal-plugin-registry.ts";
 import {
+  locationPlugin,
   cameraPlugin,
   googleSignInPlugin,
   videoStreamPlugin,
@@ -111,6 +113,7 @@ export const resolveBuildPlan = flow(
     Effect.gen(function* () {
       const plugins = yield* resolvePlugins(config);
       const capabilities = resolveInternalCapabilities(config.internalPlugins);
+      const location = optionsFor(plugins, locationPlugin);
       const camera = optionsFor(plugins, cameraPlugin);
       const videoStream = optionsFor(plugins, videoStreamPlugin);
       const googleSignIn = optionsFor(plugins, googleSignInPlugin);
@@ -122,6 +125,10 @@ export const resolveBuildPlan = flow(
 
       if (googleSignIn !== undefined) {
         contributions.googleSignIn = googleSignInContributions(googleSignIn);
+      }
+
+      if (location !== undefined) {
+        contributions.location = locationContributions(location);
       }
 
       if (camera !== undefined) {
@@ -138,6 +145,7 @@ export const resolveBuildPlan = flow(
 
       // Preserve declaration order independently of enablement order.
       const ordered = [
+        contributions.location,
         contributions.camera,
         contributions.videoStream,
         contributions.googleSignIn,
@@ -165,6 +173,7 @@ export const resolveBuildPlan = flow(
       ];
 
       const defines = {
+        __RADICAL_LOCATION__: "null",
         ...googleSignInDefaults,
         ...(yield* composeSettings(
           "Vite define",
@@ -217,7 +226,7 @@ export const resolveBuildPlan = flow(
         config,
         capabilities,
         plugins,
-        options: { camera, videoStream, googleSignIn },
+        options: { location, camera, videoStream, googleSignIn },
         pluginConfig: Object.fromEntries(
           plugins.flatMap((entry) =>
             entry.manifest.config

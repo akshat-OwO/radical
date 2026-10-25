@@ -1,0 +1,1805 @@
+---
+title: "Build a maps app"
+description: "Create a TanStack Start app with a live map, show the user's location, follow it, and run it on the web, Android, and iOS."
+---
+
+In this tutorial you build a one-screen maps app and run the same code in a browser, an Android emulator, and an iOS simulator. The app shows where the user is, follows them as they move, and measures the distance to pins they drop on the map.
+
+You use the same stack as the [todo tutorial](/docs/tutorials/todo-app): TanStack Start, Tailwind CSS v4, and Radical in remote mode. The map comes from [mapcn](https://www.mapcn.dev/), a shadcn component that wraps MapLibre GL, with free tiles from [OpenFreeMap](https://openfreemap.org/).
+
+## Before you start
+
+You need:
+
+- Node.js 22.18 or later and pnpm.
+- Android Studio with an emulator, for the Android step.
+- macOS with Xcode and an iOS simulator, for the iOS step.
+
+You can finish the web part without either native toolchain. A browser asks for location only on `localhost` or an HTTPS origin.
+
+## Create the project
+
+Create a TanStack Start app with the TanStack CLI:
+
+```sh
+npx @tanstack/cli@latest create maps --framework React --package-manager pnpm --no-examples --no-toolchain
+cd maps
+```
+
+The standard template includes Tailwind CSS v4 and maps both `#/*` and `@/*` to `src/`. This tutorial uses `@/*`, because shadcn components import from it.
+
+## Add Radical
+
+Install Radical and allow its `sharp` build script:
+
+```sh
+pnpm add @akshatowo/radical@0.3.0
+pnpm approve-builds sharp
+```
+
+### Configure Vite
+
+Replace `vite.config.ts`:
+
+```ts title="vite.config.ts"
+import { defineConfig } from "vite";
+import {
+  radical,
+  tanstackStartOptions,
+} from "@akshatowo/radical/tanstack-start";
+import type { RadicalConfig } from "@akshatowo/radical/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+
+const config = {
+  appId: "dev.example.maps",
+  name: "Maps",
+  mode: "remote",
+  devHost: "localhost",
+  internalPlugins: { location: true },
+  pluginOptions: {
+    Location: {
+      usageDescription: "Maps shows where you are on the map.",
+      precisePurposes: {
+        followMe: "Maps follows your exact position while you walk.",
+      },
+    },
+  },
+} satisfies RadicalConfig;
+
+const viteConfig = defineConfig({
+  resolve: { tsconfigPaths: true },
+  plugins: [
+    tailwindcss(),
+    tanstackStart(tanstackStartOptions(config)),
+    radical(config),
+    viteReact(),
+  ],
+});
+
+export default viteConfig;
+```
+
+`internalPlugins.location` adds the native location plugins. `usageDescription` is the text iOS shows when the app first asks for location. The `followMe` key in `precisePurposes` names the one feature that needs precise location; iOS shows its text when the app asks for precise location after the user chose approximate.
+
+Like the todo tutorial, this config leaves out the generated `devtools()` plugin.
+
+### Include generated types
+
+Add Radical's generated plugin types to the `include` list in `tsconfig.json`:
+
+```json title="tsconfig.json"
+{
+  "include": ["**/*.ts", "**/*.tsx", ".radical/plugins.d.ts"]
+}
+```
+
+Then add `.radical/` to `.gitignore`.
+
+### Register the request middleware
+
+Create `src/start.ts`:
+
+```ts title="src/start.ts"
+import { createStart } from "@tanstack/react-start";
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [...createRadicalRequestMiddleware()],
+}));
+
+declare module "@tanstack/react-start" {
+  interface Register {
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>;
+  }
+}
+```
+
+The middleware reads the device details that the shell sends with each request, such as the safe-area insets, and adds `nativeContext` to the server context.
+
+### Add the offline page
+
+Create `public/offline.html`. The shell shows this page when it cannot reach the server, and the native build expects it.
+
+```html title="public/offline.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connection unavailable</title>
+  </head>
+  <body>
+    <h1>Connection unavailable</h1>
+    <p>Connect to the internet, then <a href="/">try again</a>.</p>
+  </body>
+</html>
+```
+
+This tutorial skips the offline worker from the todo tutorial. A map needs the network for its tiles.
+
+### Update the root route
+
+Replace `src/routes/__root.tsx`:
+
+```tsx title="src/routes/__root.tsx"
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { safeAreaStyle } from "@akshatowo/radical/client";
+import { RadicalProvider } from "@akshatowo/radical/react";
+import type { CSSProperties, ReactNode } from "react";
+
+import appCss from "../styles.css?url";
+
+const readNativeContext = createServerFn({ method: "GET" }).handler(
+  ({ context }) => context.nativeContext
+);
+
+export const Route = createRootRoute({
+  loader: async () => ({ nativeContext: await readNativeContext() }),
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
+      { title: "Maps" },
+    ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;800&display=swap",
+      },
+      { rel: "stylesheet", href: appCss },
+    ],
+  }),
+  shellComponent: RootDocument,
+});
+
+function RootDocument({ children }: { children: ReactNode }) {
+  const { nativeContext } = Route.useLoaderData();
+  const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
+    safeAreaStyle(nativeContext, "remote");
+
+  return (
+    <html lang="en" style={rootStyle}>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <RadicalProvider nativeContext={nativeContext}>
+          {children}
+        </RadicalProvider>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+This is the todo tutorial's root with a different title and font. The loader reads `nativeContext` on the server, `safeAreaStyle` sets the `--radical-safe-area-*` variables, and `RadicalProvider` connects the capability hooks to the bridge.
+
+## Add the map
+
+### Configure shadcn
+
+mapcn installs through the shadcn CLI. Create `components.json` by hand, so the CLI does not rewrite your styles:
+
+```json title="components.json"
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "utils": "@/lib/utils",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "registries": {
+    "@mapcn": "https://mapcn.dev/r/{name}.json"
+  }
+}
+```
+
+Create the `cn()` helper that shadcn components import from `@/lib/utils`:
+
+```sh
+pnpm add clsx tailwind-merge
+```
+
+```ts title="src/lib/utils.ts"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+```
+
+### Install mapcn
+
+Add the map component:
+
+```sh
+pnpm dlx shadcn@latest add @mapcn/map
+```
+
+The CLI writes `src/components/ui/map.tsx` and installs `maplibre-gl` 6, `lucide-react`, and `@types/geojson`. It also adds a `@layer base` block for MapLibre's popups and attribution to `src/styles.css`. The next section replaces that file and keeps the block.
+
+### Serve the MapLibre worker yourself
+
+MapLibre parses tiles in a web worker. mapcn loads the worker script from a CDN by default. Copy it into `public/`, so the app does not depend on a third-party script host:
+
+```sh
+mkdir -p public
+cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/
+```
+
+Then point mapcn at the copy. In `src/components/ui/map.tsx`, find `loadMapLibre` and replace the `setWorkerUrl` line:
+
+```ts title="src/components/ui/map.tsx"
+function loadMapLibre() {
+  maplibrePromise ??= import("maplibre-gl")
+    .then((lib) => {
+      if (!lib.getWorkerUrl()) {
+        lib.setWorkerUrl("/maplibre-gl-worker.mjs"); // [!code ++]
+      }
+      return lib;
+    })
+```
+
+Copy both files again when you upgrade `maplibre-gl`.
+
+### Choose the map styles
+
+mapcn's default CARTO styles need an API key. Create `src/lib/map.ts` with OpenFreeMap styles, which need none, and a distance formatter:
+
+```ts title="src/lib/map.ts"
+export const mapStyles = {
+  light: "https://tiles.openfreemap.org/styles/positron",
+  dark: "https://tiles.openfreemap.org/styles/dark",
+};
+
+export const formatDistance = (metres: number) =>
+  metres < 1000
+    ? `${Math.round(metres)} m`
+    : `${(metres / 1000).toFixed(metres < 10_000 ? 1 : 0)} km`;
+```
+
+You pass `mapStyles` to the map's `styles` prop. OpenFreeMap also has `liberty` and `bright` styles.
+
+## Add the design
+
+<Callout type="info" title="Designed with Hallmark">
+  The design comes from [Hallmark](https://www.usehallmark.com/), a design skill
+  for coding agents. It dealt the **Wayfind** theme for an app screen: one
+  monospace face, square ink borders, cobalt for what is live, and amber figures
+  on ink plates. Hallmark wrote `tokens.css` and `base.css`; the aliases and app
+  classes in `styles.css` are hand-written. To try another look, run `/hallmark
+  redesign` in your agent. It reads the stamp at the top of `styles.css`, deals
+  a different theme, and rewrites the tokens while keeping the structure.
+</Callout>
+
+### Add the tokens
+
+Create `src/tokens.css`:
+
+```css title="src/tokens.css"
+@theme static {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.44rem;
+  --text-2xl: 1.728rem;
+  --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem;
+  --text-display: 1.728rem;
+  --text-section: 1.2rem;
+  --text-title: 1rem;
+  --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --color-error: oklch(52% 0.19 27);
+  --color-success: oklch(50% 0.12 150);
+  --color-paper: oklch(95.5% 0.006 250);
+  --color-paper-2: oklch(91% 0.009 250);
+  --color-paper-3: oklch(99.5% 0.005 250);
+  --color-ink: oklch(16% 0.014 262);
+  --color-ink-2: oklch(29% 0.014 262);
+  --color-ink-3: oklch(47% 0.016 260);
+  --color-rule: oklch(80% 0.011 250);
+  --color-ink-rule: oklch(34% 0.014 262);
+  --color-signal: oklch(51% 0.22 264);
+  --color-amber: oklch(81% 0.16 82);
+  --color-signal-ink: oklch(99.5% 0.003 250);
+  --color-focus: oklch(51% 0.22 264);
+  --font-display: "Chivo Mono", ui-monospace, monospace;
+  --font-body: var(--font-display);
+  --font-outlier: var(--font-body);
+  --radius-card: 0;
+  --radius-pill: 999px;
+  --shadow-card: 0 24px 40px -24px oklch(8% 0.01 260 / 0.6);
+  --tracking-display: -0.03em;
+}
+:root {
+  color-scheme: light;
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --space-4xl: 144px;
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --container: 1440px;
+  --gutter: 64px;
+  --gap-columns: 32px;
+  --section-gap-s: 120px;
+  --section-gap: 144px;
+  --section-gap-l: 176px;
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sticky-nav: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+  --rule-hair: 1px;
+  --rule-bar: 2px;
+  --display-weight: 800;
+}
+@media (max-width: 60rem) {
+  :root {
+    --gutter: 24px;
+    --section-gap-s: 80px;
+    --section-gap: 96px;
+    --section-gap-l: 120px;
+  }
+}
+@media (max-width: 40rem) {
+  :root {
+    --gutter: 16px;
+    --section-gap-s: 56px;
+    --section-gap: 72px;
+    --section-gap-l: 96px;
+    --gap-columns: 16px;
+  }
+}
+```
+
+`@theme static` turns each token into a Tailwind utility, such as `bg-paper`, `text-ink-3`, and `text-signal`, and keeps every variable in the output even when no utility uses it. The colors use names that do not collide with shadcn's `accent` and `muted`.
+
+### Add the base styles
+
+Create `src/base.css`:
+
+```css title="src/base.css"
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  overflow-x: clip;
+}
+html {
+  scrollbar-color: var(--color-ink-3) var(--color-paper);
+  scroll-padding-top: var(--space-3xl);
+}
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  caret-color: var(--color-signal);
+}
+::selection {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight, 700);
+  font-synthesis: none;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.05;
+  overflow-wrap: break-word;
+  min-width: 0;
+  text-wrap: balance;
+}
+h1 {
+  max-width: 20ch;
+  font-size: var(--text-display);
+}
+h2 {
+  max-width: 30ch;
+  font-size: var(--text-section);
+}
+h3 {
+  max-width: 40ch;
+  font-size: var(--text-title);
+  line-height: 1.2;
+}
+.lead {
+  font-size: var(--text-lead);
+  line-height: 1.45;
+  max-width: 52ch;
+}
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+p:not([class]) {
+  max-width: 65ch;
+}
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+svg {
+  display: block;
+}
+[hidden] {
+  display: none !important;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  box-sizing: border-box;
+}
+.num,
+.figure,
+td.num {
+  font-variant-numeric: tabular-nums;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  *:not(.keep-motion),
+  *:not(.keep-motion)::before,
+  *:not(.keep-motion)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+```
+
+### Replace the stylesheet
+
+Replace `src/styles.css`:
+
+```css title="src/styles.css"
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Wayfind (deal 1/3, seed maps-app-live-location-b86d·11be38c9·2026-10-25·r0)
+ * nav: top bar · signature: the live dot and its accuracy ring · states: checking, prompt, finding, denied, services off, timeout, full · wayfind: platform
+ * axes: light/mono/cool · posture: committed · contrast: pass · v2.0.0 */
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./base.css" layer(base);
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --color-muted: var(--color-paper-2);
+  --color-muted-foreground: var(--color-ink-3);
+  --color-popover: var(--color-paper-3);
+  --color-popover-foreground: var(--color-ink);
+  --color-accent: var(--color-paper-2);
+  --color-accent-foreground: var(--color-ink);
+  --color-border: var(--color-ink);
+  --color-ring: var(--color-focus);
+  --radius-sm: 0;
+  --radius-md: 0;
+}
+
+@layer base {
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
+  .maplibregl-ctrl-attrib {
+    @apply bg-background! text-muted-foreground! border-border! rounded-md! border! shadow-sm!;
+  }
+  .maplibregl-ctrl-attrib a {
+    @apply text-muted-foreground!;
+  }
+  .maplibregl-ctrl-attrib a:hover {
+    @apply text-foreground!;
+  }
+  .maplibregl-ctrl-attrib-button {
+    @apply bg-transparent! dark:invert;
+  }
+}
+
+.screen {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100dvh;
+}
+
+/* Keep the bars clear of the status bar, notch, and home indicator. */
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: calc(var(--radical-safe-area-top, 0px) + var(--space-sm))
+    calc(var(--radical-safe-area-right, 0px) + var(--space-md)) var(--space-sm)
+    calc(var(--radical-safe-area-left, 0px) + var(--space-md));
+  border-bottom: var(--rule-bar) solid var(--color-ink);
+}
+
+.sheet {
+  display: grid;
+  gap: var(--space-md);
+  max-height: 45dvh;
+  overflow-y: auto;
+  padding: var(--space-md)
+    calc(var(--radical-safe-area-right, 0px) + var(--space-md))
+    calc(var(--radical-safe-area-bottom, 0px) + var(--space-md))
+    calc(var(--radical-safe-area-left, 0px) + var(--space-md));
+  border-top: var(--rule-bar) solid var(--color-ink);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: var(--rule-bar) solid currentColor;
+  background: transparent;
+  color: inherit;
+  font: 800 var(--text-sm) / 1 var(--font-body);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) steps(1),
+    color var(--dur-micro) steps(1);
+}
+
+.btn:hover {
+  background: var(--color-paper-2);
+}
+
+.btn:active {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.btn-primary,
+.btn[aria-pressed="true"] {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-signal-ink);
+}
+
+.btn-primary:hover,
+.btn[aria-pressed="true"]:hover {
+  background: color-mix(in oklab, var(--color-signal) 85%, var(--color-ink));
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--space-xs);
+  border: var(--rule-bar) solid var(--color-ink);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.badge-live {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-signal-ink);
+}
+
+/* A sign: ink field, paper text, amber figures. */
+.plate {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--rule-bar) solid var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.plate .btn:hover {
+  background: var(--color-ink-2);
+}
+
+.figure {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.plate .figure {
+  color: var(--color-amber);
+}
+
+.user-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--color-paper-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-signal);
+  box-shadow: var(--shadow-card);
+}
+
+.accuracy {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  border: var(--rule-hair) solid
+    color-mix(in oklab, var(--color-signal) 45%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--color-signal) 14%, transparent);
+  pointer-events: none;
+}
+
+.pin {
+  display: grid;
+  place-content: center;
+  width: 28px;
+  height: 28px;
+  border: var(--rule-bar) solid var(--color-paper-3);
+  background: var(--color-ink);
+  color: var(--color-amber);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.pins {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pins caption {
+  padding-bottom: var(--space-xs);
+  color: var(--color-ink-3);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.pins th {
+  padding: var(--space-2xs) 0;
+  border-bottom: var(--rule-bar) solid var(--color-ink);
+  color: var(--color-ink-3);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-align: left;
+}
+
+.pins td {
+  padding: var(--space-xs) 0;
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+```
+
+The `@theme inline` block maps the shadcn names that mapcn's controls use, such as `bg-background` and `border-border`, to Wayfind tokens. The `dark` variant follows a `.dark` class instead of the system setting, so the controls stay light with the light map.
+
+The app classes hold the screen layout. `.bar` and `.sheet` add the Radical safe-area variables to their padding, so the header clears the status bar and the sheet clears the home indicator. Buttons are at least 44 pixels high, so they are easy to tap.
+
+## Build the maps screen
+
+Start the dev server and keep it running for the rest of the tutorial:
+
+```sh
+pnpm dev
+```
+
+Vite serves the app at `http://localhost:3000`.
+
+### Step 1: Centre the map on a location fix
+
+Create `src/components/center-on.tsx`:
+
+```tsx title="src/components/center-on.tsx"
+import type { LocationFix } from "@akshatowo/radical/react";
+import { useEffect } from "react";
+
+import { useMap } from "@/components/ui/map";
+
+const metresPerDegree = 111_320;
+
+export function CenterOn({
+  fix,
+  follow = false,
+}: {
+  fix?: LocationFix;
+  follow?: boolean;
+}) {
+  const { map } = useMap();
+
+  useEffect(() => {
+    if (!map || !fix) return;
+
+    if (follow) {
+      map.easeTo({ center: [fix.longitude, fix.latitude], duration: 500 });
+      return;
+    }
+
+    // Frame the whole accuracy circle, so an approximate fix shows its area.
+    const lat = fix.accuracy / metresPerDegree;
+    const lng = lat / Math.cos((fix.latitude * Math.PI) / 180);
+    map.fitBounds(
+      [
+        [fix.longitude - lng, fix.latitude - lat],
+        [fix.longitude + lng, fix.latitude + lat],
+      ],
+      { padding: 48, maxZoom: 16 }
+    );
+  }, [map, fix, follow]);
+
+  return null;
+}
+```
+
+`useMap` gives components inside `<Map>` access to the MapLibre map. Without `follow`, `CenterOn` frames the whole accuracy circle of the location fix, so an approximate location fix shows the area it covers instead of a false point. Step 4 uses `follow`.
+
+Replace `src/routes/index.tsx`:
+
+```tsx title="src/routes/index.tsx"
+import { useLocation, useLocationPermission } from "@akshatowo/radical/react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+
+import { CenterOn } from "@/components/center-on";
+import { Map } from "@/components/ui/map";
+import { formatDistance, mapStyles } from "@/lib/map";
+
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  const permission = useLocationPermission();
+  const location = useLocation();
+  const { getCurrent } = location;
+  const granted = permission.value?.state === "granted";
+
+  useEffect(() => {
+    if (granted) getCurrent();
+  }, [granted, getCurrent]);
+
+  const fix = location.value;
+
+  return (
+    <main className="screen">
+      <header className="bar">
+        <h1 className="text-lg">Maps</h1>
+      </header>
+
+      <div className="relative min-h-0">
+        <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
+          <CenterOn fix={fix} />
+        </Map>
+      </div>
+
+      <section className="sheet" aria-label="Your location">
+        {fix ? (
+          <p>
+            <span className="figure">{formatDistance(fix.accuracy)}</span>
+            <br />
+            <span className="text-sm text-ink-3">accuracy</span>
+          </p>
+        ) : permission.value?.state === "prompt" ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => permission.request()}
+          >
+            Show where I am
+          </button>
+        ) : (
+          <p className="text-ink-3">Finding you</p>
+        )}
+      </section>
+    </main>
+  );
+}
+```
+
+How the page works:
+
+- `useLocationPermission` checks the permission after mount. While the state is `prompt`, the sheet shows **Show where I am**, which calls `permission.request()`. The request asks for approximate location.
+- When the state becomes `granted`, the effect calls `getCurrent()`. `location.value` then holds one location fix with `latitude`, `longitude`, and `accuracy` in metres.
+- The page reads location only after the user taps the button, and never during server rendering.
+
+Open `http://localhost:3000` and select **Show where I am**. Allow location in the browser prompt. The map moves to your location fix, and the sheet shows its accuracy.
+
+### Step 2: Show the permission and location precision
+
+Create `src/components/permission-badge.tsx`:
+
+```tsx title="src/components/permission-badge.tsx"
+import type { LocationPermission } from "@akshatowo/radical/react";
+
+export function PermissionBadge({
+  permission,
+}: {
+  permission?: LocationPermission;
+}) {
+  if (!permission) return <span className="badge">Checking</span>;
+  if (permission.state === "denied")
+    return <span className="badge">Blocked</span>;
+  if (permission.state === "prompt")
+    return <span className="badge">Not shared</span>;
+
+  if (permission.precision === "precise") {
+    return <span className="badge badge-live">Precise</span>;
+  }
+
+  return (
+    <span className="badge">
+      {permission.precision === "approximate" ? "Approximate" : "Shared"}
+    </span>
+  );
+}
+```
+
+Update `src/routes/index.tsx`:
+
+```tsx title="src/routes/index.tsx"
+import { useLocation, useLocationPermission } from "@akshatowo/radical/react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+
+import { CenterOn } from "@/components/center-on";
+import { PermissionBadge } from "@/components/permission-badge"; // [!code ++]
+import { Map } from "@/components/ui/map";
+import { formatDistance, mapStyles } from "@/lib/map";
+
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  const permission = useLocationPermission();
+  const location = useLocation();
+  const { getCurrent } = location;
+  const granted = permission.value?.state === "granted";
+
+  useEffect(() => {
+    if (granted) getCurrent();
+  }, [granted, getCurrent]);
+
+  const fix = location.value;
+
+  const toggleFollow = () => { // [!code ++]
+    if (permission.value?.precision === "approximate") { // [!code ++]
+      permission.request({ precise: "followMe" }); // [!code ++]
+    } // [!code ++]
+  }; // [!code ++]
+
+  return (
+    <main className="screen">
+      <header className="bar">
+        <h1 className="text-lg">Maps</h1>
+        <PermissionBadge permission={permission.value} /> {/* [!code ++] */}
+      </header>
+
+      <div className="relative min-h-0">
+        <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
+          <CenterOn fix={fix} />
+        </Map>
+      </div>
+
+      <section className="sheet" aria-label="Your location">
+        {fix ? (
+          <div className="flex items-end justify-between gap-4"> {/* [!code ++] */}
+            <p> {/* [!code ++] */}
+              <span className="figure">{formatDistance(fix.accuracy)}</span> {/* [!code ++] */}
+              <br /> {/* [!code ++] */}
+              <span className="text-sm text-ink-3">accuracy</span> {/* [!code ++] */}
+            </p> {/* [!code ++] */}
+            <button type="button" className="btn" onClick={toggleFollow}> {/* [!code ++] */}
+              Follow me {/* [!code ++] */}
+            </button> {/* [!code ++] */}
+          </div> {/* [!code ++] */}
+        ) : permission.value?.state === "prompt" ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => permission.request()}
+          >
+            Show where I am
+          </button>
+        ) : (
+          <p className="text-ink-3">Finding you</p>
+        )}
+      </section>
+    </main>
+  );
+}
+```
+
+The badge reads `permission.value`, which is `{ state, precision }`. A denied permission is a value too, `state: "denied"`. On a phone, `precision` is `precise` or `approximate`. A browser does not report location precision, so the badge reads **Shared**.
+
+**Follow me** asks for precise location with the `followMe` purpose key, but only when the grant is approximate. Following a walk needs precise location fixes; showing which neighbourhood you are in does not. Step 4 makes the button follow you.
+
+### Step 3: Handle denied permission and location services off
+
+Create `src/components/location-blocked.tsx`:
+
+```tsx title="src/components/location-blocked.tsx"
+import {
+  openAppSettings,
+  openLocationServicesSettings,
+} from "@akshatowo/radical/client";
+import { useRadicalRuntime } from "@akshatowo/radical/react";
+import type {
+  LocationError,
+  LocationPermission,
+} from "@akshatowo/radical/react";
+import { useState } from "react";
+
+export type Blocked = "denied" | "services-off" | "timeout" | "unavailable";
+
+export const blockedBy = (
+  permission?: LocationPermission,
+  failure?: LocationError
+): Blocked | undefined => {
+  if (permission?.state === "denied" || failure?._tag === "PermissionDenied") {
+    return "denied";
+  }
+  if (!failure) return undefined;
+  if (failure._tag === "LocationServicesOff") return "services-off";
+  if (failure._tag === "LocationTimeout") return "timeout";
+  return "unavailable";
+};
+
+const copy = {
+  denied: {
+    title: "Location is blocked",
+    body: "Allow location for Maps in Settings, then come back.",
+    action: "Open app settings",
+    open: openAppSettings,
+  },
+  "services-off": {
+    title: "Location services are off",
+    body: "Turn on location for this device, then come back.",
+    action: "Open location settings",
+    open: openLocationServicesSettings,
+  },
+  timeout: {
+    title: "No fix yet",
+    body: "Move near a window or outside, then try again.",
+    action: undefined,
+    open: undefined,
+  },
+  unavailable: {
+    title: "Location is unavailable",
+    body: "This device could not find you. Try again in a moment.",
+    action: undefined,
+    open: undefined,
+  },
+};
+
+export function LocationBlocked({
+  reason,
+  onRetry,
+}: {
+  reason: Blocked;
+  onRetry: () => void;
+}) {
+  const runtime = useRadicalRuntime();
+  const [inBrowser, setInBrowser] = useState(false);
+  const { title, body, action, open } = copy[reason];
+
+  return (
+    <div className="plate" role="status">
+      <h2>{title}</h2>
+      <p>
+        {inBrowser
+          ? "Allow location for this site in your browser, then try again."
+          : body}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {open && !inBrowser && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              open(runtime).catch(() => setInBrowser(true));
+            }}
+          >
+            {action}
+          </button>
+        )}
+        <button type="button" className="btn" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+Update `src/routes/index.tsx`:
+
+```tsx title="src/routes/index.tsx"
+import { useLocation, useLocationPermission } from "@akshatowo/radical/react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+
+import { CenterOn } from "@/components/center-on";
+import { LocationBlocked, blockedBy } from "@/components/location-blocked"; // [!code ++]
+import { PermissionBadge } from "@/components/permission-badge";
+import { Map } from "@/components/ui/map";
+import { formatDistance, mapStyles } from "@/lib/map";
+
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  const permission = useLocationPermission();
+  const location = useLocation();
+  const { getCurrent } = location;
+  const granted = permission.value?.state === "granted";
+
+  useEffect(() => {
+    if (granted) getCurrent();
+  }, [granted, getCurrent]);
+
+  const fix = location.value;
+  const blocked = blockedBy( // [!code ++]
+    permission.value, // [!code ++]
+    permission.error ?? location.error // [!code ++]
+  ); // [!code ++]
+
+  const retry = () => { // [!code ++]
+    permission.check(); // [!code ++]
+    getCurrent(); // [!code ++]
+  }; // [!code ++]
+
+  const toggleFollow = () => {
+    if (permission.value?.precision === "approximate") {
+      permission.request({ precise: "followMe" });
+    }
+  };
+
+  return (
+    <main className="screen">
+      <header className="bar">
+        <h1 className="text-lg">Maps</h1>
+        <PermissionBadge permission={permission.value} />
+      </header>
+
+      <div className="relative min-h-0">
+        <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
+          <CenterOn fix={fix} />
+        </Map>
+      </div>
+
+      <section className="sheet" aria-label="Your location">
+        {blocked ? ( {/* [!code ++] */}
+          <LocationBlocked reason={blocked} onRetry={retry} /> {/* [!code ++] */}
+        ) : fix ? ( {/* [!code ++] */}
+          <div className="flex items-end justify-between gap-4">
+            <p>
+              <span className="figure">{formatDistance(fix.accuracy)}</span>
+              <br />
+              <span className="text-sm text-ink-3">accuracy</span>
+            </p>
+            <button type="button" className="btn" onClick={toggleFollow}>
+              Follow me
+            </button>
+          </div>
+        ) : permission.value?.state === "prompt" ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => permission.request()}
+          >
+            Show where I am
+          </button>
+        ) : (
+          <p className="text-ink-3">Finding you</p>
+        )}
+      </section>
+    </main>
+  );
+}
+```
+
+`blockedBy` turns the permission and the error `_tag` into one of four states. A denied check or request arrives as `state: "denied"`. A location fix or watch fails with `PermissionDenied` instead, for example when the user revokes location while the app runs, so `blockedBy` checks both.
+
+| State | Cause | Action |
+| --- | --- | --- |
+| `denied` | The user denied location for the app | `openAppSettings` |
+| `services-off` | Location services is off for the whole device. | `openLocationServicesSettings` |
+| `timeout` | No location fix arrived in time | Try again |
+| `unavailable` | Any other failure | Try again |
+
+Location services and the app's permission are separate switches, so each state opens a different Settings screen. In a browser both Settings calls fail with `Unavailable`, and the plate tells the user to allow location for the site instead. **Try again** checks the permission and asks for a new location fix. When the user comes back from Settings, `useLocationPermission` refreshes by itself, so a newly granted permission also triggers the page's effect.
+
+To try it in Chrome, select the site settings icon in the address bar, block location, and reload.
+
+### Step 4: Draw the user's location and follow it
+
+mapcn has no user-location marker, so build one. Create `src/components/user-location.tsx`:
+
+```tsx title="src/components/user-location.tsx"
+import type { LocationFix } from "@akshatowo/radical/react";
+import { useEffect, useState } from "react";
+
+import { MapMarker, MarkerContent, useMap } from "@/components/ui/map";
+
+// MapLibre tiles are 512 px, so zoom 0 spans the equator in 512 px.
+const metresPerPixel = (latitude: number, zoom: number) =>
+  (40_075_016.686 * Math.cos((latitude * Math.PI) / 180)) / 2 ** (zoom + 9);
+
+export function UserLocation({ fix }: { fix: LocationFix }) {
+  const { map } = useMap();
+  const [zoom, setZoom] = useState(() => map?.getZoom() ?? 0);
+
+  useEffect(() => {
+    if (!map) return;
+    const update = () => setZoom(map.getZoom());
+    update();
+    map.on("zoom", update);
+    return () => {
+      map.off("zoom", update);
+    };
+  }, [map]);
+
+  const diameter = (2 * fix.accuracy) / metresPerPixel(fix.latitude, zoom);
+
+  return (
+    <MapMarker longitude={fix.longitude} latitude={fix.latitude}>
+      <MarkerContent className="cursor-default">
+        <span
+          className="accuracy"
+          style={{ width: diameter, height: diameter }}
+          aria-hidden="true"
+        />
+        <span
+          className="user-dot"
+          role="img"
+          aria-label={`You are here, within ${Math.round(fix.accuracy)} metres`}
+        />
+      </MarkerContent>
+    </MapMarker>
+  );
+}
+```
+
+The blue dot marks the location fix. The circle around it has a radius equal to the fix's `accuracy`, converted from metres to pixels at the current zoom. A small circle means a precise location fix; a wide one means the user is somewhere inside it.
+
+Update `src/routes/index.tsx`:
+
+```tsx title="src/routes/index.tsx"
+import { // [!code ++]
+  useLocation, // [!code ++]
+  useLocationPermission, // [!code ++]
+  useLocationWatch, // [!code ++]
+} from "@akshatowo/radical/react"; // [!code ++]
+import type { LocationFix } from "@akshatowo/radical/react"; // [!code ++]
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react"; // [!code ++]
+
+import { CenterOn } from "@/components/center-on";
+import { LocationBlocked, blockedBy } from "@/components/location-blocked";
+import { PermissionBadge } from "@/components/permission-badge";
+import { Map } from "@/components/ui/map";
+import { UserLocation } from "@/components/user-location"; // [!code ++]
+import { formatDistance, mapStyles } from "@/lib/map";
+
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  const permission = useLocationPermission();
+  const location = useLocation();
+  const watch = useLocationWatch(); // [!code ++]
+  const [fix, setFix] = useState<LocationFix>(); // [!code ++]
+
+  const { getCurrent } = location;
+  const granted = permission.value?.state === "granted";
+
+  useEffect(() => {
+    if (granted) getCurrent();
+  }, [granted, getCurrent]);
+
+  // Keep the newest fix from either hook, so stopping a watch keeps its last fix. // [!code ++]
+  const next = watch.value ?? location.value; // [!code ++]
+  if (next && next !== fix && (!fix || next.timestamp > fix.timestamp)) { // [!code ++]
+    setFix(next); // [!code ++]
+  } // [!code ++]
+
+  const blocked = blockedBy(
+    permission.value,
+    permission.error ?? watch.error ?? location.error // [!code ++]
+  );
+
+  const retry = () => {
+    permission.check();
+    getCurrent();
+  };
+
+  const toggleFollow = () => {
+    if (watch.running) { // [!code ++]
+      watch.stop(); // [!code ++]
+      return; // [!code ++]
+    } // [!code ++]
+    if (permission.value?.precision === "approximate") {
+      permission.request({ precise: "followMe" });
+    }
+    watch.start({ enableHighAccuracy: true }); // [!code ++]
+  };
+
+  return (
+    <main className="screen">
+      <header className="bar">
+        <h1 className="text-lg">Maps</h1>
+        <PermissionBadge permission={permission.value} />
+      </header>
+
+      <div className="relative min-h-0">
+        <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
+          <CenterOn fix={fix} follow={watch.running} /> {/* [!code ++] */}
+          {fix && <UserLocation fix={fix} />} {/* [!code ++] */}
+        </Map>
+      </div>
+
+      <section className="sheet" aria-label="Your location">
+        {blocked ? (
+          <LocationBlocked reason={blocked} onRetry={retry} />
+        ) : fix ? (
+          <div className="flex items-end justify-between gap-4">
+            <p>
+              <span className="figure">{formatDistance(fix.accuracy)}</span>
+              <br />
+              <span className="text-sm text-ink-3">accuracy</span>
+            </p>
+            <button {/* [!code ++] */}
+              type="button" {/* [!code ++] */}
+              className="btn" {/* [!code ++] */}
+              aria-pressed={watch.running} {/* [!code ++] */}
+              onClick={toggleFollow} {/* [!code ++] */}
+            > {/* [!code ++] */}
+              {watch.running ? "Following" : "Follow me"} {/* [!code ++] */}
+            </button>
+          </div>
+        ) : permission.value?.state === "prompt" ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => permission.request()}
+          >
+            Show where I am
+          </button>
+        ) : (
+          <p className="text-ink-3">Finding you</p>
+        )}
+      </section>
+    </main>
+  );
+}
+```
+
+What changed:
+
+- `useLocationWatch` keeps a native watch open while `watch.running` is true. `watch.value` holds the latest location fix. The hook stops the watch on unmount.
+- **Follow me** asks for precise location if needed, then calls `watch.start({ enableHighAccuracy: true })`. `enableHighAccuracy` asks for the best fix the current grant allows. It never upgrades location precision by itself.
+- While following, `CenterOn` eases the map to each new location fix instead of fitting the accuracy circle.
+- `fix` keeps the newest location fix from either hook, so the dot stays where it was when you stop following.
+
+The button drives the watch directly, so `watch.running` is the only follow-me state. If a watch should follow some other state instead, start it in an effect that returns `stop`, as the [location guide](/docs/guides/location#connect-actions) shows.
+
+### Step 5: Save pins with their distance
+
+Create `src/lib/pins.ts`:
+
+```ts title="src/lib/pins.ts"
+import { useEffect, useState } from "react";
+
+export type Place = { latitude: number; longitude: number };
+export type Pin = Place & { id: string };
+
+const key = "maps:pins";
+
+const load = (): Pin[] => {
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? "[]");
+  } catch {
+    return [];
+  }
+};
+
+export function usePins() {
+  const [pins, setPins] = useState<Pin[]>([]);
+
+  // localStorage exists only in the browser, so read it after hydration.
+  useEffect(() => setPins(load()), []);
+
+  const save = (next: Pin[]) => {
+    setPins(next);
+    localStorage.setItem(key, JSON.stringify(next));
+  };
+
+  return {
+    pins,
+    add: (place: Place) =>
+      save([...pins, { ...place, id: Date.now().toString(36) }]),
+    remove: (id: string) => save(pins.filter((pin) => pin.id !== id)),
+  };
+}
+
+const earthRadius = 6_371_008.8;
+const radians = (degrees: number) => (degrees * Math.PI) / 180;
+
+/** Great-circle distance in metres. */
+export const distanceBetween = (a: Place, b: Place) => {
+  const dLat = radians(b.latitude - a.latitude);
+  const dLng = radians(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(radians(a.latitude)) *
+      Math.cos(radians(b.latitude)) *
+      Math.sin(dLng / 2) ** 2;
+
+  return 2 * earthRadius * Math.asin(Math.sqrt(h));
+};
+```
+
+The pins live in `localStorage`, on the device. `distanceBetween` is the great-circle distance in metres between two points.
+
+Create `src/components/drop-pins.tsx`:
+
+```tsx title="src/components/drop-pins.tsx"
+import type { MapMouseEvent } from "maplibre-gl";
+import { useEffect } from "react";
+
+import { useMap } from "@/components/ui/map";
+import type { Place } from "@/lib/pins";
+
+export function DropPins({ onDrop }: { onDrop: (place: Place) => void }) {
+  const { map } = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    const drop = (event: MapMouseEvent) =>
+      onDrop({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
+    map.on("click", drop);
+    return () => {
+      map.off("click", drop);
+    };
+  }, [map, onDrop]);
+
+  return null;
+}
+```
+
+Create `src/components/pin-list.tsx`:
+
+```tsx title="src/components/pin-list.tsx"
+import type { LocationFix } from "@akshatowo/radical/react";
+
+import { formatDistance } from "@/lib/map";
+import { distanceBetween } from "@/lib/pins";
+import type { Pin } from "@/lib/pins";
+
+export function PinList({
+  pins,
+  from,
+  onRemove,
+}: {
+  pins: Pin[];
+  from?: LocationFix;
+  onRemove: (id: string) => void;
+}) {
+  if (pins.length === 0) {
+    return <p className="text-sm text-ink-3">Tap the map to drop a pin.</p>;
+  }
+
+  const rows = pins
+    .map((pin, index) => ({
+      pin,
+      label: index + 1,
+      metres: from ? distanceBetween(from, pin) : undefined,
+    }))
+    .sort((a, b) => (a.metres ?? 0) - (b.metres ?? 0));
+
+  return (
+    <table className="pins">
+      {from && (
+        <caption>
+          From your fix, give or take {formatDistance(from.accuracy)}
+        </caption>
+      )}
+      <thead>
+        <tr>
+          <th scope="col">Pin</th>
+          <th scope="col">Distance</th>
+          <th scope="col">
+            <span className="sr-only">Actions</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ pin, label, metres }) => (
+          <tr key={pin.id}>
+            <td className="font-medium">{label}</td>
+            <td className="figure">
+              {metres === undefined ? "Unknown" : formatDistance(metres)}
+            </td>
+            <td className="text-right">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => onRemove(pin.id)}
+                aria-label={`Remove pin ${label}`}
+              >
+                Remove
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+```
+
+Update `src/routes/index.tsx`:
+
+```tsx title="src/routes/index.tsx"
+import {
+  useLocation,
+  useLocationPermission,
+  useLocationWatch,
+} from "@akshatowo/radical/react";
+import type { LocationFix } from "@akshatowo/radical/react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+
+import { CenterOn } from "@/components/center-on";
+import { DropPins } from "@/components/drop-pins"; // [!code ++]
+import { LocationBlocked, blockedBy } from "@/components/location-blocked";
+import { PermissionBadge } from "@/components/permission-badge";
+import { PinList } from "@/components/pin-list"; // [!code ++]
+import { Map, MapMarker, MarkerContent } from "@/components/ui/map"; // [!code ++]
+import { UserLocation } from "@/components/user-location";
+import { formatDistance, mapStyles } from "@/lib/map";
+import { usePins } from "@/lib/pins"; // [!code ++]
+
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  const permission = useLocationPermission();
+  const location = useLocation();
+  const watch = useLocationWatch();
+  const { pins, add, remove } = usePins(); // [!code ++]
+  const [fix, setFix] = useState<LocationFix>();
+
+  const { getCurrent } = location;
+  const granted = permission.value?.state === "granted";
+
+  useEffect(() => {
+    if (granted) getCurrent();
+  }, [granted, getCurrent]);
+
+  // Keep the newest fix from either hook, so stopping a watch keeps its last fix.
+  const next = watch.value ?? location.value;
+  if (next && next !== fix && (!fix || next.timestamp > fix.timestamp)) {
+    setFix(next);
+  }
+
+  const blocked = blockedBy(
+    permission.value,
+    permission.error ?? watch.error ?? location.error
+  );
+
+  const retry = () => {
+    permission.check();
+    getCurrent();
+  };
+
+  const toggleFollow = () => {
+    if (watch.running) {
+      watch.stop();
+      return;
+    }
+    if (permission.value?.precision === "approximate") {
+      permission.request({ precise: "followMe" });
+    }
+    watch.start({ enableHighAccuracy: true });
+  };
+
+  return (
+    <main className="screen">
+      <header className="bar">
+        <h1 className="text-lg">Maps</h1>
+        <PermissionBadge permission={permission.value} />
+      </header>
+
+      <div className="relative min-h-0">
+        <Map theme="light" styles={mapStyles} center={[0, 20]} zoom={1.5}>
+          <CenterOn fix={fix} follow={watch.running} />
+          <DropPins onDrop={add} /> {/* [!code ++] */}
+          {pins.map((pin, index) => ( {/* [!code ++] */}
+            <MapMarker {/* [!code ++] */}
+              key={pin.id} {/* [!code ++] */}
+              longitude={pin.longitude} {/* [!code ++] */}
+              latitude={pin.latitude} {/* [!code ++] */}
+            > {/* [!code ++] */}
+              <MarkerContent className="cursor-default"> {/* [!code ++] */}
+                <span className="pin">{index + 1}</span> {/* [!code ++] */}
+              </MarkerContent> {/* [!code ++] */}
+            </MapMarker> {/* [!code ++] */}
+          ))} {/* [!code ++] */}
+          {fix && <UserLocation fix={fix} />}
+        </Map>
+      </div>
+
+      <section className="sheet" aria-label="Your location">
+        {blocked ? (
+          <LocationBlocked reason={blocked} onRetry={retry} />
+        ) : fix ? (
+          <div className="flex items-end justify-between gap-4">
+            <p>
+              <span className="figure">{formatDistance(fix.accuracy)}</span>
+              <br />
+              <span className="text-sm text-ink-3">accuracy</span>
+            </p>
+            <button
+              type="button"
+              className="btn"
+              aria-pressed={watch.running}
+              onClick={toggleFollow}
+            >
+              {watch.running ? "Following" : "Follow me"}
+            </button>
+          </div>
+        ) : permission.value?.state === "prompt" ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => permission.request()}
+          >
+            Show where I am
+          </button>
+        ) : (
+          <p className="text-ink-3">Finding you</p>
+        )}
+        <PinList pins={pins} from={fix} onRemove={remove} /> {/* [!code ++] */}
+      </section>
+    </main>
+  );
+}
+```
+
+Tap the map to drop a pin. Each pin gets a number on the map and a row in the sheet, sorted by distance from your location fix. The caption repeats the fix's accuracy, because a distance is only as good as the location fix it starts from.
+
+## Use mapcn's locate control
+
+Map libraries call `navigator.geolocation` directly. In a shell, Radical replaces that API with one backed by the native plugin, so third-party controls work without changes. Add mapcn's controls to the map:
+
+```tsx title="src/routes/index.tsx"
+import {
+  Map,
+  MapControls,
+  MapMarker,
+  MarkerContent,
+} from "@/components/ui/map"; // [!code ++]
+
+// Inside <Map>, after {fix && <UserLocation fix={fix} />}:
+<MapControls position="top-right" showLocate />;
+```
+
+The locate button calls `navigator.geolocation.getCurrentPosition` and flies the map to the result. In a shell, that call goes through the same native plugin and permission as the hooks. If the user has not answered yet, it asks for approximate location, as a browser would. `useLocationPermission` updates by itself when the control's prompt changes the permission, so the badge changes and the page's effect reads its own location fix. The control needs no callback.
+
+## Try it in the browser
+
+Open `http://localhost:3000` and try the app:
+
+1. Select **Show where I am** and allow location. The map frames the accuracy circle around your location fix.
+2. Select **Follow me**. The button turns blue and the map follows each location fix. In Chrome DevTools, open **More tools > Sensors** and pick another location to see the dot move.
+3. Drop two or three pins. The list sorts them by distance from you.
+4. Reload. The pins are still there, because `localStorage` keeps them.
+
+Check the project before you move to a device:
+
+```sh
+pnpm exec tsc --noEmit
+pnpm build
+```
+
+## Step 6: Run it on Android and iOS
+
+Keep `pnpm dev` running. In remote mode each native shell loads the page from that server.
+
+Install the native packages. The geolocation plugin backs the location hooks and the `navigator.geolocation` replacement:
+
+```sh
+pnpm add @capacitor/core@^8.5.3 @capacitor/android@^8.5.3 @capacitor/ios@^8.5.3 @capacitor/device@^8.0.3 @capacitor/geolocation@8.2.4
+pnpm add -D @capacitor/cli@^8.5.3
+```
+
+### Android
+
+Start an emulator from Android Studio's Device Manager, find its serial with `adb devices`, then forward the port and launch the app:
+
+```sh
+adb -s emulator-5554 reverse tcp:3000 tcp:3000
+pnpm exec radical android --target emulator-5554
+```
+
+Set the emulator's location in **Extended controls > Location**. To test follow-me, load a route on the **Routes** tab and play it.
+
+### iOS
+
+List your simulators, copy a UDID, and launch the app:
+
+```sh
+xcrun simctl list devices available
+pnpm exec radical ios --target YOUR_SIMULATOR_UDID
+```
+
+Set the simulator's location in **Features > Location**. Pick **Custom Location** for one place, or **City Run** to test follow-me.
+
+### What to look for
+
+The first prompt is the system's, not the browser's. **Show where I am** asks for approximate location on both platforms, and the badge reads **Approximate**. On Android 11 and earlier there is no approximate choice, so the badge reads **Precise** straight away.
+
+Select **Follow me**. Android asks to upgrade to precise location. iOS shows your `followMe` text and asks for temporary precise location. The badge turns blue and reads **Precise**, and the accuracy circle shrinks. If you decline, the badge stays **Approximate** and the map still follows the approximate location fixes. On iOS, temporary precise location expires some time after you leave the app; until then, **Follow me** does not ask again.
+
+On an Android emulator with Google Play services and Google Location Accuracy off, the first location fix shows Google's dialog. Accept it, and the location fix arrives in the same request.
+
+Turn off location services: on Android in **Settings > Location**, on iOS in **Settings > Privacy & Security > Location Services**. Return to the app and select **Try again**. On Android with Google Play services, Google's dialog appears first; select **No thanks**. The plate reads **Location services are off**, and its button opens the Settings screen. The badge still shows the app's permission, because location services is a separate switch. On iOS the button opens the app's page in Settings, because iOS has no public link to the Location Services screen. Deny location for the app to see **Location is blocked** and **Open app settings** instead.
+
+Select the locate control on the map. It uses `navigator.geolocation`, but you see no second prompt, because the replacement shares the app's native permission. On a fresh install, select the locate control first: it asks for approximate location, as a browser would, and the badge updates without any extra code.
+
+On a phone the header starts below the status bar, and the sheet stays clear of the home indicator. When the app goes to the background, the watch pauses, and it resumes when you return.
+
+### Bundled mode
+
+The map runs in [bundled mode](/docs/guides/bundled-mode) too. Once the root reads native context on the device, the screen calls no server functions. The shell then loads the screen from files inside the app. Set `mode: "bundled"` and an `origin` in `vite.config.ts`, then follow the bundled-mode guide to switch the root route to `localNativeContext()`, disable SSR, and mount the native context after hydration.
+
+Location works the same way in both modes. Map tiles still come from OpenFreeMap, so the map needs the network. The self-hosted MapLibre worker ships inside the app.
+
+## Web, Android, and iOS
+
+The same `src/routes/index.tsx` runs in all three.
+
+<ScreenshotRow
+  shots={[
+    {
+      src: "/tutorials/maps-app/web.png",
+      alt: "The maps app in a desktop browser, following the user's location",
+      label: "Web",
+      width: 1280,
+      height: 800,
+    },
+    {
+      src: "/tutorials/maps-app/android.png",
+      alt: "The maps app on a Pixel 9 emulator with a precise location fix",
+      label: "Android",
+      width: 534,
+      height: 1200,
+    },
+    {
+      src: "/tutorials/maps-app/ios.png",
+      alt: "The maps app on an iPhone 17 Pro simulator with a precise location fix",
+      label: "iOS",
+      width: 552,
+      height: 1200,
+    },
+  ]}
+/>
+
+The location states look like this on a phone:
+
+<ScreenshotRow
+  shots={[
+    {
+      src: "/tutorials/maps-app/approximate.png",
+      alt: "An approximate location fix with a 2 km accuracy circle on a Pixel 9 emulator",
+      label: "Approximate",
+      width: 534,
+      height: 1200,
+    },
+    {
+      src: "/tutorials/maps-app/services-off.png",
+      alt: "The plate shown on a Pixel 9 emulator when location services is off",
+      label: "Location services off",
+      width: 534,
+      height: 1200,
+    },
+    {
+      src: "/tutorials/maps-app/denied.png",
+      alt: "The plate shown on an iPhone 17 Pro simulator when location is denied",
+      label: "Denied",
+      width: 552,
+      height: 1200,
+    },
+  ]}
+/>
+
+## Next steps
+
+- Read [Location in shells](/docs/explanation/location) to see why the shell replaces `navigator.geolocation`.
+- See the [Location API](/docs/reference/location) for every hook, option, and error.
+- [Run on a physical device](/docs/guides/run-on-a-device) to follow a real walk.

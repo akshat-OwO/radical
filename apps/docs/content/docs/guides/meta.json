@@ -10,6 +10,7 @@
     "camera",
     "video-stream",
     "files",
+    "location",
     "haptics",
     "network",
     "google-sign-in",

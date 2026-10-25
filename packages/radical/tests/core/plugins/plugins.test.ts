@@ -10,6 +10,7 @@ import {
 } from "../../../src/core/bridge/bridge.ts";
 import {
   devicePlugin,
+  settingsPlugin,
   transitionsPlugin,
 } from "../../../src/core/plugins/internal-plugins.ts";
 import {
@@ -212,10 +213,11 @@ describe("native plugin manifests", () => {
 
       assert.deepStrictEqual(
         plugins.map(({ manifest }) => manifest.id),
-        ["device", "transitions"]
+        ["device", "settings", "transitions"]
       );
       assert.strictEqual(plugins[0].manifest, devicePlugin);
-      assert.strictEqual(plugins[1].manifest, transitionsPlugin);
+      assert.strictEqual(plugins[1].manifest, settingsPlugin);
+      assert.strictEqual(plugins[2].manifest, transitionsPlugin);
     })
   );
 

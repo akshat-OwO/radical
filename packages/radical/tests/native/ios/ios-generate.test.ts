@@ -24,6 +24,8 @@ import {
 import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
+import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?raw";
+import settings from "../../../templates/ios/RadicalSettingsPlugin.swift?raw";
 import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../../../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../../../templates/offline.html?raw";
@@ -44,6 +46,8 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/ios/RadicalSettingsPlugin.swift", settings],
+    ["/package/templates/ios/RadicalLocationPlugin.swift", locationSource],
     ["/app/plugins/EchoPlugin.swift", echoSource],
     ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     [
@@ -66,6 +70,7 @@ const memory = (
     "@capacitor/core": "8.5.3",
     "@capacitor/ios": "8.6.1",
     "@capacitor/device": "8.0.3",
+    "@capacitor/geolocation": "8.2.4",
     "@capacitor/camera": "8.2.6",
   })) {
     files.set(
@@ -1051,3 +1056,62 @@ describe("bundled ios shell", () => {
     }
   );
 });
+
+it.effect(
+  "generates location usage declarations and registers the Swift precision plugin",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { location: true },
+      pluginOptions: {
+        Location: {
+          usageDescription: "Find <me>",
+          precisePurposes: { navigation: "Navigate & follow" },
+        },
+      },
+    });
+
+    return Effect.gen(function* () {
+      yield* generateIos("/app", "/package");
+
+      const plist =
+        state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+
+      assert.include(plist, "NSLocationWhenInUseUsageDescription");
+      assert.include(plist, "NSLocationAlwaysAndWhenInUseUsageDescription");
+      assert.include(plist, "<string>Find &lt;me&gt;</string>");
+      assert.include(
+        plist,
+        "<key>navigation</key><string>Navigate &amp; follow</string>"
+      );
+
+      const source =
+        state.files.get(`${destination}/ios/App/App/AppDelegate.swift`) ?? "";
+
+      assert.include(source, "requestTemporaryFullAccuracyAuthorization");
+      assert.include(
+        source,
+        'CAPPluginMethod(name: "checkPermissions", returnType: CAPPluginReturnPromise)'
+      );
+      assert.include(
+        source,
+        'CAPPluginMethod(name: "requestPermissions", returnType: CAPPluginReturnPromise)'
+      );
+      assert.include(source, "manager.requestWhenInUseAuthorization()");
+      assert.notInclude(source, "locationServicesEnabled()");
+      assert.include(
+        source,
+        "if self.manager.accuracyAuthorization == .fullAccuracy { call.resolve(self.result()); return }"
+      );
+      assert.include(source, "accuracyAuthorization");
+      assert.include(
+        state.files.get(`${destination}/ios/App/App/AppDelegate.swift`) ?? "",
+        "RadicalLocationPlugin()"
+      );
+      assert.include(
+        state.files.get(`${destination}/package.json`) ?? "",
+        '"@capacitor/geolocation":"8.2.4"'
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);

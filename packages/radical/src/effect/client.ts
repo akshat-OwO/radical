@@ -169,3 +169,34 @@ export {
   createEffectRuntime as createRadicalRuntime,
   getEffectRuntime,
 } from "../plain/runtime.ts";
+
+export {
+  getCurrentLocation,
+  checkLocationPermission,
+  requestLocationPermission,
+  openLocationServicesSettings,
+  LocationFixSchema,
+  LocationPermissionSchema,
+  LocationServicesOff,
+  LocationTimeout,
+  BrowserLocation,
+  BrowserLocationLive,
+  browserLocationLayer,
+} from "../capabilities/location/location.ts";
+
+export type {
+  LocationFix,
+  LocationPermission,
+  LocationOptions,
+  LocationRequestOptions,
+  LocationError,
+} from "../capabilities/location/location.ts";
+
+export {
+  watchLocation,
+  LocationWatchPool,
+  LocationWatchPoolLive,
+  locationLive,
+} from "../capabilities/location/location-pool.ts";
+
+export { openAppSettings } from "../capabilities/device-info/device-info.ts";

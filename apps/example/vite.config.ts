@@ -23,6 +23,7 @@ const config = {
     network: true,
     notifications: true,
     pushNotifications: true,
+    location: true,
     camera: true,
     videoStream: true,
     filePicker: true,
@@ -31,6 +32,12 @@ const config = {
     dataProtection: true,
   },
   pluginOptions: {
+    Location: {
+      usageDescription: "Show your location on the example map.",
+      precisePurposes: {
+        navigation: "Follow your precise location while navigating.",
+      },
+    },
     GoogleSignIn: {
       webClientId:
         process.env.GOOGLE_WEB_CLIENT_ID ??

@@ -1,0 +1,124 @@
+---
+title: "Location API"
+description: "Location fixes, watches, permission with location precision, and typed failures."
+---
+
+## Plain API
+
+These functions come from `@akshatowo/radical/client`. Each takes an optional `runtime` as its last argument, which defaults to the shared runtime.
+
+| Function | Result |
+| --- | --- |
+| `getCurrentLocation(options?)` | `Promise<LocationFix>` |
+| `watchLocation(receive, onError, options?)` | A function that stops the watch |
+| `checkLocationPermission()` | `Promise<LocationPermission>` |
+| `requestLocationPermission(options?)` | `Promise<LocationPermission>` |
+| `openLocationServicesSettings()` | `Promise<void>` |
+| `openAppSettings()` | `Promise<void>` |
+
+`useLocation()`, `useLocationPermission()`, and `useLocationWatch()` from `@akshatowo/radical/react` expose state and callbacks.
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
+Native enablement is `internalPlugins.location`. The required dependency is `@capacitor/geolocation@8.2.4`. The config selector is `Location`.
+
+## Operations
+
+| `@akshatowo/radical/effect/client` export | Result | Requirements |
+| --- | --- | --- |
+| `getCurrentLocation(options?)` | `LocationFix` | `Bridge`, `BrowserLocation` |
+| `watchLocation(options?)` | Stream of `LocationFix` | `LocationWatchPool` |
+| `checkLocationPermission` | `LocationPermission` | `Bridge`, `BrowserLocation` |
+| `requestLocationPermission(options?)` | `LocationPermission` | `Bridge`, `BrowserLocation` |
+| `openLocationServicesSettings` | `void` | `Bridge` |
+| `openAppSettings` | `void` | `Bridge` |
+
+`checkLocationPermission`, `openLocationServicesSettings`, and `openAppSettings` are Effect values, not functions. `locationLive(effect)` provides `BrowserLocationLive`. `browserLocationLayer(read)` builds a layer from a browser `geolocation` and `permissions` source. `BrowserLocation` is injectable for tests. `LocationFixSchema` and `LocationPermissionSchema` validate results.
+
+`LocationWatchPoolLive` provides `LocationWatchPool`, and the shared runtime includes it. The pool keys watches by their normalized options and counts subscribers, so hooks, Plain API watches, and the `navigator.geolocation` replacement share one native watch for the same options. New subscribers receive the latest location fix. A slow subscriber skips to the newest fix.
+
+## Types
+
+| Type | Fields |
+| --- | --- |
+| `LocationOptions` | `enableHighAccuracy?` (default `false`), `timeout?` in milliseconds (default `10000`), `maximumAge?` in milliseconds (default `0`) |
+| `LocationRequestOptions` | `precise?`: a key from `precisePurposes` |
+| `LocationPermission` | `state`: `"granted" \| "denied" \| "prompt"`; `precision`: `"precise" \| "approximate" \| "unknown"` |
+
+`LocationFix` has these fields:
+
+| Field              | Value                               |
+| ------------------ | ----------------------------------- |
+| `latitude`         | Degrees, from -90 to 90             |
+| `longitude`        | Degrees, from -180 to 180           |
+| `accuracy`         | Error radius in metres              |
+| `altitude`         | Metres, or `null`                   |
+| `altitudeAccuracy` | Metres, or `null`                   |
+| `heading`          | Degrees from 0 up to 360, or `null` |
+| `speed`            | Metres per second, or `null`        |
+| `timestamp`        | Milliseconds since the Unix epoch   |
+
+Native location fixes replace invalid platform values with `null`. A negative `speed`, `heading`, or `altitudeAccuracy` becomes `null`, and a negative `altitudeAccuracy` also makes `altitude` `null`. On Android, `speed` and `altitude` can be `0` when the platform has no measurement, because the upstream plugin drops Android's validity flags. Treat `0` there as possibly missing. Browser location fixes keep the browser's values.
+
+The platform applies `maximumAge`; Radical does not filter location fixes by age. On Android with Google Play services, the Fused Location Provider honours it, and the default `0` asks for a fresh location fix. Without Google Play services, for example on Huawei or Amazon devices, the plugin falls back to `LocationManager`, which can return a stale location fix even with `maximumAge: 0`. Compare `timestamp` with the current time when age matters.
+
+`timeout` starts when the platform begins looking for a location fix. On Android with Google Play services, when the device location settings, such as Google Location Accuracy, do not meet the request, the first request shows Google's dialog to change them. Accepting continues the same call, and `timeout` starts after the dialog closes. Declining fails with `LocationServicesOff`. On iOS and in a browser, `timeout` covers the whole call.
+
+`enableHighAccuracy` is a hint. Native requests use it only with a precise grant, so it never upgrades location precision.
+
+`checkLocationPermission` and `requestLocationPermission` resolve with `state: "denied"` when location is denied or restricted, on every runtime. They resolve with the app's permission even while location services is off, except on iOS, which reports `denied` for every app while location services is off. Only location fix and watch operations fail with `PermissionDenied`. `precision` reports the actual grant:
+
+- A request without `precise` asks for approximate location.
+- On iOS, the generated `NSLocationDefaultAccuracyReduced` makes the first prompt ask for approximate location. A request with `precise` asks for the grant if needed, then for temporary precise location with that purpose key. A first precise request therefore shows two prompts. Declining the second keeps `precision: "approximate"`. Temporary precise location expires; while it is active, another precise request resolves `precise` without a prompt.
+- On Android 12 and later, a request with `precise` shows the classic dialog for precise location.
+- On Android 11 and earlier, the platform has no approximate choice and grants precise location with the coarse permission group, so any grant reports `precision: "precise"`.
+- In a browser, a request asks for one location fix. A blocked prompt resolves `state: "denied"`; other failures, such as `LocationTimeout`, fail the request.
+
+## Config
+
+| `pluginOptions.Location` field | Type | Meaning |
+| --- | --- | --- |
+| `usageDescription` | Required string | Purpose shown in the iOS permission prompt. Generates `NSLocationWhenInUseUsageDescription` and `NSLocationAlwaysAndWhenInUseUsageDescription`. iOS generation also sets `NSLocationDefaultAccuracyReduced`. |
+| `precisePurposes` | Optional record of strings | Keys for `request({ precise })`. Generates `NSLocationTemporaryUsageDescriptionDictionary`. |
+| `replaceNavigator` | Optional boolean | `false` keeps the WebView's own `navigator.geolocation`. |
+
+Purpose strings require non-whitespace text without control characters. Android generation adds `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION`.
+
+## Runtime behavior
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Location fix and watch | Native Geolocation plugin | Native Geolocation plugin | `navigator.geolocation` |
+| Default request | Approximate; precise on Android 11 and earlier | Approximate | Browser prompt; asks for one location fix |
+| Precise request | Classic permission dialog | Grant prompt if needed, then temporary precise location with a purpose key | Purpose key ignored |
+| Denied check or request | `state: "denied"` | `state: "denied"` | `state: "denied"` |
+| Location precision | `precise` or `approximate` | `precise` or `approximate` | `unknown` |
+| Location services off | Google's settings dialog with Play services; `LocationServicesOff` if declined or unavailable | `LocationServicesOff` | `Unavailable` |
+| `maximumAge` | Honoured with Play services; `LocationManager` fallback can return stale location fixes | Platform-applied | Browser-applied |
+| `openLocationServicesSettings` | Location settings screen | App page in Settings | `Unavailable` |
+| `openAppSettings` | App details screen | App page in Settings | `Unavailable` |
+| `navigator.geolocation` | Replaced unless `replaceNavigator: false` | Replaced unless `replaceNavigator: false` | Browser API |
+| Background | Watches pause | Watches pause | Browser-dependent |
+
+The replacement implements `getCurrentPosition`, `watchPosition`, and `clearWatch`. Each position call checks permission first, one call at a time, and asks for approximate location when the state is `prompt`. If the result is not `granted`, the error callback receives code `1`. Watches join the shared pool. `navigator.permissions.query({ name: "geolocation" })` resolves one shared `PermissionStatus` whose `state` updates and fires `change` when any API checks or requests location permission, and when the app returns from the background. Other permission names use the WebView's own query. The client entry skips the replacement in a browser and when `replaceNavigator` is `false`.
+
+## Errors and hooks
+
+| Contract | Value |
+| --- | --- |
+| `LocationError` | `PermissionDenied \| Unavailable \| LocationServicesOff \| LocationTimeout \| BridgeError` |
+| Denial or iOS restriction during a location fix or watch | `PermissionDenied` |
+| Location services off, or Google's location settings dialog declined | `LocationServicesOff` |
+| No location fix within `timeout` | `LocationTimeout` |
+| Unknown native rejection | `BridgeCallFailed` |
+| Invalid bridge result | `BridgeDecodeError` |
+| Replacement error codes | `PermissionDenied` is `1`, `LocationTimeout` is `3`, others are `2`; `message` is the error tag |
+| `useLocation()` | `getCurrent(options?)` and action state with `value?: LocationFix` |
+| `useLocationPermission()` | Check after mount; `check()`, `request(options?)`, and `value?: LocationPermission`. Denial is a value, not an error. Updates automatically when permission changes through any hook, the Plain or Effect API, the `navigator.geolocation` replacement, or a location fix or watch, and refreshes when the app resumes. |
+| `useLocationWatch()` | `start(options?)`, `stop()`, `running`, `loading` until the first location fix, and `value?: LocationFix` while running. `start` and `stop` are stable across renders. Stops on unmount. |
+
+`LocationServicesOff` and `LocationTimeout` are exported from `@akshatowo/radical/client` and `@akshatowo/radical/react`.
+
+Source: [location implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/location).
