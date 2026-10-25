@@ -1,4 +1,4 @@
 {
-  "pages": ["todo-app"],
+  "pages": ["todo-app", "maps-app"],
   "title": "Tutorial"
 }

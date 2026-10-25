@@ -39,6 +39,8 @@ import launch from "../../../templates/android/launch.html?raw";
 import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";
 import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
+import locationSource from "../../../templates/android/RadicalLocationPlugin.java?raw";
+import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../../../templates/offline.html?raw";
 import { adapterOutputs, fakeAdapter } from "../../fixtures/adapter.ts";
@@ -57,6 +59,8 @@ const memory = (
   manifest: PluginManifest = echo
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/android/RadicalSettingsPlugin.java", settings],
+    ["/package/templates/android/RadicalLocationPlugin.java", locationSource],
     ["/app/plugins/EchoPlugin.java", echoSource],
     ["/package/templates/android/RadicalTransitionsPlugin.java", transitions],
     [
@@ -85,6 +89,7 @@ const memory = (
     "@capacitor/core": "8.5.3",
     "@capacitor/android": "8.6.1",
     "@capacitor/device": "8.0.3",
+    "@capacitor/geolocation": "8.2.4",
   })) {
     files.set(
       require.resolve(`${name}/package.json`),
@@ -1033,3 +1038,67 @@ describe("bundled android shell", () => {
     }
   );
 });
+
+it.effect(
+  "generates coarse and fine location declarations and registers settings and lifecycle support",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { location: true },
+      pluginOptions: { Location: { usageDescription: "Find me" } },
+    });
+
+    return Effect.gen(function* () {
+      yield* generateAndroid("/app", "/package");
+
+      const manifest =
+        state.files.get(
+          `${destination}/android/app/src/main/AndroidManifest.xml`
+        ) ?? "";
+
+      assert.include(manifest, "android.permission.ACCESS_COARSE_LOCATION");
+      assert.include(manifest, "android.permission.ACCESS_FINE_LOCATION");
+      assert.notInclude(manifest, "ACCESS_BACKGROUND_LOCATION");
+
+      const source =
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalLocationPlugin.java`
+        ) ?? "";
+
+      assert.include(source, "ACTION_LOCATION_SOURCE_SETTINGS");
+      assert.include(source, "super.checkPermissions(call)");
+      assert.include(source, "super.requestPermissions(call)");
+      assert.include(
+        source,
+        '@Permission(alias = "coarseLocation", strings = { Manifest.permission.ACCESS_COARSE_LOCATION })'
+      );
+      assert.include(
+        source,
+        '@Permission(alias = "location", strings = { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION })'
+      );
+      assert.include(
+        source,
+        "@PermissionCallback @PluginMethod public void checkPermissions"
+      );
+      assert.include(
+        source,
+        "GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(getContext()) == ConnectionResult.SUCCESS"
+      );
+      assert.include(source, "if (playServicesAvailable == null)");
+      assert.include(
+        state.files.get(`${destination}/android/app/radical.gradle`) ?? "",
+        "com.google.android.gms:play-services-base:18.5.0"
+      );
+      assert.include(source, "handleOnStop");
+      assert.notInclude(source, "handleOnPause");
+      assert.include(
+        state.files.get(mainActivity) ?? "",
+        "RadicalLocationPlugin.class"
+      );
+      assert.include(
+        state.files.get(`${destination}/package.json`) ?? "",
+        '"@capacitor/geolocation":"8.2.4"'
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);

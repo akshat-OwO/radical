@@ -202,3 +202,41 @@ export { cameraPlugin } from "../../capabilities/camera/camera-plugin.ts";
 export { videoStreamPlugin } from "../../capabilities/video-stream/video-stream-plugin.ts";
 
 export { googleSignInPlugin } from "../../capabilities/google-sign-in/google-sign-in-plugin.ts";
+
+export {
+  locationPlugin,
+  locationPrecisionPlugin,
+} from "../../capabilities/location/location-plugin.ts";
+
+export const settingsPlugin = definePlugin({
+  id: "settings",
+  bridge: "RadicalSettings",
+  dependencies: {},
+  commands: {
+    openAppSettings: {
+      args: Schema.Struct({}),
+      result: Schema.Unknown,
+      errors: {},
+    },
+  },
+  ios: {
+    className: "RadicalSettingsPlugin",
+    sources: [
+      {
+        file: "RadicalSettingsPlugin.swift",
+        source: "templates/ios/RadicalSettingsPlugin.swift",
+      },
+    ],
+    dependencies: [],
+  },
+  android: {
+    className: "RadicalSettingsPlugin",
+    sources: [
+      {
+        file: "RadicalSettingsPlugin.java",
+        source: "templates/android/RadicalSettingsPlugin.java",
+      },
+    ],
+    dependencies: {},
+  },
+});

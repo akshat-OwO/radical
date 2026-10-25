@@ -73,6 +73,7 @@ const Home = () => {
       <a href="/online-route">Network required</a>
       <Link to="/details">Slide to details</Link>{" "}
       <Link to="/about">Fade to about</Link>
+      <Link to="/location">Location</Link>
       <Link to="/camera">Camera capture and permission</Link>
       <Link to="/video">Live video and QR scanning</Link>
       <Link to="/network">Network status</Link>

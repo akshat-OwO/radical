@@ -35,6 +35,9 @@ Hooks do not invoke browser APIs during render. Effects start after commit. Unmo
 | `useVideoStream(options)` | `start()`, `stop()`, `switchCamera()`, `setZoom(level)`, `setTorch(enabled)`, `running`, `loading`, `value?: VideoStreamInfo`, `error`. |
 | `useHapticFeedback()` | `light()`, `medium()`, `heavy()`, `success()`, `warning()`, `error()`, `selection()`, `impact(style?)`, `loading`, `value?: true`, `failure`. |
 | `useNetworkStatus()` | Live `{ loading, value?: NetworkStatus, error }`. |
+| `useLocation()` | `getCurrent(options?)`, `loading`, `value?: LocationFix`, `error`. |
+| `useLocationPermission()` | `check()`, `request(options?)`, `loading`, `value?: LocationPermission`, `error`. Checks after mount and updates when permission changes through any API. Denial resolves `state: "denied"`. |
+| `useLocationWatch()` | `start(options?)`, `stop()`, `running`, `loading` until the first location fix, `value?: LocationFix`, `error`. Transient errors set `error` and keep the watch running; the next location fix clears it. `start` and `stop` are stable. Stops on unmount. |
 | `useGoogleSignIn()` | `signIn()`, `cancel()`, `loading`, `value?: GoogleIdentity`, `error`. |
 | `useNotificationPermission()` | `check()`, `request()`, `loading`, `value?: NotificationPermission`, `error`. Checks after mount. |
 | `useExactAlarmPermission()` | Checks after mount; `check()`, `request()`, `loading`, `value?: ExactAlarmPermission`, `error`. |
@@ -49,9 +52,9 @@ Device and network hooks start with `loading: true`, undefined `value`, and unde
 
 ## Exported types and errors
 
-Each hook exports its named state type, such as `CameraState`, `NetworkStatusState`, and `DataProtectionState`. `DeviceInfo`, `SafeArea`, `BridgeError`, camera types, file types, video result types, haptic types, network types, Google identity types, and data-protection types are re-exported here.
+Each hook exports its named state type, such as `CameraState`, `NetworkStatusState`, and `DataProtectionState`. `DeviceInfo`, `SafeArea`, `BridgeError`, camera types, file types, video result types, haptic types, network types, location types, Google identity types, and data-protection types are re-exported here.
 
-`PermissionDenied`, `Cancelled`, `Unavailable`, `NoHandler`, `GoogleSignInCancelled`, `GoogleSignInMisconfigured`, and `GoogleSignInUnavailable` are exported error classes. Notification types and errors are available from `@akshatowo/radical/client`; schemas are available from `@akshatowo/radical/effect/client` rather than `@akshatowo/radical/react`.
+`PermissionDenied`, `Cancelled`, `Unavailable`, `NoHandler`, `LocationServicesOff`, `LocationTimeout`, `GoogleSignInCancelled`, `GoogleSignInMisconfigured`, and `GoogleSignInUnavailable` are exported error classes. Notification types and errors are available from `@akshatowo/radical/client`; schemas are available from `@akshatowo/radical/effect/client` rather than `@akshatowo/radical/react`.
 
 Source: [React exports](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/react/react.ts).
 

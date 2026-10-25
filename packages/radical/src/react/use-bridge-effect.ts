@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { Context, ReactElement, ReactNode } from "react";
 
+import type { LocationWatchPool } from "../capabilities/location/location-pool.ts";
 import { zeroSafeArea } from "../capabilities/safe-area/safe-area-style.ts";
 import { BridgeLive } from "../core/bridge/bridge.ts";
 import type { Bridge } from "../core/bridge/bridge.ts";
@@ -54,13 +55,18 @@ export const NativeContextContext = createContext<NativeContext>({
 export const RuntimeContext: Context<RadicalRuntime> =
   createContext(defaultRuntime);
 
-export const BridgeContext = createContext<Layer.Layer<Bridge>>(BridgeLive);
+export const BridgeContext = createContext<
+  Layer.Layer<Bridge | LocationWatchPool>
+>(runtimeBridgeLayer(defaultRuntime));
 
 const runtimeOwner = (
   layer: Layer.Layer<Bridge>,
   supplied?: RadicalRuntime
 ) => {
-  let runtime = supplied ?? createEffectRuntime(layer);
+  const shared =
+    supplied ?? (layer === BridgeLive ? defaultRuntime : undefined);
+
+  let runtime = shared ?? createEffectRuntime(layer);
   let disposed = false;
   const listeners = new Set<() => void>();
 
@@ -86,7 +92,7 @@ const runtimeOwner = (
       const owned = runtime;
 
       return () => {
-        if (!supplied) {
+        if (!shared) {
           disposed = true;
           void owned.dispose();
         }
@@ -141,13 +147,13 @@ export const useRadicalRuntime = (): RadicalRuntime =>
 
 /** Effects must have stable identity. Nothing executes until React commits. */
 export const useBridgeEffect = <A, E>(
-  effect: Effect.Effect<A, E, Bridge>
+  effect: Effect.Effect<A, E, Bridge | LocationWatchPool>
 ): BridgeState<A, E> => {
   const layer = useContext(BridgeContext);
 
   const [snapshot, setSnapshot] = useState<{
     layer: Layer.Layer<Bridge>;
-    effect: Effect.Effect<A, E, Bridge>;
+    effect: Effect.Effect<A, E, Bridge | LocationWatchPool>;
     state: BridgeState<A, E>;
   }>(() => ({
     layer,

@@ -7,7 +7,7 @@ Run your web app inside Android and iOS WebView shells, loaded from an HTTP orig
 Install Radical in your app:
 
 ```sh
-pnpm add @akshatowo/radical@0.2.0
+pnpm add @akshatowo/radical
 ```
 
 Follow [installation](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/getting-started/installation.mdx) to scaffold a TanStack Start app with the TanStack CLI and add Radical. No Radical repository clone is required.
@@ -37,4 +37,4 @@ Run these commands from your app directory after completing the native setup. In
 
 See [next steps](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/getting-started/next-steps.mdx) for capabilities, offline routes, app assets, and production delivery. The [API reference](https://github.com/akshat-OwO/radical/tree/main/apps/docs/content/docs/reference) describes options, exports, and typed errors.
 
-The default Plain API returns values, Promises, React state, and callbacks. Install `@akshatowo/radical@0.2.0`; required peers install automatically with pnpm, npm 7+, and Bun. Yarn Berry users also run `yarn add effect`. Effect API users install `effect` directly and import from `/effect/*`. Plugin authoring retains Effect Schema codecs. See the [Effect API guide](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/guides/effect-api.mdx).
+The default Plain API returns values, Promises, React state, and callbacks. Install `@akshatowo/radical`; required peers install automatically with pnpm, npm 7+, and Bun. Yarn Berry users also run `yarn add effect`. Effect API users install `effect` directly and import from `/effect/*`. Plugin authoring retains Effect Schema codecs. See the [Effect API guide](https://github.com/akshat-OwO/radical/blob/main/apps/docs/content/docs/guides/effect-api.mdx).

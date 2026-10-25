@@ -1,14 +1,36 @@
 import { Layer, ManagedRuntime } from "effect";
 
+import { BrowserLocationLive } from "../capabilities/location/browser-location.ts";
+import { LocationPermissionEventsLive } from "../capabilities/location/location-permission-events-live.ts";
+import type { LocationPermissionEvents } from "../capabilities/location/location-permission-events.ts";
+import type { LocationWatchPool } from "../capabilities/location/location-pool.ts";
+import { LocationWatchPoolLive } from "../capabilities/location/location-pool.ts";
 import type { Bridge } from "../core/bridge/bridge.ts";
 import { BridgeLive } from "../core/bridge/bridge.ts";
 
 /** A provider-owned bridge runtime. Dispose it when its owner unmounts. */
 class RuntimeHandle {
-  readonly #managed: ManagedRuntime.ManagedRuntime<Bridge, never>;
+  readonly #managed: ManagedRuntime.ManagedRuntime<
+    Bridge | LocationWatchPool | LocationPermissionEvents,
+    never
+  >;
 
   constructor(layer: Layer.Layer<Bridge>) {
-    this.#managed = ManagedRuntime.make(layer);
+    const permissionEvents = LocationPermissionEventsLive.pipe(
+      Layer.provide(layer)
+    );
+
+    this.#managed = ManagedRuntime.make(
+      Layer.mergeAll(
+        layer,
+        permissionEvents,
+        LocationWatchPoolLive.pipe(
+          Layer.provide(
+            Layer.mergeAll(layer, BrowserLocationLive, permissionEvents)
+          )
+        )
+      )
+    );
   }
 
   readonly dispose = (): Promise<void> => this.#managed.dispose();

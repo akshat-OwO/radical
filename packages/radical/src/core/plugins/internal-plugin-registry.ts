@@ -89,6 +89,18 @@ export const internalPluginRegistry = defineRegistry({
     implies: [],
     sourceRoot: ".",
   },
+  location: {
+    default: false,
+    plugins: [
+      { manifest: manifests.locationPlugin, selector: "locationPlugin" },
+      {
+        manifest: manifests.locationPrecisionPlugin,
+        selector: "locationPrecisionPlugin",
+      },
+    ],
+    implies: [],
+    sourceRoot: ".",
+  },
   camera: {
     default: false,
     plugins: [{ manifest: manifests.cameraPlugin, selector: "cameraPlugin" }],
@@ -120,7 +132,10 @@ export const internalPluginRegistry = defineRegistry({
   },
   device: {
     default: true,
-    plugins: [{ manifest: manifests.devicePlugin, selector: "devicePlugin" }],
+    plugins: [
+      { manifest: manifests.devicePlugin, selector: "devicePlugin" },
+      { manifest: manifests.settingsPlugin, selector: "settingsPlugin" },
+    ],
     implies: [],
     sourceRoot: ".",
   },

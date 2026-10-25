@@ -61,6 +61,9 @@ catalogs:
     '@capacitor/device':
       specifier: ^8.0.3
       version: 8.0.3
+    '@capacitor/geolocation':
+      specifier: 8.2.4
+      version: 8.2.4
     '@capacitor/haptics':
       specifier: 8.0.2
       version: 8.0.2
@@ -340,6 +343,9 @@ importers:
       '@capacitor/device':
         specifier: 'catalog:'
         version: 8.0.3(@capacitor/core@8.5.3)
+      '@capacitor/geolocation':
+        specifier: 'catalog:'
+        version: 8.2.4(@capacitor/core@8.5.3)
       '@capacitor/haptics':
         specifier: 'catalog:'
         version: 8.0.2(@capacitor/core@8.5.3)
@@ -545,6 +551,11 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
+  '@capacitor/geolocation@8.2.4':
+    resolution: {integrity: sha512-FDcUiPQc2AXSTAV61QSDPXml11guKBx5HPEkdWvUqw7kMqrc2Ucp0bsWngeLyRs/01a5aWBI0hEuvetuF3PsrQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/haptics@8.0.2':
     resolution: {integrity: sha512-c2hZzRR5Fk1tbTvhG1jhh2XBAf3EhnIerMIb2sl7Mt41Gxx1fhBJFDa0/BI1IbY4loVepyyuqNC9820/GZuoWQ==}
     peerDependencies:
@@ -564,6 +575,9 @@ packages:
     resolution: {integrity: sha512-9xK/FHFmzKGanB6BdoSZOzXk8vF0OFVQSQ4PAsIrzAzLuXHryO317qy8dcHVpgxYeuZq2noI0My9z1DvVDi/9w==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
+
+  '@capacitor/synapse@1.0.4':
+    resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
 
   '@capawesome/capacitor-badge@8.0.4':
     resolution: {integrity: sha512-ADqD0XvSxrry2B5ntLHJrrRKnjYqZjJANRbNpCnEwHn2zBeOt5KIqP6T2FZUod574fPCgXpfhQJWAacaYjNMXA==}
@@ -5326,6 +5340,11 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.5.3
 
+  '@capacitor/geolocation@8.2.4(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+      '@capacitor/synapse': 1.0.4
+
   '@capacitor/haptics@8.0.2(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
@@ -5341,6 +5360,8 @@ snapshots:
   '@capacitor/network@8.0.1(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
+
+  '@capacitor/synapse@1.0.4': {}
 
   '@capawesome/capacitor-badge@8.0.4(@capacitor/core@8.5.3)':
     dependencies:

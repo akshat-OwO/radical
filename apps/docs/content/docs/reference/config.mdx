@@ -48,19 +48,20 @@ Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGene
 | Internal flag | Default | Implication |
 | --- | --- | --- |
 | `device`, `transitions` | `true` | None |
-| `camera`, `videoStream`, `filePicker`, `intents`, `haptics`, `network`, `googleSignIn`, `dataProtection` | `false` | None |
+| `camera`, `videoStream`, `filePicker`, `intents`, `haptics`, `network`, `location`, `googleSignIn`, `dataProtection` | `false` | None |
 | `notifications` | `false` | Enables `network` |
 | `pushNotifications` | `false` | Enables `notifications`, then `network` |
 
 ## Internal plugin options
 
-| Selector       | Required fields when enabled                       |
-| -------------- | -------------------------------------------------- |
-| `Camera`       | `usageDescription`, `photoLibraryUsageDescription` |
-| `VideoStream`  | `usageDescription`                                 |
-| `GoogleSignIn` | `webClientId`, `iosClientId`                       |
+| Selector | Required fields when enabled |
+| --- | --- |
+| `Camera` | `usageDescription`, `photoLibraryUsageDescription` |
+| `VideoStream` | `usageDescription` |
+| `GoogleSignIn` | `webClientId`, `iosClientId` |
+| `Location` | `usageDescription`; optional `precisePurposes` and `replaceNavigator` |
 
-Camera descriptions require non-whitespace text without invalid XML control characters. Shared camera purposes compose once into the iOS camera description. Google identifiers match letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`.
+Camera descriptions require non-whitespace text without invalid XML control characters. Shared camera purposes compose once into the iOS camera description. Location purposes follow the same text rules; see the [Location API](/docs/reference/location#config). Google identifiers match letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`.
 
 ## Firebase fields
 
