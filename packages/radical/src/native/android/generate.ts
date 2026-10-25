@@ -9,6 +9,7 @@ import type { BuildPlan } from "../../vite/build-plan.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
 import { composePluginSources } from "../../vite/plugins/plugin-sources.ts";
+import { prepareSectionDrawables } from "../assets/native-assets.ts";
 import { applyBuildPlan } from "../shared/apply-build-plan.ts";
 import {
   generateNativeProject,
@@ -59,7 +60,23 @@ export const generateAndroid = (
       path.join(packageRoot, "templates/android/gradle-daemon-jvm.properties")
     );
 
+    const { navigation } = native.plan;
+
+    const drawables = navigation
+      ? yield* prepareSectionDrawables(root, navigation.sections)
+      : [];
+
     const replacements = {
+      __NAVIGATION_FIELD__: navigation ? "RadicalNavigation navigation;" : "",
+      __NAVIGATION_REGISTRATION__: navigation
+        ? "registerPlugin(RadicalNavigationPlugin.class);"
+        : "",
+      __NAVIGATION_SETUP__: navigation
+        ? "navigation = new RadicalNavigation(this, view);"
+        : "",
+      __NAVIGATION_LAYOUT__: navigation
+        ? "if (navigation != null) bars = navigation.layout(bars, keyboardVisible, width, displayFeatures);"
+        : "",
       __OFFLINE_LAUNCH__: JSON.stringify(
         yield* fs.readFileString(
           path.join(packageRoot, "templates/android/launch.html")
@@ -99,6 +116,74 @@ export const generateAndroid = (
 
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
+        if (navigation) {
+          const java = path.join(
+            staging,
+            "android/app/src/main/java",
+            ...native.identity.appId.split(".")
+          );
+
+          for (const file of [
+            "RadicalNavigation.java",
+            "RadicalNavigationPlugin.java",
+          ]) {
+            const source = yield* fs.readFileString(
+              path.join(packageRoot, "templates/android", file)
+            );
+
+            const rendered =
+              file === "RadicalNavigation.java"
+                ? yield* renderTemplate(file, source, {
+                    __SECTION_IDS__: navigation.sections
+                      .map((section) => JSON.stringify(section.id))
+                      .join(", "),
+                    __SECTION_TITLES__: navigation.sections
+                      .map((section) => JSON.stringify(section.title))
+                      .join(", "),
+                    __SECTION_ICONS__: navigation.sections
+                      .map((_, index) => `R.drawable.radical_section_${index}`)
+                      .join(", "),
+                    __SECTION_SELECTED_ICONS__: navigation.sections
+                      .map(
+                        (_, index) =>
+                          `R.drawable.radical_section_${index}_selected`
+                      )
+                      .join(", "),
+                  })
+                : source;
+
+            yield* fs.writeFileString(
+              path.join(java, file),
+              `package ${native.identity.appId};\n${rendered}`
+            );
+          }
+
+          const res = path.join(staging, "android/app/src/main/res/drawable");
+          yield* fs.makeDirectory(res, { recursive: true });
+
+          for (const drawable of drawables) {
+            yield* fs.writeFileString(
+              path.join(res, drawable.file),
+              drawable.xml
+            );
+          }
+
+          const styles = path.join(
+            staging,
+            "android/app/src/main/res/values/styles.xml"
+          );
+
+          yield* fs.writeFileString(
+            styles,
+            yield* replaceAnchor(
+              styles,
+              yield* fs.readFileString(styles),
+              "Theme.AppCompat.DayNight.NoActionBar",
+              "Theme.Material3.DayNight.NoActionBar"
+            )
+          );
+        }
+
         const daemonJvmPath = path.join(
           staging,
           "android/gradle/gradle-daemon-jvm.properties"
@@ -154,7 +239,9 @@ export const generateAndroid = (
         const gradle = yield* fs.readFileString(appGradle);
         yield* fs.writeFileString(
           path.join(staging, "android/app/radical.gradle"),
-          gradleTemplate
+          navigation
+            ? `${gradleTemplate}\ndependencies { implementation "com.google.android.material:material:1.14.0" }\n`
+            : gradleTemplate
         );
         yield* fs.writeFileString(
           appGradle,

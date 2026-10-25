@@ -59,11 +59,14 @@ const SectionNavigation = () => {
 
   const platform = useSyncExternalStore(
     subscribePlatform,
-    () => localNativeContext().platform,
+    () =>
+      config.mode === "bundled"
+        ? localNativeContext().platform
+        : nativeContext.platform,
     () => nativeContext.platform
   );
 
-  if (hidden || platform === "ios") {
+  if (hidden || platform === "ios" || platform === "android") {
     return null;
   }
 

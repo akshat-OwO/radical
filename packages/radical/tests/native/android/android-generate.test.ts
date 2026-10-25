@@ -40,6 +40,8 @@ import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";
 import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
 import locationSource from "../../../templates/android/RadicalLocationPlugin.java?raw";
+import navigationSource from "../../../templates/android/RadicalNavigation.java?raw";
+import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin.java?raw";
 import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../../../templates/offline.html?raw";
@@ -76,6 +78,11 @@ const memory = (
       }),
     ],
     ["/package/templates/android/MainActivity.java", activity],
+    ["/package/templates/android/RadicalNavigation.java", navigationSource],
+    [
+      "/package/templates/android/RadicalNavigationPlugin.java",
+      navigationPlugin,
+    ],
     ["/package/templates/offline.html", fallback],
     ["/package/templates/android/launch.html", launch],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
@@ -204,7 +211,7 @@ const memory = (
           );
           files.set(
             `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
-            '<resources><style name="AppTheme.NoActionBarLaunch"><item name="android:background">@drawable/splash</item></style></resources>'
+            '<resources><style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar"/><style name="AppTheme.NoActionBarLaunch"><item name="android:background">@drawable/splash</item></style></resources>'
           );
           files.set(
             `${command.options.cwd}/android/app/build.gradle`,
@@ -1107,3 +1114,116 @@ it.effect(
     }).pipe(Effect.provide(state.layer));
   }
 );
+
+describe("Android section navigation", () => {
+  for (const mode of ["remote", "bundled"]) {
+    it.effect(
+      `compiles section controls, bridge and both icons in ${mode} mode`,
+      () => {
+        const state = memory(false, {
+          ...defaultConfig,
+          mode,
+          origin: "https://api.example",
+          navigation: {
+            sections: [
+              {
+                id: "home",
+                title: "Home",
+                route: "/",
+                icon: { ios: "house", android: "home.svg" },
+                selectedIcon: { ios: "house.fill", android: "selected.svg" },
+              },
+              {
+                id: "about",
+                title: "About",
+                route: "/about",
+                icon: { ios: "info", android: "home.svg" },
+              },
+            ],
+          },
+        });
+
+        state.files.set(
+          "/app/home.svg",
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>'
+        );
+        state.files.set(
+          "/app/selected.svg",
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>'
+        );
+        state.files.set("/app/web/public/entry.html", "<title>Bundled</title>");
+
+        return Effect.gen(function* () {
+          yield* generate;
+          const java = `${destination}/android/app/src/main/java/dev/radical/example`;
+
+          const source =
+            state.files.get(`${java}/RadicalNavigation.java`) ?? "";
+
+          assert.include(source, 'String[] IDS = { "home", "about" }');
+          assert.include(source, "new BottomNavigationView");
+          assert.include(source, "new NavigationRailView");
+          assert.notMatch(source, /__[A-Z_]+__/u);
+          assert.include(
+            state.files.get(mainActivity) ?? "",
+            "registerPlugin(RadicalNavigationPlugin.class)"
+          );
+          assert.include(
+            state.files.get(mainActivity) ?? "",
+            "navigation.layout(bars, keyboardVisible, width, displayFeatures)"
+          );
+          assert.include(
+            state.files.get(`${java}/RadicalNavigationPlugin.java`) ?? "",
+            'name = "RadicalNavigation"'
+          );
+          const drawable = `${destination}/android/app/src/main/res/drawable`;
+          assert.include(
+            state.files.get(`${drawable}/radical_section_0.xml`) ?? "",
+            "<vector"
+          );
+          assert.notStrictEqual(
+            state.files.get(`${drawable}/radical_section_0.xml`),
+            state.files.get(`${drawable}/radical_section_0_selected.xml`)
+          );
+          assert.strictEqual(
+            state.files.get(`${drawable}/radical_section_1.xml`),
+            state.files.get(`${drawable}/radical_section_1_selected.xml`)
+          );
+          assert.include(
+            state.files.get(`${destination}/android/app/radical.gradle`) ?? "",
+            "com.google.android.material:material:1.14.0"
+          );
+          assert.include(
+            state.files.get(
+              `${destination}/android/app/src/main/res/values/styles.xml`
+            ) ?? "",
+            "Theme.Material3.DayNight.NoActionBar"
+          );
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
+
+  it.effect("keeps shells without sections free of Material navigation", () => {
+    const state = memory();
+
+    return Effect.gen(function* () {
+      yield* generate;
+      assert.notInclude(
+        state.files.get(mainActivity) ?? "",
+        "RadicalNavigationPlugin"
+      );
+      assert.notInclude(
+        state.files.get(`${destination}/android/app/radical.gradle`) ?? "",
+        "com.google.android.material"
+      );
+      assert.isFalse(
+        [...state.files.keys()].some(
+          (file) =>
+            file.endsWith("/RadicalNavigation.java") &&
+            file.startsWith(destination)
+        )
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+});

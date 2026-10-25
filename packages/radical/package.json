@@ -139,7 +139,8 @@
   "dependencies": {
     "@effect/platform-node": "catalog:",
     "semver": "catalog:",
-    "sharp": "catalog:"
+    "sharp": "catalog:",
+    "svg2vectordrawable": "catalog:"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

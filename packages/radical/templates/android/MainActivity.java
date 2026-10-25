@@ -114,6 +114,7 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    __NAVIGATION_FIELD__
     private boolean started = false;
     private String lastContext = "";
     private ScriptHandler safeAreaScript;
@@ -125,7 +126,7 @@ public class MainActivity extends BridgeActivity {
         refreshWindowContext();
     };
 
-    private void refreshWindowContext() {
+    void refreshWindowContext() {
         if (bridge == null) return;
         WebView view = bridge.getWebView();
         WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(view);
@@ -156,14 +157,16 @@ public class MainActivity extends BridgeActivity {
             content.setPadding(0, 0, 0, keyboardBottom);
         }
         float density = getResources().getDisplayMetrics().density;
+        float width = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this).getBounds().width() / density;
+        bars = Insets.of(bars.left, bars.top, bars.right, keyboardVisible ? 0 : bars.bottom);
+        __NAVIGATION_LAYOUT__
         try {
             JSONObject area = new JSONObject();
             area.put("top", bars.top / density);
             area.put("right", bars.right / density);
             // The keyboard already excludes the navigation bar from usable content.
-            area.put("bottom", keyboardVisible ? 0 : bars.bottom / density);
+            area.put("bottom", bars.bottom / density);
             area.put("left", bars.left / density);
-            float width = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this).getBounds().width() / density;
             JSONObject layout = new JSONObject();
             layout.put("widthClass", width < 600 ? "compact" : width < 840 ? "medium" : "expanded");
             layout.put("posture", "flat");
@@ -231,9 +234,11 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+        __NAVIGATION_REGISTRATION__
         __PLUGIN_REGISTRATION__
         super.load();
         view.stopLoading();
+        __NAVIGATION_SETUP__
         // Radical owns WebView history without requiring Capacitor's optional App plugin.
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {

@@ -3,7 +3,9 @@ import path from "node:path";
 
 import { Context, Effect, FileSystem, Layer, Predicate } from "effect";
 import sharp from "sharp";
+import svg2vectordrawable from "svg2vectordrawable";
 
+import type { Section } from "../../capabilities/sections/sections.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
 import { AssetGenerationFailed, InvalidAsset } from "./errors.ts";
 
@@ -479,3 +481,55 @@ interface SplashImage {
   scale: string;
   appearances?: { appearance: string; value: string }[];
 }
+
+/** Convert before staging so unreadable or unsupported icons leave the existing shell intact. */
+export const sectionVectorDrawable = (svg: string, source: string) =>
+  Effect.tryPromise({
+    try: () =>
+      svg2vectordrawable(svg.replaceAll("currentColor", "#000000"), {
+        strict: true,
+        fillBlack: true,
+        floatPrecision: 4,
+        xmlTag: true,
+      }),
+    catch: (cause) =>
+      new InvalidAsset({ message: `Section icon ${source}: ${String(cause)}` }),
+  });
+
+export const prepareSectionDrawables = (
+  root: string,
+  sections: readonly Section[]
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const converted = new Map<string, string>();
+    const outputs: { file: string; xml: string }[] = [];
+
+    for (const [index, section] of sections.entries()) {
+      for (const [suffix, icon] of [
+        ["", section.icon],
+        ["_selected", section.selectedIcon ?? section.icon],
+      ] as const) {
+        const source = path.resolve(root, icon.android);
+        let xml = converted.get(source);
+
+        if (xml === undefined) {
+          const svg = yield* fs.readFileString(source).pipe(
+            Effect.mapError(
+              (cause) =>
+                new InvalidAsset({
+                  message: `Section icon ${source}: ${cause.message}`,
+                })
+            )
+          );
+
+          xml = yield* sectionVectorDrawable(svg, source);
+          converted.set(source, xml);
+        }
+
+        outputs.push({ file: `radical_section_${index}${suffix}.xml`, xml });
+      }
+    }
+
+    return outputs;
+  });

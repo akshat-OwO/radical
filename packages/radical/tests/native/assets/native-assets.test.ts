@@ -7,6 +7,8 @@ import sharp from "sharp";
 
 import baseline from "../../../../../docs/verification/native-assets-baseline.json" with { type: "json" };
 import {
+  sectionVectorDrawable,
+  prepareSectionDrawables,
   AssetGenerator,
   assetGeneratorLayer,
   prepareNativeAssets,
@@ -750,5 +752,103 @@ describe("native asset outputs", () => {
           assert.include(error.message, message);
         }
       })
+  );
+});
+
+describe("Android section VectorDrawables", () => {
+  it.effect("preserves viewport, strokes and currentColor in a path icon", () =>
+    Effect.gen(function* () {
+      const xml = yield* sectionVectorDrawable(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7v11h-6v-7H9v7H3Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+        "home.svg"
+      );
+
+      assert.include(xml, 'android:viewportWidth="24"');
+      assert.include(xml, 'android:viewportHeight="24"');
+      assert.include(xml, 'android:strokeWidth="2"');
+      assert.include(xml, 'android:strokeColor="#FF000000"');
+      assert.notInclude(xml, "android:fillColor=");
+      assert.notInclude(xml, "currentColor");
+    })
+  );
+  it.effect("converts geometry and transforms into drawable paths", () =>
+    Effect.gen(function* () {
+      const xml = yield* sectionVectorDrawable(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g transform="translate(2 2)"><circle cx="12" cy="12" r="8" fill="#ff0000"/></g></svg>',
+        "circle.svg"
+      );
+
+      assert.include(xml, 'android:viewportWidth="32"');
+      assert.include(xml, "android:pathData=");
+      assert.notInclude(xml, "<circle");
+      assert.notInclude(xml, "<svg");
+    })
+  );
+  it.effect("reports malformed SVG with its source path", () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        sectionVectorDrawable("<svg><", "broken.svg")
+      );
+
+      assert.strictEqual(error._tag, "InvalidAsset");
+      assert.include(error.message, "broken.svg");
+    })
+  );
+  it.effect("rejects SVG elements that VectorDrawable cannot render", () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(
+        sectionVectorDrawable(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><text x="0" y="12">A</text></svg>',
+          "text.svg"
+        )
+      );
+
+      assert.strictEqual(error._tag, "InvalidAsset");
+      assert.include(error.message, "Unsupported element");
+    })
+  );
+  it.effect(
+    "reads a shared icon once and emits stable names for both appearances",
+    () => {
+      let reads = 0;
+
+      const fs = FileSystem.layerNoop({
+        readFileString: () =>
+          Effect.sync(() => {
+            reads += 1;
+
+            return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
+          }),
+      });
+
+      return Effect.gen(function* () {
+        const outputs = yield* prepareSectionDrawables("/app", [
+          {
+            id: "../unsafe",
+            title: "Home",
+            route: "/",
+            icon: { ios: "house", android: "shared.svg" },
+          },
+          {
+            id: "about",
+            title: "About",
+            route: "/about",
+            icon: { ios: "info", android: "shared.svg" },
+          },
+        ]);
+
+        assert.strictEqual(reads, 1);
+        assert.deepStrictEqual(
+          outputs.map(({ file }) => file),
+          [
+            "radical_section_0.xml",
+            "radical_section_0_selected.xml",
+            "radical_section_1.xml",
+            "radical_section_1_selected.xml",
+          ]
+        );
+        assert.isTrue(outputs.every(({ xml }) => xml === outputs[0].xml));
+      }).pipe(Effect.provide(fs));
+    }
   );
 });

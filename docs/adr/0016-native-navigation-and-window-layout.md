@@ -47,3 +47,11 @@ A UIKit prototype built with the iOS 27.1 SDK moved one WKWebView between two UI
 UITab selection emits an unretained intent and waits for the adapter's resolved state before changing selection. The tab containers contain no WebViews. UIKit's content layout guide supplies the unobscured rectangle on iOS 26 and later, including the Duo's vertical bar. On iOS 18, the selected container's safe-area layout guide supplies that rectangle. A fixed clipping container excludes the bars while the WebView retains window-sized CSS dimensions. The bridge controller publishes that rectangle as safe-area insets through the existing native-context cookie and bridge events.
 
 Sections are compiled into the shell, so bars exist before the first bridge message in remote, bundled, and offline launches. Apps with sections target iOS 18 in both Xcode and the generated Swift package. Apps without sections retain iOS 15 and their existing bridge controller root.
+
+## Android prototype outcome
+
+The Android shell keeps its WebView in Capacitor's original container. Material Components draws a bottom bar or a rail as sibling views. The WebView never changes parents when the width class, posture, visibility, or selection changes.
+
+A Java Activity prototype on the Pixel 9 emulator running Android 16 moved one WebView between two FrameLayouts while an input held DOM focus and the software keyboard was visible. The document, the input value, and the DOM active element survived. The native `WebView.hasFocus()` changed from true to false, and `dumpsys input_method` reported the keyboard hidden after the move. Moving failed the focus and keyboard requirement, so Android also uses the fixed-container fallback.
+
+The fixed WebView retains window-sized CSS dimensions. Its clip bounds exclude bar space, which reaches the page through safe-area insets. A separating vertical hinge limits controls to the left pane. A separating horizontal hinge limits the rail to the upper pane and the bottom bar to the lower pane. Bars are compiled from section declarations and are present before the page mounts, including bundled and offline launches.
