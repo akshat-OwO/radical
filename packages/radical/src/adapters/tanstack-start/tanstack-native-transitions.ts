@@ -10,6 +10,7 @@ import {
 import { NavigationFailed } from "../../core/adapter/errors.ts";
 import type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
 import { installRouterCommitHook } from "./tanstack-router-internals.ts";
+import { crossesSections } from "./tanstack-section-ownership.ts";
 
 /** Router's commit boundary covers links, imperative navigation, and history. */
 export const installNativeTransitions = (
@@ -55,6 +56,7 @@ export const installNativeTransitions = (
           !enabled ||
           !previous ||
           previous.href === next.href ||
+          crossesSections(router, previous.pathname, next.pathname) ||
           !kind
         ) {
           return yield* update;

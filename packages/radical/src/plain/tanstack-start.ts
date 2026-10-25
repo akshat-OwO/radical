@@ -19,3 +19,5 @@ export {
   radicalMiddleware,
   radicalRequestMiddleware,
 } from "./tanstack-middleware.ts";
+
+export { TanStackSections } from "../adapters/tanstack-start/tanstack-sections.ts";

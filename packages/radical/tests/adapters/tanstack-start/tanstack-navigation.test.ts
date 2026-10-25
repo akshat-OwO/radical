@@ -10,6 +10,7 @@ import { TestClock } from "effect/testing";
 
 import { installNativeTransitions } from "../../../src/adapters/tanstack-start/tanstack-native-transitions.ts";
 import { tanstackNavigation } from "../../../src/adapters/tanstack-start/tanstack-navigation.ts";
+import { tanstackSections } from "../../../src/adapters/tanstack-start/tanstack-sections.ts";
 import {
   browserTransitions,
   tanstackStartAdapterLayer,
@@ -621,4 +622,100 @@ it.effect("keeps overlay ids unique across routers and reinstallations", () =>
         })
     );
   })
+);
+
+it.effect(
+  "skips browser transitions across sections and retains in-section route types",
+  () =>
+    Effect.sync(() => {
+      const router = makeRouter();
+      tanstackSections(router, [
+        {
+          id: "home",
+          title: "Home",
+          route: "/",
+          icon: { ios: "house", android: "home.svg" },
+        },
+        {
+          id: "about",
+          title: "About",
+          route: "/about",
+          icon: { ios: "info.circle", android: "about.svg" },
+        },
+      ]);
+
+      const controller = browserTransitions(router, {}, typedBrowser());
+
+      assert.strictEqual(transitionTypes(router, "/details", "/about"), false);
+
+      assert.strictEqual(transitionTypes(router, "/about", "/details"), false);
+
+      assert.deepStrictEqual(transitionTypes(router, "/", "/details"), [
+        "radical-slide",
+        "radical-forward",
+      ]);
+      controller.dispose();
+    })
+);
+
+it.effect(
+  "skips native capture across sections but keeps in-section transitions",
+  () =>
+    Effect.gen(function* () {
+      const router = makeRouter();
+
+      yield* Effect.promise(async () => {
+        await router.load();
+      });
+      tanstackSections(router, [
+        {
+          id: "home",
+          title: "Home",
+          route: "/",
+          icon: { ios: "house", android: "home.svg" },
+        },
+        {
+          id: "about",
+          title: "About",
+          route: "/about",
+          icon: { ios: "info.circle", android: "about.svg" },
+        },
+      ]);
+
+      const captures: string[] = [];
+
+      const controller = installNativeTransitions(
+        router,
+        {},
+        Layer.succeed(NativeTransitions, {
+          nextId: Effect.succeed("section"),
+          cover: () =>
+            Effect.sync(() => {
+              captures.push(router.state.location.pathname);
+            }),
+          painted: Effect.void,
+          reveal: () => Effect.void,
+          remove: () => Effect.void,
+        })
+      );
+
+      const navigate = (to: string) =>
+        Effect.promise(async () => {
+          const pending = router.navigate({ to });
+          void router.load();
+
+          await pending;
+        });
+
+      yield* navigate("/details");
+
+      assert.deepStrictEqual(captures, ["/details"]);
+
+      yield* navigate("/about");
+
+      yield* navigate("/");
+
+      assert.deepStrictEqual(captures, ["/details"]);
+      controller.dispose();
+    })
 );

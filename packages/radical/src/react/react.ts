@@ -216,3 +216,14 @@ export {
 } from "../capabilities/location/location.ts";
 
 export type { WindowLayout } from "../core/context/native-context.ts";
+
+export { useSections } from "./use-sections.ts";
+
+export type {
+  Section,
+  SectionBadge,
+  SectionState,
+  SectionsSnapshot,
+} from "../capabilities/sections/sections.ts";
+
+export { InvalidSection } from "../capabilities/sections/sections.ts";

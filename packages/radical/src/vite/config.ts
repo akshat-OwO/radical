@@ -1,6 +1,7 @@
 import { Effect, Schema, flow } from "effect";
 import { map as mapRecord } from "effect/Record";
 
+import { NavigationSchema } from "../capabilities/sections/sections.ts";
 import { internalPluginRegistry } from "../core/plugins/internal-plugin-registry.ts";
 
 export const HttpOriginSchema = Schema.String.check(
@@ -57,6 +58,7 @@ export const SplashColorSchema = Schema.String.check(
 );
 
 export const RadicalConfigSchema = Schema.Struct({
+  navigation: Schema.optional(NavigationSchema),
   plugins: Schema.optional(
     Schema.Array(
       Schema.Struct({

@@ -19,7 +19,7 @@ export interface RadicalRoute {
 export interface RadicalNavigation {
   readonly navigate: (
     to: string,
-    options?: { readonly replace?: boolean }
+    options?: { readonly replace?: boolean; readonly viewTransition?: boolean }
   ) => Effect.Effect<void, AdapterUnavailable | NavigationFailed>;
   readonly onBeforeNavigate: (
     callback: (from: string, to: string) => Effect.Effect<void>

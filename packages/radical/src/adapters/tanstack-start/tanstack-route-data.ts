@@ -3,6 +3,7 @@ import type { Transition } from "../../capabilities/transitions/browser-transiti
 /** Route options shared by offline snapshots and transitions. */
 export interface RadicalRouteOptions {
   readonly offline?: boolean;
+  readonly navigation?: "hidden";
   readonly transition?: Transition["kind"];
 }
 

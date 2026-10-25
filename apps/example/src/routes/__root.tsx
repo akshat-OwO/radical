@@ -3,8 +3,16 @@ import {
   mountNativeContext,
   safeAreaStyle,
 } from "@akshatowo/radical/client";
-import { RadicalProvider, useRadicalRuntime } from "@akshatowo/radical/react";
-import { watchNotificationNavigation } from "@akshatowo/radical/tanstack-start-client";
+import {
+  RadicalProvider,
+  useRadicalRuntime,
+  useSections,
+  useWindowLayout,
+} from "@akshatowo/radical/react";
+import {
+  TanStackSections,
+  watchNotificationNavigation,
+} from "@akshatowo/radical/tanstack-start-client";
 import {
   useRouter,
   ClientOnly,
@@ -40,6 +48,70 @@ const NotificationNavigation = () => {
   return null;
 };
 
+const SectionNavigation = () => {
+  const { sections, active, hidden, select } = useSections();
+  const { widthClass } = useWindowLayout();
+
+  if (hidden) {
+    return null;
+  }
+
+  const rail = widthClass !== "compact";
+
+  return (
+    <nav
+      aria-label="Sections"
+      style={{
+        position: "fixed",
+        zIndex: 10,
+        background: "white",
+        display: "flex",
+        gap: 8,
+        padding: 12,
+        paddingBottom: rail
+          ? 12
+          : "calc(var(--radical-safe-area-bottom) + 12px)",
+        ...(rail
+          ? {
+              left: "var(--radical-safe-area-left)",
+              top: "30%",
+              width: 80,
+              flexDirection: "column",
+            }
+          : { bottom: 0, left: 0, right: 0, justifyContent: "center" }),
+      }}
+    >
+      {sections.map((section) => (
+        <button
+          key={section.id}
+          type="button"
+          aria-current={active?.id === section.id ? "page" : undefined}
+          onClick={() => {
+            void select(section.id);
+          }}
+        >
+          {section.title}
+          {section.badge === null ? "" : ` (${section.badge})`}
+        </button>
+      ))}
+    </nav>
+  );
+};
+
+const SectionLayout = ({ children }: { children: ReactNode }) => {
+  const router = useRouter();
+
+  return (
+    <TanStackSections
+      router={router}
+      sections={config.navigation?.sections ?? []}
+    >
+      <SectionNavigation />
+      {children}
+    </TanStackSections>
+  );
+};
+
 const RootDocument = ({ children }: { children: ReactNode }) => {
   const nativeContext = Route.useLoaderData();
 
@@ -56,12 +128,12 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
     <html lang="en" style={rootStyle}>
       <head>
         <HeadContent />
-        <style>{`body { margin: 0; background: #dae9f5; } main { display: flex; flex-direction: column; align-items: stretch; min-height: 100dvh; box-sizing: border-box; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 16px) calc(var(--radical-safe-area-left) + 16px); } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
+        <style>{`body { margin: 0; background: #dae9f5; } main { display: flex; flex-direction: column; align-items: stretch; min-height: 100dvh; box-sizing: border-box; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 72px) calc(var(--radical-safe-area-left) + 16px); } @media (min-width: 600px) { main { padding-left: calc(var(--radical-safe-area-left) + 120px); } } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
       </head>
       <body>
         <RadicalProvider nativeContext={nativeContext}>
           <NotificationNavigation />
-          {children}
+          <SectionLayout>{children}</SectionLayout>
         </RadicalProvider>
         <Scripts />
       </body>

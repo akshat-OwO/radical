@@ -224,6 +224,7 @@ export const resolveBuildPlan = flow(
 
       return {
         config,
+        navigation: config.navigation,
         capabilities,
         plugins,
         options: { location, camera, videoStream, googleSignIn },

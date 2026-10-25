@@ -58,3 +58,5 @@ export { tanstackStartAdapterLayer } from "./tanstack-start-client.ts";
 export const tanstackStartOptions = (config: RadicalConfig) => ({
   spa: { enabled: config.mode === "bundled" },
 });
+
+export { TanStackSections, tanstackSections } from "./tanstack-sections.ts";

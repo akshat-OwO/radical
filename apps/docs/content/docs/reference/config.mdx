@@ -23,6 +23,10 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 
 Display names resolve as platform `name`, shared `name`, legacy `appName`, then `appId`. Remote iOS generation permits at most ten distinct server and allowlist hostnames.
 
+## Navigation fields
+
+`navigation.sections` declares 2 to 5 sections. Each has a unique `id`, `title`, unique absolute `route`, and `icon: { ios, android }`. `selectedIcon` is optional and has the same shape. The first entry is the start section. See [Sections](/docs/reference/sections) for validation, routing, badges, and the headless hook.
+
 ## Image fields
 
 | Field | Type | Constraints |
