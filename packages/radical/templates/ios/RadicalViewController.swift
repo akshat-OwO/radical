@@ -4,6 +4,7 @@ import WebKit
 // Remote mode uses WebKit's networking and persistent cookie store.
 // Capacitor sets limitsNavigationsToAppBoundDomains before creating the WebView.
 final class RadicalViewController: CAPBridgeViewController {
+    __NAVIGATION_HOST__
     private var navigationProxy: RadicalNavigationDelegate?
     private var startupSplash: UIImageView?
 
@@ -11,6 +12,7 @@ final class RadicalViewController: CAPBridgeViewController {
     private var started = false
     private var writing = false
     private var laidOut = false
+    private var navigationSafeArea: UIEdgeInsets?
     private var lastInsets: UIEdgeInsets?
     private var lastWidth: CGFloat?
     private var safeAreaScript: WKUserScript?
@@ -25,6 +27,7 @@ final class RadicalViewController: CAPBridgeViewController {
 
     override func capacitorDidLoad() {
         __PLUGIN_REGISTRATION__
+        __NAVIGATION_REGISTRATION__
     }
 
     override func viewDidLoad() {
@@ -114,9 +117,15 @@ final class RadicalViewController: CAPBridgeViewController {
         updateSafeArea()
     }
 
+    func setNavigationSafeArea(_ insets: UIEdgeInsets) {
+        guard navigationSafeArea != insets else { return }
+        navigationSafeArea = insets
+        updateSafeArea()
+    }
+
     private func updateSafeArea() {
         guard let webView = webView, view.window != nil, laidOut, !writing else { return }
-        let insets = view.safeAreaInsets
+        let insets = navigationSafeArea ?? view.safeAreaInsets
         let width = view.bounds.width
         guard lastInsets != insets || lastWidth != width else { return }
         writing = true
@@ -158,7 +167,7 @@ final class RadicalViewController: CAPBridgeViewController {
             let injection = WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
             self.safeAreaScript = injection
             controller.addUserScript(injection)
-            if self.view.safeAreaInsets != insets || self.view.bounds.width != width { self.updateSafeArea(); return }
+            if (self.navigationSafeArea ?? self.view.safeAreaInsets) != insets || self.view.bounds.width != width { self.updateSafeArea(); return }
             if !self.started { self.started = true; self.startNavigation() }
             else { webView.evaluateJavaScript(script, completionHandler: nil) }
         }

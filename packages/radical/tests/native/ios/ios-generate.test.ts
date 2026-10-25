@@ -25,6 +25,7 @@ import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
 import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?raw";
+import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw";
 import settings from "../../../templates/ios/RadicalSettingsPlugin.swift?raw";
 import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../../../templates/ios/RadicalViewController.swift?raw";
@@ -59,6 +60,7 @@ const memory = (
       JSON.stringify({ config, url, outputs: adapterOutputs }),
     ],
     ["/package/templates/ios/RadicalViewController.swift", activity],
+    ["/package/templates/ios/RadicalNavigation.swift", navigationSource],
     ["/package/templates/ios/LaunchScreen.storyboard", launchScreen],
     ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
@@ -160,6 +162,14 @@ const memory = (
         if (command._tag === "StandardCommand") {
           commands.push([...command.args]);
           const app = `${command.options.cwd}/ios/App/App`;
+          files.set(
+            `${command.options.cwd}/ios/App/App.xcodeproj/project.pbxproj`,
+            "IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;"
+          );
+          files.set(
+            `${command.options.cwd}/ios/App/CapApp-SPM/Package.swift`,
+            "platforms: [.iOS(.v15)]"
+          );
           files.set(
             `${app}/AppDelegate.swift`,
             "import UIKit\n// Capacitor app"
@@ -455,9 +465,15 @@ describe("iOS shell generation", () => {
         });
         assert.include(source, "httpCookieStore.setCookie");
         assert.include(source, "view.window != nil");
-        assert.include(source, "let insets = view.safeAreaInsets");
+        assert.include(
+          source,
+          "let insets = navigationSafeArea ?? view.safeAreaInsets"
+        );
         assert.include(source, "override func viewSafeAreaInsetsDidChange()");
-        assert.include(source, "self.view.safeAreaInsets != insets");
+        assert.include(
+          source,
+          "(self.navigationSafeArea ?? self.view.safeAreaInsets) != insets"
+        );
         assert.include(source, "window.__radical");
         assert.include(source, 'HTTPCookiePropertyKey("HttpOnly"): "TRUE"');
         assert.include(
@@ -1120,3 +1136,121 @@ it.effect(
     }).pipe(Effect.provide(state.layer));
   }
 );
+
+const navigation: Schema.Json = {
+  sections: [
+    {
+      id: "home",
+      title: "Home",
+      route: "/",
+      icon: { ios: "house", android: "home.svg" },
+      selectedIcon: { ios: "house.fill", android: "home.svg" },
+    },
+    {
+      id: "about",
+      title: "About",
+      route: "/about",
+      icon: { ios: "info.circle", android: "about.svg" },
+    },
+  ],
+};
+
+describe("ios native navigation", () => {
+  for (const mode of ["remote", "bundled"] as const) {
+    it.effect(
+      `generates adaptive bars and raises only the sections app's deployment target in ${mode} mode`,
+      () => {
+        const state = memory(false, {
+          ...defaultConfig,
+          navigation,
+          mode,
+          origin: "https://app.test",
+        });
+
+        state.files.set("/app/web/public/entry.html", "<html>Bundled</html>");
+
+        return Effect.gen(function* () {
+          yield* generate;
+          const source = state.files.get(appDelegate) ?? "";
+
+          assert.include(
+            source,
+            "final class RadicalTabController: UITabBarController"
+          );
+          assert.include(source, "mode = .tabSidebar");
+          assert.include(
+            source,
+            'UITab(title: "Home", image: UIImage(systemName: "house"), identifier: "home")'
+          );
+          assert.include(source, '"selectedIcon": "house.fill"');
+          assert.include(
+            source,
+            "bridge?.registerPluginInstance(RadicalNavigationPlugin())"
+          );
+          assert.include(source, "contentLayoutGuide.layoutFrame");
+          assert.include(source, "content.setNavigationSafeArea(required)");
+          assert.include(source, "safeAreaLayoutGuide.layoutFrame");
+          assert.include(source, "radicalSectionSelect");
+          assert.include(source, "tab.badgeValue = nil");
+          assert.include(source, "setTabBarHidden(hidden, animated: false)");
+          assert.notInclude(source, "__SECTIONS__");
+          assert.include(
+            state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`) ??
+              "",
+            "RadicalTabController()"
+          );
+          assert.include(
+            state.files.get(
+              `${destination}/ios/App/App/Base.lproj/Main.storyboard`
+            ) ?? "",
+            'customClass="RadicalTabController"'
+          );
+          assert.strictEqual(
+            state.files.get(
+              `${destination}/ios/App/App.xcodeproj/project.pbxproj`
+            ),
+            "IPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;"
+          );
+          assert.strictEqual(
+            state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),
+            'platforms: [.iOS("18.0")]'
+          );
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
+
+  it.effect(
+    "keeps iOS 15 and the bridge root for apps without sections",
+    () => {
+      const state = memory();
+
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "RadicalTabController"
+        );
+        assert.notInclude(
+          state.files.get(appDelegate) ?? "",
+          "RadicalNavigationPlugin"
+        );
+        assert.include(
+          state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`) ??
+            "",
+          "RadicalViewController()"
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/ios/App/App.xcodeproj/project.pbxproj`
+          ) ?? "",
+          "IPHONEOS_DEPLOYMENT_TARGET = 15.0;"
+        );
+        assert.strictEqual(
+          state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),
+          "platforms: [.iOS(.v15)]"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+});
