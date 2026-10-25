@@ -58,19 +58,32 @@ History `BACK` and negative `GO` reverse slide direction. App back controls and 
 
 ## System back
 
-The native installer also owns system back. It records each history entry's full internal href by TanStack's `__TSR_index` in session storage, so decisions survive reloads. After every resolved navigation, and when `TanStackSections` binds, it decides what back would do:
+The native installer records full internal hrefs by TanStack's `__TSR_index` in session storage so back decisions survive reloads. After navigation resolves or sections bind, the first matching rule applies:
 
-- Below a section root, pop when the previous href differs and belongs to the same section. Query and hash changes count. Hidden and unowned routes keep their pathname-based history behaviour.
-- Otherwise, inside a section but away from its root, replace the entry with the section root.
-- At any section root, pop only for a different href with the same pathname. Otherwise, at another section's root, replace the entry with the start section's destination, which restores its route memory.
-- Otherwise, at the start section's root, exit. Without sections, pop if there is a previous entry, or exit.
+| Location | Decision |
+| --- | --- |
+| Section root, previous entry has the same pathname and a different query or hash | Pop |
+| Start section root | Exit |
+| Other section root | Select start section, restoring its remembered URL |
+| Below a section root, previous URL differs and belongs to the same section | Pop |
+| Below a section root, otherwise | Select current section root |
+| Hidden or unowned route | Pop if the previous pathname differs, ignoring trailing slashes. Otherwise select start section. |
+| No sections | Pop if a previous entry exists, otherwise exit |
 
-Selections replace history and play the reversed slide when they stay inside a section. The installer publishes the decision with `setBack({ handles, pop, index })` and receives `radicalBack` events with `{ interactive }`.
+Selections replace history. Pops and returns to the current section root use the reversed route transition. Cross-section changes skip transitions.
 
-- `setBack` is advisory. Android enables its `OnBackPressedCallback` only while `handles` is true, so a page at the start root lets the system preview leaving the app. Until the first `setBack`, Android follows WebView history as before.
-- Android declares `android:enableOnBackInvokedCallback`. During an in-app predictive back gesture, the content scales down by up to 8% and shifts toward the far edge. Release resets it before the reversed slide captures. Cancel resets it.
-- `exit({})` disables the callback for one dispatch. iOS has nothing to exit to.
-- iOS tracks a pan that starts within 24 points of the left edge, only while `pop` is true. Forward transitions retain the window snapshot of the page they leave, keyed by its history index, up to five entries. `setBack` drops snapshots at or above the live index. With a retained snapshot, the live content follows the finger over the snapshot, which moves from a -30% parallax offset under a fading 12% dim. Release past 35% of the width, or with a rightward velocity above 600 points per second, finishes the slide and sends `{ interactive: true }`. The installer pops without a second animation, waits for paint, and calls `settle({})`, which restores the live content once WebKit has drawn the popped page. Earlier releases animate back and remove the snapshot. A three-second watchdog restores the page if `settle` never arrives. Past the retained depth, or after the shell restarts, the page does not track the finger; release sends `{ interactive: false }`, which runs the reversed slide.
+| Bridge operation | Contract |
+| --- | --- |
+| `setBack({ handles, pop, index })` | Publishes the decision. `handles` is false for exit; `pop` enables iOS history swipes. |
+| `radicalBack` with `{ interactive }` | Requests back. `interactive: true` means the shell already animated the pop. |
+| `settle({})` | Reveals the live page after an interactive pop paints. |
+| `exit({})` | Android disables its callback for one dispatch. iOS does nothing. |
+
+Android enables `android:enableOnBackInvokedCallback`. In-app predictive back shrinks the page; release or cancellation resets the preview. At exit, the disabled callback lets the system show back-to-home. Before the first `setBack`, Android follows WebView history.
+
+iOS enables left-edge swipes only for history pops. The page tracks the finger over a snapshot retained by forward slides, up to five levels. Without a snapshot, release runs the reversed slide. Section roots have no swipe except for query/hash history pops.
+
+An interactive pop skips a second animation and calls `settle` after paint. A three-second watchdog restores content if settlement fails.
 
 `cancel()` removes the current native overlay without interrupting the router commit. `dispose()` also restores the original router hook and removes history listeners. Concurrent commits serialize their overlays so an earlier cleanup cannot uncover a later capture. Browser cancellation and CSS duration behavior remain unchanged.
 

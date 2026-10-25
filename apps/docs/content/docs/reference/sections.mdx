@@ -1,31 +1,47 @@
 ---
 title: Sections
-description: Section declarations, route memory, badges, and headless navigation.
+description: Config, route memory, badges, and native navigation.
 ---
 
 ## Config
 
-`navigation.sections` declares 2 to 5 sections in order. The first section is the start section.
+`navigation.sections` enables native navigation. It accepts 2 to 5 sections in display order. The first is the start section.
 
-| Field | Value |
+```ts
+const navigation = {
+  sections: [
+    {
+      id: "home",
+      title: "Home",
+      route: "/",
+      icon: { ios: "house", android: "./assets/home.svg" },
+    },
+    {
+      id: "inbox",
+      title: "Inbox",
+      route: "/inbox",
+      icon: { ios: "tray", android: "./assets/inbox.svg" },
+    },
+  ],
+};
+```
+
+| Field | Constraints |
 | --- | --- |
-| `id` | Unique, nonempty string |
-| `title` | Nonempty string |
-| `route` | Unique absolute path, without a query, fragment, or trailing slash except `/` |
-| `icon` | `{ ios: "house", android: "./assets/home.svg" }` |
-| `selectedIcon` | Optional icon pair with the same shape |
+| `id` | Unique string with non-whitespace text |
+| `title` | String with non-whitespace text |
+| `route` | Unique absolute path. No query, hash, whitespace, backslash, repeated slashes, or dot segments, including percent-encoded dots. No trailing slash except `/`. |
+| `icon` | `{ ios, android }`: SF Symbol name and app-root-relative SVG path |
+| `selectedIcon` | Optional icon pair. Defaults to `icon`. |
 
-`ios` names an SF Symbol. `android` names an SVG file relative to the app root. Shell builds consume these declarations for native navigation. Android generation converts both icon appearances to VectorDrawables. Invalid or unsupported SVGs fail generation with `InvalidAsset` before replacing the previous shell.
-
-Validation returns `InvalidConfig` with the bad field's path. Section declarations appear in `virtual:radical/config`, the build plan's `navigation`, and `radical-manifest.json` under `navigation`.
+Invalid declarations return `InvalidConfig` with the field path. Android converts SVGs to VectorDrawables. Paths, basic geometry, and transforms are supported. `currentColor` uses Material's item tint. Unsupported SVGs fail generation with `InvalidAsset` before replacing the shell.
 
 ## React
 
-`TanStackSections` is exported from `@akshatowo/radical/tanstack-start-client` and its Effect equivalent. It connects one router to section state and supplies the hook's context. It accepts `router`, `sections`, and `children`, and belongs under `RadicalProvider` around the route outlet.
+`TanStackSections` connects one router to section state. It accepts `router`, `sections`, and `children` under `RadicalProvider`, around the route outlet.
 
 ```tsx
 import { useRouter } from "@tanstack/react-router";
-import { useSections, useWindowLayout } from "@akshatowo/radical/react";
 import { TanStackSections } from "@akshatowo/radical/tanstack-start-client";
 import { config } from "virtual:radical/config";
 
@@ -33,95 +49,64 @@ function SectionLayout({ children }) {
   const router = useRouter();
   return (
     <TanStackSections router={router} sections={config.navigation.sections}>
-      <Navigation />
       {children}
     </TanStackSections>
   );
 }
-
-function Navigation() {
-  const { sections, active, hidden, select } = useSections();
-  const { widthClass } = useWindowLayout();
-  if (hidden) return null;
-  return (
-    <nav
-      style={{
-        display: "flex",
-        flexDirection: widthClass === "compact" ? "row" : "column",
-      }}
-    >
-      {sections.map((section) => (
-        <button
-          key={section.id}
-          aria-current={active?.id === section.id ? "page" : undefined}
-          onClick={() => void select(section.id)}
-        >
-          {section.title} {section.badge}
-        </button>
-      ))}
-    </nav>
-  );
-}
 ```
 
-Radical ships no styled navigation component. The example app places its web bar at the bottom on compact windows and a rail on medium and expanded windows.
+`useSections()` from `@akshatowo/radical/react` supplies state and actions for custom browser controls. Radical has no styled navigation component.
 
-| `useSections()` field | Behavior |
+| Field | Behavior |
 | --- | --- |
-| `sections` | Ordered declarations, each with `badge`, initially `null` |
+| `sections` | Ordered declarations with `badge`, initially `null` |
 | `active` | Active section or `null` |
 | `hidden` | `true` when no section is active |
-| `select(id)` | Returns a Promise. Restores an inactive section's last URL or its root if unvisited. Selecting the active section returns to its root. |
-| `setBadge(id, value)` | Returns a Promise. Accepts a finite number, a string of 1 to 4 characters, or `null` to clear. Badges are held in memory and never persisted. |
+| `select(id)` | Promise. Restores an inactive section's last URL, or its root if unvisited. Selecting the active section returns to its root. Replaces the history entry. |
+| `setBadge(id, value)` | Promise. Accepts a finite number, a string of 1 to 4 characters, or `null` to clear. Badges stay in memory. |
 
-`InvalidSection` is exported from both React entry points. Unknown ids, invalid badges, and actions without a provider fail with `InvalidSection`. Without a provider, the hook returns empty sections and `hidden: true`.
+Unknown ids, invalid badges, and actions without a provider fail with `InvalidSection`, exported from both React entry points. Without a provider, state is `{ sections: [], active: null, hidden: true }`.
+
+Custom web controls must respect `hidden`. In native shells, web controls can be omitted when native context reports `ios` or `android`. `TanStackSections` must stay mounted to handle native selections. Bundled apps read `localNativeContext()` after hydration to preserve the browser context used by the first render.
 
 ## Routing
 
-A section owns its root path and descendants at path segment boundaries. The longest matching prefix wins. `/inbox` owns `/inbox/message`, but not `/inboxes`. The TanStack adapter builds each declared internal destination once, then applies its `caseSensitive` setting. Declarations use the same internal coordinates as `location.pathname` and `location.href`, without the basepath or custom output rewrite found in `publicHref`. Declaration normalization does not apply browser input rewrites. The router's trailing-slash policy does not change prefix ownership. Matching defaults to case-insensitive in TanStack. Encoded and decoded non-ASCII declarations match the same pathname, including mixed encoding. Reserved escapes such as `%2F` stay encoded, as in the router. Original declarations remain available as navigation destinations. Literal trailing slashes other than `/`, repeated slashes, and dot segments are rejected by config validation. Percent-encoded dot segments are also rejected because URL processing can collapse them. Query strings and fragments do not affect ownership. Memory preserves the complete URL, including both.
+| Rule | Behavior |
+| --- | --- |
+| Ownership | Longest path prefix at a segment boundary. `/inbox` owns `/inbox/message`, not `/inboxes`. `/` owns all paths unless a longer prefix matches. |
+| TanStack paths | Internal paths, as in `location.pathname` and `location.href`, without the basepath or output rewrite in `publicHref`. Input rewrites do not apply to declarations. |
+| Matching | Uses the router's `caseSensitive` option, default `false`. Trailing-slash policy does not change ownership. Encoded and decoded non-ASCII paths match. Reserved escapes such as `%2F` stay encoded. |
+| Query and hash | Do not affect ownership. Section memory keeps both. Direct links and history update memory after navigation resolves. |
+| Hidden routes | Unowned routes and `staticData: { radical: { navigation: "hidden" } }` hide controls and set `active: null`. The setting applies to descendants. |
+| Transitions | Section selection disables transitions. With `browserTransitions(router)`, direct navigation across sections also skips transitions. Within a section, route transitions apply. |
 
-Routes outside every section hide the bars. `staticData: { radical: { navigation: "hidden" } }` also hides the bars and reports `active: null`, including on descendants. Direct links and history update section memory after the router resolves.
+System back follows the [back rules](/docs/reference/transitions#system-back).
 
-Section selection disables transitions. With `browserTransitions(router)` installed, direct navigation between different sections also skips browser and native transitions. Navigation within a section keeps its route transition.
+## Native controls
+
+Section declarations compile into the shell, so controls appear before mount in remote, bundled, and offline launches. After mount, `TanStackSections` updates selection, visibility, and badges.
+
+| Platform | Placement and requirements |
+| --- | --- |
+| iOS | Bottom bar on iPhone, sidebar on iPad and the Duo's inner display, vertical bar on its outer display. Requires iOS 18 with sections, iOS 15 without. Duo support requires the iOS 27.1 SDK. |
+| iPad sidebar | Opens at launch only in regular-width landscape windows. Users can collapse or reopen it. In narrower windows it opens over the page. |
+| Android | Material 3 bottom bar below 600 CSS pixels, rail at 600 and above. Placement updates on resize, rotation, and folding. |
+| Android separating hinge | Vertical: controls stay in the left pane. Horizontal: rail stays above the hinge, bottom bar below it. |
+| Badges | iOS displays numbers as text. Android displays numbers as nonnegative integers and strings as text. `null` clears either. |
+
+The iOS page draws edge to edge under the status bar, tab bar, and sidebar. Native-context safe-area insets and `--radical-safe-area-*` variables describe the space clear of bars. `safeAreaStyle` exposes these values for page layout.
+
+Android keeps a window-sized CSS viewport. Safe-area insets include navigation controls and update with the keyboard. Hidden routes remove navigation controls and their insets.
 
 ## Effect API
 
-`@akshatowo/radical/effect/react` exports `useSections()` with the same state and Effect-returning `select` and `setBadge`.
+`@akshatowo/radical/effect/react` exports the same hook state with Effect-returning actions. `TanStackSections` is also exported from `@akshatowo/radical/effect/tanstack-start-client`.
 
-`@akshatowo/radical/effect/client` exports `makeSections`, `Sections`, `sectionsLayer`, `selectSection`, and `setSectionBadge`. `makeSections(sections, initialLocation, navigate, initialHidden?, ownership?)` creates an isolated controller. `initialLocation` and `controller.update(location, hidden?)` take `{ href, pathname }`: the complete URL for memory and the decoded pathname for ownership. `sectionOwnership(sections, caseSensitive = true, normalizePathname?)` compiles an ownership matcher, preserving the original declarations. The default normalizer leaves paths unchanged. The TanStack adapter supplies a matcher compiled with its internal destination builder and case setting to both the controller and transition checks. `controller.subscribe(listener)` returns cleanup. `sectionsLayer(controller)` supplies the `Sections` service to the two action Effects.
+| Export from `@akshatowo/radical/effect/client` | Contract |
+| --- | --- |
+| `makeSections(sections, initialLocation, navigate, initialHidden?, ownership?)` | Effect that creates an isolated controller. Locations are `{ href, pathname }`: full URL for memory, decoded pathname for ownership. |
+| Controller | `snapshot()`, `destination(id)`, `select(id)`, `setBadge(id, value)`, `update(location, hidden?)`, and `subscribe(listener)`. Subscription returns cleanup. |
+| `sectionOwnership(sections, caseSensitive = true, normalizePathname?)` | Compiles a matcher. Default normalization leaves paths unchanged. Original declarations remain navigation destinations. |
+| `Sections`, `sectionsLayer(controller)` | Service and layer for `selectSection(id)` and `setSectionBadge(id, value)` Effects. |
 
-`@akshatowo/radical/effect/tanstack-start-client` also exports `tanstackSections(router, sections)`. It exposes `{ controller, mount }` for non-React consumers. `mount` requires `Bridge` and returns cleanup. React's `TanStackSections` owns that lifecycle.
-
-## Shell bridge contract
-
-The section controller also works in browsers and shells without native navigation.
-
-The adapter sends `RadicalNavigation.update` with `{ sections, active, hidden }` on mount and state changes. Entries include badges. Shells without this command can ignore it. Shells draw bars only when `hidden` is false.
-
-Shells send a `radicalSectionSelect` event with `{ id }` for each selection intent. Selection events must not be retained or replayed. The adapter performs the route change. Invalid payloads and unknown ids are ignored. Route memory and badge state stay in the web app's single controller.
-
-## iOS shell
-
-Configuring sections enables native navigation and sets the generated app's minimum deployment target to iOS 18. Apps without sections keep iOS 15. Build with the iOS 27.1 SDK for iPhone Duo support.
-
-The shell uses `UITab` with sidebar-adaptive placement. UIKit places a bottom bar on iPhone, a sidebar on iPad and the Duo's inner display, and a vertical bar on its outer display. The sidebar opens at launch in regular-width landscape windows, where it tiles beside the page. Narrower windows start with UIKit's tab bar, and the sidebar opens as a dimming overlay. Users can collapse or reopen it. SF Symbols come from `icon.ios`; `selectedIcon.ios` supplies the selected variant. `setBadge` updates the native badge, and `null` clears it.
-
-The shell retains one WebView, which never changes parents. The page draws edge to edge, under the status bar and behind the Liquid Glass bars. Bar space reaches the page through the existing safe-area CSS variables and native context. Apply `safeAreaStyle` or those variables to page content so controls stay clear of the bars while backgrounds extend under them.
-
-Declarations are compiled into the shell. Bars are present before the web app mounts, including bundled and offline launches. Once mounted, `TanStackSections` updates selection, visibility, and badges. Routes outside sections and routes marked `navigation: "hidden"` hide the native controls.
-
-Apps that draw browser navigation should omit their web controls when their native context has `platform: "ios"` or `platform: "android"`. Keep `TanStackSections` mounted so native selection intents still reach the router. Bundled apps read `localNativeContext()` after hydration because the packaged HTML has browser context. The example app uses `useSyncExternalStore` to preserve the first render and then read the shell platform.
-
-## Android shell
-
-Configuring sections adds Material Components 1.14.0 and a Material 3 theme to the generated Java shell. Apps without sections keep their existing theme and dependencies.
-
-`BottomNavigationView` draws the controls below 600 CSS pixels. `NavigationRailView` draws them at medium and expanded widths. Rotation, resizing, and folding update placement without recreating or reparenting the WebView. WindowManager supplies the separating hinge bounds. A vertical hinge bounds controls to the left pane. A horizontal hinge bounds the rail to the upper pane and the bottom bar to the lower pane.
-
-The WebView keeps its window-sized CSS viewport. The shell clips the bar area and publishes that space through native-context safe-area insets and the existing CSS variables. Page content uses `safeAreaStyle` or those variables, including while the keyboard is visible.
-
-`icon.android` and `selectedIcon.android` name SVG files relative to the app root. The selected icon defaults to `icon.android`. Conversion supports paths, basic geometry, and transforms. `currentColor` becomes black before conversion so Material's item tint supplies the control color. Unsupported VectorDrawable elements and attributes fail generation. Drawable filenames use section indices, independent of section ids.
-
-Selection sends an intent and waits for the adapter's state. Tapping the active section still sends an intent to return to its root. Route changes select the matching item without emitting an intent. Number badges use Material's nonnegative integer count display, strings use text badges, and `null` removes the badge. Hidden routes remove both bars and their insets.
-
-Section declarations are compiled into the shell, so bars exist before bridge registration in remote, bundled, and offline launches. `TanStackSections` remains mounted to update route selection, badges, and visibility.
+`tanstackSections(router, sections)` from the Effect TanStack entry point returns `{ controller, mount }`. `mount` requires `Bridge` and returns cleanup. The adapter applies the router's path normalization and case setting to ownership and transition checks. React's `TanStackSections` manages mounting and cleanup.
