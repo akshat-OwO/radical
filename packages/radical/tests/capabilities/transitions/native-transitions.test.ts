@@ -12,6 +12,7 @@ import {
 import { transitionStrategy } from "../../../src/capabilities/transitions/transition-strategy.ts";
 import { NavigationFailed } from "../../../src/core/adapter/errors.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
+import { ignoredBack } from "../../fixtures/native-back.ts";
 
 const transition = { kind: "slide", direction: "back" } as const;
 
@@ -22,6 +23,7 @@ const fixture = Effect.gen(function* () {
     Ref.update(calls, (values) => [...values, name]);
 
   const service: NativeTransitions["Service"] = {
+    ...ignoredBack,
     nextId: Effect.succeed("one"),
     cover: () => record("cover"),
     painted: record("painted"),
@@ -55,6 +57,7 @@ describe("native snapshot transitions", () => {
       yield* nativeTransition("one", transition, state.commit).pipe(
         Effect.provide(
           Layer.succeed(NativeTransitions, {
+            ...ignoredBack,
             ...state.service,
             cover: () =>
               Effect.fail(new TransitionFailed({ cause: "capture" })),
@@ -74,6 +77,7 @@ describe("native snapshot transitions", () => {
         nativeTransition("one", transition, state.commit, 100).pipe(
           Effect.provide(
             Layer.succeed(NativeTransitions, {
+              ...ignoredBack,
               ...state.service,
               cover: () =>
                 Deferred.succeed(started, true).pipe(
@@ -154,6 +158,7 @@ describe("native snapshot transitions", () => {
         ).pipe(
           Effect.provide(
             Layer.succeed(NativeTransitions, {
+              ...ignoredBack,
               ...state.service,
               reveal: () =>
                 Deferred.succeed(started, true).pipe(
@@ -185,6 +190,7 @@ describe("native snapshot transitions", () => {
         nativeTransition("one", transition, state.commit).pipe(
           Effect.provide(
             Layer.succeed(NativeTransitions, {
+              ...ignoredBack,
               ...state.service,
               painted: Deferred.succeed(started, true).pipe(
                 Effect.andThen(Effect.never)

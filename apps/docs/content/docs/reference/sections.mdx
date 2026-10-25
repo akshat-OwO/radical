@@ -104,9 +104,9 @@ Shells send a `radicalSectionSelect` event with `{ id }` for each selection inte
 
 Configuring sections enables native navigation and sets the generated app's minimum deployment target to iOS 18. Apps without sections keep iOS 15. Build with the iOS 27.1 SDK for iPhone Duo support.
 
-The shell uses `UITab` with sidebar-adaptive placement. UIKit places a bottom bar on iPhone, a sidebar on iPad and the Duo's inner display, and a vertical bar on its outer display. The sidebar can also be collapsed by the user. SF Symbols come from `icon.ios`; `selectedIcon.ios` supplies the selected variant. `setBadge` updates the native badge, and `null` clears it.
+The shell uses `UITab` with sidebar-adaptive placement. UIKit places a bottom bar on iPhone, a sidebar on iPad and the Duo's inner display, and a vertical bar on its outer display. The sidebar opens at launch in regular-width landscape windows, where it tiles beside the page. Narrower windows start with UIKit's tab bar, and the sidebar opens as a dimming overlay. Users can collapse or reopen it. SF Symbols come from `icon.ios`; `selectedIcon.ios` supplies the selected variant. `setBadge` updates the native badge, and `null` clears it.
 
-The shell retains one WebView in a fixed container while UIKit draws the bars. Bar space reaches the page through the existing safe-area CSS variables and native context. Apply `safeAreaStyle` or those variables to page content. The shell clips the WebView outside the unobscured region, so bars cannot cover page controls.
+The shell retains one WebView, which never changes parents. The page draws edge to edge, under the status bar and behind the Liquid Glass bars. Bar space reaches the page through the existing safe-area CSS variables and native context. Apply `safeAreaStyle` or those variables to page content so controls stay clear of the bars while backgrounds extend under them.
 
 Declarations are compiled into the shell. Bars are present before the web app mounts, including bundled and offline launches. Once mounted, `TanStackSections` updates selection, visibility, and badges. Routes outside sections and routes marked `navigation: "hidden"` hide the native controls.
 

@@ -207,7 +207,7 @@ const memory = (
 
           files.set(
             `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
-            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"></manifest>'
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Radical"></application></manifest>'
           );
           files.set(
             `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
@@ -1068,6 +1068,10 @@ it.effect(
           `${destination}/android/app/src/main/AndroidManifest.xml`
         ) ?? "";
 
+      assert.include(
+        manifest,
+        '<application android:enableOnBackInvokedCallback="true" android:label="Radical">'
+      );
       assert.include(manifest, "android.permission.ACCESS_COARSE_LOCATION");
       assert.include(manifest, "android.permission.ACCESS_FINE_LOCATION");
       assert.notInclude(manifest, "ACCESS_BACKGROUND_LOCATION");

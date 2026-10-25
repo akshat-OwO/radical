@@ -35,8 +35,21 @@ export const transitionsPlugin = definePlugin({
         kind: Schema.Literals(["slide", "fade"]),
         direction: Schema.Literals(["forward", "back"]),
         reducedMotion: Schema.Boolean,
+        // History index of the covered page. Forward slides retain its snapshot.
+        index: Schema.optional(Schema.Int),
       }),
     },
+    setBack: {
+      args: Schema.Struct({
+        handles: Schema.Boolean,
+        pop: Schema.Boolean,
+        index: Schema.Int,
+      }),
+      result: Schema.Struct({}),
+      errors: {},
+    },
+    exit: { args: Schema.Struct({}), result: Schema.Struct({}), errors: {} },
+    settle: { args: Schema.Struct({}), result: Schema.Struct({}), errors: {} },
   },
   android: {
     className: "RadicalTransitionsPlugin",

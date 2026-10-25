@@ -27,7 +27,7 @@ These exports live in `@akshatowo/radical/effect/client`.
 | `BrowserTransition` | `finished` Effect and `skip` Effect. |
 | `cancelBrowserTransition` | Effect requiring `BrowserTransitions`. Skips the active transition. |
 | `watchBrowserTransition(timeoutMs)` | Effect requiring `BrowserTransitions`. Skips on timeout; completion does not gate Router's DOM update. |
-| `NativeTransitions`, `NativeTransitionsLive` | Service with `cover(id)`, `reveal(id, transition)`, `remove(id)`, and `painted`. The live layer requires `Bridge`. |
+| `NativeTransitions`, `NativeTransitionsLive` | Service with `cover(id)`, `reveal(id, transition, index?)`, `remove(id)`, `painted`, and the system back operations `setBack`, `exit`, `settle`, and `onBack`. The live layer requires `Bridge`. |
 | `nativeTransition(id, transition, commit, timeoutMs?)` | Effect requiring `NativeTransitions`. Runs the commit once even if capture fails. Default timeout 1000 milliseconds. |
 | `transitionStrategy` | Effect requiring `Bridge \| BrowserTransitions`. Returns `"native"`, `"browser"`, or `"plain"`. |
 
@@ -40,10 +40,26 @@ These exports live in `@akshatowo/radical/effect/client`.
 | Stale overlay | Removed after three seconds |
 | Slide | 30% background parallax; history back reverses direction |
 
+## System back
+
+`browserTransitions(router)` also routes system back in native shells. Apps need no extra API.
+
+| Location | Back |
+| --- | --- |
+| Inside a section, with an earlier page of that section below | Pops router history with the reversed transition |
+| Inside a section, without one | Returns to the section root |
+| Another section's root | Selects the start section, the first in config |
+| Start section's root | Leaves the app on Android. iOS has no swipe here. |
+| Hidden or unowned route | Pops router history, or selects the start section when nothing is below |
+| Any route, without sections | Pops router history, or leaves the app on Android |
+
+Section selections replace the current history entry. On Android, the system shows its predictive back preview: an in-app shrink while the page handles back, and the back-to-home animation at the start root. On iOS, a swipe from the left edge pops history interactively. The page follows the finger over a snapshot of the previous page, kept from forward transitions for the last five entries. Releasing early cancels and removes the snapshot. Past five entries, the swipe runs the reversed slide on release.
+
 ## Platform support
 
 | Capability | Android | iOS | Browser |
 | --- | --- | --- | --- |
 | Navigation transition | Native overlay | Native overlay | Typed view transition if supported; otherwise plain navigation |
+| System back | Predictive back through router history and sections | Interactive edge swipe for history pops | Browser history |
 
 Source: [transition implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/transitions), [protocol details](https://github.com/akshat-OwO/radical/blob/main/packages/radical/docs/transitions.md).

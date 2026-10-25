@@ -16,6 +16,7 @@ import { NativeTransitions } from "../../../src/capabilities/transitions/native-
 import type { Bridge } from "../../../src/core/bridge/bridge.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
 import { validateConfig } from "../../../src/vite/config.ts";
+import { ignoredBack } from "../../fixtures/native-back.ts";
 
 const sections = [
   {
@@ -392,6 +393,7 @@ for (const fixture of [
                 router,
                 {},
                 Layer.succeed(NativeTransitions, {
+                  ...ignoredBack,
                   nextId: Effect.succeed("ownership"),
                   cover: () =>
                     Effect.sync(() => {

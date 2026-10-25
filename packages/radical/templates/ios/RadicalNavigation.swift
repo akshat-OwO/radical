@@ -7,6 +7,7 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
     private let content = RadicalViewController()
     private let viewport = UIView()
     private var navigationHidden = false
+    private var sidebarPlaced = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,15 +20,21 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         content.navigationHost = self
         addChild(content)
         view.backgroundColor = .systemBackground
-        viewport.clipsToBounds = true
         view.addSubview(viewport)
         viewport.addSubview(content.view)
         content.didMove(toParent: self)
-        sidebar.isHidden = false
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // Open the sidebar at launch only where it tiles beside the page. Narrower
+        // windows keep UIKit's tab bar, since an open overlay sidebar dims the page.
+        if !sidebarPlaced, view.window != nil {
+            sidebarPlaced = true
+            if traitCollection.horizontalSizeClass == .regular && view.bounds.width > view.bounds.height {
+                sidebar.isHidden = false
+            }
+        }
         // iOS 26's guide also follows vertical bars on the Duo. On iOS 18,
         // the selected placeholder's safe area describes the unobscured region.
         let frame: CGRect
@@ -38,16 +45,31 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         } else {
             frame = view.safeAreaLayoutGuide.layoutFrame
         }
-        // Keep a window-sized web viewport. Clip it to UIKit's content region and
-        // publish the bar space as safe area, rather than shrinking CSS dimensions.
-        viewport.frame = frame
+        // The page draws edge to edge, under the status bar and behind the bars,
+        // and lays out inside UIKit's content region through safe area.
         let bounds = view.bounds
-        content.view.frame = CGRect(x: -frame.minX, y: -frame.minY, width: bounds.width, height: bounds.height)
+        viewport.frame = bounds
+        content.view.frame = bounds
         let safe = view.safeAreaInsets
         let required = UIEdgeInsets(top: max(safe.top, frame.minY), left: max(safe.left, frame.minX),
             bottom: max(safe.bottom, bounds.maxY - frame.maxY), right: max(safe.right, bounds.maxX - frame.maxX))
         content.setNavigationSafeArea(required)
-        view.bringSubviewToFront(viewport)
+        placeViewport()
+    }
+
+    // Sit directly above the tab content container, so the page covers the empty
+    // placeholder tabs and receives their touches while the bars stay on top.
+    private func placeViewport() {
+        guard var container = selectedViewController?.view else {
+            view.sendSubviewToBack(viewport)
+            return
+        }
+        while let parent = container.superview, parent !== view { container = parent }
+        guard container.superview === view, container !== viewport else { return }
+        let subviews = view.subviews
+        guard let containerIndex = subviews.firstIndex(of: container),
+              subviews.firstIndex(of: viewport) != containerIndex + 1 else { return }
+        view.insertSubview(viewport, aboveSubview: container)
     }
 
     private func updateImages() {

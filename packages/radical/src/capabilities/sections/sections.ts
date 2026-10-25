@@ -172,6 +172,21 @@ export const makeSections = (
       }
     };
 
+    const destination = (id: string) =>
+      Effect.gen(function* () {
+        const section = entries.find((entry) => entry.id === id);
+
+        if (!section) {
+          return yield* new InvalidSection({
+            message: `Unknown section id: ${id}`,
+          });
+        }
+
+        return snapshot.active?.id === id
+          ? section.route
+          : (memory.get(id) ?? section.route);
+      });
+
     return {
       snapshot: () => snapshot,
       subscribe: (listener: () => void) => {
@@ -188,22 +203,10 @@ export const makeSections = (
           remember();
           publish();
         }),
+      /** The active section returns to its root; others restore their last route. */
+      destination,
       select: (id: string) =>
-        Effect.gen(function* () {
-          const section = entries.find((entry) => entry.id === id);
-
-          if (!section) {
-            return yield* new InvalidSection({
-              message: `Unknown section id: ${id}`,
-            });
-          }
-
-          return yield* navigate(
-            snapshot.active?.id === id
-              ? section.route
-              : (memory.get(id) ?? section.route)
-          );
-        }),
+        destination(id).pipe(Effect.flatMap((to) => navigate(to))),
       setBadge: (id: string, value: SectionBadge) =>
         Effect.gen(function* () {
           if (!entries.some((entry) => entry.id === id)) {

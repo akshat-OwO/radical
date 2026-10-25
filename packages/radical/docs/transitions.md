@@ -54,7 +54,23 @@ Android copies the hardware-rendered window with PixelCopy on API 26 or later. I
 
 `timeoutMs` defaults to 1000ms for capture, painted-plus-reveal, and cleanup waits. The router commit always runs to completion without a transition timeout. Capture failure or timeout removes the overlay before running the commit once as plain navigation. Commit failure keeps its typed error and runs cleanup. Slow commits continue even after the native watchdog expires the snapshot. Their result and their own typed errors propagate unchanged. `TransitionTimeout` represents an overlay operation timing out; recovery consumes that error and keeps navigation running. Reveal failure or timeout preserves the committed route and runs cleanup. Interruption also removes the overlay. Cleanup failure is bounded and ignored because each shell independently expires its overlay three seconds after capture, even if JavaScript dies. Native commands carry an id so late paint, animation, and watchdog callbacks cannot remove a newer overlay.
 
-History `BACK` and negative `GO` reverse slide direction, including Android system back. The generated Android shell registers an OnBackPressedDispatcher callback that calls WebView history when available and delegates to activity back otherwise. The button and system gesture share that path. iOS keeps WebKit's built-in history gestures disabled; radical does not enable a competing swipe animation. App back controls and SPA history changes use the reversed native slide. Cross-document links use platform navigation rather than a second radical overlay.
+History `BACK` and negative `GO` reverse slide direction. App back controls and SPA history changes use the reversed native slide. Cross-document links use platform navigation rather than a second radical overlay.
+
+## System back
+
+The native installer also owns system back. It records each history entry's decoded pathname by TanStack's `__TSR_index` in session storage, so decisions survive reloads. After every resolved navigation, and when `TanStackSections` binds, it decides what back would do:
+
+- Pop router history when the entry below is a different page owned by the same section. Hidden and unowned routes pop wherever history leads.
+- Otherwise, inside a section but away from its root, replace the entry with the section root.
+- At another section's root, replace the entry with the start section's destination, which restores its route memory.
+- At the start section's root, or with no entry below and no sections, exit.
+
+Selections replace history and play the reversed slide when they stay inside a section. The installer publishes the decision with `setBack({ handles, pop, index })` and receives `radicalBack` events with `{ interactive }`.
+
+- `setBack` is advisory. Android enables its `OnBackPressedCallback` only while `handles` is true, so a page at the start root lets the system preview leaving the app. Until the first `setBack`, Android follows WebView history as before.
+- Android declares `android:enableOnBackInvokedCallback`. During an in-app predictive back gesture, the content scales down by up to 8% and shifts toward the far edge. Release resets it before the reversed slide captures. Cancel resets it.
+- `exit({})` disables the callback for one dispatch. iOS has nothing to exit to.
+- iOS tracks a pan that starts within 24 points of the left edge, only while `pop` is true. Forward transitions retain the window snapshot of the page they leave, keyed by its history index, up to five entries. `setBack` drops snapshots at or above the live index. With a retained snapshot, the live content follows the finger over the snapshot, which moves from a -30% parallax offset under a fading 12% dim. Release past 35% of the width, or with a rightward velocity above 600 points per second, finishes the slide and sends `{ interactive: true }`. The installer pops without a second animation, waits for paint, and calls `settle({})`, which restores the live content once WebKit has drawn the popped page. Earlier releases animate back and remove the snapshot. A three-second watchdog restores the page if `settle` never arrives. Past the retained depth, or after the shell restarts, the page does not track the finger; release sends `{ interactive: false }`, which runs the reversed slide.
 
 `cancel()` removes the current native overlay without interrupting the router commit. `dispose()` also restores the original router hook and removes history listeners. Concurrent commits serialize their overlays so an earlier cleanup cannot uncover a later capture. Browser cancellation and CSS duration behavior remain unchanged.
 

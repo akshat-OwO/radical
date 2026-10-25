@@ -208,13 +208,22 @@ export const generateAndroid = (
         );
 
         const manifest = yield* fs.readFileString(manifestPath);
+
+        const withDeclarations = yield* replaceAnchor(
+          "AndroidManifest.xml",
+          manifest,
+          "</manifest>",
+          `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.android.declarations.join("")}</manifest>`
+        );
+
+        // Predictive back previews leaving the app when the page declines back.
         yield* fs.writeFileString(
           manifestPath,
           yield* replaceAnchor(
             "AndroidManifest.xml",
-            manifest,
-            "</manifest>",
-            `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.android.declarations.join("")}</manifest>`
+            withDeclarations,
+            "<application",
+            '<application android:enableOnBackInvokedCallback="true"'
           )
         );
 
