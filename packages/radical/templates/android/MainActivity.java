@@ -117,7 +117,8 @@ public class MainActivity extends BridgeActivity {
     private String lastContext = "";
     private ScriptHandler safeAreaScript;
     private WindowInfoTrackerCallbackAdapter windowTracker;
-    private WindowLayoutInfo windowLayoutInfo;
+    // WindowInfoTracker may never emit. Metrics and insets are enough to start.
+    private WindowLayoutInfo windowLayoutInfo = new WindowLayoutInfo(Collections.emptyList());
     private final Consumer<WindowLayoutInfo> windowLayoutListener = info -> {
         windowLayoutInfo = info;
         refreshWindowContext();
@@ -144,7 +145,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void updateSafeArea(WebView view, WindowInsetsCompat windowInsets) {
-        if (windowLayoutInfo == null || getWindow().getDecorView().getWidth() == 0) return;
+        if (getWindow().getDecorView().getWidth() == 0) return;
         Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
         // System bars remain edge to edge. Only the IME shrinks web content.
         boolean keyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
