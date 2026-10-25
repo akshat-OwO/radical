@@ -163,6 +163,13 @@ public class MainActivity extends BridgeActivity {
         refreshWindowContext();
     };
 
+    // uiMode is a handled config change, so night mode reaches the bars only through here.
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        refreshWindowContext();
+    }
+
     void refreshWindowContext() {
         if (bridge == null) return;
         WebView view = bridge.getWebView();

@@ -456,6 +456,7 @@ describe("iOS shell generation", () => {
         assert.deepStrictEqual(context, {
           platform: "ios",
           shellVersion: "1.2.3",
+          nativeSectionBar: false,
           windowLayout: {
             widthClass: "compact" as const,
             posture: "flat" as const,
@@ -1137,7 +1138,7 @@ it.effect(
   }
 );
 
-const navigation: Schema.Json = {
+const navigation = {
   sections: [
     {
       id: "home",
@@ -1153,7 +1154,7 @@ const navigation: Schema.Json = {
       icon: { ios: "info.circle", android: "about.svg" },
     },
   ],
-};
+} as const satisfies Schema.Json;
 
 describe("ios native navigation", () => {
   for (const mode of ["remote", "bundled"] as const) {
@@ -1219,6 +1220,30 @@ describe("ios native navigation", () => {
       }
     );
   }
+
+  it.effect(
+    "omits tab controllers in web mode and retains the transition plugin",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        navigation: { ...navigation, bar: { ios: "web" } },
+      });
+
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(appDelegate) ?? "";
+        assert.notInclude(source, "RadicalTabController");
+        assert.notInclude(source, "RadicalNavigationPlugin");
+        assert.include(source, "RadicalTransitionsPlugin");
+        assert.include(source, "nativeSectionBar%22%3Afalse");
+        assert.include(
+          state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`) ??
+            "",
+          "RadicalViewController()"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
 
   it.effect(
     "keeps iOS 15 and the bridge root for apps without sections",

@@ -22,7 +22,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
 
@@ -48,25 +48,11 @@ const NotificationNavigation = () => {
   return null;
 };
 
-const subscribePlatform = () => () => {
-  // The shell platform does not change during this document's lifetime.
-};
-
 const SectionNavigation = () => {
-  const { sections, active, hidden, select } = useSections();
+  const { sections, active, hidden, select, native } = useSections();
   const { widthClass } = useWindowLayout();
-  const nativeContext = Route.useLoaderData();
 
-  const platform = useSyncExternalStore(
-    subscribePlatform,
-    () =>
-      config.mode === "bundled"
-        ? localNativeContext().platform
-        : nativeContext.platform,
-    () => nativeContext.platform
-  );
-
-  if (hidden || platform === "ios" || platform === "android") {
+  if (hidden || native) {
     return null;
   }
 

@@ -9,13 +9,19 @@ UIKit and Material place native navigation controls for the current window. HTML
 
 ## Decision
 
-Apps opt in with 2 to 5 configured sections. The shell draws controls and sends selection intents. The adapter owns routing, section memory, visibility, and badges, as ADR 0001 requires. A headless `useSections()` supports custom browser controls. Radical ships no styled web component.
+Apps opt in with 2 to 5 configured sections. The shell draws controls and sends selection intents. The adapter owns routing, section memory, visibility, and badges, as ADR 0001 requires. A headless `useSections()` supports custom web controls. Radical ships no styled web component.
 
 Sections use longest-prefix path ownership. Unowned and explicitly hidden routes hide controls. Selecting an inactive section restores its last URL; reselecting the active section returns to its root. Cross-section navigation skips transitions. Navigation within a section keeps route transitions.
 
 Window layout joins native context with width classes at 600 and 840 CSS pixels, fold posture, and hinge bounds. Android uses WindowManager; iOS reports flat with no hinge. Browsers use `matchMedia`, avoiding a dependency on the experimental Viewport Segments API.
 
 Layout travels through the native-context cookie for server rendering and bridge events for updates. The client keeps provider values until mount to preserve hydration. Hinge CSS variables appear before mount only when the document declares them through `windowLayoutStyle`.
+
+### Platform bar choice
+
+`navigation.bar` selects native or web controls per platform. The shell includes `nativeSectionBar` in native context so remote SSR and hydration agree on `useSections().native`. Bundled hydration uses the provider first, then reads the injected shell context. Routing and back remain independent of who draws controls.
+
+Android themes use generated `values` and `values-night` color resources. Only declared colors override Material defaults.
 
 ## One fixed WebView
 
@@ -54,7 +60,7 @@ iOS uses a left-edge pan because WebKit intercepts screen-edge recognizers. Forw
 
 ## Consequences
 
-- Apps with sections require iOS 18; other apps retain iOS 15. Duo vertical bars require the iOS 27.1 SDK.
-- Android apps with sections add Material Components 1.14.0 and a Material 3 theme.
+- Apps with native iOS bars require iOS 18; web bars and other apps retain iOS 15. Duo vertical bars require the iOS 27.1 SDK.
+- Android apps with native bars add Material Components 1.14.0 and a Material 3 theme.
 - Badges stay in memory and do not survive launches.
 - Native title bars, back buttons, actions, and runtime section removal are deferred. Runtime removal would tie native declarations to authentication state.

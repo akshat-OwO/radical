@@ -10,6 +10,7 @@ import {
 } from "../../capabilities/sections/sections.ts";
 import type { Section } from "../../capabilities/sections/sections.ts";
 import { Bridge } from "../../core/bridge/bridge.ts";
+import { nativeSectionBar } from "../../core/context/native-section-bar.ts";
 import { BridgeContext } from "../../react/use-bridge-effect.ts";
 import { SectionsProvider } from "../../react/use-sections.ts";
 import { tanstackNavigation } from "./tanstack-navigation.ts";
@@ -68,7 +69,9 @@ export const tanstackSections = (
 
     const removeRoute = router.subscribe("onResolved", update);
     update();
-    const native = (yield* bridge.runtime) !== "browser";
+
+    const native =
+      (yield* bridge.runtime) !== "browser" && nativeSectionBar(true);
 
     const send = () => {
       if (native) {

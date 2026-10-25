@@ -64,6 +64,7 @@ export const ShellContextSchema = Schema.Struct({
   safeArea: SafeAreaSchema,
   windowLayout: windowLayoutField,
   shellVersion: Schema.NonEmptyString,
+  nativeSectionBar: Schema.optional(Schema.Boolean),
 });
 
 export type ShellContext = typeof ShellContextSchema.Type;

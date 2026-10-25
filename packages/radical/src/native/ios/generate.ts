@@ -50,7 +50,10 @@ export const generateIos = (
       path.join(packageRoot, "templates/ios/RadicalViewController.swift")
     );
 
-    const { navigation } = native.plan;
+    const navigation =
+      native.plan.navigation?.bar?.ios === "web"
+        ? undefined
+        : native.plan.navigation;
 
     const rootController = navigation
       ? "RadicalTabController()"

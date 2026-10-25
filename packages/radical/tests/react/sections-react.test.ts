@@ -7,6 +7,9 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 
 import { makeSections } from "../../src/capabilities/sections/sections.ts";
+import { browserContext } from "../../src/core/context/browser-context.ts";
+import { defaultWindowLayout } from "../../src/core/context/native-context.ts";
+import { NativeContextContext } from "../../src/react/use-bridge-effect.ts";
 import {
   SectionsProvider,
   useSections,
@@ -131,6 +134,93 @@ it.effect(
         );
 
         assert.isEmpty(errors);
+      })
+    )
+);
+
+const NativeProbe = ({ onCommit }: { onCommit: (value: string) => void }) => {
+  const plain = useSections();
+  const effect = useSectionsEffect();
+
+  const text = `${plain.native}:${effect.native}`;
+  useLayoutEffect(() => {
+    onCommit(text);
+  }, [text, onCommit]);
+
+  return createElement("pre", null, text);
+};
+
+it.effect(
+  "hydrates the native flag from shell context for both section hooks",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const controller = yield* makeSections(
+          sections,
+          { href: "/home", pathname: "/home" },
+          () => Effect.void
+        );
+
+        for (const platform of ["browser", "ios", "android"] as const) {
+          for (const nativeSectionBar of [true, false]) {
+            const context =
+              platform === "browser"
+                ? browserContext()
+                : {
+                    platform,
+                    shellVersion: "0.3.0",
+                    safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+                    windowLayout: defaultWindowLayout,
+                    nativeSectionBar,
+                  };
+
+            const mounted = yield* Deferred.make<string>();
+
+            const app = createElement(
+              NativeContextContext.Provider,
+              { value: context },
+              createElement(
+                SectionsProvider,
+                { controller },
+                createElement(NativeProbe, {
+                  onCommit: (value) => {
+                    Effect.runSync(Deferred.succeed(mounted, value));
+                  },
+                })
+              )
+            );
+
+            const html = renderToString(app);
+
+            const expected = platform !== "browser" && nativeSectionBar;
+
+            assert.strictEqual(html, `<pre>${expected}:${expected}</pre>`);
+
+            const container = document.createElement("div");
+
+            container.innerHTML = html;
+
+            const errors: unknown[] = [];
+
+            const root = flushSync(() =>
+              hydrateRoot(container, app, {
+                onRecoverableError: (error) => {
+                  errors.push(error);
+                },
+              })
+            );
+
+            assert.strictEqual(
+              yield* Deferred.await(mounted),
+              `${expected}:${expected}`
+            );
+            assert.strictEqual(container.innerHTML, html);
+            assert.isEmpty(errors);
+            flushSync(() => {
+              root.unmount();
+            });
+          }
+        }
       })
     )
 );

@@ -30,6 +30,7 @@ final class RadicalNavigation {
     private final Rect clip = new Rect();
     private boolean hidden;
     private int active;
+    private int nightMode = -1;
 
     RadicalNavigation(MainActivity activity, WebView view) {
         this.activity = activity;
@@ -41,7 +42,7 @@ final class RadicalNavigation {
         for (NavigationBarView bar : new NavigationBarView[] { bottom, rail }) {
             // Physical placement and safe area are owned here, not Material's inset listener.
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bar, (v, insets) -> insets);
-            bar.setLabelVisibilityMode(NavigationBarView.LABEL_VISIBILITY_LABELED);
+
             for (int index = 0; index < IDS.length; index++) {
                 bar.getMenu().add(0, index + 1, index, TITLES[index]).setIcon(index == active ? SELECTED_ICONS[index] : ICONS[index]);
             }
@@ -52,7 +53,21 @@ final class RadicalNavigation {
             bar.setOnItemReselectedListener(item -> select(item.getItemId() - 1));
             overlay.addView(bar, new FrameLayout.LayoutParams(-2, -2));
         }
+        refreshTheme();
         rail.setVisibility(View.GONE);
+    }
+
+    private void refreshTheme() {
+        int mode = webView.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        if (mode == nightMode) return;
+        nightMode = mode;
+        for (NavigationBarView bar : new NavigationBarView[] { bottom, rail }) {
+            __THEME_SETUP__
+            for (int index = 0; index < IDS.length; index++) {
+                BadgeDrawable drawable = bar.getBadge(index + 1);
+                if (drawable != null) { __BADGE_THEME__ }
+            }
+        }
     }
 
     private void select(int index) {
@@ -82,6 +97,7 @@ final class RadicalNavigation {
                         bar.removeBadge(index + 1);
                     } else {
                         BadgeDrawable drawable = bar.getOrCreateBadge(index + 1);
+                        __BADGE_THEME__
                         if (badge instanceof Number) {
                             drawable.clearText();
                             drawable.setNumber(Math.max(0, ((Number) badge).intValue()));
@@ -97,6 +113,7 @@ final class RadicalNavigation {
     }
 
     Insets layout(Insets system, boolean keyboard, float width, List<DisplayFeature> features) {
+        refreshTheme();
         int w = webView.getWidth();
         int h = webView.getHeight();
         float density = webView.getResources().getDisplayMetrics().density;
@@ -126,12 +143,18 @@ final class RadicalNavigation {
         rail.setVisibility(show && !compact ? View.VISIBLE : View.GONE);
         int barWidth = Math.min(Math.max(0, right - left), Math.round(80 * density));
         int barHeight = Math.min(Math.max(0, bottomEdge - top), Math.round(80 * density));
-        place(bottom, left, bottomEdge - barHeight, Math.max(0, right - left), barHeight);
-        place(rail, left, top, barWidth, Math.max(0, bottomEdge - top));
+        // Paint through system bars while keeping all items inside the safe region.
+        int bottomPadding = keyboard ? 0 : system.bottom;
+        bottom.setPadding(0, 0, 0, bottomPadding);
+        int railBottomPadding = bottomEdge == h - bottomPadding ? bottomPadding : 0;
+        rail.setPadding(0, top, 0, railBottomPadding);
+        place(bottom, left, bottomEdge - barHeight, Math.max(0, right - left), barHeight + bottomPadding);
+        place(rail, left, 0, barWidth, Math.max(0, bottomEdge + railBottomPadding));
         int insetLeft = show && !compact ? left + barWidth : system.left;
         int insetBottom = show && compact ? h - bottomEdge + barHeight : keyboard ? 0 : system.bottom;
         // Keep CSS dimensions unchanged. Safe area places HTML inside this clipped rectangle.
-        int clipBottom = Math.max(0, h - insetBottom);
+        // Only the bottom bar covers the page; elsewhere it paints through the gesture inset.
+        int clipBottom = show && compact ? Math.max(0, h - insetBottom) : h;
         if (clip.left != insetLeft || clip.right != w || clip.bottom != clipBottom) {
             clip.set(insetLeft, 0, w, clipBottom);
             webView.setClipBounds(clip);

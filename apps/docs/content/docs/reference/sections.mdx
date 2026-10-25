@@ -9,7 +9,7 @@ description: Config, route memory, badges, and native navigation.
 
 ## Config
 
-`navigation.sections` enables native navigation. It accepts 2 to 5 sections in display order. The first is the start section.
+`navigation.sections` enables section navigation. Native bars are the default on both platforms. It accepts 2 to 5 sections in display order. The first is the start section.
 
 ```ts
 const navigation = {
@@ -40,6 +40,39 @@ const navigation = {
 
 Invalid declarations return `InvalidConfig` with the field path. Android converts SVGs to VectorDrawables. Paths, basic geometry, and transforms are supported. `currentColor` uses Material's item tint. Unsupported SVGs fail generation with `InvalidAsset` before replacing the shell.
 
+## Bar and Android theme
+
+`navigation.bar` chooses who draws the bar on each platform.
+
+| Option | Values | Default |
+| --- | --- | --- |
+| `bar.ios`, `bar.android` | `"native"`, `"web"` | `"native"` |
+| `android.labels` | `"labeled"`, `"selected"`, `"unlabeled"` | `"labeled"` |
+| `android.colors.container` | Color | Material container |
+| `android.colors.indicator` | Color | Material active indicator |
+| `android.colors.badge` | Color | Material badge background |
+| `android.colors.icon.selected`, `.unselected` | Color | Material icon tint |
+| `android.colors.label.selected`, `.unselected` | Color | Material text color |
+
+A Color is `"#RRGGBB"`, `"#AARRGGBB"`, or `{ light, dark }` with either hex format. Alpha comes first. Light and dark values follow system night mode. Omitted colors keep Material 3 defaults on both the bottom bar and rail. Invalid values return `InvalidConfig` with the field path.
+
+```ts
+const navigation = {
+  sections,
+  bar: { ios: "native", android: "web" },
+  android: {
+    labels: "selected",
+    colors: {
+      container: { light: "#EDE4FF", dark: "#241538" },
+      indicator: "#80553A78",
+      icon: { selected: { light: "#3D1963", dark: "#F0DBFF" } },
+    },
+  },
+};
+```
+
+With `"web"`, the shell creates no bar or rail. The page keeps the full window and safe-area insets describe only system bars. Sections, selection, badges, iOS edge swipe, and Android predictive back still work. Android theme options apply only with `"native"`.
+
 ## React
 
 `TanStackSections` connects one router to section state. It accepts `router`, `sections`, and `children` under `RadicalProvider`, around the route outlet.
@@ -59,19 +92,20 @@ function SectionLayout({ children }) {
 }
 ```
 
-`useSections()` from `@akshatowo/radical/react` supplies state and actions for custom browser controls. Radical has no styled navigation component.
+`useSections()` from `@akshatowo/radical/react` supplies state and actions for custom web controls. Radical has no styled navigation component.
 
 | Field | Behavior |
 | --- | --- |
 | `sections` | Ordered declarations with `badge`, initially `null` |
 | `active` | Active section or `null` |
+| `native` | `true` when the shell draws the section bar. `false` in browsers, web-bar mode, or without sections. Uses provider native context for SSR and hydration. |
 | `hidden` | `true` when no section is active |
 | `select(id)` | Promise. Restores an inactive section's last URL, or its root if unvisited. Selecting the active section returns to its root. Replaces the history entry. |
 | `setBadge(id, value)` | Promise. Accepts a finite number, a string of 1 to 4 characters, or `null` to clear. Badges stay in memory. |
 
-Unknown ids, invalid badges, and actions without a provider fail with `InvalidSection`, exported from both React entry points. Without a provider, state is `{ sections: [], active: null, hidden: true }`.
+Unknown ids, invalid badges, and actions without a provider fail with `InvalidSection`, exported from both React entry points. Without a provider, state is `{ sections: [], active: null, hidden: true, native: false }`.
 
-Custom web controls must respect `hidden`. In native shells, web controls can be omitted when native context reports `ios` or `android`. `TanStackSections` must stay mounted to handle native selections. Bundled apps read `localNativeContext()` after hydration to preserve the browser context used by the first render.
+Custom web controls must respect `hidden`. Web controls render when `useSections().native` is `false`. `TanStackSections` must stay mounted to handle native selections. Bundled apps read `localNativeContext()` after hydration to preserve the browser context used by the first render.
 
 ## Routing
 
@@ -92,7 +126,7 @@ Section declarations compile into the shell, so controls appear before mount in 
 
 | Platform | Placement and requirements |
 | --- | --- |
-| iOS | Bottom bar on iPhone, sidebar on iPad and the Duo's inner display, vertical bar on its outer display. Requires iOS 18 with sections, iOS 15 without. Duo support requires the iOS 27.1 SDK. |
+| iOS | Bottom bar on iPhone, sidebar on iPad and the Duo's inner display, vertical bar on its outer display. Requires iOS 18 with native bars, iOS 15 with web bars or without sections. Duo support requires the iOS 27.1 SDK. |
 | iPad sidebar | Opens at launch only in regular-width landscape windows. Users can collapse or reopen it. In narrower windows it opens over the page. |
 | Android | Material 3 bottom bar below 600 CSS pixels, rail at 600 and above. Placement updates on resize, rotation, and folding. |
 | Android separating hinge | Vertical: controls stay in the left pane. Horizontal: rail stays above the hinge, bottom bar below it. |
@@ -100,7 +134,7 @@ Section declarations compile into the shell, so controls appear before mount in 
 
 The iOS page draws edge to edge under the status bar, tab bar, and sidebar. Native-context safe-area insets and `--radical-safe-area-*` variables describe the space clear of bars. `safeAreaStyle` exposes these values for page layout.
 
-Android keeps a window-sized CSS viewport. Safe-area insets include navigation controls and update with the keyboard. Hidden routes remove navigation controls and their insets.
+Android native bars paint through the system gesture inset. Rails also paint through the status-bar inset. Items stay inside the system insets. Android keeps a window-sized CSS viewport. Safe-area insets include navigation controls and update with the keyboard. Hidden routes remove navigation controls and their insets.
 
 ## Effect API
 
