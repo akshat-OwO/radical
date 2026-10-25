@@ -3,6 +3,10 @@ title: Window layout
 description: Width classes, fold posture, hinge CSS, and layout subscriptions.
 ---
 
+<Callout type="info">
+  Window layout is available in `@akshatowo/radical` 0.3.0 and later.
+</Callout>
+
 `NativeContext.windowLayout` contains:
 
 | Field | Values |
@@ -11,20 +15,22 @@ description: Width classes, fold posture, hinge CSS, and layout subscriptions.
 | `posture` | `flat`, `tabletop`, or `book` |
 | `hinge` | `null` or `{ x, y, width, height }`, finite nonnegative CSS pixels relative to the window |
 
-Missing or invalid `windowLayout` decodes to `{ widthClass: "compact", posture: "flat", hinge: null }`. Other valid shell fields remain available. Older shells can omit the field.
+Missing or invalid layout defaults to `{ widthClass: "compact", posture: "flat", hinge: null }` without discarding other valid context fields.
 
 | API | Behavior |
 | --- | --- |
 | `useWindowLayout()` | Returns `WindowLayout` directly. Uses provider context for SSR and hydration, then live values after mount. |
-| `watchWindowLayout(receive)` | Effect requiring `Bridge \| Scope`. Returns cleanup and registers it for scope closure. Replays the latest shell layout. |
+| `watchWindowLayout(receive)` | Effect requiring `Bridge \| Scope`. Returns cleanup and runs it on scope closure. Replays the latest shell layout. |
 | `windowLayoutStyle(context?, mode = "remote")` | Returns `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height`. Missing hinges use `0px`. Bundled style props stay at `0px` while native CSS supplies live values after mount. |
 | Native event | `radicalWindowLayout`. Invalid events are ignored. |
 
-The iOS shell measures the view's bounds and always reports `flat` with no hinge. The Android shell measures the activity window and reads Jetpack WindowManager `FoldingFeature`. A half-opened horizontal fold reports `tabletop`; a half-opened vertical fold reports `book`. Other states report `flat`. A reported folding feature supplies hinge bounds, including a zero-width fold.
+| Platform | Layout source |
+| --- | --- |
+| iOS | View bounds. Always `flat`, no hinge. |
+| Android | Activity window and Jetpack WindowManager. Half-open horizontal folds report `tabletop`; vertical folds report `book`. Other states report `flat`. Folding features supply hinge bounds, including zero-width folds. |
+| Browser | `matchMedia` at 600 and 840 CSS pixels. Always `flat`, no hinge. |
 
-Shells write layout into the `radical-context` cookie before the first load and update the cookie and bridge event when layout changes. Bundled mode injects the context and sends it in `x-radical-context` for routed API requests.
-
-Browsers use `matchMedia` at 600 and 840 CSS pixels and report `flat` with no hinge. Radical does not use the Viewport Segments API.
+`windowLayoutStyle` supplies hinge variables on `<html>` from the first render. Without it, the shell adds them after mount to preserve hydration. See [Adapt to window layout](/docs/guides/window-layout).
 
 | Export | Entry point |
 | --- | --- |

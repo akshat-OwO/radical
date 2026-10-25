@@ -6,7 +6,9 @@ import UIKit
 final class RadicalTabController: UITabBarController, UITabBarControllerDelegate {
     private let content = RadicalViewController()
     private let viewport = UIView()
+    private let pageContent = UIView()
     private var navigationHidden = false
+    private var sidebarPlaced = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,15 +21,24 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         content.navigationHost = self
         addChild(content)
         view.backgroundColor = .systemBackground
-        viewport.clipsToBounds = true
         view.addSubview(viewport)
-        viewport.addSubview(content.view)
+        viewport.addSubview(pageContent)
+        pageContent.clipsToBounds = true
+        pageContent.addSubview(content.view)
+        content.navigationPageContent = pageContent
         content.didMove(toParent: self)
-        sidebar.isHidden = false
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // Open the sidebar at launch only where it tiles beside the page. Narrower
+        // windows keep UIKit's tab bar, since an open overlay sidebar dims the page.
+        if !sidebarPlaced, view.window != nil {
+            sidebarPlaced = true
+            if traitCollection.horizontalSizeClass == .regular && view.bounds.width > view.bounds.height {
+                sidebar.isHidden = false
+            }
+        }
         // iOS 26's guide also follows vertical bars on the Duo. On iOS 18,
         // the selected placeholder's safe area describes the unobscured region.
         let frame: CGRect
@@ -38,16 +49,42 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         } else {
             frame = view.safeAreaLayoutGuide.layoutFrame
         }
-        // Keep a window-sized web viewport. Clip it to UIKit's content region and
-        // publish the bar space as safe area, rather than shrinking CSS dimensions.
-        viewport.frame = frame
+        // The page draws edge to edge, under the status bar and behind the bars,
+        // and lays out inside UIKit's content region through safe area.
         let bounds = view.bounds
-        content.view.frame = CGRect(x: -frame.minX, y: -frame.minY, width: bounds.width, height: bounds.height)
         let safe = view.safeAreaInsets
         let required = UIEdgeInsets(top: max(safe.top, frame.minY), left: max(safe.left, frame.minX),
             bottom: max(safe.bottom, bounds.maxY - frame.maxY), right: max(safe.right, bounds.maxX - frame.maxX))
+        // Keep the WebView's window-sized coordinate space and CSS safe area,
+        // but clip its viewport beside tiled bars so page motion cannot cross them.
+        let left = required.left > safe.left ? required.left : 0
+        let right = required.right > safe.right ? required.right : 0
+        let page = CGRect(x: left, y: 0, width: bounds.width - left - right, height: bounds.height)
+        content.navigationPageFrame = page
+        viewport.frame = page
+        viewport.clipsToBounds = true
+        // Move this stable crop during swipes, never the window-wide child.
+        // Bounds and center preserve any in-flight translation during layout.
+        pageContent.bounds = CGRect(origin: .zero, size: page.size)
+        pageContent.center = CGPoint(x: page.width / 2, y: page.height / 2)
+        content.view.frame = bounds.offsetBy(dx: -left, dy: 0)
         content.setNavigationSafeArea(required)
-        view.bringSubviewToFront(viewport)
+        placeViewport()
+    }
+
+    // Sit directly above the tab content container, so the page covers the empty
+    // placeholder tabs and receives their touches while the bars stay on top.
+    private func placeViewport() {
+        guard var container = selectedViewController?.view else {
+            view.sendSubviewToBack(viewport)
+            return
+        }
+        while let parent = container.superview, parent !== view { container = parent }
+        guard container.superview === view, container !== viewport else { return }
+        let subviews = view.subviews
+        guard let containerIndex = subviews.firstIndex(of: container),
+              subviews.firstIndex(of: viewport) != containerIndex + 1 else { return }
+        view.insertSubview(viewport, aboveSubview: container)
     }
 
     private func updateImages() {

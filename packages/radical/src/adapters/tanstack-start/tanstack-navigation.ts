@@ -1,4 +1,3 @@
-import { defaultParseSearch } from "@tanstack/react-router";
 import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import { Effect, Fiber, Layer } from "effect";
 
@@ -16,6 +15,7 @@ import { transitionStrategy } from "../../capabilities/transitions/transition-st
 import type { RadicalNavigation } from "../../core/adapter/adapter.ts";
 import { NavigationFailed } from "../../core/adapter/errors.ts";
 import { BridgeLive } from "../../core/bridge/bridge.ts";
+import { internalNavigationOptions } from "./tanstack-internal-navigation.ts";
 import { installNativeTransitions } from "./tanstack-native-transitions.ts";
 import { crossesSections } from "./tanstack-section-ownership.ts";
 
@@ -144,21 +144,11 @@ export const tanstackNavigation = (
 ): RadicalNavigation => ({
   navigate: (to, options) =>
     Effect.tryPromise({
-      try: () => {
-        const hashIndex = to.indexOf("#");
-        const path = hashIndex === -1 ? to : to.slice(0, hashIndex);
-        const hash = hashIndex === -1 ? "" : to.slice(hashIndex + 1);
-        const searchIndex = path.indexOf("?");
-        const pathname = searchIndex === -1 ? path : path.slice(0, searchIndex);
-        const query = searchIndex === -1 ? "" : path.slice(searchIndex);
-
-        return router.navigate({
-          to: pathname,
-          search: (router.options.parseSearch ?? defaultParseSearch)(query),
-          hash,
+      try: () =>
+        router.navigate({
+          ...internalNavigationOptions(router, to),
           ...options,
-        });
-      },
+        }),
       catch: (cause) => new NavigationFailed({ cause }),
     }),
   onBeforeNavigate: (listener) =>

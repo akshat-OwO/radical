@@ -23,6 +23,7 @@ import { RadicalAdapter } from "../../../src/core/adapter/adapter.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
 import type { Bridge } from "../../../src/core/bridge/bridge.ts";
 import { BrowserTransitions } from "../../../src/entry/client.ts";
+import { ignoredBack } from "../../fixtures/native-back.ts";
 
 /** A browser with typed view-transition selectors and no active transition. */
 const typedBrowser = (supportsTypes = true) =>
@@ -383,6 +384,7 @@ it.effect(
         router,
         {},
         Layer.succeed(NativeTransitions, {
+          ...ignoredBack,
           nextId: Effect.succeed("one"),
           cover: () =>
             Effect.sync(() => {
@@ -688,6 +690,7 @@ it.effect(
         router,
         {},
         Layer.succeed(NativeTransitions, {
+          ...ignoredBack,
           nextId: Effect.succeed("section"),
           cover: () =>
             Effect.sync(() => {

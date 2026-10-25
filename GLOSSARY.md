@@ -149,13 +149,13 @@ _Avoid_: Snapshot, screen cache
 ### Navigation
 
 **Section**:\
-A top-level destination the user switches between. It owns the routes under its path and remembers the last one visited.\
+A top-level destination with its own routes and last-visited URL.\
 _Avoid_: Tab, destination, root route
 
 **Native navigation**:\
-Section and back controls drawn by the shell rather than by the web app, placed by the platform for the current window.\
+Section and back controls drawn by the native shell.\
 _Avoid_: Native tabs, nav chrome, tab bar (when meaning the whole system)
 
 **Window layout**:\
-Facts about the app's current window: its size class, fold posture, and hinge position.\
+The app window's width class, fold posture, and hinge bounds.\
 _Avoid_: Device type, screen size, form factor

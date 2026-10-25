@@ -142,6 +142,28 @@ public class RadicalTransitionsPlugin extends Plugin {
         });
     }
 
+    @PluginMethod
+    public void setBack(PluginCall call) {
+        Boolean handles = call.getBoolean("handles");
+        if (handles == null) { call.reject("Missing handles"); return; }
+        getActivity().runOnUiThread(() -> {
+            ((MainActivity) getActivity()).setBackHandled(handles);
+            call.resolve();
+        });
+    }
+
+    @PluginMethod
+    public void exit(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            ((MainActivity) getActivity()).exitBack();
+            call.resolve();
+        });
+    }
+
+    // Android pops without an interactive overlay.
+    @PluginMethod
+    public void settle(PluginCall call) { call.resolve(); }
+
     @Override protected void handleOnDestroy() {
         if (overlayId != null) clear(overlayId);
     }

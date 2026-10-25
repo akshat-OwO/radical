@@ -13,28 +13,24 @@ import { Bridge } from "../../core/bridge/bridge.ts";
 import { BridgeContext } from "../../react/use-bridge-effect.ts";
 import { SectionsProvider } from "../../react/use-sections.ts";
 import { tanstackNavigation } from "./tanstack-navigation.ts";
-import { sectionOwnerships } from "./tanstack-section-ownership.ts";
+import { bindSections, routeHidden } from "./tanstack-section-ownership.ts";
 
 const selection = Schema.is(Schema.Struct({ id: Schema.String }));
-
-const routeHidden = (router: AnyRouter, pathname: string) =>
-  router
-    .matchRoutes(pathname)
-    .some((match) => match.staticData.radical?.navigation === "hidden");
 
 /** Construct once per router. No subscriptions or bridge calls until mounted. */
 export const tanstackSections = (
   router: AnyRouter,
   sections: readonly Section[]
 ) => {
+  // `to` is internal; history parsing would apply input rewrites again.
+  const root = (route: string) =>
+    trimPathRight(router.buildLocation({ to: route }).pathname);
+
   const ownership = sectionOwnership(
     sections,
     router.options.caseSensitive ?? false,
-    // `to` is internal; history parsing would apply input rewrites again.
-    (route) => trimPathRight(router.buildLocation({ to: route }).pathname)
+    root
   );
-
-  sectionOwnerships.set(router, ownership);
 
   const controller = Effect.runSync(
     makeSections(
@@ -46,6 +42,17 @@ export const tanstackSections = (
       ownership
     )
   );
+
+  const roots = new Map(
+    sections.map((section) => [section.id, root(section.route)])
+  );
+
+  bindSections(router, {
+    sections,
+    ownership,
+    root: (section) => roots.get(section.id) ?? root(section.route),
+    controller,
+  });
 
   const mount = Effect.gen(function* () {
     const bridge = yield* Bridge;

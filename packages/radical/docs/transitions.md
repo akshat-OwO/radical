@@ -54,7 +54,36 @@ Android copies the hardware-rendered window with PixelCopy on API 26 or later. I
 
 `timeoutMs` defaults to 1000ms for capture, painted-plus-reveal, and cleanup waits. The router commit always runs to completion without a transition timeout. Capture failure or timeout removes the overlay before running the commit once as plain navigation. Commit failure keeps its typed error and runs cleanup. Slow commits continue even after the native watchdog expires the snapshot. Their result and their own typed errors propagate unchanged. `TransitionTimeout` represents an overlay operation timing out; recovery consumes that error and keeps navigation running. Reveal failure or timeout preserves the committed route and runs cleanup. Interruption also removes the overlay. Cleanup failure is bounded and ignored because each shell independently expires its overlay three seconds after capture, even if JavaScript dies. Native commands carry an id so late paint, animation, and watchdog callbacks cannot remove a newer overlay.
 
-History `BACK` and negative `GO` reverse slide direction, including Android system back. The generated Android shell registers an OnBackPressedDispatcher callback that calls WebView history when available and delegates to activity back otherwise. The button and system gesture share that path. iOS keeps WebKit's built-in history gestures disabled; radical does not enable a competing swipe animation. App back controls and SPA history changes use the reversed native slide. Cross-document links use platform navigation rather than a second radical overlay.
+History `BACK` and negative `GO` reverse slide direction. App back controls and SPA history changes use the reversed native slide. Cross-document links use platform navigation rather than a second radical overlay.
+
+## System back
+
+The native installer records full internal hrefs by TanStack's `__TSR_index` in session storage so back decisions survive reloads. After navigation resolves or sections bind, the first matching rule applies:
+
+| Location | Decision |
+| --- | --- |
+| Section root, previous entry has the same pathname and a different query or hash | Pop |
+| Start section root | Exit |
+| Other section root | Select start section, restoring its remembered URL |
+| Below a section root, previous URL differs and belongs to the same section | Pop |
+| Below a section root, otherwise | Select current section root |
+| Hidden or unowned route | Pop if the previous pathname differs, ignoring trailing slashes. Otherwise select start section. |
+| No sections | Pop if a previous entry exists, otherwise exit |
+
+Selections replace history. Pops and returns to the current section root use the reversed route transition. Cross-section changes skip transitions.
+
+| Bridge operation | Contract |
+| --- | --- |
+| `setBack({ handles, pop, index })` | Publishes the decision. `handles` is false for exit; `pop` enables iOS history swipes. |
+| `radicalBack` with `{ interactive }` | Requests back. `interactive: true` means the shell already animated the pop. |
+| `settle({})` | Reveals the live page after an interactive pop paints. |
+| `exit({})` | Android disables its callback for one dispatch. iOS does nothing. |
+
+Android enables `android:enableOnBackInvokedCallback`. In-app predictive back shrinks the page; release or cancellation resets the preview. At exit, the disabled callback lets the system show back-to-home. Before the first `setBack`, Android follows WebView history.
+
+iOS enables left-edge swipes only for history pops. The page tracks the finger over a snapshot retained by forward slides, up to five levels. Without a snapshot, release runs the reversed slide. Section roots have no swipe except for query/hash history pops.
+
+An interactive pop skips a second animation and calls `settle` after paint. A three-second watchdog restores content if settlement fails.
 
 `cancel()` removes the current native overlay without interrupting the router commit. `dispose()` also restores the original router hook and removes history listeners. Concurrent commits serialize their overlays so an earlier cleanup cannot uncover a later capture. Browser cancellation and CSS duration behavior remain unchanged.
 

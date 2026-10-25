@@ -35,6 +35,7 @@ import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
+import androidx.activity.BackEventCompat;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -115,6 +116,42 @@ public class MainActivity extends BridgeActivity {
     }
 
     __NAVIGATION_FIELD__
+    private OnBackPressedCallback backCallback;
+    private boolean backReported = false;
+
+    // A disabled callback lets the system preview leaving the app.
+    void setBackHandled(boolean handles) {
+        backReported = true;
+        if (backCallback != null) backCallback.setEnabled(handles);
+    }
+
+    void exitBack() {
+        if (backCallback == null) return;
+        boolean enabled = backCallback.isEnabled();
+        backCallback.setEnabled(false);
+        getOnBackPressedDispatcher().onBackPressed();
+        backCallback.setEnabled(enabled);
+    }
+
+    // In-app back previews the pop by shrinking the page toward the far edge.
+    private void previewBack(BackEventCompat event) {
+        View content = findViewById(android.R.id.content);
+        if (content == null) return;
+        float progress = event.getProgress();
+        float direction = event.getSwipeEdge() == BackEventCompat.EDGE_LEFT ? 1f : -1f;
+        float scale = 1f - 0.08f * progress;
+        content.setScaleX(scale);
+        content.setScaleY(scale);
+        content.setTranslationX(direction * 0.04f * content.getWidth() * progress);
+    }
+
+    private void resetBackPreview() {
+        View content = findViewById(android.R.id.content);
+        if (content == null) return;
+        content.setScaleX(1f);
+        content.setScaleY(1f);
+        content.setTranslationX(0f);
+    }
     private boolean started = false;
     private String lastContext = "";
     private ScriptHandler safeAreaScript;
@@ -239,15 +276,23 @@ public class MainActivity extends BridgeActivity {
         super.load();
         view.stopLoading();
         __NAVIGATION_SETUP__
-        // Radical owns WebView history without requiring Capacitor's optional App plugin.
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+        // Radical owns back without requiring Capacitor's optional App plugin.
+        // Until the page reports its back state, back follows WebView history.
+        backCallback = new OnBackPressedCallback(true) {
+            @Override public void handleOnBackStarted(BackEventCompat event) { previewBack(event); }
+            @Override public void handleOnBackProgressed(BackEventCompat event) { previewBack(event); }
+            @Override public void handleOnBackCancelled() { resetBackPreview(); }
             @Override public void handleOnBackPressed() {
+                resetBackPreview();
+                if (backReported) {
+                    view.evaluateJavascript("window.dispatchEvent(new CustomEvent('radicalBack',{detail:{interactive:false}}));", null);
+                    return;
+                }
                 if (view.canGoBack()) { view.goBack(); return; }
-                setEnabled(false);
-                getOnBackPressedDispatcher().onBackPressed();
-                setEnabled(true);
+                exitBack();
             }
-        });
+        };
+        getOnBackPressedDispatcher().addCallback(this, backCallback);
         // Without document-start scripts the allowlist cannot stop a redirected
         // document before its scripts run, so the shell refuses to start.
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
