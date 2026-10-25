@@ -28,10 +28,11 @@ export const tanstackSections = (
   const controller = Effect.runSync(
     makeSections(
       sections,
-      router.state.location.href,
+      router.state.location,
       (to) =>
         tanstackNavigation(router).navigate(to, { viewTransition: false }),
-      routeHidden(router, router.state.location.pathname)
+      routeHidden(router, router.state.location.pathname),
+      router.options.caseSensitive ?? false
     )
   );
 
@@ -41,7 +42,7 @@ export const tanstackSections = (
     const update = () => {
       Effect.runSync(
         controller.update(
-          router.state.location.href,
+          router.state.location,
           routeHidden(router, router.state.location.pathname)
         )
       );

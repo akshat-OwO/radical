@@ -213,7 +213,7 @@ export {
   sectionsLayer,
   selectSection,
   setSectionBadge,
-  sectionForURL,
+  sectionForPathname,
   SectionSchema,
   SectionBadgeSchema,
   InvalidSection,
@@ -223,5 +223,6 @@ export type {
   Section,
   SectionBadge,
   SectionsController,
+  SectionLocation,
   SectionsSnapshot,
 } from "../capabilities/sections/sections.ts";

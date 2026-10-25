@@ -72,19 +72,26 @@ export interface SectionsSnapshot {
   readonly hidden: boolean;
 }
 
-/** Prefixes match path segments; query strings and fragments do not affect ownership. */
-export const sectionForURL = <S extends Section>(
+/** The adapter supplies its decoded pathname separately from the restorable URL. */
+export interface SectionLocation {
+  readonly href: string;
+  readonly pathname: string;
+}
+
+/** Prefixes match decoded path segments using the host framework's case policy. */
+export const sectionForPathname = <S extends Section>(
   sections: readonly S[],
-  url: string
+  pathname: string,
+  caseSensitive = true
 ): S | null => {
-  const pathname = url.split(/[?#]/u)[0] ?? "";
+  const path = caseSensitive ? pathname : pathname.toLowerCase();
   let owner: S | null = null;
 
   for (const section of sections) {
+    const route = caseSensitive ? section.route : section.route.toLowerCase();
+
     if (
-      (section.route === "/" ||
-        pathname === section.route ||
-        pathname.startsWith(`${section.route}/`)) &&
+      (route === "/" || path === route || path.startsWith(`${route}/`)) &&
       (owner === null || section.route.length > owner.route.length)
     ) {
       owner = section;
@@ -96,14 +103,15 @@ export const sectionForURL = <S extends Section>(
 
 export const makeSections = (
   sections: readonly Section[],
-  initialURL: string,
+  initialLocation: SectionLocation,
   navigate: RadicalNavigation["navigate"],
-  initialHidden = false
+  initialHidden = false,
+  caseSensitive = true
 ) =>
   Effect.sync(() => {
     const listeners = new Set<() => void>();
     const memory = new Map<string, string>();
-    let url = initialURL;
+    let location = initialLocation;
     let hidden = initialHidden;
 
     let entries: readonly SectionState[] = sections.map((section) => ({
@@ -112,7 +120,9 @@ export const makeSections = (
     }));
 
     const read = (): SectionsSnapshot => {
-      const active = hidden ? null : sectionForURL(entries, url);
+      const active = hidden
+        ? null
+        : sectionForPathname(entries, location.pathname, caseSensitive);
 
       return { sections: entries, active, hidden: active === null };
     };
@@ -120,10 +130,14 @@ export const makeSections = (
     let snapshot = read();
 
     const remember = () => {
-      const owner = sectionForURL(entries, url);
+      const owner = sectionForPathname(
+        entries,
+        location.pathname,
+        caseSensitive
+      );
 
       if (owner) {
-        memory.set(owner.id, url);
+        memory.set(owner.id, location.href);
       }
     };
 
@@ -156,9 +170,9 @@ export const makeSections = (
           listeners.delete(listener);
         };
       },
-      update: (nextURL: string, nextHidden = false) =>
+      update: (nextLocation: SectionLocation, nextHidden = false) =>
         Effect.sync(() => {
-          url = nextURL;
+          location = nextLocation;
           hidden = nextHidden;
           remember();
           publish();

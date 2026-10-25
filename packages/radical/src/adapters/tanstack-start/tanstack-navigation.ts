@@ -84,7 +84,7 @@ export const browserTransitions = (
         if (
           fromLocation === undefined ||
           fromLocation.href === toLocation.href ||
-          crossesSections(router, fromLocation.href, toLocation.href)
+          crossesSections(router, fromLocation.pathname, toLocation.pathname)
         ) {
           return false;
         }

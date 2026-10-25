@@ -1,6 +1,6 @@
 import type { AnyRouter } from "@tanstack/react-router";
 
-import { sectionForURL } from "../../capabilities/sections/sections.ts";
+import { sectionForPathname } from "../../capabilities/sections/sections.ts";
 import type { Section } from "../../capabilities/sections/sections.ts";
 
 export const sectionDeclarations = new WeakMap<
@@ -9,7 +9,7 @@ export const sectionDeclarations = new WeakMap<
 >();
 
 export const crossesSections = (
-  router: Pick<AnyRouter, "state">,
+  router: Pick<AnyRouter, "state" | "options">,
   from: string,
   to: string
 ) => {
@@ -19,8 +19,17 @@ export const crossesSections = (
     return false;
   }
 
-  const previous = sectionForURL(sections, from);
-  const next = sectionForURL(sections, to);
+  const previous = sectionForPathname(
+    sections,
+    from,
+    router.options.caseSensitive ?? false
+  );
+
+  const next = sectionForPathname(
+    sections,
+    to,
+    router.options.caseSensitive ?? false
+  );
 
   return previous !== null && next !== null && previous.id !== next.id;
 };

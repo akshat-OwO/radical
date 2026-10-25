@@ -56,7 +56,7 @@ it.effect(
       Effect.gen(function* () {
         const controller = yield* makeSections(
           sections,
-          "/inbox/message",
+          { href: "/inbox/message", pathname: "/inbox/message" },
           () => Effect.void
         );
 
@@ -120,7 +120,9 @@ it.effect(
         assert.strictEqual(container.textContent, "inbox:New:New:false");
 
         flushSync(() => {
-          Effect.runSync(controller.update("/login"));
+          Effect.runSync(
+            controller.update({ href: "/login", pathname: "/login" })
+          );
         });
 
         assert.strictEqual(

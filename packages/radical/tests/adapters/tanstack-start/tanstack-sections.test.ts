@@ -5,11 +5,14 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { Effect } from "effect";
+import type { AnyRouter } from "@tanstack/react-router";
+import { Effect, Layer } from "effect";
 
+import { installNativeTransitions } from "../../../src/adapters/tanstack-start/tanstack-native-transitions.ts";
 import { installRouterCommitHook } from "../../../src/adapters/tanstack-start/tanstack-router-internals.ts";
 import { crossesSections } from "../../../src/adapters/tanstack-start/tanstack-section-ownership.ts";
 import { tanstackSections } from "../../../src/adapters/tanstack-start/tanstack-sections.ts";
+import { NativeTransitions } from "../../../src/capabilities/transitions/native-transitions.ts";
 import type { Bridge } from "../../../src/core/bridge/bridge.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
 
@@ -63,7 +66,7 @@ const makeRouter = () => {
   });
 };
 
-const navigate = (router: ReturnType<typeof makeRouter>, to: string) =>
+const navigate = (router: AnyRouter, to: string) =>
   Effect.promise(async () => {
     const pending = router.navigate({ to });
     void router.load();
@@ -237,4 +240,200 @@ it.effect(
 
       assert.lengthOf(updates, count);
     })
+);
+
+const ownershipRouter = (
+  route: string,
+  entry: string,
+  caseSensitive?: boolean
+) => {
+  const root = createRootRoute();
+
+  const routes = [route, `${route}/item`, "/other"].map((path) =>
+    createRoute({
+      getParentRoute: () => root,
+      path,
+      staticData: { radical: { transition: "slide" } },
+    })
+  );
+
+  return createRouter({
+    routeTree: root.addChildren(routes),
+    history: createMemoryHistory({ initialEntries: [entry] }),
+    origin: "http://localhost",
+    defaultPendingMs: Infinity,
+    defaultPendingMinMs: 0,
+    isServer: false,
+    caseSensitive,
+  });
+};
+
+for (const fixture of [
+  {
+    name: "encoded non-ASCII",
+    route: "/café",
+    path: "/caf%C3%A9/item",
+    pathname: "/café/item",
+  },
+  {
+    name: "default case-insensitive",
+    route: "/inbox",
+    path: "/Inbox/item",
+    pathname: "/Inbox/item",
+  },
+]) {
+  it.effect(
+    `uses router path ownership for ${fixture.name} routes and preserves their full URLs`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const original = `${fixture.path}?q=1#anchor`;
+          const router = ownershipRouter(fixture.route, original);
+          yield* Effect.promise(async () => {
+            await router.load();
+          });
+          assert.strictEqual(router.state.location.pathname, fixture.pathname);
+          assert.strictEqual(
+            router.state.matches.at(-1)?.routeId,
+            `${fixture.route}/item`
+          );
+
+          const declarations = [
+            {
+              id: "primary",
+              title: "Primary",
+              route: fixture.route,
+              icon: { ios: "tray", android: "primary.svg" },
+            },
+            {
+              id: "other",
+              title: "Other",
+              route: "/other",
+              icon: { ios: "house", android: "other.svg" },
+            },
+          ];
+
+          const binding = tanstackSections(router, declarations);
+          yield* Effect.acquireRelease(
+            binding.mount.pipe(
+              Effect.provide(bridgeTestLayer("browser", () => Effect.void))
+            ),
+            (remove) => Effect.sync(remove)
+          );
+          assert.strictEqual(
+            binding.controller.snapshot().active?.id,
+            "primary"
+          );
+          assert.isFalse(binding.controller.snapshot().hidden);
+          assert.isTrue(
+            crossesSections(router, router.state.location.pathname, "/other")
+          );
+          assert.isFalse(
+            crossesSections(
+              router,
+              router.state.location.pathname,
+              fixture.route
+            )
+          );
+          const captures: string[] = [];
+          yield* Effect.acquireRelease(
+            Effect.sync(() =>
+              installNativeTransitions(
+                router,
+                {},
+                Layer.succeed(NativeTransitions, {
+                  nextId: Effect.succeed("ownership"),
+                  cover: () =>
+                    Effect.sync(() => {
+                      captures.push(router.state.location.href);
+                    }),
+                  painted: Effect.void,
+                  reveal: () => Effect.void,
+                  remove: () => Effect.void,
+                })
+              )
+            ),
+            (transitions) => Effect.sync(transitions.dispose)
+          );
+          yield* navigate(router, "/other");
+          assert.isEmpty(captures);
+          assert.strictEqual(binding.controller.snapshot().active?.id, "other");
+
+          const select = () =>
+            Effect.promise(async () => {
+              const pending = Effect.runPromise(
+                binding.controller.select("primary")
+              );
+
+              void router.load();
+              await pending;
+            });
+
+          yield* select();
+          assert.strictEqual(router.state.location.href, original);
+          assert.strictEqual(
+            binding.controller.snapshot().active?.id,
+            "primary"
+          );
+          const updated = `${fixture.path}?q=2#last`;
+          yield* navigate(router, updated);
+          assert.deepStrictEqual(captures, [updated]);
+          yield* navigate(router, "/other");
+          assert.deepStrictEqual(captures, [updated]);
+          yield* select();
+          assert.strictEqual(router.state.location.href, updated);
+          assert.strictEqual(
+            binding.controller.snapshot().active?.id,
+            "primary"
+          );
+          assert.isFalse(binding.controller.snapshot().hidden);
+        })
+      )
+  );
+}
+
+it.effect("honors explicit case-sensitive router ownership", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const router = ownershipRouter("/Inbox", "/Inbox/item?q=1#anchor", true);
+      yield* Effect.promise(async () => {
+        await router.load();
+      });
+      assert.strictEqual(router.state.matches.at(-1)?.routeId, "/Inbox/item");
+
+      const binding = tanstackSections(router, [
+        {
+          id: "inbox",
+          title: "Inbox",
+          route: "/inbox",
+          icon: { ios: "tray", android: "inbox.svg" },
+        },
+        {
+          id: "other",
+          title: "Other",
+          route: "/other",
+          icon: { ios: "house", android: "other.svg" },
+        },
+      ]);
+
+      yield* Effect.acquireRelease(
+        binding.mount.pipe(
+          Effect.provide(bridgeTestLayer("browser", () => Effect.void))
+        ),
+        (remove) => Effect.sync(remove)
+      );
+      assert.isNull(binding.controller.snapshot().active);
+      assert.isTrue(binding.controller.snapshot().hidden);
+      assert.isFalse(
+        crossesSections(router, router.state.location.pathname, "/other")
+      );
+      yield* navigate(router, "/other");
+      yield* Effect.promise(async () => {
+        const pending = Effect.runPromise(binding.controller.select("inbox"));
+        void router.load();
+        await pending;
+      });
+      assert.strictEqual(router.state.location.href, "/inbox");
+    })
+  )
 );

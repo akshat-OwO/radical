@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect";
 
 import {
   makeSections,
-  sectionForURL,
+  sectionForPathname,
   sectionsLayer,
   selectSection,
   setSectionBadge,
@@ -24,14 +24,17 @@ it.effect("matches the longest path prefix at segment boundaries", () =>
   Effect.sync(() => {
     for (const [url, id] of [
       ["/home", "home"],
-      ["/home/a?x=1#here", "home"],
+      ["/home/a", "home"],
       ["/home/settings/profile", "settings"],
       ["/home/settings-extra", "home"],
       ["/inbox/", "inbox"],
       ["/inboxes", null],
       ["/login", null],
     ]) {
-      assert.strictEqual(sectionForURL(sections, url ?? "")?.id ?? null, id);
+      assert.strictEqual(
+        sectionForPathname(sections, url ?? "")?.id ?? null,
+        id
+      );
     }
 
     const withRoot = [
@@ -39,10 +42,10 @@ it.effect("matches the longest path prefix at segment boundaries", () =>
       ...sections,
     ];
 
-    assert.strictEqual(sectionForURL(withRoot, "/anything")?.id, "root");
+    assert.strictEqual(sectionForPathname(withRoot, "/anything")?.id, "root");
 
     assert.strictEqual(
-      sectionForURL(withRoot, "/home/settings")?.id,
+      sectionForPathname(withRoot, "/home/settings")?.id,
       "settings"
     );
   })
@@ -56,7 +59,7 @@ it.effect(
 
       const controller = yield* makeSections(
         sections,
-        "/home/details?q=1#anchor",
+        { href: "/home/details?q=1#anchor", pathname: "/home/details" },
         (url) =>
           Effect.sync(() => {
             destinations.push(url);
@@ -67,19 +70,25 @@ it.effect(
 
       assert.deepStrictEqual(destinations, ["/inbox"]);
 
-      yield* controller.update("/inbox/message?sort=new#reply");
+      yield* controller.update({
+        href: "/inbox/message?sort=new#reply",
+        pathname: "/inbox/message",
+      });
 
       yield* controller.select("home");
 
       assert.strictEqual(destinations.at(-1), "/home/details?q=1#anchor");
 
-      yield* controller.update("/home/details?q=1#anchor");
+      yield* controller.update({
+        href: "/home/details?q=1#anchor",
+        pathname: "/home/details",
+      });
 
       yield* controller.select("home");
 
       assert.strictEqual(destinations.at(-1), "/home");
 
-      yield* controller.update("/home");
+      yield* controller.update({ href: "/home", pathname: "/home" });
 
       yield* controller.select("inbox");
 
@@ -91,25 +100,31 @@ it.effect("reports no active section on hidden or unowned routes", () =>
   Effect.gen(function* () {
     const controller = yield* makeSections(
       sections,
-      "/home",
+      { href: "/home", pathname: "/home" },
       () => Effect.void
     );
 
     assert.strictEqual(controller.snapshot().active?.id, "home");
 
-    yield* controller.update("/home/private", true);
+    yield* controller.update(
+      { href: "/home/private", pathname: "/home/private" },
+      true
+    );
 
     assert.isNull(controller.snapshot().active);
 
     assert.isTrue(controller.snapshot().hidden);
 
-    yield* controller.update("/login");
+    yield* controller.update({ href: "/login", pathname: "/login" });
 
     assert.isNull(controller.snapshot().active);
 
     assert.isTrue(controller.snapshot().hidden);
 
-    yield* controller.update("/inbox/message");
+    yield* controller.update({
+      href: "/inbox/message",
+      pathname: "/inbox/message",
+    });
 
     assert.strictEqual(controller.snapshot().active?.id, "inbox");
 
@@ -123,7 +138,7 @@ it.effect(
     Effect.gen(function* () {
       const controller = yield* makeSections(
         sections,
-        "/home",
+        { href: "/home", pathname: "/home" },
         () => Effect.void
       );
 
@@ -151,7 +166,11 @@ it.effect(
 
       yield* selectSection("inbox").pipe(Effect.provide(layer));
 
-      const fresh = yield* makeSections(sections, "/home", () => Effect.void);
+      const fresh = yield* makeSections(
+        sections,
+        { href: "/home", pathname: "/home" },
+        () => Effect.void
+      );
 
       assert.isNull(fresh.snapshot().active?.badge);
 
@@ -272,10 +291,13 @@ it.effect(
     Effect.gen(function* () {
       const destinations: string[] = [];
 
-      const controller = yield* makeSections(sections, "/home", (url) =>
-        Effect.sync(() => {
-          destinations.push(url);
-        })
+      const controller = yield* makeSections(
+        sections,
+        { href: "/home", pathname: "/home" },
+        (url) =>
+          Effect.sync(() => {
+            destinations.push(url);
+          })
       );
 
       const initial = controller.snapshot();
@@ -285,11 +307,14 @@ it.effect(
         notifications += 1;
       });
 
-      yield* controller.update("/home/details?last=1#anchor");
+      yield* controller.update({
+        href: "/home/details?last=1#anchor",
+        pathname: "/home/details",
+      });
       yield* controller.setBadge("home", null);
       assert.strictEqual(controller.snapshot(), initial);
       assert.strictEqual(notifications, 0);
-      yield* controller.update("/inbox");
+      yield* controller.update({ href: "/inbox", pathname: "/inbox" });
       assert.strictEqual(notifications, 1);
       yield* controller.select("home");
       assert.deepStrictEqual(destinations, ["/home/details?last=1#anchor"]);

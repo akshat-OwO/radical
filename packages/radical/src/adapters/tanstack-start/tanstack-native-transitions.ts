@@ -56,7 +56,7 @@ export const installNativeTransitions = (
           !enabled ||
           !previous ||
           previous.href === next.href ||
-          crossesSections(router, previous.href, next.href) ||
+          crossesSections(router, previous.pathname, next.pathname) ||
           !kind
         ) {
           return yield* update;
