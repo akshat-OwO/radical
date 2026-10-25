@@ -15,7 +15,7 @@ description: Section declarations, route memory, badges, and headless navigation
 | `icon` | `{ ios: "house", android: "./assets/home.svg" }` |
 | `selectedIcon` | Optional icon pair with the same shape |
 
-`ios` names an SF Symbol. `android` names an SVG file relative to the app root. Shell builds consume these declarations for native navigation. Android conversion to VectorDrawable belongs to the Android shell layer.
+`ios` names an SF Symbol. `android` names an SVG file relative to the app root. Shell builds consume these declarations for native navigation. Android generation converts both icon appearances to VectorDrawables. Invalid or unsupported SVGs fail generation with `InvalidAsset` before replacing the previous shell.
 
 Validation returns `InvalidConfig` with the bad field's path. Section declarations appear in `virtual:radical/config`, the build plan's `navigation`, and `radical-manifest.json` under `navigation`.
 
@@ -110,4 +110,18 @@ The shell retains one WebView in a fixed container while UIKit draws the bars. B
 
 Declarations are compiled into the shell. Bars are present before the web app mounts, including bundled and offline launches. Once mounted, `TanStackSections` updates selection, visibility, and badges. Routes outside sections and routes marked `navigation: "hidden"` hide the native controls.
 
-Apps that draw browser navigation should omit their web controls when their native context has `platform: "ios"`. Keep `TanStackSections` mounted so native selection intents still reach the router. Bundled apps read `localNativeContext()` after hydration because the packaged HTML has browser context. The example app uses `useSyncExternalStore` to preserve the first render and then read the shell platform.
+Apps that draw browser navigation should omit their web controls when their native context has `platform: "ios"` or `platform: "android"`. Keep `TanStackSections` mounted so native selection intents still reach the router. Bundled apps read `localNativeContext()` after hydration because the packaged HTML has browser context. The example app uses `useSyncExternalStore` to preserve the first render and then read the shell platform.
+
+## Android shell
+
+Configuring sections adds Material Components 1.14.0 and a Material 3 theme to the generated Java shell. Apps without sections keep their existing theme and dependencies.
+
+`BottomNavigationView` draws the controls below 600 CSS pixels. `NavigationRailView` draws them at medium and expanded widths. Rotation, resizing, and folding update placement without recreating or reparenting the WebView. WindowManager supplies the separating hinge bounds. A vertical hinge bounds controls to the left pane. A horizontal hinge bounds the rail to the upper pane and the bottom bar to the lower pane.
+
+The WebView keeps its window-sized CSS viewport. The shell clips the bar area and publishes that space through native-context safe-area insets and the existing CSS variables. Page content uses `safeAreaStyle` or those variables, including while the keyboard is visible.
+
+`icon.android` and `selectedIcon.android` name SVG files relative to the app root. The selected icon defaults to `icon.android`. Conversion supports paths, basic geometry, and transforms. `currentColor` becomes black before conversion so Material's item tint supplies the control color. Unsupported VectorDrawable elements and attributes fail generation. Drawable filenames use section indices, independent of section ids.
+
+Selection sends an intent and waits for the adapter's state. Tapping the active section still sends an intent to return to its root. Route changes select the matching item without emitting an intent. Number badges use Material's nonnegative integer count display, strings use text badges, and `null` removes the badge. Hidden routes remove both bars and their insets.
+
+Section declarations are compiled into the shell, so bars exist before bridge registration in remote, bundled, and offline launches. `TanStackSections` remains mounted to update route selection, badges, and visibility.
