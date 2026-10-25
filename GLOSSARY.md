@@ -145,3 +145,17 @@ _Avoid_: Animation, page animation
 **Transition overlay**:\
 The shell's captured image of the outgoing screen, retained while the destination appears during a transition.\
 _Avoid_: Snapshot, screen cache
+
+### Navigation
+
+**Section**:\
+A top-level destination the user switches between. It owns the routes under its path and remembers the last one visited.\
+_Avoid_: Tab, destination, root route
+
+**Native navigation**:\
+Section and back controls drawn by the shell rather than by the web app, placed by the platform for the current window.\
+_Avoid_: Native tabs, nav chrome, tab bar (when meaning the whole system)
+
+**Window layout**:\
+Facts about the app's current window: its size class, fold posture, and hinge position.\
+_Avoid_: Device type, screen size, form factor
