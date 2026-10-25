@@ -14,6 +14,8 @@ import type {
   SectionsController,
   SectionsSnapshot,
 } from "../capabilities/sections/sections.ts";
+import { nativeSectionBar } from "../core/context/native-section-bar.ts";
+import { NativeContextContext } from "./use-bridge-effect.ts";
 
 const empty: SectionsSnapshot = { sections: [], active: null, hidden: true };
 export const SectionsContext = createContext<SectionsController | null>(null);
@@ -37,6 +39,7 @@ const snapshotEmpty = () => empty;
 
 export const useSectionsEffect = () => {
   const controller = useContext(SectionsContext);
+  const context = useContext(NativeContextContext);
 
   const snapshot = useSyncExternalStore(
     controller?.subscribe ?? subscribeEmpty,
@@ -44,8 +47,19 @@ export const useSectionsEffect = () => {
     controller?.snapshot ?? snapshotEmpty
   );
 
+  const serverNative = Boolean(
+    controller && context.platform !== "browser" && context.nativeSectionBar
+  );
+
+  const native = useSyncExternalStore(
+    subscribeEmpty,
+    () => controller !== null && nativeSectionBar(serverNative),
+    () => serverNative
+  );
+
   return {
     ...snapshot,
+    native,
     select: controller?.select ?? unconfigured,
     setBadge: controller?.setBadge ?? unconfigured,
   };

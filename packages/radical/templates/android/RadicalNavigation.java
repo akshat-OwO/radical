@@ -24,35 +24,54 @@ final class RadicalNavigation {
     private final MainActivity activity;
     private final WebView webView;
     private final FrameLayout overlay;
-    private final BottomNavigationView bottom;
-    private final NavigationRailView rail;
+    private BottomNavigationView bottom;
+    private NavigationRailView rail;
     private final int[] origin = new int[2];
     private final Rect clip = new Rect();
     private boolean hidden;
     private int active;
+    private int nightMode;
+    private JSONObject state;
 
     RadicalNavigation(MainActivity activity, WebView view) {
         this.activity = activity;
         webView = view;
         overlay = new FrameLayout(view.getContext());
         ((ViewGroup) view.getParent()).addView(overlay, new ViewGroup.LayoutParams(-1, -1));
-        bottom = new BottomNavigationView(view.getContext());
-        rail = new NavigationRailView(view.getContext());
+        build();
+    }
+
+    private int night() {
+        return activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+    }
+
+    // Material resolves every color once, at construction, and the activity handles
+    // uiMode itself. Rebuilding is the only way all channels follow night mode.
+    private void build() {
+        nightMode = night();
+        if (bottom != null) {
+            overlay.removeView(bottom);
+            overlay.removeView(rail);
+        }
+        bottom = new BottomNavigationView(activity);
+        rail = new NavigationRailView(activity);
         for (NavigationBarView bar : new NavigationBarView[] { bottom, rail }) {
             // Physical placement and safe area are owned here, not Material's inset listener.
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bar, (v, insets) -> insets);
-            bar.setLabelVisibilityMode(NavigationBarView.LABEL_VISIBILITY_LABELED);
             for (int index = 0; index < IDS.length; index++) {
                 bar.getMenu().add(0, index + 1, index, TITLES[index]).setIcon(index == active ? SELECTED_ICONS[index] : ICONS[index]);
             }
+            bar.getMenu().getItem(active).setChecked(true);
             bar.setOnItemSelectedListener(item -> {
                 select(item.getItemId() - 1);
                 return false;
             });
             bar.setOnItemReselectedListener(item -> select(item.getItemId() - 1));
+            __THEME_SETUP__
             overlay.addView(bar, new FrameLayout.LayoutParams(-2, -2));
         }
         rail.setVisibility(View.GONE);
+        if (state != null) apply(state);
     }
 
     private void select(int index) {
@@ -60,10 +79,16 @@ final class RadicalNavigation {
             + JSONObject.quote(IDS[index]) + "}}));", null);
     }
 
-    void update(JSONObject state) {
+    void update(JSONObject next) {
+        if (!next.has("hidden") || next.optJSONArray("sections") == null) return;
+        state = next;
+        apply(next);
+        activity.refreshWindowContext();
+    }
+
+    private void apply(JSONObject state) {
         JSONObject selected = state.optJSONObject("active");
         JSONArray entries = state.optJSONArray("sections");
-        if (!state.has("hidden") || entries == null) return;
         hidden = state.optBoolean("hidden");
         int previous = active;
         for (int index = 0; index < IDS.length; index++) {
@@ -82,6 +107,7 @@ final class RadicalNavigation {
                         bar.removeBadge(index + 1);
                     } else {
                         BadgeDrawable drawable = bar.getOrCreateBadge(index + 1);
+                        __BADGE_THEME__
                         if (badge instanceof Number) {
                             drawable.clearText();
                             drawable.setNumber(Math.max(0, ((Number) badge).intValue()));
@@ -93,10 +119,10 @@ final class RadicalNavigation {
                 }
             }
         }
-        activity.refreshWindowContext();
     }
 
     Insets layout(Insets system, boolean keyboard, float width, List<DisplayFeature> features) {
+        if (night() != nightMode) build();
         int w = webView.getWidth();
         int h = webView.getHeight();
         float density = webView.getResources().getDisplayMetrics().density;
@@ -126,12 +152,18 @@ final class RadicalNavigation {
         rail.setVisibility(show && !compact ? View.VISIBLE : View.GONE);
         int barWidth = Math.min(Math.max(0, right - left), Math.round(80 * density));
         int barHeight = Math.min(Math.max(0, bottomEdge - top), Math.round(80 * density));
-        place(bottom, left, bottomEdge - barHeight, Math.max(0, right - left), barHeight);
-        place(rail, left, top, barWidth, Math.max(0, bottomEdge - top));
+        // Paint through system bars while keeping all items inside the safe region.
+        int bottomPadding = keyboard ? 0 : system.bottom;
+        bottom.setPadding(0, 0, 0, bottomPadding);
+        int railBottomPadding = bottomEdge == h - bottomPadding ? bottomPadding : 0;
+        rail.setPadding(0, top, 0, railBottomPadding);
+        place(bottom, left, bottomEdge - barHeight, Math.max(0, right - left), barHeight + bottomPadding);
+        place(rail, left, 0, barWidth, Math.max(0, bottomEdge + railBottomPadding));
         int insetLeft = show && !compact ? left + barWidth : system.left;
         int insetBottom = show && compact ? h - bottomEdge + barHeight : keyboard ? 0 : system.bottom;
         // Keep CSS dimensions unchanged. Safe area places HTML inside this clipped rectangle.
-        int clipBottom = Math.max(0, h - insetBottom);
+        // Only the bottom bar covers the page; elsewhere it paints through the gesture inset.
+        int clipBottom = show && compact ? Math.max(0, h - insetBottom) : h;
         if (clip.left != insetLeft || clip.right != w || clip.bottom != clipBottom) {
             clip.set(insetLeft, 0, w, clipBottom);
             webView.setClipBounds(clip);

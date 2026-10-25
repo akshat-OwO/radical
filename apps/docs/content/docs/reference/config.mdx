@@ -25,7 +25,21 @@ Display names resolve as platform `name`, shared `name`, legacy `appName`, then 
 
 ## Navigation fields
 
-`navigation.sections` enables native navigation with 2 to 5 sections. The first is the start section. See [Sections](/docs/reference/sections) for the config fields, validation, routing, and badges.
+`navigation.sections` enables section navigation with 2 to 5 sections. The first is the start section. See [Sections](/docs/reference/sections) for the config fields, validation, routing, and badges.
+
+<Callout type="info">
+  Navigation options are available in `@akshatowo/radical` 0.3.0 and later.
+</Callout>
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `navigation.bar.ios`, `navigation.bar.android` | `"native"`, `"web"` | `"native"` |
+| `navigation.android.labels` | `"labeled"`, `"selected"`, `"unlabeled"` | `"labeled"` |
+| `navigation.android.colors.container`, `.indicator`, `.badge` | Color | Material 3 defaults |
+| `navigation.android.colors.icon.selected`, `.unselected` | Color | Material 3 defaults |
+| `navigation.android.colors.label.selected`, `.unselected` | Color | Material 3 defaults |
+
+Color accepts `#RRGGBB`, `#AARRGGBB`, or `{ light, dark }` containing either format. Invalid options return `InvalidConfig` with the field path. Web mode omits native bars and keeps system-only safe-area insets. See [bar and Android theme](/docs/reference/sections#bar-and-android-theme) for an example.
 
 ## Image fields
 

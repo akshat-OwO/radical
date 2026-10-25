@@ -595,6 +595,7 @@ describe("Android shell generation", () => {
         assert.deepStrictEqual(context, {
           platform: "android",
           shellVersion: "1.2.3",
+          nativeSectionBar: false,
           windowLayout: {
             widthClass: "compact" as const,
             posture: "flat" as const,
@@ -1129,6 +1130,16 @@ describe("Android section navigation", () => {
           mode,
           origin: "https://api.example",
           navigation: {
+            android: {
+              labels: "selected",
+              colors: {
+                container: { light: "#123456", dark: "#ABCDEF" },
+                indicator: "#80123456",
+                badge: "#654321",
+                icon: { selected: "#112233" },
+                label: { unselected: { light: "#334455", dark: "#CCDDEE" } },
+              },
+            },
             sections: [
               {
                 id: "home",
@@ -1166,6 +1177,63 @@ describe("Android section navigation", () => {
 
           assert.include(source, 'String[] IDS = { "home", "about" }');
           assert.include(source, "new BottomNavigationView");
+          assert.include(source, "LABEL_VISIBILITY_SELECTED");
+          assert.include(source, "setBackgroundTintList");
+          assert.include(source, "setItemActiveIndicatorColor");
+          assert.include(
+            source,
+            "setItemIconTintList(new android.content.res.ColorStateList"
+          );
+          assert.include(
+            source,
+            "setItemTextColor(new android.content.res.ColorStateList"
+          );
+          assert.include(source, "drawable.setBackgroundColor");
+          assert.include(
+            source,
+            "m3_navigation_bar_item_with_indicator_icon_tint"
+          );
+          assert.include(
+            source,
+            "m3_navigation_rail_item_with_indicator_label_tint"
+          );
+          assert.include(
+            source,
+            "defaults.getColorForState(new int[] { android.R.attr.state_checked }"
+          );
+          assert.include(source, "barHeight + bottomPadding");
+          assert.include(
+            source,
+            "rail.setPadding(0, top, 0, railBottomPadding)"
+          );
+
+          assert.include(
+            source,
+            "bottomEdge == h - bottomPadding ? bottomPadding : 0"
+          );
+
+          const res = `${destination}/android/app/src/main/res`;
+
+          const light =
+            state.files.get(`${res}/values/radical_section_colors.xml`) ?? "";
+
+          const dark =
+            state.files.get(`${res}/values-night/radical_section_colors.xml`) ??
+            "";
+
+          assert.include(
+            light,
+            '<color name="radical_section_container">#123456</color>'
+          );
+          assert.include(
+            dark,
+            '<color name="radical_section_container">#ABCDEF</color>'
+          );
+          assert.include(light, "#334455");
+          assert.include(dark, "#CCDDEE");
+          assert.include(light, "#80123456");
+          assert.include(dark, "#80123456");
+          assert.notInclude(light, 'name="radical_section_icon_unselected"');
           assert.include(source, "new NavigationRailView");
           assert.notMatch(source, /__[A-Z_]+__/u);
           assert.include(
@@ -1207,6 +1275,108 @@ describe("Android section navigation", () => {
       }
     );
   }
+
+  it.effect(
+    "omits native controls in web mode while retaining predictive back",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        navigation: {
+          bar: { android: "web" },
+          sections: [
+            {
+              id: "home",
+              title: "Home",
+              route: "/",
+              icon: { ios: "house", android: "home.svg" },
+              selectedIcon: { ios: "house.fill", android: "selected.svg" },
+            },
+            {
+              id: "about",
+              title: "About",
+              route: "/about",
+              icon: { ios: "info", android: "home.svg" },
+            },
+          ],
+        },
+      });
+
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(mainActivity) ?? "";
+        assert.notInclude(source, "RadicalNavigation navigation;");
+        assert.notInclude(source, "new RadicalNavigation(");
+        assert.notInclude(
+          state.files.get(`${destination}/android/app/radical.gradle`) ?? "",
+          "com.google.android.material"
+        );
+        assert.isFalse(
+          [...state.files.keys()].some(
+            (file) =>
+              file.startsWith(destination) &&
+              file.endsWith("/RadicalNavigation.java")
+          )
+        );
+        assert.include(source, "setBack");
+        assert.include(source, "handleOnBackProgressed");
+        assert.include(source, "nativeSectionBar%22%3Afalse");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "rebuilds partially themed bars on night-mode changes so omitted colors follow Material",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        navigation: {
+          android: {
+            colors: { container: { light: "#FFFFFF", dark: "#000000" } },
+          },
+          sections: [
+            {
+              id: "home",
+              title: "Home",
+              route: "/",
+              icon: { ios: "house", android: "home.svg" },
+            },
+            {
+              id: "about",
+              title: "About",
+              route: "/about",
+              icon: { ios: "info", android: "home.svg" },
+            },
+          ],
+        },
+      });
+
+      state.files.set(
+        "/app/home.svg",
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>'
+      );
+
+      return Effect.gen(function* () {
+        yield* generate;
+
+        const source =
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalNavigation.java`
+          ) ?? "";
+
+        // Omitted channels come from Material's construction-time defaults.
+        assert.include(source, "if (night() != nightMode) build();");
+        assert.include(source, "bottom = new BottomNavigationView(activity);");
+        assert.include(source, "setBackgroundTintList");
+        assert.notInclude(source, "setItemIconTintList");
+        assert.notInclude(source, "setItemTextColor");
+        assert.notInclude(source, "setItemActiveIndicatorColor");
+        assert.include(
+          state.files.get(mainActivity) ?? "",
+          "public void onConfigurationChanged"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
 
   it.effect("keeps shells without sections free of Material navigation", () => {
     const state = memory();

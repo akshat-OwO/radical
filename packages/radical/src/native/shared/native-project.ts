@@ -173,6 +173,9 @@ export const readNativeProject = (
       safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
       windowLayout: { widthClass: "compact", posture: "flat", hinge: null },
       shellVersion: version,
+      nativeSectionBar: Boolean(
+        plan.navigation && plan.navigation.bar?.[platform] !== "web"
+      ),
     });
 
     return {

@@ -24,6 +24,7 @@ import {
   safeAreaUpdateScript,
   windowLayoutUpdateScript,
 } from "../shared/shell-events.ts";
+import { sectionTheme } from "./section-theme.ts";
 
 /**
  * Runs at document start, before any page script, in every frame. A top-level
@@ -60,7 +61,10 @@ export const generateAndroid = (
       path.join(packageRoot, "templates/android/gradle-daemon-jvm.properties")
     );
 
-    const { navigation } = native.plan;
+    const navigation =
+      native.plan.navigation?.bar?.android === "web"
+        ? undefined
+        : native.plan.navigation;
 
     const drawables = navigation
       ? yield* prepareSectionDrawables(root, navigation.sections)
@@ -117,6 +121,22 @@ export const generateAndroid = (
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
         if (navigation) {
+          const theme = sectionTheme(navigation.android);
+
+          for (const resource of theme.resources) {
+            const directory = path.join(
+              staging,
+              "android/app/src/main/res",
+              resource.directory
+            );
+
+            yield* fs.makeDirectory(directory, { recursive: true });
+            yield* fs.writeFileString(
+              path.join(directory, "radical_section_colors.xml"),
+              resource.source
+            );
+          }
+
           const java = path.join(
             staging,
             "android/app/src/main/java",
@@ -134,6 +154,8 @@ export const generateAndroid = (
             const rendered =
               file === "RadicalNavigation.java"
                 ? yield* renderTemplate(file, source, {
+                    __THEME_SETUP__: theme.setup,
+                    __BADGE_THEME__: theme.badge,
                     __SECTION_IDS__: navigation.sections
                       .map((section) => JSON.stringify(section.id))
                       .join(", "),

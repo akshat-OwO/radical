@@ -9,6 +9,22 @@ import { defineConfig } from "vite-plus";
 
 const config = {
   navigation: {
+    android: {
+      labels: "labeled",
+      colors: {
+        container: { light: "#EDE4FF", dark: "#241538" },
+        indicator: { light: "#D1BCFF", dark: "#553A78" },
+        badge: { light: "#9C2454", dark: "#FFB0CC" },
+        icon: {
+          selected: { light: "#3D1963", dark: "#F0DBFF" },
+          unselected: { light: "#62536F", dark: "#CDBDDD" },
+        },
+        label: {
+          selected: { light: "#3D1963", dark: "#F0DBFF" },
+          unselected: { light: "#62536F", dark: "#CDBDDD" },
+        },
+      },
+    },
     sections: [
       {
         id: "home",

@@ -36,7 +36,43 @@ export const SectionSchema = Schema.Struct({
   selectedIcon: Schema.optional(SectionIconSchema),
 });
 
+const hexColor = Schema.String.check(
+  Schema.isPattern(/^#(?:[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/u)
+);
+
+export const SectionColorSchema = Schema.Union([
+  hexColor,
+  Schema.Struct({ light: hexColor, dark: hexColor }),
+]);
+
+const itemColors = Schema.Struct({
+  selected: Schema.optional(SectionColorSchema),
+  unselected: Schema.optional(SectionColorSchema),
+});
+
 export const NavigationSchema = Schema.Struct({
+  bar: Schema.optional(
+    Schema.Struct({
+      ios: Schema.optional(Schema.Literals(["native", "web"])),
+      android: Schema.optional(Schema.Literals(["native", "web"])),
+    })
+  ),
+  android: Schema.optional(
+    Schema.Struct({
+      labels: Schema.optional(
+        Schema.Literals(["labeled", "selected", "unlabeled"])
+      ),
+      colors: Schema.optional(
+        Schema.Struct({
+          container: Schema.optional(SectionColorSchema),
+          indicator: Schema.optional(SectionColorSchema),
+          badge: Schema.optional(SectionColorSchema),
+          icon: Schema.optional(itemColors),
+          label: Schema.optional(itemColors),
+        })
+      ),
+    })
+  ),
   sections: Schema.Array(SectionSchema).check(
     Schema.makeFilter(
       (sections) =>

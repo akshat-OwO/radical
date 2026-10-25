@@ -1,6 +1,7 @@
 import { assert, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 
+import type { NavigationSchema } from "../../../src/capabilities/sections/sections.ts";
 import {
   makeSections,
   sectionOwnership,
@@ -370,4 +371,108 @@ it.effect(
         declarations.map((section) => section.route)
       );
     })
+);
+
+it.effect(
+  "accepts platform bar choices, label modes and day/night ARGB colors",
+  () =>
+    Effect.gen(function* () {
+      for (const labels of ["labeled", "selected", "unlabeled"] as const) {
+        const navigation: typeof NavigationSchema.Type = {
+          sections,
+          bar: { ios: "web", android: "native" },
+          android: {
+            labels,
+            colors: {
+              container: "#aBcDeF",
+              indicator: "#80123456",
+              badge: { light: "#123456", dark: "#FFabcdef" },
+              icon: {
+                selected: "#123456",
+                unselected: { light: "#123456", dark: "#654321" },
+              },
+              label: { selected: "#123456", unselected: "#654321" },
+            },
+          },
+        };
+
+        assert.deepStrictEqual(
+          (yield* validateConfig({ appId: "dev.test.app", navigation }))
+            .navigation,
+          navigation
+        );
+      }
+
+      const navigation: typeof NavigationSchema.Type = {
+        sections,
+        bar: { ios: "native", android: "web" },
+      };
+
+      assert.deepStrictEqual(
+        (yield* validateConfig({ appId: "dev.test.app", navigation }))
+          .navigation,
+        navigation
+      );
+    })
+);
+
+it.effect("rejects invalid bar, labels and colors with their field path", () =>
+  Effect.gen(function* () {
+    const invalid: readonly (readonly [object, readonly string[]])[] = [
+      [{ bar: { ios: "auto" } }, ["bar", "ios"]],
+      [{ bar: { android: false } }, ["bar", "android"]],
+      [{ android: { labels: "labelled" } }, ["android", "labels"]],
+      ...[
+        "red",
+        "#123",
+        "#12345G",
+        "#1234567",
+        "#123456789",
+        "#123456\n",
+        42,
+      ].map(
+        (container) =>
+          [
+            { android: { colors: { container } } },
+            ["colors", "container"],
+          ] as const
+      ),
+      [
+        { android: { colors: { badge: { light: "#123456" } } } },
+        ["badge", "dark"],
+      ],
+      [
+        {
+          android: {
+            colors: { indicator: { light: "invalid", dark: "#123456" } },
+          },
+        },
+        ["indicator", "light"],
+      ],
+      [
+        { android: { colors: { icon: { selected: "#gggggg" } } } },
+        ["icon", "selected"],
+      ],
+      [
+        { android: { colors: { label: { unselected: "#123" } } } },
+        ["label", "unselected"],
+      ],
+    ];
+
+    for (const [options, path] of invalid) {
+      const error = yield* Effect.flip(
+        validateConfig({
+          appId: "dev.test.app",
+          navigation: { sections, ...options },
+        })
+      );
+
+      assert.strictEqual(error._tag, "InvalidConfig");
+      assert.include(error.message, "navigation");
+
+      for (const field of path) {
+        assert.include(error.message, field);
+      }
+    }
+  })
 );
