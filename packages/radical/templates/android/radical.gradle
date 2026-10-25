@@ -1,4 +1,6 @@
 // The shell directly uses AndroidX WebKit's document-start API.
 dependencies {
+    implementation "androidx.window:window:1.5.1"
+    implementation "androidx.window:window-java:1.5.1"
     implementation "androidx.webkit:webkit:$androidxWebkitVersion"
 }

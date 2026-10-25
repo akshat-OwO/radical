@@ -6,6 +6,7 @@ import { Effect } from "effect";
 import { Bridge, bridgeLayer } from "../../../src/core/bridge/bridge.ts";
 import {
   safeAreaUpdateScript,
+  windowLayoutUpdateScript,
   shellEventPublisher,
 } from "../../../src/native/shared/shell-events.ts";
 
@@ -135,3 +136,61 @@ describe("shell event scripts", () => {
       })
   );
 });
+
+it.effect(
+  "defers bundled hinge CSS until mount, replays layout, and clears the unfolded hinge",
+  () =>
+    Effect.gen(function* () {
+      const shell = sandbox();
+
+      const layout = {
+        widthClass: "expanded",
+        posture: "tabletop",
+        hinge: { x: 0, y: 400, width: 900, height: 12.5 },
+      };
+
+      shell.run("window.__radicalBundled = true;");
+      shell.run(`${windowLayoutUpdateScript}${JSON.stringify(layout)});`);
+      assert.isEmpty(shell.writes);
+
+      const bridge = yield* Bridge.pipe(
+        Effect.provide(
+          bridgeLayer(
+            () => {},
+            () => shell.window
+          )
+        )
+      );
+
+      const values: unknown[] = [];
+
+      const remove = yield* bridge.observe("radicalWindowLayout", (value) => {
+        values.push(value);
+      });
+
+      assert.strictEqual(JSON.stringify(values), JSON.stringify([layout]));
+      shell.document.readyState = "interactive";
+      shell.run("window.__radicalMounted = true;");
+      shell.run(`${windowLayoutUpdateScript}${JSON.stringify(layout)});`);
+      assert.strictEqual(shell.properties.get("--radical-hinge-y"), "400px");
+      assert.strictEqual(
+        shell.properties.get("--radical-hinge-height"),
+        "12.5px"
+      );
+      const writes = shell.writes.length;
+      shell.run(`${windowLayoutUpdateScript}${JSON.stringify(layout)});`);
+      assert.strictEqual(shell.writes.length, writes);
+      shell.run(
+        `${windowLayoutUpdateScript}${JSON.stringify({ ...layout, posture: "flat", hinge: null })});`
+      );
+
+      for (const edge of ["x", "y", "width", "height"]) {
+        assert.strictEqual(
+          shell.properties.get(`--radical-hinge-${edge}`),
+          "0px"
+        );
+      }
+
+      remove();
+    })
+);

@@ -1,0 +1,34 @@
+---
+title: Window layout
+description: Width classes, fold posture, hinge CSS, and layout subscriptions.
+---
+
+`NativeContext.windowLayout` contains:
+
+| Field | Values |
+| --- | --- |
+| `widthClass` | `compact` below 600 CSS pixels, `medium` from 600 to below 840, `expanded` at 840 and above |
+| `posture` | `flat`, `tabletop`, or `book` |
+| `hinge` | `null` or `{ x, y, width, height }`, finite nonnegative CSS pixels relative to the window |
+
+Missing or invalid `windowLayout` decodes to `{ widthClass: "compact", posture: "flat", hinge: null }`. Other valid shell fields remain available. Older shells can omit the field.
+
+| API | Behavior |
+| --- | --- |
+| `useWindowLayout()` | Returns `WindowLayout` directly. Uses provider context for SSR and hydration, then live values after mount. |
+| `watchWindowLayout(receive)` | Effect requiring `Bridge \| Scope`. Returns cleanup and registers it for scope closure. Replays the latest shell layout. |
+| `windowLayoutStyle(context?, mode = "remote")` | Returns `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height`. Missing hinges use `0px`. Bundled style props stay at `0px` while native CSS supplies live values after mount. |
+| Native event | `radicalWindowLayout`. Invalid events are ignored. |
+
+The iOS shell measures the view's bounds and always reports `flat` with no hinge. The Android shell measures the activity window and reads Jetpack WindowManager `FoldingFeature`. A half-opened horizontal fold reports `tabletop`; a half-opened vertical fold reports `book`. Other states report `flat`. A reported folding feature supplies hinge bounds, including a zero-width fold.
+
+Shells write layout into the `radical-context` cookie before the first load and update the cookie and bridge event when layout changes. Bundled mode injects the context and sends it in `x-radical-context` for routed API requests.
+
+Browsers use `matchMedia` at 600 and 840 CSS pixels and report `flat` with no hinge. Radical does not use the Viewport Segments API.
+
+| Export | Entry point |
+| --- | --- |
+| `useWindowLayout`, `WindowLayout` | `@akshatowo/radical/react`, `@akshatowo/radical/effect/react` |
+| `windowLayoutStyle`, `WindowLayout` | `@akshatowo/radical/client`, `@akshatowo/radical/server`, `@akshatowo/radical/native-context`, and their `effect/` equivalents |
+| `watchWindowLayout` | `@akshatowo/radical/effect/client` |
+| `WindowLayoutSchema`, `defaultWindowLayout` | `@akshatowo/radical/effect/native-context` |

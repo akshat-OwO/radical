@@ -125,6 +125,11 @@ describe("TanStack Start adapter", () => {
                     cookie: `radical-context=${encodeURIComponent(
                       JSON.stringify({
                         platform,
+                        windowLayout: {
+                          widthClass: "compact" as const,
+                          posture: "flat" as const,
+                          hinge: null,
+                        },
                         safeArea: { top: 12, right: 0, bottom: 4, left: 0 },
                         shellVersion: "2.0",
                       })

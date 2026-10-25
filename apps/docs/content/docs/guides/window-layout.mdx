@@ -1,0 +1,41 @@
+---
+title: Adapt to window layout
+description: Read window width, fold posture, and hinge bounds without changing the first render.
+---
+
+Pass your loader's `nativeContext` to `RadicalProvider`, as in the [installation guide](/docs/getting-started/installation). Read the current layout in a component:
+
+```tsx
+import { useWindowLayout } from "@akshatowo/radical/react";
+
+function Content() {
+  const { widthClass, posture, hinge } = useWindowLayout();
+
+  return (
+    <main data-width={widthClass} data-posture={posture}>
+      {hinge ? "Keep controls clear of the hinge." : "Use the full window."}
+    </main>
+  );
+}
+```
+
+Use `compact` for windows below 600 CSS pixels, `medium` for widths from 600 through 839, and `expanded` for widths of at least 840. Use the width class to choose columns or control placement. A window can change class when the user rotates, unfolds, resizes, or enters split screen.
+
+On Android, use `tabletop` for a half-opened horizontal fold and `book` for a half-opened vertical fold. iOS and browsers report `flat` with no hinge.
+
+To expose hinge bounds to CSS, merge `windowLayoutStyle` with your document style:
+
+```tsx
+import { safeAreaStyle, windowLayoutStyle } from "@akshatowo/radical/client";
+
+const style = {
+  ...safeAreaStyle(nativeContext, config.mode),
+  ...windowLayoutStyle(nativeContext, config.mode),
+};
+```
+
+Apply `style` to `<html>`. The shell updates `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height` as the hinge changes. A missing hinge has zero bounds. The rectangle uses CSS pixels relative to the window's top-left corner.
+
+Keep the provider context from the loader for the first render. The hook starts live updates after mount, so hydration uses the same layout as the server. Bundled documents initially use `compact`, `flat`, and no hinge. The standard client mount handoff applies injected native CSS after mount.
+
+See the [window layout reference](/docs/reference/window-layout) for subscriptions and decoding defaults.

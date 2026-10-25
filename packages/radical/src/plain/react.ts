@@ -27,12 +27,14 @@ export {
   useDataProtection,
   useDeviceInfo,
   useSafeArea,
+  useWindowLayout,
 } from "../react/react.ts";
 
 export type {
   DeviceInfo,
   BridgeError,
   SafeArea,
+  WindowLayout,
   CameraState,
   CameraPermissionState,
   Photo,

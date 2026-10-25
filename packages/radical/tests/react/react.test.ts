@@ -313,6 +313,11 @@ it.effect(
                 layer,
                 nativeContext: {
                   platform: "ios",
+                  windowLayout: {
+                    widthClass: "compact" as const,
+                    posture: "flat" as const,
+                    hinge: null,
+                  },
                   safeArea: initial,
                   shellVersion: "1",
                 },

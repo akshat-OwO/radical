@@ -23,6 +23,11 @@ describe("safe area", () => {
               {
                 platform: "browser",
                 shellVersion: null,
+                windowLayout: {
+                  widthClass: "compact" as const,
+                  posture: "flat" as const,
+                  hinge: null,
+                },
                 safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
               },
               "bundled"
@@ -33,7 +38,16 @@ describe("safe area", () => {
         const firstClient = renderToString(
           createElement("html", {
             style: safeAreaStyle(
-              { platform: "ios", shellVersion: "1", safeArea: portrait },
+              {
+                platform: "ios",
+                shellVersion: "1",
+                windowLayout: {
+                  widthClass: "compact",
+                  posture: "flat",
+                  hinge: null,
+                },
+                safeArea: portrait,
+              },
               "bundled"
             ),
           })
@@ -49,6 +63,11 @@ describe("safe area", () => {
         safeAreaStyle({
           platform: "android",
           shellVersion: "1",
+          windowLayout: {
+            widthClass: "compact" as const,
+            posture: "flat" as const,
+            hinge: null,
+          },
           safeArea: { ...portrait, top: 24.5 },
         }),
         {
@@ -65,6 +84,11 @@ describe("safe area", () => {
       const style = safeAreaStyle({
         platform: "browser",
         shellVersion: null,
+        windowLayout: {
+          widthClass: "compact" as const,
+          posture: "flat" as const,
+          hinge: null,
+        },
         safeArea: portrait,
       });
 

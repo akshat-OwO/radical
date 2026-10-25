@@ -4,8 +4,9 @@ import { useContext, useEffect, useState } from "react";
 import { getDeviceInfo } from "../capabilities/device-info/device-info.ts";
 import type { DeviceInfo } from "../capabilities/device-info/device-info.ts";
 import { subscribeSafeArea } from "../capabilities/safe-area/safe-area.ts";
+import { subscribeWindowLayout } from "../capabilities/window-layout/window-layout.ts";
 import type { BridgeError } from "../core/bridge/bridge.ts";
-import type { SafeArea } from "../core/context/native-context.ts";
+import type { WindowLayout, SafeArea } from "../core/context/native-context.ts";
 import {
   BridgeContext,
   NativeContextContext,
@@ -54,6 +55,42 @@ export const useSafeArea = (): SafeArea => {
   }, [layer]);
 
   return snapshot.layer === layer ? snapshot.area : context.safeArea;
+};
+
+/** SSR and hydration use the provider context. Live updates start after commit. */
+export const useWindowLayout = (): WindowLayout => {
+  const context = useContext(NativeContextContext);
+  const layer = useContext(BridgeContext);
+
+  const [snapshot, setSnapshot] = useState({
+    layer,
+    layout: context.windowLayout,
+  });
+
+  useEffect(() => {
+    let release: (() => void) | undefined;
+
+    const fiber = Effect.runFork(
+      subscribeWindowLayout((layout) => {
+        setSnapshot({ layer, layout });
+      }).pipe(
+        Effect.map((remove) => {
+          release = remove;
+
+          return remove;
+        }),
+        Effect.andThen(Effect.never),
+        Effect.provide(layer)
+      )
+    );
+
+    return () => {
+      release?.();
+      Effect.runFork(Fiber.interrupt(fiber));
+    };
+  }, [layer]);
+
+  return snapshot.layer === layer ? snapshot.layout : context.windowLayout;
 };
 
 export type { SafeArea } from "../core/context/native-context.ts";
@@ -177,3 +214,5 @@ export {
   LocationServicesOff,
   LocationTimeout,
 } from "../capabilities/location/location.ts";
+
+export type { WindowLayout } from "../core/context/native-context.ts";

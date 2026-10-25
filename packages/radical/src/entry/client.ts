@@ -322,3 +322,9 @@ export {
 } from "../capabilities/location/location-pool.ts";
 
 export { openAppSettings } from "../capabilities/device-info/device-info.ts";
+
+export { windowLayoutStyle } from "../capabilities/window-layout/window-layout-style.ts";
+
+export type { WindowLayout } from "../core/context/native-context.ts";
+
+export { watchWindowLayout } from "../capabilities/window-layout/window-layout.ts";

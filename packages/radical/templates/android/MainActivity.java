@@ -1,6 +1,15 @@
 package __APP_ID__;
 
 import android.graphics.Bitmap;
+import android.graphics.Rect;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Consumer;
+import androidx.window.java.layout.WindowInfoTrackerCallbackAdapter;
+import androidx.window.layout.DisplayFeature;
+import androidx.window.layout.FoldingFeature;
+import androidx.window.layout.WindowInfoTracker;
+import androidx.window.layout.WindowLayoutInfo;
+import androidx.window.layout.WindowMetricsCalculator;
 import android.view.PixelCopy;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -105,10 +114,37 @@ public class MainActivity extends BridgeActivity {
     }
 
     private boolean started = false;
-    private String lastInsets = "";
+    private String lastContext = "";
     private ScriptHandler safeAreaScript;
+    private WindowInfoTrackerCallbackAdapter windowTracker;
+    private WindowLayoutInfo windowLayoutInfo;
+    private final Consumer<WindowLayoutInfo> windowLayoutListener = info -> {
+        windowLayoutInfo = info;
+        refreshWindowContext();
+    };
+
+    private void refreshWindowContext() {
+        if (bridge == null) return;
+        WebView view = bridge.getWebView();
+        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(view);
+        if (insets != null) updateSafeArea(view, insets);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        windowTracker = new WindowInfoTrackerCallbackAdapter(WindowInfoTracker.getOrCreate(this));
+        windowTracker.addWindowLayoutInfoListener(this, ContextCompat.getMainExecutor(this), windowLayoutListener);
+    }
+
+    @Override
+    public void onStop() {
+        if (windowTracker != null) windowTracker.removeWindowLayoutInfoListener(windowLayoutListener);
+        super.onStop();
+    }
 
     private void updateSafeArea(WebView view, WindowInsetsCompat windowInsets) {
+        if (windowLayoutInfo == null || getWindow().getDecorView().getWidth() == 0) return;
         Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
         // System bars remain edge to edge. Only the IME shrinks web content.
         boolean keyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
@@ -125,15 +161,36 @@ public class MainActivity extends BridgeActivity {
             // The keyboard already excludes the navigation bar from usable content.
             area.put("bottom", keyboardVisible ? 0 : bars.bottom / density);
             area.put("left", bars.left / density);
-            if (area.toString().equals(lastInsets)) return;
-            lastInsets = area.toString();
+            float width = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this).getBounds().width() / density;
+            JSONObject layout = new JSONObject();
+            layout.put("widthClass", width < 600 ? "compact" : width < 840 ? "medium" : "expanded");
+            layout.put("posture", "flat");
+            layout.put("hinge", JSONObject.NULL);
+            for (DisplayFeature feature : windowLayoutInfo.getDisplayFeatures()) {
+                if (!(feature instanceof FoldingFeature)) continue;
+                FoldingFeature fold = (FoldingFeature) feature;
+                if (fold.getState() == FoldingFeature.State.HALF_OPENED) {
+                    layout.put("posture", fold.getOrientation() == FoldingFeature.Orientation.HORIZONTAL ? "tabletop" : "book");
+                }
+                Rect bounds = fold.getBounds();
+                JSONObject hinge = new JSONObject();
+                hinge.put("x", bounds.left / density);
+                hinge.put("y", bounds.top / density);
+                hinge.put("width", bounds.width() / density);
+                hinge.put("height", bounds.height() / density);
+                layout.put("hinge", hinge);
+                break;
+            }
             JSONObject context = new JSONObject(URLDecoder.decode(MainActivity.COOKIE.split("=", 2)[1], StandardCharsets.UTF_8.name()));
             context.put("safeArea", area);
+            context.put("windowLayout", layout);
+            if (context.toString().equals(lastContext)) return;
+            lastContext = context.toString();
             String COOKIE = "radical-context=" + URLEncoder.encode(context.toString(), StandardCharsets.UTF_8.name()).replace("+", "%20");
             CookieManager cookies = CookieManager.getInstance();
             __COOKIES__
             cookies.flush();
-            String script = "window.__radicalBundled=" + BUNDLED + ";window.__radicalNativeContext=" + context + ";" + __SAFE_AREA_SCRIPT__ + area + ");";
+            String script = "window.__radicalBundled=" + BUNDLED + ";window.__radicalNativeContext=" + context + ";" + __SAFE_AREA_SCRIPT__ + area + ");" + __WINDOW_LAYOUT_SCRIPT__ + layout + ");";
             if (safeAreaScript != null) safeAreaScript.remove();
             safeAreaScript = WebViewCompat.addDocumentStartJavaScript(view, script, ORIGINS);
             if (!started) {
@@ -273,6 +330,7 @@ public class MainActivity extends BridgeActivity {
                 return false;
             }
         });
+        view.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> refreshWindowContext());
         WindowInsetsCompat initial = ViewCompat.getRootWindowInsets(view);
         if (initial != null) updateSafeArea(view, initial);
         ViewCompat.requestApplyInsets(view);

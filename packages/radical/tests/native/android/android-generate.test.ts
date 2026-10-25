@@ -588,6 +588,11 @@ describe("Android shell generation", () => {
         assert.deepStrictEqual(context, {
           platform: "android",
           shellVersion: "1.2.3",
+          windowLayout: {
+            widthClass: "compact" as const,
+            posture: "flat" as const,
+            hinge: null,
+          },
           safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
         });
         assert.include(source, "CookieManager");

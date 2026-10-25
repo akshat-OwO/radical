@@ -15,6 +15,7 @@ import type { LocationWatchPool } from "../capabilities/location/location-pool.t
 import { zeroSafeArea } from "../capabilities/safe-area/safe-area-style.ts";
 import { BridgeLive } from "../core/bridge/bridge.ts";
 import type { Bridge } from "../core/bridge/bridge.ts";
+import { defaultWindowLayout } from "../core/context/native-context.ts";
 import type { NativeContext } from "../core/context/native-context.ts";
 import {
   createEffectRuntime,
@@ -49,6 +50,7 @@ const initialState: BridgeState<never, never> = {
 export const NativeContextContext = createContext<NativeContext>({
   platform: "browser",
   safeArea: zeroSafeArea,
+  windowLayout: defaultWindowLayout,
   shellVersion: null,
 });
 

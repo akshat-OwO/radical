@@ -18,3 +18,7 @@ export {
 
 export const encodeNativeContextCookie = (context: ShellContext): string =>
   Effect.runSync(encodeCookie(context));
+
+export { windowLayoutStyle } from "../capabilities/window-layout/window-layout-style.ts";
+
+export type { WindowLayout } from "../core/context/native-context.ts";

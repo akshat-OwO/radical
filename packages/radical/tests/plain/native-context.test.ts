@@ -18,13 +18,20 @@ it.effect("encodes shell cookies and reads request context synchronously", () =>
   Effect.sync(() => {
     const context: ShellContext = {
       platform: "android",
+      windowLayout: {
+        widthClass: "compact" as const,
+        posture: "flat" as const,
+        hinge: null,
+      },
       safeArea: { top: 24, right: 0, bottom: 16, left: 0 },
       shellVersion: "1.0.0",
     };
 
     const cookie: string = encodeNativeContextCookie(context);
 
-    assert.strictEqual(cookie, encodeURIComponent(JSON.stringify(context)));
+    const decoded: unknown = JSON.parse(decodeURIComponent(cookie));
+
+    assert.deepStrictEqual(decoded, context);
     assert.deepStrictEqual(
       getNativeContext(
         new Request("https://example.com", {
@@ -50,6 +57,11 @@ it.effect(
     Effect.sync(() => {
       const browser: NativeContext = {
         platform: "browser",
+        windowLayout: {
+          widthClass: "compact" as const,
+          posture: "flat" as const,
+          hinge: null,
+        },
         safeArea: zeroSafeArea,
         shellVersion: null,
       };
@@ -76,6 +88,11 @@ it.effect("reads local browser context synchronously before mount", () =>
   Effect.sync(() => {
     assert.deepStrictEqual(localNativeContext(), {
       platform: "browser",
+      windowLayout: {
+        widthClass: "compact" as const,
+        posture: "flat" as const,
+        hinge: null,
+      },
       safeArea: zeroSafeArea,
       shellVersion: null,
     });

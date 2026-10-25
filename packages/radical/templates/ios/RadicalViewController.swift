@@ -12,6 +12,7 @@ final class RadicalViewController: CAPBridgeViewController {
     private var writing = false
     private var laidOut = false
     private var lastInsets: UIEdgeInsets?
+    private var lastWidth: CGFloat?
     private var safeAreaScript: WKUserScript?
     private var keyboardEndFrame: CGRect?
     private var keyboardScreen: UIScreen?
@@ -116,16 +117,20 @@ final class RadicalViewController: CAPBridgeViewController {
     private func updateSafeArea() {
         guard let webView = webView, view.window != nil, laidOut, !writing else { return }
         let insets = view.safeAreaInsets
-        guard lastInsets != insets else { return }
+        let width = view.bounds.width
+        guard lastInsets != insets || lastWidth != width else { return }
         writing = true
         let area: [String: CGFloat] = ["top": insets.top, "right": insets.right, "bottom": insets.bottom, "left": insets.left]
         let seed = __COOKIE_VALUE__.removingPercentEncoding!.data(using: .utf8)!
         var context = try! JSONSerialization.jsonObject(with: seed) as! [String: Any]
         context["safeArea"] = area
+        let layout: [String: Any] = ["widthClass": width < 600 ? "compact" : width < 840 ? "medium" : "expanded", "posture": "flat", "hinge": NSNull()]
+        context["windowLayout"] = layout
         let data = try! JSONSerialization.data(withJSONObject: context, options: [.sortedKeys])
         let value = String(data: data, encoding: .utf8)!.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
         let areaJSON = String(data: try! JSONSerialization.data(withJSONObject: area), encoding: .utf8)!
-        let script = "window.__radicalBundled=" + String(__BUNDLED__) + ";window.__radicalNativeContext=" + String(data: data, encoding: .utf8)! + ";" + __SAFE_AREA_SCRIPT__ + areaJSON + ");"
+        let layoutJSON = String(data: try! JSONSerialization.data(withJSONObject: layout), encoding: .utf8)!
+        let script = "window.__radicalBundled=" + String(__BUNDLED__) + ";window.__radicalNativeContext=" + String(data: data, encoding: .utf8)! + ";" + __SAFE_AREA_SCRIPT__ + areaJSON + ");" + __WINDOW_LAYOUT_SCRIPT__ + layoutJSON + ");"
         let group = DispatchGroup()
         for (hostname, origin, secure) in [__COOKIES__] as [(String, String, Bool)] {
             let url = URL(string: origin)!
@@ -144,6 +149,7 @@ final class RadicalViewController: CAPBridgeViewController {
             guard let self = self else { return }
             self.writing = false
             self.lastInsets = insets
+            self.lastWidth = width
             // Replace only our user script, preserving Capacitor's bridge scripts.
             let controller = webView.configuration.userContentController
             let scripts = controller.userScripts.filter { $0 !== self.safeAreaScript }
@@ -152,7 +158,7 @@ final class RadicalViewController: CAPBridgeViewController {
             let injection = WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
             self.safeAreaScript = injection
             controller.addUserScript(injection)
-            if self.view.safeAreaInsets != insets { self.updateSafeArea(); return }
+            if self.view.safeAreaInsets != insets || self.view.bounds.width != width { self.updateSafeArea(); return }
             if !self.started { self.started = true; self.startNavigation() }
             else { webView.evaluateJavaScript(script, completionHandler: nil) }
         }

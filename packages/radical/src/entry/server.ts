@@ -44,3 +44,7 @@ export { safeAreaStyle } from "../core/context/native-context.ts";
 export type { SafeArea } from "../core/context/native-context.ts";
 
 export { withBundledRequests } from "../core/bundled/bundled-server.ts";
+
+export { windowLayoutStyle } from "../capabilities/window-layout/window-layout-style.ts";
+
+export type { WindowLayout } from "../core/context/native-context.ts";
