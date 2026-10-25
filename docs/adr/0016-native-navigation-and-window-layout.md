@@ -37,3 +37,13 @@ System back follows each platform. On Android, back within a section pops router
 - Hiding sections at runtime is deferred, because it would make native navigation depend on authentication state.
 - Badges are not persisted across launches.
 - Shells must build with the iOS 27.1 SDK for the iPhone Duo's vertical bars.
+
+## iOS prototype outcome
+
+The iOS shell uses the tab controller for its bars. Its single bridge controller and WebView stay in a fixed container.
+
+A UIKit prototype built with the iOS 27.1 SDK moved one WKWebView between two UITab containers on the iPhone 17 Pro simulator running iOS 26.5. Before selection, an HTML input held `preserved`, was the active DOM element, and had a native first responder with the software keyboard visible. After moving to the other tab, the document UUID, input value, and DOM active element were unchanged, but the software keyboard disappeared. The accessibility snapshot also lost the keyboard nodes. Moving preserved the document but failed the keyboard requirement, so the shell uses the fixed-container fallback.
+
+UITab selection emits an unretained intent and waits for the adapter's resolved state before changing selection. The tab containers contain no WebViews. UIKit's content layout guide supplies the unobscured rectangle on iOS 26 and later, including the Duo's vertical bar. On iOS 18, the selected container's safe-area layout guide supplies that rectangle. A fixed clipping container excludes the bars while the WebView retains window-sized CSS dimensions. The bridge controller publishes that rectangle as safe-area insets through the existing native-context cookie and bridge events.
+
+Sections are compiled into the shell, so bars exist before the first bridge message in remote, bundled, and offline launches. Apps with sections target iOS 18 in both Xcode and the generated Swift package. Apps without sections retain iOS 15 and their existing bridge controller root.

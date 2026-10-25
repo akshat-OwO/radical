@@ -94,8 +94,20 @@ Section selection disables transitions. With `browserTransitions(router)` instal
 
 ## Shell bridge contract
 
-This layer works in browsers and older shells without native navigation. Native controls are implemented separately.
+The section controller also works in browsers and shells without native navigation.
 
 The adapter sends `RadicalNavigation.update` with `{ sections, active, hidden }` on mount and state changes. Entries include badges. Shells without this command can ignore it. Shells draw bars only when `hidden` is false.
 
 Shells send a `radicalSectionSelect` event with `{ id }` for each selection intent. Selection events must not be retained or replayed. The adapter performs the route change. Invalid payloads and unknown ids are ignored. Route memory and badge state stay in the web app's single controller.
+
+## iOS shell
+
+Configuring sections enables native navigation and sets the generated app's minimum deployment target to iOS 18. Apps without sections keep iOS 15. Build with the iOS 27.1 SDK for iPhone Duo support.
+
+The shell uses `UITab` with sidebar-adaptive placement. UIKit places a bottom bar on iPhone, a sidebar on iPad and the Duo's inner display, and a vertical bar on its outer display. The sidebar can also be collapsed by the user. SF Symbols come from `icon.ios`; `selectedIcon.ios` supplies the selected variant. `setBadge` updates the native badge, and `null` clears it.
+
+The shell retains one WebView in a fixed container while UIKit draws the bars. Bar space reaches the page through the existing safe-area CSS variables and native context. Apply `safeAreaStyle` or those variables to page content. The shell clips the WebView outside the unobscured region, so bars cannot cover page controls.
+
+Declarations are compiled into the shell. Bars are present before the web app mounts, including bundled and offline launches. Once mounted, `TanStackSections` updates selection, visibility, and badges. Routes outside sections and routes marked `navigation: "hidden"` hide the native controls.
+
+Apps that draw browser navigation should omit their web controls when their native context has `platform: "ios"`. Keep `TanStackSections` mounted so native selection intents still reach the router. Bundled apps read `localNativeContext()` after hydration because the packaged HTML has browser context. The example app uses `useSyncExternalStore` to preserve the first render and then read the shell platform.

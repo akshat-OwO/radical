@@ -50,10 +50,44 @@ export const generateIos = (
       path.join(packageRoot, "templates/ios/RadicalViewController.swift")
     );
 
+    const { navigation } = native.plan;
+
+    const rootController = navigation
+      ? "RadicalTabController()"
+      : "RadicalViewController()";
+
+    const navigationSource = navigation
+      ? yield* renderTemplate(
+          "RadicalNavigation.swift",
+          yield* fs.readFileString(
+            path.join(packageRoot, "templates/ios/RadicalNavigation.swift")
+          ),
+          {
+            __SECTIONS__: navigation.sections
+              .map((section) => {
+                const image = `UIImage(systemName: ${JSON.stringify(section.icon.ios)})`;
+
+                const selected = JSON.stringify(
+                  section.selectedIcon?.ios ?? section.icon.ios
+                );
+
+                return `({ let tab = UITab(title: ${JSON.stringify(section.title)}, image: ${image}, identifier: ${JSON.stringify(section.id)}) { _ in UIViewController() }; tab.preferredPlacement = .fixed; tab.userInfo = ["icon": ${JSON.stringify(section.icon.ios)}, "selectedIcon": ${selected}]; return tab })()`;
+              })
+              .join(",\n"),
+          }
+        )
+      : "";
+
     const source = yield* renderTemplate(
       "RadicalViewController.swift",
       template,
       {
+        __NAVIGATION_HOST__: navigation
+          ? "@available(iOS 18.0, *) weak var navigationHost: RadicalTabController?"
+          : "",
+        __NAVIGATION_REGISTRATION__: navigation
+          ? "bridge?.registerPluginInstance(RadicalNavigationPlugin())"
+          : "",
         __OFFLINE_SAVED_URL_KEY__: JSON.stringify(savedOfflineURLKeys.ios),
         __BUNDLED__: String(native.bundled),
         __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
@@ -116,7 +150,7 @@ export const generateIos = (
         const delegate = path.join(app, "AppDelegate.swift");
         yield* fs.writeFileString(
           delegate,
-          `${yield* fs.readFileString(delegate)}\n${source}`
+          `${yield* fs.readFileString(delegate)}\n${source}\n${navigationSource}`
         );
         // Capacitor 8's scene lifecycle constructs its controller directly.
         const scene = path.join(app, "SceneDelegate.swift");
@@ -126,7 +160,7 @@ export const generateIos = (
             scene,
             yield* fs.readFileString(scene),
             "CAPBridgeViewController()",
-            "RadicalViewController()"
+            rootController
           )
         );
         const storyboard = path.join(app, "Base.lproj/Main.storyboard");
@@ -136,9 +170,32 @@ export const generateIos = (
             storyboard,
             yield* fs.readFileString(storyboard),
             'customClass="CAPBridgeViewController" customModule="Capacitor"',
-            'customClass="RadicalViewController" customModule="App" customModuleProvider="target"'
+            `customClass="${navigation ? "RadicalTabController" : "RadicalViewController"}" customModule="App" customModuleProvider="target"`
           )
         );
+
+        if (navigation) {
+          for (const [file, anchor, replacement] of [
+            [
+              "ios/App/App.xcodeproj/project.pbxproj",
+              /IPHONEOS_DEPLOYMENT_TARGET = 15\.0;/gu,
+              "IPHONEOS_DEPLOYMENT_TARGET = 18.0;",
+            ],
+            ["ios/App/CapApp-SPM/Package.swift", ".iOS(.v15)", '.iOS("18.0")'],
+          ] as const) {
+            const target = path.join(staging, file);
+            yield* fs.writeFileString(
+              target,
+              yield* replaceAnchor(
+                target,
+                yield* fs.readFileString(target),
+                anchor,
+                replacement
+              )
+            );
+          }
+        }
+
         const plist = path.join(app, "Info.plist");
         const contents = yield* fs.readFileString(plist);
 
