@@ -173,7 +173,10 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin, UIGestureRec
 
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         guard gestureRecognizer === edgePan else { return true }
-        return backPop && touch.location(in: nil).x <= Self.edgeWidth
+        guard let controller = bridge?.viewController as? RadicalViewController else { return false }
+        let page = controller.navigationPageRect
+        let location = touch.location(in: controller.view)
+        return backPop && page.contains(location) && location.x <= page.minX + Self.edgeWidth
     }
 
     public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -188,6 +191,10 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin, UIGestureRec
     }
 
     private func movingContent(in window: UIWindow, from webView: UIView) -> UIView? {
+        if let controller = bridge?.viewController as? RadicalViewController,
+           controller.navigationPageRect.width < controller.view.bounds.width {
+            return controller.view
+        }
         var content: UIView = webView
         while let parent = content.superview, parent !== window { content = parent }
         return content.superview === window ? content : nil
@@ -195,18 +202,32 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin, UIGestureRec
 
     @objc private func handleEdgePan(_ pan: UIPanGestureRecognizer) {
         guard let webView = bridge?.webView, let window = webView.window else { return }
-        let width = window.bounds.width
+        let controller = bridge?.viewController as? RadicalViewController
+        let page = controller.map { $0.view.convert($0.navigationPageRect, to: window) } ?? window.bounds
+        let width = page.width
         let translation = max(0, pan.translation(in: window).x)
         let progress = min(1, translation / max(width, 1))
         switch pan.state {
         case .began:
             guard let content = movingContent(in: window, from: webView) else { return }
-            guard let snapshot = retained[backIndex - 1] else {
+            guard let retained = retained[backIndex - 1],
+                  let parent = content.superview else {
                 // Past the retained depth, release runs the reversed slide instead.
                 swipe = (content, nil, nil)
                 return
             }
-            snapshot.frame = window.bounds
+            // Retained windows stay intact. Crop only this swipe's presentation,
+            // so old sidebar pixels never enter the page during parallax.
+            let snapshot: UIView
+            if page.width < window.bounds.width {
+                // A retained UIKit snapshot can be detached, so crop by clipping
+                // its existing layers rather than trying to snapshot it again.
+                snapshot = UIView(frame: page)
+                snapshot.clipsToBounds = true
+                retained.frame = window.bounds.offsetBy(dx: -page.minX, dy: -page.minY)
+                snapshot.addSubview(retained)
+            } else { snapshot = retained }
+            snapshot.frame = parent.convert(page, from: window)
             snapshot.transform = CGAffineTransform(translationX: -0.3 * width, y: 0)
             let shade = UIView(frame: snapshot.bounds)
             shade.backgroundColor = .black
@@ -214,7 +235,7 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin, UIGestureRec
             shade.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             shade.isUserInteractionEnabled = false
             snapshot.addSubview(shade)
-            UIView.performWithoutAnimation { window.insertSubview(snapshot, belowSubview: content) }
+            UIView.performWithoutAnimation { parent.insertSubview(snapshot, belowSubview: content) }
             swipe = (content, snapshot, shade)
         case .changed:
             guard let swipe = swipe, let snapshot = swipe.snapshot else { return }

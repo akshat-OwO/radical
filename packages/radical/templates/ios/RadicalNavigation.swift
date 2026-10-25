@@ -48,11 +48,18 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         // The page draws edge to edge, under the status bar and behind the bars,
         // and lays out inside UIKit's content region through safe area.
         let bounds = view.bounds
-        viewport.frame = bounds
-        content.view.frame = bounds
         let safe = view.safeAreaInsets
         let required = UIEdgeInsets(top: max(safe.top, frame.minY), left: max(safe.left, frame.minX),
             bottom: max(safe.bottom, bounds.maxY - frame.maxY), right: max(safe.right, bounds.maxX - frame.maxX))
+        // Keep the WebView's window-sized coordinate space and CSS safe area,
+        // but clip its viewport beside tiled bars so page motion cannot cross them.
+        let left = required.left > safe.left ? required.left : 0
+        let right = required.right > safe.right ? required.right : 0
+        let page = CGRect(x: left, y: 0, width: bounds.width - left - right, height: bounds.height)
+        content.navigationPageFrame = page
+        viewport.frame = page
+        viewport.clipsToBounds = true
+        content.view.frame = bounds.offsetBy(dx: -left, dy: 0)
         content.setNavigationSafeArea(required)
         placeViewport()
     }

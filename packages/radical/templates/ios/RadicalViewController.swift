@@ -13,6 +13,9 @@ final class RadicalViewController: CAPBridgeViewController {
     private var writing = false
     private var laidOut = false
     private var navigationSafeArea: UIEdgeInsets?
+    // Window-aligned page region, excluding tiled navigation beside the page.
+    var navigationPageRect: CGRect { navigationPageFrame ?? view.bounds }
+    var navigationPageFrame: CGRect?
     private var lastInsets: UIEdgeInsets?
     private var lastWidth: CGFloat?
     private var safeAreaScript: WKUserScript?
