@@ -28,3 +28,5 @@ export const tanstackStartAdapterLayer = (router: AnyRouter) =>
       outputs: tanstackOutputs,
     })
   );
+
+export { TanStackSections, tanstackSections } from "./tanstack-sections.ts";

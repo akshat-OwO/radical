@@ -17,6 +17,7 @@ import type { RadicalNavigation } from "../../core/adapter/adapter.ts";
 import { NavigationFailed } from "../../core/adapter/errors.ts";
 import { BridgeLive } from "../../core/bridge/bridge.ts";
 import { installNativeTransitions } from "./tanstack-native-transitions.ts";
+import { crossesSections } from "./tanstack-section-ownership.ts";
 
 export interface BrowserTransitionOptions {
   readonly timeoutMs?: number;
@@ -82,7 +83,8 @@ export const browserTransitions = (
       types: ({ fromLocation, toLocation }) => {
         if (
           fromLocation === undefined ||
-          fromLocation.href === toLocation.href
+          fromLocation.href === toLocation.href ||
+          crossesSections(router, fromLocation.href, toLocation.href)
         ) {
           return false;
         }

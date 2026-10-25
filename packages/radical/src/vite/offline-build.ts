@@ -97,6 +97,7 @@ export const offlineBuild = (
             );
 
             const manifest = {
+              navigation: config.navigation,
               buildId: "RADICAL_BUILD_CONTENT_HASH",
               cachePrefix: offlineCachePrefix(config.appId, base),
               assets: entries.map((item) => `${base}${item.fileName}`),

@@ -5,6 +5,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Schema, Predicate } from "effect";
 import type { InlineConfig, Plugin } from "vite";
 
+import type { RadicalConfig } from "../../src/vite/config.ts";
 import { OfflineBuildError } from "../../src/vite/offline-build-error.ts";
 import { OfflineCompiler, offlineBuild } from "../../src/vite/offline-build.ts";
 import { fakeAdapter } from "../fixtures/adapter.ts";
@@ -43,7 +44,8 @@ const write = (plugin: Plugin, bundle: OutputBundle, outDir = "web/public") =>
 const fixture = (
   code = `worker('${placeholder}','${placeholder}')`,
   fallback = "offline",
-  fail = false
+  fail = false,
+  navigation?: RadicalConfig["navigation"]
 ) => {
   const files = new Map<string, string>();
   const compiled: InlineConfig[] = [];
@@ -78,7 +80,11 @@ const fixture = (
   return {
     files,
     compiled,
-    plugin: offlineBuild({ appId: "dev.test.app" }, fakeAdapter, layer),
+    plugin: offlineBuild(
+      { appId: "dev.test.app", navigation },
+      fakeAdapter,
+      layer
+    ),
   };
 };
 
@@ -247,3 +253,42 @@ describe("offline build hook", () => {
       })
   );
 });
+
+it.effect(
+  "emits section declarations into the manifest and worker build input",
+  () =>
+    Effect.gen(function* () {
+      const navigation = {
+        sections: [
+          {
+            id: "home",
+            title: "Home",
+            route: "/",
+            icon: { ios: "house", android: "home.svg" },
+          },
+          {
+            id: "inbox",
+            title: "Inbox",
+            route: "/inbox",
+            icon: { ios: "tray", android: "inbox.svg" },
+          },
+        ],
+      };
+
+      const fake = fixture(undefined, undefined, undefined, navigation);
+      yield* resolvePlugin(fake.plugin);
+      yield* write(fake.plugin, bundle());
+
+      const manifest = yield* Schema.decodeUnknownEffect(
+        Schema.fromJsonString(Schema.Struct({ navigation: Schema.Unknown }))
+      )(fake.files.get("/app/web/public/radical-manifest.json"));
+
+      assert.deepStrictEqual(manifest.navigation, navigation);
+
+      const input = yield* Schema.decodeUnknownEffect(
+        Schema.fromJsonString(Schema.Struct({ navigation: Schema.Unknown }))
+      )(fake.compiled[0]?.define?.__RADICAL_MANIFEST__);
+
+      assert.deepStrictEqual(input.navigation, navigation);
+    })
+);

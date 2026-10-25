@@ -206,3 +206,22 @@ export { windowLayoutStyle } from "../capabilities/window-layout/window-layout-s
 export type { WindowLayout } from "../core/context/native-context.ts";
 
 export { watchWindowLayout } from "../capabilities/window-layout/window-layout.ts";
+
+export {
+  Sections,
+  makeSections,
+  sectionsLayer,
+  selectSection,
+  setSectionBadge,
+  sectionForURL,
+  SectionSchema,
+  SectionBadgeSchema,
+  InvalidSection,
+} from "../capabilities/sections/sections.ts";
+
+export type {
+  Section,
+  SectionBadge,
+  SectionsController,
+  SectionsSnapshot,
+} from "../capabilities/sections/sections.ts";

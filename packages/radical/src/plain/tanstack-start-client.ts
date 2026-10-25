@@ -57,3 +57,5 @@ export const browserTransitions = (
   },
   options?: BrowserTransitionOptions
 ) => installTransitions(router, options);
+
+export { TanStackSections } from "../adapters/tanstack-start/tanstack-sections.ts";

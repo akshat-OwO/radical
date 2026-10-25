@@ -8,6 +8,23 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
 const config = {
+  navigation: {
+    sections: [
+      {
+        id: "home",
+        title: "Home",
+        route: "/",
+        icon: { ios: "house", android: "./assets/home.svg" },
+        selectedIcon: { ios: "house.fill", android: "./assets/home.svg" },
+      },
+      {
+        id: "about",
+        title: "About",
+        route: "/about",
+        icon: { ios: "info.circle", android: "./assets/about.svg" },
+      },
+    ],
+  },
   appId: "dev.radical.example",
   name: "Radical",
   android: {

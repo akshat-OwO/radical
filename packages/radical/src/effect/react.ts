@@ -96,3 +96,14 @@ export {
   LocationServicesOff,
   LocationTimeout,
 } from "../capabilities/location/location.ts";
+
+export { useSectionsEffect as useSections } from "../react/use-sections.ts";
+
+export type {
+  Section,
+  SectionBadge,
+  SectionState,
+  SectionsSnapshot,
+} from "../capabilities/sections/sections.ts";
+
+export { InvalidSection } from "../capabilities/sections/sections.ts";
