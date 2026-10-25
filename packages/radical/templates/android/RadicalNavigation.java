@@ -24,50 +24,54 @@ final class RadicalNavigation {
     private final MainActivity activity;
     private final WebView webView;
     private final FrameLayout overlay;
-    private final BottomNavigationView bottom;
-    private final NavigationRailView rail;
+    private BottomNavigationView bottom;
+    private NavigationRailView rail;
     private final int[] origin = new int[2];
     private final Rect clip = new Rect();
     private boolean hidden;
     private int active;
-    private int nightMode = -1;
+    private int nightMode;
+    private JSONObject state;
 
     RadicalNavigation(MainActivity activity, WebView view) {
         this.activity = activity;
         webView = view;
         overlay = new FrameLayout(view.getContext());
         ((ViewGroup) view.getParent()).addView(overlay, new ViewGroup.LayoutParams(-1, -1));
-        bottom = new BottomNavigationView(view.getContext());
-        rail = new NavigationRailView(view.getContext());
+        build();
+    }
+
+    private int night() {
+        return activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+    }
+
+    // Material resolves every color once, at construction, and the activity handles
+    // uiMode itself. Rebuilding is the only way all channels follow night mode.
+    private void build() {
+        nightMode = night();
+        if (bottom != null) {
+            overlay.removeView(bottom);
+            overlay.removeView(rail);
+        }
+        bottom = new BottomNavigationView(activity);
+        rail = new NavigationRailView(activity);
         for (NavigationBarView bar : new NavigationBarView[] { bottom, rail }) {
             // Physical placement and safe area are owned here, not Material's inset listener.
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bar, (v, insets) -> insets);
-
             for (int index = 0; index < IDS.length; index++) {
                 bar.getMenu().add(0, index + 1, index, TITLES[index]).setIcon(index == active ? SELECTED_ICONS[index] : ICONS[index]);
             }
+            bar.getMenu().getItem(active).setChecked(true);
             bar.setOnItemSelectedListener(item -> {
                 select(item.getItemId() - 1);
                 return false;
             });
             bar.setOnItemReselectedListener(item -> select(item.getItemId() - 1));
+            __THEME_SETUP__
             overlay.addView(bar, new FrameLayout.LayoutParams(-2, -2));
         }
-        refreshTheme();
         rail.setVisibility(View.GONE);
-    }
-
-    private void refreshTheme() {
-        int mode = webView.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-        if (mode == nightMode) return;
-        nightMode = mode;
-        for (NavigationBarView bar : new NavigationBarView[] { bottom, rail }) {
-            __THEME_SETUP__
-            for (int index = 0; index < IDS.length; index++) {
-                BadgeDrawable drawable = bar.getBadge(index + 1);
-                if (drawable != null) { __BADGE_THEME__ }
-            }
-        }
+        if (state != null) apply(state);
     }
 
     private void select(int index) {
@@ -75,10 +79,16 @@ final class RadicalNavigation {
             + JSONObject.quote(IDS[index]) + "}}));", null);
     }
 
-    void update(JSONObject state) {
+    void update(JSONObject next) {
+        if (!next.has("hidden") || next.optJSONArray("sections") == null) return;
+        state = next;
+        apply(next);
+        activity.refreshWindowContext();
+    }
+
+    private void apply(JSONObject state) {
         JSONObject selected = state.optJSONObject("active");
         JSONArray entries = state.optJSONArray("sections");
-        if (!state.has("hidden") || entries == null) return;
         hidden = state.optBoolean("hidden");
         int previous = active;
         for (int index = 0; index < IDS.length; index++) {
@@ -109,11 +119,10 @@ final class RadicalNavigation {
                 }
             }
         }
-        activity.refreshWindowContext();
     }
 
     Insets layout(Insets system, boolean keyboard, float width, List<DisplayFeature> features) {
-        refreshTheme();
+        if (night() != nightMode) build();
         int w = webView.getWidth();
         int h = webView.getHeight();
         float density = webView.getResources().getDisplayMetrics().density;

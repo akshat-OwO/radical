@@ -1324,6 +1324,60 @@ describe("Android section navigation", () => {
     }
   );
 
+  it.effect(
+    "rebuilds partially themed bars on night-mode changes so omitted colors follow Material",
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        navigation: {
+          android: {
+            colors: { container: { light: "#FFFFFF", dark: "#000000" } },
+          },
+          sections: [
+            {
+              id: "home",
+              title: "Home",
+              route: "/",
+              icon: { ios: "house", android: "home.svg" },
+            },
+            {
+              id: "about",
+              title: "About",
+              route: "/about",
+              icon: { ios: "info", android: "home.svg" },
+            },
+          ],
+        },
+      });
+
+      state.files.set(
+        "/app/home.svg",
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>'
+      );
+
+      return Effect.gen(function* () {
+        yield* generate;
+
+        const source =
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalNavigation.java`
+          ) ?? "";
+
+        // Omitted channels come from Material's construction-time defaults.
+        assert.include(source, "if (night() != nightMode) build();");
+        assert.include(source, "bottom = new BottomNavigationView(activity);");
+        assert.include(source, "setBackgroundTintList");
+        assert.notInclude(source, "setItemIconTintList");
+        assert.notInclude(source, "setItemTextColor");
+        assert.notInclude(source, "setItemActiveIndicatorColor");
+        assert.include(
+          state.files.get(mainActivity) ?? "",
+          "public void onConfigurationChanged"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
   it.effect("keeps shells without sections free of Material navigation", () => {
     const state = memory();
 

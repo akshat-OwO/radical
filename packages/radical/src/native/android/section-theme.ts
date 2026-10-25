@@ -57,7 +57,7 @@ export const sectionTheme = (android: typeof NavigationSchema.Type.android) => {
         ? "defaults.getDefaultColor()"
         : resource(`${name}_unselected`);
 
-    // Resolve omitted states again after night-mode changes, before applying overrides.
+    // Fills an omitted state from the Material defaults of the freshly built bar.
     const defaults =
       colors[name].selected === undefined ||
       colors[name].unselected === undefined
