@@ -193,7 +193,7 @@ public class RadicalTransitionsPlugin: CAPPlugin, CAPBridgedPlugin, UIGestureRec
     private func movingContent(in window: UIWindow, from webView: UIView) -> UIView? {
         if let controller = bridge?.viewController as? RadicalViewController,
            controller.navigationPageRect.width < controller.view.bounds.width {
-            return controller.view
+            return controller.navigationPageContent
         }
         var content: UIView = webView
         while let parent = content.superview, parent !== window { content = parent }

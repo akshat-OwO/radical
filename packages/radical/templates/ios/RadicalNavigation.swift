@@ -6,6 +6,7 @@ import UIKit
 final class RadicalTabController: UITabBarController, UITabBarControllerDelegate {
     private let content = RadicalViewController()
     private let viewport = UIView()
+    private let pageContent = UIView()
     private var navigationHidden = false
     private var sidebarPlaced = false
 
@@ -21,7 +22,10 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         addChild(content)
         view.backgroundColor = .systemBackground
         view.addSubview(viewport)
-        viewport.addSubview(content.view)
+        viewport.addSubview(pageContent)
+        pageContent.clipsToBounds = true
+        pageContent.addSubview(content.view)
+        content.navigationPageContent = pageContent
         content.didMove(toParent: self)
     }
 
@@ -59,6 +63,10 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         content.navigationPageFrame = page
         viewport.frame = page
         viewport.clipsToBounds = true
+        // Move this stable crop during swipes, never the window-wide child.
+        // Bounds and center preserve any in-flight translation during layout.
+        pageContent.bounds = CGRect(origin: .zero, size: page.size)
+        pageContent.center = CGPoint(x: page.width / 2, y: page.height / 2)
         content.view.frame = bounds.offsetBy(dx: -left, dy: 0)
         content.setNavigationSafeArea(required)
         placeViewport()
