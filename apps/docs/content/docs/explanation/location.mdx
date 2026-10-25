@@ -3,6 +3,10 @@ title: "Location in shells"
 description: "Why the shell replaces navigator.geolocation with the native location APIs."
 ---
 
+<Callout type="info">
+  The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+</Callout>
+
 A web page reads location through [`navigator.geolocation`](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API). In a shell, that API runs inside WKWebView or Android WebView, and both depend on the app to finish the job. Without the right declarations and delegate code, the call fails. With them, the user still sees extra prompts, and the page cannot tell location precision or location services from permission.
 
 The native location APIs answer those questions. Radical's Location capability calls CoreLocation on iOS and the Fused Location Provider on Android through the Capacitor Geolocation plugin and a small Radical plugin. The shell then installs a `navigator.geolocation` replacement backed by the same calls, so map libraries keep working.

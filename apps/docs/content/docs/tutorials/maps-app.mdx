@@ -3,6 +3,10 @@ title: "Build a maps app"
 description: "Create a TanStack Start app with a live map, show the user's location, follow it, and run it on the web, Android, and iOS."
 ---
 
+<Callout type="info">
+  The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+</Callout>
+
 In this tutorial you build a one-screen maps app and run the same code in a browser, an Android emulator, and an iOS simulator. The app shows where the user is, follows them as they move, and measures the distance to pins they drop on the map.
 
 You use the same stack as the [todo tutorial](/docs/tutorials/todo-app): TanStack Start, Tailwind CSS v4, and Radical in remote mode. The map comes from [mapcn](https://www.mapcn.dev/), a shadcn component that wraps MapLibre GL, with free tiles from [OpenFreeMap](https://openfreemap.org/).
@@ -33,7 +37,7 @@ The standard template includes Tailwind CSS v4 and maps both `#/*` and `@/*` to 
 Install Radical and allow its `sharp` build script:
 
 ```sh
-pnpm add @akshatowo/radical@0.3.0
+pnpm add @akshatowo/radical
 pnpm approve-builds sharp
 ```
 
