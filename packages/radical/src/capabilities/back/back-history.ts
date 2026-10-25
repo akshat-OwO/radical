@@ -19,7 +19,7 @@ const sessionStorageOrNull = (): BackHistoryStorage | null =>
   );
 
 /**
- * Pathnames of history entries by router history index. Session storage keeps
+ * Internal hrefs of history entries by router history index. Session storage keeps
  * them across reloads, which preserve the index in history state.
  */
 export const makeBackHistory = (
@@ -37,11 +37,11 @@ export const makeBackHistory = (
     const decoded = Schema.decodeUnknownOption(EntriesSchema)(stored);
 
     if (Option.isSome(decoded)) {
-      for (const [index, pathname] of Object.entries(decoded.value)) {
+      for (const [index, href] of Object.entries(decoded.value)) {
         const key = Number(index);
 
         if (Number.isSafeInteger(key)) {
-          entries.set(key, pathname);
+          entries.set(key, href);
         }
       }
     }
@@ -49,12 +49,12 @@ export const makeBackHistory = (
 
   return {
     previous: (index: number) => entries.get(index - 1) ?? null,
-    record: (index: number, pathname: string) => {
-      if (entries.get(index) === pathname) {
+    record: (index: number, href: string) => {
+      if (entries.get(index) === href) {
         return;
       }
 
-      entries.set(index, pathname);
+      entries.set(index, href);
 
       for (const key of entries.keys()) {
         if (key <= index - retainedEntries || key > index + retainedEntries) {

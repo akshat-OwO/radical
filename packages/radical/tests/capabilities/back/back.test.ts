@@ -83,7 +83,7 @@ describe("back decisions", () => {
     Effect.gen(function* () {
       assert.deepStrictEqual(yield* decide("/", "/"), exit);
       assert.deepStrictEqual(
-        yield* decide("/settings", "/settings/"),
+        yield* decide("/settings", "/settings"),
         select("home")
       );
     })
@@ -125,6 +125,10 @@ describe("back decisions", () => {
         pop
       );
       assert.deepStrictEqual(
+        yield* decide("/", "/", { withSections: false }),
+        pop
+      );
+      assert.deepStrictEqual(
         yield* decide("/inbox", null, { withSections: false }),
         exit
       );
@@ -161,3 +165,81 @@ describe("back decisions", () => {
     })
   );
 });
+
+const cases = [
+  ["start root after details exits", "/", "/details", exit],
+  [
+    "section root after a detail selects start",
+    "/inbox",
+    "/inbox/42",
+    select("home"),
+  ],
+  ["root query changes pop", "/inbox?q=two", "/inbox?q=one", pop],
+  [
+    "identical root href selects start",
+    "/inbox?q=one",
+    "/inbox?q=one",
+    select("home"),
+  ],
+  ["root hash changes pop", "/inbox#two", "/inbox#one", pop],
+  ["detail hash changes pop", "/inbox/42#two", "/inbox/42#one", pop],
+  ["detail query changes pop", "/inbox/42?q=two", "/inbox/42?q=one", pop],
+  [
+    "identical detail href selects owner",
+    "/inbox/42?q=one",
+    "/inbox/42?q=one",
+    select("inbox"),
+  ],
+  ["start root query changes pop", "/?q=two", "/?q=one", pop],
+  ["start root hash changes pop", "/#two", "/#one", pop],
+  [
+    "root ignores query on previous detail",
+    "/inbox?q=one",
+    "/inbox/42?q=two",
+    select("home"),
+  ],
+  [
+    "trailing slash root beats detail history",
+    "/inbox/",
+    "/inbox/42",
+    select("home"),
+  ],
+] as const;
+
+for (const [name, current, previous, expected] of cases) {
+  it.effect(name, () =>
+    Effect.gen(function* () {
+      assert.deepStrictEqual(yield* decide(current, previous), expected);
+    })
+  );
+}
+
+it.effect("keeps hidden query changes from popping the same pathname", () =>
+  Effect.gen(function* () {
+    assert.deepStrictEqual(
+      yield* decide("/inbox?q=two", "/inbox?q=one", { hidden: true }),
+      select("home")
+    );
+  })
+);
+
+it.effect("keeps unowned query changes from popping the same pathname", () =>
+  Effect.sync(() => {
+    const declaredSections = [
+      section("inbox", "/inbox"),
+      section("settings", "/settings"),
+    ];
+
+    assert.deepStrictEqual(
+      decideBack(
+        { current: "/login?q=two", previous: "/login?q=one", hidden: false },
+        {
+          sections: declaredSections,
+          ownership: sectionOwnership(declaredSections),
+          root: (owner) => owner.route,
+        }
+      ),
+      select("inbox")
+    );
+  })
+);

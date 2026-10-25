@@ -60,4 +60,6 @@ The fixed WebView retains window-sized CSS dimensions. Its clip bounds exclude b
 
 The page decides back, because only the adapter knows sections, route memory, and router history. It publishes whether it handles back and whether that is a history pop, and the shells send back requests to it. Android enables its back callback only while the page handles back, so the system shows its own predictive animation for leaving the app. Section selections replace the current history entry. Without that, switching sections and pressing back would alternate between sections indefinitely.
 
+Section roots take precedence over history from another pathname. A root pops only when the previous entry has the same pathname and a different query or hash. Below a root, back pops only a different href owned by the same section. History stores full internal hrefs. Section destinations use internal navigation to preserve rewrites, query strings, and hashes.
+
 The iOS shell tracks its own left-edge pan instead of `UIScreenEdgePanGestureRecognizer`, which never receives touches over WKWebView. Retained overlays are UIKit window snapshot views, about as cheap as the overlays forward transitions already create. They are capped at five. The live content moves during the swipe, including the tab bar, matching the existing slide transitions.

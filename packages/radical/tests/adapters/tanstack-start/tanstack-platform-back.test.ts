@@ -5,6 +5,7 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
+import type { AnyRouter } from "@tanstack/react-router";
 import { Effect, Layer } from "effect";
 
 import { installNativeTransitions } from "../../../src/adapters/tanstack-start/tanstack-native-transitions.ts";
@@ -31,21 +32,33 @@ const sections: readonly Section[] = [
   },
 ];
 
-const makeRouter = () => {
+const makeRouter = (
+  options: Pick<AnyRouter["options"], "basepath" | "rewrite"> = {},
+  initial = "/"
+) => {
   const root = createRootRoute();
   const slide = { radical: { transition: "slide" as const } };
 
-  const routes = ["/", "/details", "/about", "/about/team"].map((path) =>
+  const routes = [
+    "/",
+    "/details",
+    "/about",
+    "/about/team",
+    "/app",
+    "/app/item",
+    "/café",
+  ].map((path) =>
     createRoute({ getParentRoute: () => root, path, staticData: slide })
   );
 
   return createRouter({
     routeTree: root.addChildren(routes),
-    history: createMemoryHistory({ initialEntries: ["/"] }),
+    history: createMemoryHistory({ initialEntries: [initial] }),
     origin: "http://localhost",
     defaultPendingMs: Infinity,
     defaultPendingMinMs: 0,
     isServer: false,
+    ...options,
   });
 };
 
@@ -312,3 +325,149 @@ describe("platform back", () => {
     })
   );
 });
+
+for (const path of ["/about/team", "/about", "/"] as const) {
+  for (const change of ["query", "hash"] as const) {
+    it.effect(`pops ${change}-only pushes at ${path}`, () =>
+      Effect.gen(function* () {
+        const before = `${path}${change === "query" ? "?q=one" : "#one"}`;
+        const after = `${path}${change === "query" ? "?q=two" : "#two"}`;
+        const router = makeRouter({}, before);
+        yield* load(router);
+        const native = shell();
+
+        const controller = installNativeTransitions(
+          router,
+          {},
+          native.layer,
+          null
+        );
+
+        tanstackSections(router, sections);
+        yield* Effect.promise(async () => {
+          const pending = router.navigate({ href: after });
+          void router.load();
+          await pending;
+        });
+        assert.strictEqual(latest(native.states)?.pop, true);
+        native.back();
+        yield* settle(router);
+        assert.strictEqual(router.state.location.href, before);
+        assert.strictEqual(router.state.location.state.__TSR_index, 0);
+        controller.dispose();
+      })
+    );
+  }
+}
+
+for (const kind of ["basepath", "rewrite"] as const) {
+  for (const remembered of [false, true]) {
+    it.effect(
+      `selects an internal ${remembered ? "remembered destination" : "root"} with ${kind}`,
+      () =>
+        Effect.gen(function* () {
+          const options: Pick<AnyRouter["options"], "basepath" | "rewrite"> =
+            kind === "basepath"
+              ? { basepath: "/app" }
+              : {
+                  rewrite: {
+                    input: ({ url }) => {
+                      url.pathname = url.pathname.slice(4) || "/";
+
+                      return url;
+                    },
+                    output: ({ url }) => {
+                      url.pathname = `/app${url.pathname}`;
+
+                      return url;
+                    },
+                  },
+                };
+
+          const destination = "/app/item?q=one#anchor";
+          const router = makeRouter(options, `/app${destination}`);
+          yield* load(router);
+          const native = shell();
+
+          const controller = installNativeTransitions(
+            router,
+            {},
+            native.layer,
+            null
+          );
+
+          const binding = tanstackSections(router, [
+            { ...sections[0], route: "/app" },
+            sections[1],
+          ]);
+
+          if (remembered) {
+            yield* navigate(router, "/about");
+            yield* binding.controller.update(router.state.location);
+          }
+
+          native.back();
+          yield* settle(router);
+          const expected = remembered ? destination : "/app";
+          assert.strictEqual(router.state.location.href, expected);
+          assert.strictEqual(
+            router.state.location.publicHref,
+            `/app${expected}`
+          );
+          assert.strictEqual(
+            router.state.location.state.__TSR_index,
+            remembered ? 1 : 0
+          );
+          controller.dispose();
+        })
+    );
+  }
+}
+
+it.effect("exits at the start root after pushing a detail and the root", () =>
+  Effect.gen(function* () {
+    const router = makeRouter();
+    yield* load(router);
+    const native = shell();
+    const controller = installNativeTransitions(router, {}, native.layer, null);
+    tanstackSections(router, sections);
+    yield* navigate(router, "/details");
+    yield* navigate(router, "/");
+    assert.strictEqual(latest(native.states)?.handles, false);
+    native.back();
+    yield* settle(router);
+    assert.strictEqual(router.state.location.pathname, "/");
+    assert.include(native.calls, "exit");
+    controller.dispose();
+  })
+);
+
+it.effect("selects start at another section root after its detail", () =>
+  Effect.gen(function* () {
+    const router = makeRouter({}, "/about/team");
+    yield* load(router);
+    const native = shell();
+    const controller = installNativeTransitions(router, {}, native.layer, null);
+    tanstackSections(router, sections);
+    yield* navigate(router, "/about");
+    assert.strictEqual(latest(native.states)?.pop, false);
+    native.back();
+    yield* settle(router);
+    assert.strictEqual(router.state.location.pathname, "/");
+    assert.strictEqual(router.state.location.state.__TSR_index, 1);
+    controller.dispose();
+  })
+);
+
+it.effect("checks section roots in decoded pathname coordinates", () =>
+  Effect.gen(function* () {
+    const router = makeRouter({}, "/caf%C3%A9?q=one#anchor");
+    yield* load(router);
+    const native = shell();
+    const controller = installNativeTransitions(router, {}, native.layer, null);
+    tanstackSections(router, [{ ...sections[0], route: "/café" }, sections[1]]);
+    assert.strictEqual(router.state.location.pathname, "/café");
+    assert.strictEqual(latest(native.states)?.handles, false);
+    controller.dispose();
+  })
+);

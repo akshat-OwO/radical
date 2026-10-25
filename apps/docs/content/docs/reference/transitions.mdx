@@ -46,14 +46,15 @@ These exports live in `@akshatowo/radical/effect/client`.
 
 | Location | Back |
 | --- | --- |
-| Inside a section, with an earlier page of that section below | Pops router history with the reversed transition |
-| Inside a section, without one | Returns to the section root |
-| Another section's root | Selects the start section, the first in config |
-| Start section's root | Leaves the app on Android. iOS has no swipe here. |
+| Below a section root, with a different href of that section below | Pops router history with the reversed transition |
+| Below a section root, without one | Returns to the section root |
+| Section root, with a different query or hash at the same pathname below | Pops router history |
+| Another section's root, otherwise | Selects the start section, the first in config |
+| Start section's root, otherwise | Leaves the app on Android. iOS has no swipe here. |
 | Hidden or unowned route | Pops router history, or selects the start section when nothing is below |
 | Any route, without sections | Pops router history, or leaves the app on Android |
 
-Section selections replace the current history entry. On Android, the system shows its predictive back preview: an in-app shrink while the page handles back, and the back-to-home animation at the start root. On iOS, a swipe from the left edge pops history interactively. The page follows the finger over a snapshot of the previous page, kept from forward transitions for the last five entries. Releasing early cancels and removes the snapshot. Past five entries, the swipe runs the reversed slide on release.
+History comparisons include the query and hash. Section roots take precedence over history from another pathname. Section selections replace the current history entry. On Android, the system shows its predictive back preview: an in-app shrink while the page handles back, and the back-to-home animation at the start root. On iOS, a swipe from the left edge pops history interactively. The page follows the finger over a snapshot of the previous page, kept from forward transitions for the last five entries. Releasing early cancels and removes the snapshot. Past five entries, the swipe runs the reversed slide on release.
 
 ## Platform support
 

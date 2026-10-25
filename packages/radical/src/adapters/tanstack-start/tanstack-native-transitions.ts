@@ -12,6 +12,7 @@ import {
 } from "../../capabilities/transitions/native-transitions.ts";
 import type { BackRequest } from "../../capabilities/transitions/native-transitions.ts";
 import { NavigationFailed } from "../../core/adapter/errors.ts";
+import { internalNavigationOptions } from "./tanstack-internal-navigation.ts";
 import type { BrowserTransitionOptions } from "./tanstack-navigation.ts";
 import { installRouterCommitHook } from "./tanstack-router-internals.ts";
 import {
@@ -27,6 +28,13 @@ type NativeRouter = Omit<AnyRouter, "history"> & {
 
 const historyIndex = (location: AnyRouter["state"]["location"] | undefined) =>
   location?.state.__TSR_index ?? 0;
+
+// Keep ownership coordinates decoded while retaining the raw query and hash.
+const backHref = (location: AnyRouter["state"]["location"]) => {
+  const suffix = location.href.search(/[?#]/u);
+
+  return location.pathname + (suffix === -1 ? "" : location.href.slice(suffix));
+};
 
 /** Router's commit boundary covers links, imperative navigation, and history. */
 export const installNativeTransitions = (
@@ -57,7 +65,7 @@ export const installNativeTransitions = (
       index,
       decision: decideBack(
         {
-          current: location.pathname,
+          current: backHref(location),
           previous: history.previous(index),
           hidden: routeHidden(router, location.pathname),
         },
@@ -72,7 +80,7 @@ export const installNativeTransitions = (
     }
 
     const { location } = router.state;
-    history.record(historyIndex(location), location.pathname);
+    history.record(historyIndex(location), backHref(location));
     const { index, decision } = decide();
 
     const state = {
@@ -124,7 +132,10 @@ export const installNativeTransitions = (
             try: () => {
               backDirection = true;
 
-              return router.navigate({ href: to, replace: true });
+              return router.navigate({
+                ...internalNavigationOptions(router, to),
+                replace: true,
+              });
             },
             catch: (cause) => new NavigationFailed({ cause }),
           })

@@ -88,3 +88,19 @@ describe("back history", () => {
     })
   );
 });
+
+it.effect("preserves full hrefs and reads legacy pathname entries", () =>
+  Effect.sync(() => {
+    const { storage, values } = memoryStorage();
+    values.set("radical:back-history", '{"0":"/inbox"}');
+    const history = makeBackHistory(storage);
+    assert.strictEqual(history.previous(1), "/inbox");
+    history.record(1, "/inbox?q=one#anchor");
+    history.record(2, "/inbox?q=two#other");
+    assert.strictEqual(history.previous(2), "/inbox?q=one#anchor");
+    assert.strictEqual(
+      makeBackHistory(storage).previous(3),
+      "/inbox?q=two#other"
+    );
+  })
+);

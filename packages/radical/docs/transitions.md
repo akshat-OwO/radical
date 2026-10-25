@@ -58,12 +58,12 @@ History `BACK` and negative `GO` reverse slide direction. App back controls and 
 
 ## System back
 
-The native installer also owns system back. It records each history entry's decoded pathname by TanStack's `__TSR_index` in session storage, so decisions survive reloads. After every resolved navigation, and when `TanStackSections` binds, it decides what back would do:
+The native installer also owns system back. It records each history entry's full internal href by TanStack's `__TSR_index` in session storage, so decisions survive reloads. After every resolved navigation, and when `TanStackSections` binds, it decides what back would do:
 
-- Pop router history when the entry below is a different page owned by the same section. Hidden and unowned routes pop wherever history leads.
+- Below a section root, pop when the previous href differs and belongs to the same section. Query and hash changes count. Hidden and unowned routes keep their pathname-based history behaviour.
 - Otherwise, inside a section but away from its root, replace the entry with the section root.
-- At another section's root, replace the entry with the start section's destination, which restores its route memory.
-- At the start section's root, or with no entry below and no sections, exit.
+- At any section root, pop only for a different href with the same pathname. Otherwise, at another section's root, replace the entry with the start section's destination, which restores its route memory.
+- Otherwise, at the start section's root, exit. Without sections, pop if there is a previous entry, or exit.
 
 Selections replace history and play the reversed slide when they stay inside a section. The installer publishes the decision with `setBack({ handles, pop, index })` and receives `radicalBack` events with `{ interactive }`.
 

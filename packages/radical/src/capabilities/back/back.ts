@@ -22,9 +22,9 @@ export interface BackSections {
 }
 
 export interface BackLocation {
-  /** Decoded internal pathname of the current entry. */
+  /** Internal href with a decoded pathname, including search and hash. */
   readonly current: string;
-  /** Pathname of the history entry below the current one, when known. */
+  /** Previous internal href in the same coordinates, when known. */
   readonly previous: string | null;
   /** The current route hides section navigation. */
   readonly hidden: boolean;
@@ -34,6 +34,8 @@ const trimTrailing = (pathname: string) =>
   pathname.length > 1 && pathname.endsWith("/")
     ? pathname.slice(0, -1)
     : pathname;
+
+const pathnameOf = (href: string) => href.split(/[?#]/u, 1)[0] ?? "";
 
 /**
  * Within a section, back pops history entries that the section owns. At a
@@ -50,28 +52,35 @@ export const decideBack = (
     return location.previous === null ? exit : pop;
   }
 
-  const owner = location.hidden ? null : sections.ownership(location.current);
+  const currentPathname = pathnameOf(location.current);
 
-  // Selecting a section replaces its entry, which can leave the same page below.
-  if (
-    location.previous !== null &&
-    trimTrailing(location.previous) !== trimTrailing(location.current)
-  ) {
-    const previousOwner = sections.ownership(location.previous);
+  const previousPathname =
+    location.previous === null ? null : pathnameOf(location.previous);
 
-    // Hidden and unowned routes pop wherever history leads.
-    if (owner === null || previousOwner?.id === owner.id) {
+  const owner = location.hidden ? null : sections.ownership(currentPathname);
+
+  // Hidden and unowned routes retain their pathname-based history behaviour.
+  if (owner === null) {
+    return previousPathname !== null &&
+      trimTrailing(previousPathname) !== trimTrailing(currentPathname)
+      ? pop
+      : select(start.id);
+  }
+
+  const changed =
+    location.previous !== null && location.previous !== location.current;
+
+  if (trimTrailing(currentPathname) === trimTrailing(sections.root(owner))) {
+    if (previousPathname === currentPathname && changed) {
       return pop;
     }
+
+    return owner.id === start.id ? exit : select(start.id);
   }
 
-  if (owner === null) {
-    return select(start.id);
-  }
-
-  if (trimTrailing(location.current) !== trimTrailing(sections.root(owner))) {
-    return select(owner.id);
-  }
-
-  return owner.id === start.id ? exit : select(start.id);
+  return previousPathname !== null &&
+    sections.ownership(previousPathname)?.id === owner.id &&
+    changed
+    ? pop
+    : select(owner.id);
 };
