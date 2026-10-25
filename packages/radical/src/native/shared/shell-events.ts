@@ -32,7 +32,10 @@ export const windowLayoutUpdateScript = `((value) => {
     for (const edge of ["x", "y", "width", "height"]) {
       const name = "--radical-hinge-" + edge;
       const css = (value.hinge?.[edge] ?? 0) + "px";
-      if (style.getPropertyValue(name) !== css) style.setProperty(name, css);
+      const current = style.getPropertyValue(name);
+      // Before mount, write only what SSR declared; an extra attribute breaks hydration.
+      if (!current && !window.__radicalMounted) continue;
+      if (current !== css) style.setProperty(name, css);
     }
   };
   if (!window.__radicalBundled || window.__radicalMounted) {

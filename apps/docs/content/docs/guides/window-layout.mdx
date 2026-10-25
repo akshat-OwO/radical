@@ -34,7 +34,7 @@ const style = {
 };
 ```
 
-Apply `style` to `<html>`. The shell updates `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height` as the hinge changes. A missing hinge has zero bounds. The rectangle uses CSS pixels relative to the window's top-left corner.
+Apply `style` to `<html>`. The shell updates `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height` as the hinge changes. Without this merge, the shell sets the variables only after mount, so hydration still matches the server. A missing hinge has zero bounds. The rectangle uses CSS pixels relative to the window's top-left corner.
 
 Keep the provider context from the loader for the first render. The hook starts live updates after mount, so hydration uses the same layout as the server. Bundled documents initially use `compact`, `flat`, and no hinge. The standard client mount handoff applies injected native CSS after mount.
 

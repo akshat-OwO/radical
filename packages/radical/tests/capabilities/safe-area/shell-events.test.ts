@@ -135,6 +135,47 @@ describe("shell event scripts", () => {
         assert.strictEqual(shell.writes.length, 4);
       })
   );
+
+  it.effect(
+    "updates remote hinge CSS only when SSR declared it before mount",
+    () =>
+      Effect.sync(() => {
+        const layout = {
+          widthClass: "expanded",
+          posture: "book",
+          hinge: { x: 420, y: 0, width: 12, height: 900 },
+        };
+
+        const undeclared = sandbox();
+        undeclared.document.readyState = "interactive";
+        undeclared.run(
+          `${windowLayoutUpdateScript}${JSON.stringify(layout)});`
+        );
+        assert.isEmpty(undeclared.writes);
+
+        undeclared.run("window.__radicalMounted = true;");
+        undeclared.run(
+          `${windowLayoutUpdateScript}${JSON.stringify(layout)});`
+        );
+        assert.strictEqual(
+          undeclared.properties.get("--radical-hinge-x"),
+          "420px"
+        );
+
+        const declared = sandbox();
+        declared.document.readyState = "interactive";
+
+        for (const edge of ["x", "y", "width", "height"]) {
+          declared.properties.set(`--radical-hinge-${edge}`, "0px");
+        }
+
+        declared.run(`${windowLayoutUpdateScript}${JSON.stringify(layout)});`);
+        assert.strictEqual(
+          declared.properties.get("--radical-hinge-width"),
+          "12px"
+        );
+      })
+  );
 });
 
 it.effect(
