@@ -54,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.json.JSONObject;
 
@@ -118,9 +119,9 @@ public class MainActivity extends BridgeActivity {
     private ScriptHandler safeAreaScript;
     private WindowInfoTrackerCallbackAdapter windowTracker;
     // WindowInfoTracker may never emit. Metrics and insets are enough to start.
-    private WindowLayoutInfo windowLayoutInfo = new WindowLayoutInfo(Collections.emptyList());
+    private List<DisplayFeature> displayFeatures = Collections.emptyList();
     private final Consumer<WindowLayoutInfo> windowLayoutListener = info -> {
-        windowLayoutInfo = info;
+        displayFeatures = info.getDisplayFeatures();
         refreshWindowContext();
     };
 
@@ -167,7 +168,7 @@ public class MainActivity extends BridgeActivity {
             layout.put("widthClass", width < 600 ? "compact" : width < 840 ? "medium" : "expanded");
             layout.put("posture", "flat");
             layout.put("hinge", JSONObject.NULL);
-            for (DisplayFeature feature : windowLayoutInfo.getDisplayFeatures()) {
+            for (DisplayFeature feature : displayFeatures) {
                 if (!(feature instanceof FoldingFeature)) continue;
                 FoldingFeature fold = (FoldingFeature) feature;
                 if (fold.getState() == FoldingFeature.State.HALF_OPENED) {
