@@ -1,35 +1,25 @@
 import type { AnyRouter } from "@tanstack/react-router";
 
-import { sectionForPathname } from "../../capabilities/sections/sections.ts";
-import type { Section } from "../../capabilities/sections/sections.ts";
+import type { SectionOwnership } from "../../capabilities/sections/sections.ts";
 
-export const sectionDeclarations = new WeakMap<
+export const sectionOwnerships = new WeakMap<
   Pick<AnyRouter, "state">,
-  readonly Section[]
+  SectionOwnership
 >();
 
 export const crossesSections = (
-  router: Pick<AnyRouter, "state" | "options">,
+  router: Pick<AnyRouter, "state">,
   from: string,
   to: string
 ) => {
-  const sections = sectionDeclarations.get(router);
+  const ownership = sectionOwnerships.get(router);
 
-  if (sections === undefined) {
+  if (ownership === undefined) {
     return false;
   }
 
-  const previous = sectionForPathname(
-    sections,
-    from,
-    router.options.caseSensitive ?? false
-  );
-
-  const next = sectionForPathname(
-    sections,
-    to,
-    router.options.caseSensitive ?? false
-  );
+  const previous = ownership(from);
+  const next = ownership(to);
 
   return previous !== null && next !== null && previous.id !== next.id;
 };

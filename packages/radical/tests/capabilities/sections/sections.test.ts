@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect";
 
 import {
   makeSections,
-  sectionForPathname,
+  sectionOwnership,
   sectionsLayer,
   selectSection,
   setSectionBadge,
@@ -22,6 +22,8 @@ const sections = [
 
 it.effect("matches the longest path prefix at segment boundaries", () =>
   Effect.sync(() => {
+    const ownership = sectionOwnership(sections);
+
     for (const [url, id] of [
       ["/home", "home"],
       ["/home/a", "home"],
@@ -31,10 +33,7 @@ it.effect("matches the longest path prefix at segment boundaries", () =>
       ["/inboxes", null],
       ["/login", null],
     ]) {
-      assert.strictEqual(
-        sectionForPathname(sections, url ?? "")?.id ?? null,
-        id
-      );
+      assert.strictEqual(ownership(url ?? "")?.id ?? null, id);
     }
 
     const withRoot = [
@@ -42,12 +41,11 @@ it.effect("matches the longest path prefix at segment boundaries", () =>
       ...sections,
     ];
 
-    assert.strictEqual(sectionForPathname(withRoot, "/anything")?.id, "root");
+    const rootOwnership = sectionOwnership(withRoot);
 
-    assert.strictEqual(
-      sectionForPathname(withRoot, "/home/settings")?.id,
-      "settings"
-    );
+    assert.strictEqual(rootOwnership("/anything")?.id, "root");
+
+    assert.strictEqual(rootOwnership("/home/settings")?.id, "settings");
   })
 );
 
@@ -236,6 +234,11 @@ it.effect(
         ["route", { route: "https://example.com" }],
         ["route", { route: "/home?x=1" }],
         ["route", { route: "/home/" }],
+        ["route", { route: "/home//item" }],
+        ["route", { route: "/home/." }],
+        ["route", { route: "/home/../item" }],
+        ["route", { route: "/home/%2e" }],
+        ["route", { route: "/home/.%2E/item" }],
         ["ios", { icon: { ios: "", android: "home.svg" } }],
         ["android", { icon: { ios: "house", android: "home.png" } }],
         ["selectedIcon", { selectedIcon: { ios: "house.fill" } }],
@@ -319,5 +322,52 @@ it.effect(
       yield* controller.select("home");
       assert.deepStrictEqual(destinations, ["/home/details?last=1#anchor"]);
       remove();
+    })
+);
+
+it.effect(
+  "normalizes declarations once and retains original roots and restoration URLs",
+  () =>
+    Effect.gen(function* () {
+      const declarations = [
+        { id: "cafe", title: "Cafe", route: "/caf%C3%A9", icon },
+        { id: "item", title: "Item", route: "/café/item", icon },
+      ];
+
+      const normalized: string[] = [];
+
+      const ownership = sectionOwnership(declarations, false, (route) => {
+        normalized.push(route);
+
+        return route === "/caf%C3%A9" ? "/café" : route;
+      });
+
+      const destinations: string[] = [];
+
+      const controller = yield* makeSections(
+        declarations,
+        { href: "/caf%C3%A9?q=1#anchor", pathname: "/café" },
+        (url) =>
+          Effect.sync(() => {
+            destinations.push(url);
+          }),
+        false,
+        ownership
+      );
+
+      assert.strictEqual(ownership("/CAFÉ/item/detail")?.id, "item");
+      yield* controller.select("cafe");
+      assert.deepStrictEqual(destinations, ["/caf%C3%A9"]);
+      yield* controller.update({
+        href: "/caf%C3%A9/item?q=2#last",
+        pathname: "/café/item",
+      });
+      assert.strictEqual(controller.snapshot().active?.id, "item");
+      yield* controller.select("cafe");
+      assert.strictEqual(destinations.at(-1), "/caf%C3%A9?q=1#anchor");
+      assert.deepStrictEqual(
+        normalized,
+        declarations.map((section) => section.route)
+      );
     })
 );

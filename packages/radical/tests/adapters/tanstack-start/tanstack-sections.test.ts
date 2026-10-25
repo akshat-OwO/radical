@@ -15,6 +15,7 @@ import { tanstackSections } from "../../../src/adapters/tanstack-start/tanstack-
 import { NativeTransitions } from "../../../src/capabilities/transitions/native-transitions.ts";
 import type { Bridge } from "../../../src/core/bridge/bridge.ts";
 import { bridgeTestLayer } from "../../../src/core/bridge/bridge.ts";
+import { validateConfig } from "../../../src/vite/config.ts";
 
 const sections = [
   {
@@ -270,13 +271,57 @@ const ownershipRouter = (
 
 for (const fixture of [
   {
-    name: "encoded non-ASCII",
+    name: "decoded non-ASCII declaration",
+    declaration: "/café",
     route: "/café",
     path: "/caf%C3%A9/item",
     pathname: "/café/item",
   },
   {
+    name: "percent-encoded declaration",
+    declaration: "/caf%C3%A9",
+    route: "/café",
+    path: "/caf%C3%A9/item",
+    pathname: "/café/item",
+  },
+  {
+    name: "mixed encoding and case",
+    declaration: "/%43aF%c3%a9",
+    route: "/café",
+    path: "/caf%C3%A9/item",
+    pathname: "/café/item",
+  },
+  {
+    name: "reserved slash escape",
+    declaration: "/a%2Fb",
+    route: "/a%2Fb",
+    path: "/a%2Fb/item",
+    pathname: "/a%2Fb/item",
+  },
+  {
+    name: "encoded space",
+    declaration: "/hello%20world",
+    route: "/hello world",
+    path: "/hello%20world/item",
+    pathname: "/hello world/item",
+  },
+  {
+    name: "protected percent escape",
+    declaration: "/caf%25C3%25A9",
+    route: "/caf%25C3%25A9",
+    path: "/caf%25C3%25A9/item",
+    pathname: "/caf%25C3%25A9/item",
+  },
+  {
+    name: "malformed escape",
+    declaration: "/caf%ZZ",
+    route: "/caf%ZZ",
+    path: "/caf%ZZ/item",
+    pathname: "/caf%ZZ/item",
+  },
+  {
     name: "default case-insensitive",
+    declaration: "/inbox",
     route: "/inbox",
     path: "/Inbox/item",
     pathname: "/Inbox/item",
@@ -302,7 +347,7 @@ for (const fixture of [
             {
               id: "primary",
               title: "Primary",
-              route: fixture.route,
+              route: fixture.declaration,
               icon: { ios: "tray", android: "primary.svg" },
             },
             {
@@ -312,6 +357,11 @@ for (const fixture of [
               icon: { ios: "house", android: "other.svg" },
             },
           ];
+
+          yield* validateConfig({
+            appId: "dev.test.app",
+            navigation: { sections: declarations },
+          });
 
           const binding = tanstackSections(router, declarations);
           yield* Effect.acquireRelease(
@@ -387,6 +437,15 @@ for (const fixture of [
             "primary"
           );
           assert.isFalse(binding.controller.snapshot().hidden);
+          assert.strictEqual(
+            binding.controller.snapshot().active?.route,
+            fixture.declaration
+          );
+          yield* select();
+          assert.strictEqual(
+            router.state.matches.at(-1)?.routeId,
+            fixture.route
+          );
         })
       )
   );

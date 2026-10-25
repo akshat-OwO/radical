@@ -25,7 +25,11 @@ export const SectionSchema = Schema.Struct({
         !/[?#\\\s]/u.test(value) &&
         !value.includes("//") &&
         (value === "/" || !value.endsWith("/")) &&
-        !value.split("/").some((part) => part === "." || part === "..")
+        !value.split("/").some((part) => {
+          const segment = part.replaceAll(/%2e/giu, ".");
+
+          return segment === "." || segment === "..";
+        })
     )
   ),
   icon: SectionIconSchema,
@@ -78,27 +82,39 @@ export interface SectionLocation {
   readonly pathname: string;
 }
 
-/** Prefixes match decoded path segments using the host framework's case policy. */
-export const sectionForPathname = <S extends Section>(
-  sections: readonly S[],
-  pathname: string,
-  caseSensitive = true
-): S | null => {
-  const path = caseSensitive ? pathname : pathname.toLowerCase();
-  let owner: S | null = null;
+const unchangedPathname = (route: string) => route;
 
-  for (const section of sections) {
-    const route = caseSensitive ? section.route : section.route.toLowerCase();
+export type SectionOwnership = (pathname: string) => Section | null;
 
-    if (
-      (route === "/" || path === route || path.startsWith(`${route}/`)) &&
-      (owner === null || section.route.length > owner.route.length)
-    ) {
-      owner = section;
-    }
-  }
+/** Normalize declarations once; longest prefixes use the normalized path length. */
+export const sectionOwnership = (
+  sections: readonly Section[],
+  caseSensitive = true,
+  normalizePathname: (route: string) => string = unchangedPathname
+): SectionOwnership => {
+  const paths = sections
+    .map((section) => {
+      const pathname = normalizePathname(section.route);
 
-  return owner;
+      return {
+        section,
+        path: caseSensitive ? pathname : pathname.toLowerCase(),
+      };
+    })
+    .toSorted((left, right) => right.path.length - left.path.length);
+
+  return function ownerForPathname(pathname) {
+    const path = caseSensitive ? pathname : pathname.toLowerCase();
+
+    return (
+      paths.find(
+        (entry) =>
+          entry.path === "/" ||
+          path === entry.path ||
+          path.startsWith(`${entry.path}/`)
+      )?.section ?? null
+    );
+  };
 };
 
 export const makeSections = (
@@ -106,7 +122,7 @@ export const makeSections = (
   initialLocation: SectionLocation,
   navigate: RadicalNavigation["navigate"],
   initialHidden = false,
-  caseSensitive = true
+  ownership: SectionOwnership = sectionOwnership(sections)
 ) =>
   Effect.sync(() => {
     const listeners = new Set<() => void>();
@@ -120,9 +136,8 @@ export const makeSections = (
     }));
 
     const read = (): SectionsSnapshot => {
-      const active = hidden
-        ? null
-        : sectionForPathname(entries, location.pathname, caseSensitive);
+      const owner = hidden ? null : ownership(location.pathname);
+      const active = entries.find((entry) => entry.id === owner?.id) ?? null;
 
       return { sections: entries, active, hidden: active === null };
     };
@@ -130,11 +145,7 @@ export const makeSections = (
     let snapshot = read();
 
     const remember = () => {
-      const owner = sectionForPathname(
-        entries,
-        location.pathname,
-        caseSensitive
-      );
+      const owner = ownership(location.pathname);
 
       if (owner) {
         memory.set(owner.id, location.href);

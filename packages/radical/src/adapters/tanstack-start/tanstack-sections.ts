@@ -3,13 +3,16 @@ import { Effect, Fiber, Schema } from "effect";
 import { createElement, useContext, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 
-import { makeSections } from "../../capabilities/sections/sections.ts";
+import {
+  makeSections,
+  sectionOwnership,
+} from "../../capabilities/sections/sections.ts";
 import type { Section } from "../../capabilities/sections/sections.ts";
 import { Bridge } from "../../core/bridge/bridge.ts";
 import { BridgeContext } from "../../react/use-bridge-effect.ts";
 import { SectionsProvider } from "../../react/use-sections.ts";
 import { tanstackNavigation } from "./tanstack-navigation.ts";
-import { sectionDeclarations } from "./tanstack-section-ownership.ts";
+import { sectionOwnerships } from "./tanstack-section-ownership.ts";
 
 const selection = Schema.is(Schema.Struct({ id: Schema.String }));
 
@@ -23,7 +26,20 @@ export const tanstackSections = (
   router: AnyRouter,
   sections: readonly Section[]
 ) => {
-  sectionDeclarations.set(router, sections);
+  const ownership = sectionOwnership(
+    sections,
+    router.options.caseSensitive ?? false,
+    (route) =>
+      router.parseLocation({
+        href: route,
+        pathname: route,
+        search: "",
+        hash: "",
+        state: router.state.location.state,
+      }).pathname
+  );
+
+  sectionOwnerships.set(router, ownership);
 
   const controller = Effect.runSync(
     makeSections(
@@ -32,7 +48,7 @@ export const tanstackSections = (
       (to) =>
         tanstackNavigation(router).navigate(to, { viewTransition: false }),
       routeHidden(router, router.state.location.pathname),
-      router.options.caseSensitive ?? false
+      ownership
     )
   );
 
