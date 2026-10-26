@@ -118,6 +118,23 @@ export const generateAndroid = (
       replacements
     );
 
+    // AppCompat applies the pinned resources before BridgeActivity creates any views.
+    const shellActivity =
+      config.appearance === "light" || config.appearance === "dark"
+        ? yield* replaceAnchor(
+            "MainActivity.java",
+            activity,
+            "public class MainActivity extends BridgeActivity {",
+            `public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(android.os.Bundle savedInstanceState) {
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_${config.appearance === "dark" ? "YES" : "NO"});
+        super.onCreate(savedInstanceState);
+    }
+`
+          )
+        : activity;
+
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
         if (navigation) {
@@ -285,7 +302,7 @@ export const generateAndroid = (
             ...native.identity.appId.split("."),
             "MainActivity.java"
           ),
-          activity
+          shellActivity
         );
         yield* applyBuildPlan(root, staging, "android", native.plan);
         yield* composePluginSources(

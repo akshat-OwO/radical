@@ -1401,3 +1401,129 @@ describe("Android section navigation", () => {
     }).pipe(Effect.provide(state.layer));
   });
 });
+
+const appearanceState = (appearance?: "system" | "light" | "dark") => {
+  const config = {
+    ...defaultConfig,
+    navigation: {
+      android: {
+        colors: { container: { light: "#123456", dark: "#ABCDEF" } },
+      },
+      sections: [
+        {
+          id: "home",
+          title: "Home",
+          route: "/",
+          icon: { ios: "house", android: "home.svg" },
+        },
+        {
+          id: "about",
+          title: "About",
+          route: "/about",
+          icon: { ios: "info", android: "home.svg" },
+        },
+      ],
+    },
+  };
+
+  const state = memory(
+    false,
+    appearance === undefined ? config : { ...config, appearance }
+  );
+
+  state.files.set(
+    "/app/home.svg",
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>'
+  );
+
+  return state;
+};
+
+describe("Android shell appearance", () => {
+  it.effect(
+    "keeps omitted and system projects identical without a night-mode override",
+    () =>
+      Effect.gen(function* () {
+        const omitted = appearanceState();
+        const system = appearanceState("system");
+        yield* generate.pipe(Effect.provide(omitted.layer));
+        yield* generate.pipe(Effect.provide(system.layer));
+        assert.deepStrictEqual(
+          [...system.files].filter(([file]) =>
+            file.startsWith(`${destination}/`)
+          ),
+          [...omitted.files].filter(([file]) =>
+            file.startsWith(`${destination}/`)
+          )
+        );
+        assert.notInclude(
+          omitted.files.get(mainActivity) ?? "",
+          "setDefaultNightMode"
+        );
+        assert.notInclude(
+          omitted.files.get(mainActivity) ?? "",
+          "void onCreate("
+        );
+      })
+  );
+
+  for (const [appearance, mode] of [
+    ["light", "NO"],
+    ["dark", "YES"],
+  ] as const) {
+    it.effect(
+      `forces ${appearance} before view creation and retains both section colour resources`,
+      () => {
+        const state = appearanceState(appearance);
+
+        return Effect.gen(function* () {
+          yield* generate;
+          const source = state.files.get(mainActivity) ?? "";
+          assert.include(
+            source,
+            `public void onCreate(android.os.Bundle savedInstanceState) {
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_${mode});
+        super.onCreate(savedInstanceState);`
+          );
+          assert.notMatch(source, /__[A-Z_]+__/u);
+          const res = `${destination}/android/app/src/main/res`;
+          assert.include(
+            state.files.get(`${res}/values/radical_section_colors.xml`) ?? "",
+            '<color name="radical_section_container">#123456</color>'
+          );
+          assert.include(
+            state.files.get(`${res}/values-night/radical_section_colors.xml`) ??
+              "",
+            '<color name="radical_section_container">#ABCDEF</color>'
+          );
+
+          const capacitor = yield* Schema.decodeUnknownEffect(
+            Schema.fromJsonString(
+              Schema.Struct({
+                plugins: Schema.Struct({
+                  SystemBars: Schema.Record(Schema.String, Schema.Unknown),
+                }),
+              })
+            )
+          )(state.files.get(`${destination}/capacitor.config.json`));
+
+          assert.deepStrictEqual(capacitor.plugins.SystemBars, {
+            insetsHandling: "disable",
+          });
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+
+    it.effect(`forces ${appearance} without native section bars`, () => {
+      const state = memory(false, { ...defaultConfig, appearance });
+
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.include(
+          state.files.get(mainActivity) ?? "",
+          `AppCompatDelegate.MODE_NIGHT_${mode}`
+        );
+      }).pipe(Effect.provide(state.layer));
+    });
+  }
+});

@@ -214,13 +214,20 @@ export const generateIos = (
           ? "<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>"
           : "";
 
+        const { appearance } = native.config;
+
+        const style =
+          appearance === "light" || appearance === "dark"
+            ? `<key>UIUserInterfaceStyle</key><string>${appearance === "light" ? "Light" : "Dark"}</string>`
+            : "";
+
         yield* fs.writeFileString(
           plist,
           yield* replaceAnchor(
             plist,
             contents,
             /<\/dict>\s*<\/plist>/u,
-            `${bound}${ats}${renderPlist(native.plan.ios.declarations)}\n</dict>\n</plist>`
+            `${bound}${ats}${style}${renderPlist(native.plan.ios.declarations)}\n</dict>\n</plist>`
           )
         );
         yield* applyBuildPlan(root, staging, "ios", native.plan);

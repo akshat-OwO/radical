@@ -171,3 +171,33 @@ describe("loading mode config", () => {
       })
   );
 });
+
+describe("shell appearance config", () => {
+  it.effect("accepts all appearances and preserves omission", () =>
+    Effect.gen(function* () {
+      for (const appearance of [undefined, "system", "light", "dark"]) {
+        const config =
+          appearance === undefined
+            ? { appId: "dev.radical.example" }
+            : { appId: "dev.radical.example", appearance };
+
+        assert.deepStrictEqual(yield* validateConfig(config), config);
+      }
+    })
+  );
+
+  it.effect(
+    "rejects invalid appearance with InvalidConfig naming its path",
+    () =>
+      Effect.gen(function* () {
+        for (const appearance of ["auto", "Light", "", null, 1]) {
+          const error = yield* Effect.flip(
+            validateConfig({ appId: "dev.radical.example", appearance })
+          );
+
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "appearance");
+        }
+      })
+  );
+});

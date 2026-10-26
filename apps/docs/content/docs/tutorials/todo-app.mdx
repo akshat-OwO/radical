@@ -59,6 +59,7 @@ import tailwindcss from "@tailwindcss/vite";
 const config = {
   appId: "dev.example.todo",
   name: "Todo",
+  appearance: "light",
   mode: "remote",
   devHost: "localhost",
   internalPlugins: { haptics: true },
@@ -76,6 +77,8 @@ const viteConfig = defineConfig({
 
 export default viteConfig;
 ```
+
+`appearance: "light"` keeps the native shell consistent with this app's light UI, even on a dark-mode device.
 
 `appId` and `name` identify the app on the device. `devHost` tells the native shell which host runs the dev server. `internalPlugins.haptics` adds the native haptics plugin, which the app uses when you complete a todo.
 

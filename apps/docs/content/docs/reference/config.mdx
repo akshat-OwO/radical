@@ -10,6 +10,7 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 | Field | Type | Default and constraints |
 | --- | --- | --- |
 | `appId` | `string`, required | Dot-separated segments. Each starts with a letter and contains letters, digits, or underscores. Identifies web cache storage and supplies native identifier defaults. |
+| `appearance` | `"system"`, `"light"`, or `"dark"` | Defaults to `"system"`, which follows the device. `"light"` and `"dark"` pin the whole native shell. |
 | `mode` | `"remote"` or `"bundled"` | Omitted means remote behavior. |
 | `origin` | HTTP origin | Required in bundled mode. An exact `http:` or `https:` origin without path, trailing slash, query, or wildcard. In remote mode, overrides the recorded dev URL. |
 | `allowlist` | Array of HTTP origins | Additional remote-mode document origins. Ports are significant. Bundled mode permits only its local document origin. |
@@ -22,6 +23,10 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 | `ios.bundleId` | `string` | Defaults to `appId`. At least two dot-separated segments containing letters, digits, or hyphens. |
 
 Display names resolve as platform `name`, shared `name`, legacy `appName`, then `appId`. Remote iOS generation permits at most ten distinct server and allowlist hostnames.
+
+Pinned appearance applies to system bars, section bars and rails, the keyboard, and system dialogs. The WebView's `prefers-color-scheme` follows the pinned appearance. Under `"light"`, `@media (prefers-color-scheme: dark)` does not match in the shell. A plain browser still follows the device setting. Appearance is build-time only.
+
+Invalid `appearance` values return `InvalidConfig` with the `appearance` field path.
 
 ## Navigation fields
 
@@ -39,7 +44,7 @@ Display names resolve as platform `name`, shared `name`, legacy `appName`, then 
 | `navigation.android.colors.icon.selected`, `.unselected` | Color | Material 3 defaults |
 | `navigation.android.colors.label.selected`, `.unselected` | Color | Material 3 defaults |
 
-Color accepts `#RRGGBB`, `#AARRGGBB`, or `{ light, dark }` containing either format. Invalid options return `InvalidConfig` with the field path. Web mode omits native bars and keeps system-only safe-area insets. See [bar and Android theme](/docs/reference/sections#bar-and-android-theme) for an example.
+Color accepts `#RRGGBB`, `#AARRGGBB`, or `{ light, dark }` containing either format. With `appearance: "system"`, Android section bars resolve these pairs against the device setting. A pinned appearance selects the matching half. The unused half is accepted without error or warning. Invalid options return `InvalidConfig` with the field path. Web mode omits native bars and keeps system-only safe-area insets. See [bar and Android theme](/docs/reference/sections#bar-and-android-theme) for an example.
 
 ## Image fields
 

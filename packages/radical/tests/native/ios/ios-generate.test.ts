@@ -1279,3 +1279,76 @@ describe("ios native navigation", () => {
     }
   );
 });
+
+describe("iOS shell appearance", () => {
+  it.effect(
+    "keeps omitted and system projects identical without UIUserInterfaceStyle",
+    () =>
+      Effect.gen(function* () {
+        const omitted = memory();
+
+        const system = memory(false, {
+          ...defaultConfig,
+          appearance: "system",
+        });
+
+        yield* generate.pipe(Effect.provide(omitted.layer));
+        yield* generate.pipe(Effect.provide(system.layer));
+        assert.deepStrictEqual(
+          [...system.files].filter(([file]) =>
+            file.startsWith(`${destination}/`)
+          ),
+          [...omitted.files].filter(([file]) =>
+            file.startsWith(`${destination}/`)
+          )
+        );
+        assert.notInclude(
+          omitted.files.get(`${destination}/ios/App/App/Info.plist`) ?? "",
+          "UIUserInterfaceStyle"
+        );
+      })
+  );
+
+  for (const [appearance, style] of [
+    ["light", "Light"],
+    ["dark", "Dark"],
+  ] as const) {
+    it.effect(
+      `pins ${appearance} in Info.plist and preserves existing declarations`,
+      () => {
+        const state = memory(false, { ...defaultConfig, appearance });
+
+        return Effect.gen(function* () {
+          yield* generate;
+
+          const plist =
+            state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+
+          assert.include(
+            plist,
+            `<key>UIUserInterfaceStyle</key><string>${style}</string>`
+          );
+          assert.include(
+            plist,
+            "<key>Nested</key><dict><key>Keep</key><true/></dict>"
+          );
+          assert.include(plist, "<key>WKAppBoundDomains</key>");
+
+          const capacitor = yield* Schema.decodeUnknownEffect(
+            Schema.fromJsonString(
+              Schema.Struct({
+                plugins: Schema.Struct({
+                  SystemBars: Schema.Record(Schema.String, Schema.Unknown),
+                }),
+              })
+            )
+          )(state.files.get(`${destination}/capacitor.config.json`));
+
+          assert.deepStrictEqual(capacitor.plugins.SystemBars, {
+            insetsHandling: "disable",
+          });
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
+});
