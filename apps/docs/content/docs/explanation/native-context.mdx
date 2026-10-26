@@ -5,9 +5,10 @@ description: "Why presentation data reaches server rendering before the bridge r
 
 Server rendering needs platform and safe-area data before the bridge runs. Waiting for a JavaScript call would render browser defaults first and move content after hydration.
 
-<Mermaid
-  title="Context before rendering and after mount"
-  chart={`flowchart TD
+## Context before rendering and after mount
+
+```mermaid
+flowchart TD
     R[Remote shell] -->|Before first load on allowed origins| C[radical-context cookie]
     C --> G[getNativeContext]
     B[Bundled shell] -->|Before page scripts| I[Injected native context]
@@ -19,8 +20,7 @@ Server rendering needs platform and safe-area data before the bridge runs. Waiti
     I -->|After mount: mountNativeContext| CSS[Live CSS variables]
     Shell[Later shell inset changes] --> CSS
     Shell -->|radicalSafeArea event| React[React safe-area state]
-`}
-/>
+```
 
 ## Hydration and live insets have different owners
 
@@ -29,9 +29,9 @@ Bundled rendering starts with CSS `env()` values and stable browser context. Tan
 Insets describe system UI boundaries, not keyboard height. The framework still owns rendering and route data.
 
 <Callout type="warning" title="Presentation data is untrusted">
-  Any client can send the cookie or header. Schema validation proves shape, not
-  identity. Malformed context falls back to browser values; authorization needs
-  your app's authentication.
+
+Any client can send the cookie or header. Schema validation proves shape, not identity. Malformed context falls back to browser values; authorization needs your app's authentication.
+
 </Callout>
 
 [Server reference](/docs/reference/server) describes parsing. [Safe-area reference](/docs/reference/safe-area) covers CSS and subscriptions.

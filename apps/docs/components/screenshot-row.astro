@@ -1,0 +1,19 @@
+---
+interface Props {
+  shots: readonly { src: string; alt: string; label: string; width: number; height: number }[];
+}
+
+const { shots } = Astro.props;
+---
+<div class="screenshots">
+  {shots.map((shot) => <figure style={{ flex: `${shot.width / shot.height} 1 0%` }}>
+    <img src={shot.src} alt={shot.alt} width={shot.width} height={shot.height} loading="lazy" />
+    <figcaption>{shot.label}</figcaption>
+  </figure>)}
+</div>
+<style>
+.screenshots { display: flex; align-items: end; gap: 1rem; margin-block: 1.5rem; }
+figure { min-width: 0; margin: 0; }
+img { display: block; width: 100%; height: auto; border-radius: .75rem; }
+figcaption { margin-top: .5rem; text-align: center; font-size: .875rem; }
+</style>

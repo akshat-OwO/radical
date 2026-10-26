@@ -3,10 +3,12 @@ title: "Send haptic feedback"
 description: "Add feedback to a completed action or selection."
 ---
 
+Send haptic feedback after a user action succeeds, fails, or changes a selection.
+
 <Steps>
 <Step>
 
-### Enable haptics
+## Enable haptics
 
 Apply [capability setup](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.haptics: true`:
 
@@ -37,6 +39,10 @@ const feedback = useHapticFeedback(); // @akshatowo/radical/react
 </Step>
 </Steps>
 
-<Callout type="warning">Success does not prove the hardware vibrated.</Callout>
+<Callout type="warning">
+
+Success does not prove the hardware vibrated.
+
+</Callout>
 
 See [Haptics reference](/docs/reference/haptics).

@@ -5,13 +5,13 @@ description: "Add remote-mode snapshots and an offline fallback."
 
 See the [snapshot lifecycle](/docs/explanation/offline-caching).
 
-<Tabs items={["Remote", "Bundled"]}>
-<Tab value="Remote">
+<Tabs>
+<Tab title="Remote">
 
 <Steps>
 <Step>
 
-### Mark routes
+## Mark routes
 
 Set eligible routes' static data:
 
@@ -64,12 +64,13 @@ After worker activation in a production build, visit each exact URL through docu
 </Steps>
 
 <Callout type="warning">
-  Serve over HTTPS or trustworthy localhost. Plain HTTP LAN addresses cannot
-  register workers.
+
+Serve over HTTPS or trustworthy localhost. Plain HTTP LAN addresses cannot register workers.
+
 </Callout>
 
 </Tab>
-<Tab value="Bundled">
+<Tab title="Bundled">
 
 [Package the UI](/docs/guides/bundled-mode); do not register the remote worker.
 

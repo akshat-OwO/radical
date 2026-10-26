@@ -3,11 +3,18 @@ title: "Client entry point"
 description: "Plain API operations, runtime ownership, and errors."
 ---
 
-`@akshatowo/radical/client` exports the Plain API. Bridge operations return Promises and reject with tagged error classes. `localNativeContext()` returns `NativeContext` synchronously, and `mountNativeContext()` returns `void`. Offline registration returns a Promise because service-worker registration is asynchronous. React hooks provide state and callbacks from `@akshatowo/radical/react`.
+- `@akshatowo/radical/client` exports the Plain API.
+- Bridge operations return Promises and reject with tagged error classes. `localNativeContext()` returns `NativeContext` synchronously, and `mountNativeContext()` returns `void`.
+- Offline registration returns a Promise because service-worker registration is asynchronous.
+- React hooks provide state and callbacks from `@akshatowo/radical/react`.
 
 ## Runtime ownership
 
-`createRadicalRuntime()` returns a handle with `dispose(): Promise<void>`. `RadicalProvider` creates one runtime per provider, or accepts a caller-owned `runtime`. `useRadicalRuntime()` retrieves that handle. `createPluginClient(manifest, runtime)` and generated `createPlugins(runtime)` share the provider's bridge. Standalone calls share a lazy default runtime.
+`createRadicalRuntime()` returns a handle with `dispose(): Promise<void>`. `RadicalProvider` creates one runtime per provider, or accepts a caller-owned `runtime`.
+
+`useRadicalRuntime()` retrieves that handle. `createPluginClient(manifest, runtime)` and generated `createPlugins(runtime)` share the provider's bridge.
+
+Standalone calls share a lazy default runtime.
 
 Disposal interrupts pending runtime commands and waits for resource cleanup. The [Effect API](/docs/guides/effect-api) can run typed programs against the same runtime.
 
@@ -27,10 +34,15 @@ Disposal interrupts pending runtime commands and waits for resource cleanup. The
 
 ## Capabilities
 
-`getDeviceInfo()`, camera and permission operations, file selection, intents, haptics, network status, location, Google sign-in, notifications, and data protection return Promises. Their result types match the capability hooks. `watchLocation(receive, onError, options?)` returns a function that stops the watch. Scoped video sessions, network subscriptions, and safe-area subscriptions are available through the React hooks or Effect API.
+- `getDeviceInfo()`, camera and permission operations, file selection, intents, haptics, network status, location, Google sign-in, notifications, and data protection return Promises.
+- Their result types match the capability hooks. `watchLocation(receive, onError, options?)` returns a function that stops the watch.
+- Scoped video sessions, network subscriptions, and safe-area subscriptions are available through the React hooks or Effect API.
 
 ## Failures
 
-`BridgeError` is `BridgeUnavailable | BridgeCallFailed | BridgeDecodeError`. Each error retains its `_tag` and class identity. Common capability errors include `PermissionDenied`, `Cancelled`, and `Unavailable`. Registration failures use `ServiceWorkerRegistrationError`; fetch failures use `RequestFailed`.
+- `BridgeError` is `BridgeUnavailable | BridgeCallFailed | BridgeDecodeError`.
+- Each error retains its `_tag` and class identity.
+- Common capability errors include `PermissionDenied`, `Cancelled`, and `Unavailable`.
+- Registration failures use `ServiceWorkerRegistrationError`; fetch failures use `RequestFailed`.
 
 Services, layers, Streams, schema codecs, and `registerOfflineEffect` are exported from `@akshatowo/radical/effect/client`.

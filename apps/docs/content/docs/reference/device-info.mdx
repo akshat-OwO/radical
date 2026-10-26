@@ -13,7 +13,9 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 
 `internalPlugins.device` defaults to true. The native dependency is `@capacitor/device`, with the package's declared compatible version range `^8.0.3`.
 
-`getDeviceInfo` is an Effect of `DeviceInfo` requiring `Bridge`, with `BridgeError` failures. `openAppSettings` is an Effect of `void` requiring `Bridge`; it fails with `Unavailable` in a browser. `internalPlugins.device` also adds the `RadicalSettings` native plugin that backs it. `DeviceInfoSchema` validates the common result.
+`getDeviceInfo` is an Effect of `DeviceInfo` requiring `Bridge`, with `BridgeError` failures. `openAppSettings` is an Effect of `void` requiring `Bridge`; it fails with `Unavailable` in a browser.
+
+`internalPlugins.device` also adds the `RadicalSettings` native plugin that backs it. `DeviceInfoSchema` validates the common result.
 
 | Field | Values |
 | --- | --- |
@@ -32,7 +34,9 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 | `isVirtual` | `false`; user agents cannot reliably identify emulators |
 | `osVersion` | May be unknown with reduced user-agent information |
 
-`useDeviceInfo()` returns `DeviceInfoState` with loading, value, and error fields. The effect starts after mount. Native failures use bridge error tags.
+- `useDeviceInfo()` returns `DeviceInfoState` with loading, value, and error fields.
+- The effect starts after mount.
+- Native failures use bridge error tags.
 
 ## Platform support
 

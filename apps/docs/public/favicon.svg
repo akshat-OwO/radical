@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#171717"/><path d="M19 48V16h15c9 0 14 4 14 11 0 5-3 9-8 10l10 11H39L27 34v14zm8-21h8c3 0 5-1 5-3s-2-3-5-3h-8z" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" aria-label="Radical">
+  <style>:root { color: #092019; } @media (prefers-color-scheme: dark) { :root { color: #f7f5ed; } }</style>
+  <circle cx="16" cy="16" r="12"/>
+  <circle cx="16" cy="16" r="2.5"/>
+  <circle cx="24.485" cy="7.515" r="2.5"/>
+</svg>

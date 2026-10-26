@@ -39,7 +39,9 @@ pnpm add @akshatowo/radical
 pnpm approve-builds sharp
 ```
 
-The next steps set up **remote mode**. In remote mode the native shell is a WebView that loads your app from a running server. The server renders pages and runs server functions for every client, the same way it does for a browser.
+The next steps set up **remote mode**. In remote mode the native shell is a WebView that loads your app from a running server.
+
+The server renders pages and runs server functions for every client, the same way it does for a browser.
 
 ### Configure Vite
 
@@ -82,7 +84,9 @@ export default viteConfig;
 
 `appId` and `name` identify the app on the device. `devHost` tells the native shell which host runs the dev server. `internalPlugins.haptics` adds the native haptics plugin, which the app uses when you complete a todo.
 
-The generated config also loads `devtools()` from `@tanstack/devtools-vite`. This config leaves it out. With a native shell connected, its console pipe can echo server warnings between the server and the client until the dev server stops responding.
+The generated config also loads `devtools()` from `@tanstack/devtools-vite`. This config leaves it out.
+
+With a native shell connected, its console pipe can echo server warnings between the server and the client until the dev server stops responding.
 
 ### Include generated types
 
@@ -94,7 +98,9 @@ Radical writes plugin types to `.radical/`. Add them to the `include` list in `t
 }
 ```
 
-Keep the generated compiler options. Then add `.radical/` to `.gitignore`. The folder also holds the generated Android and Xcode projects.
+Keep the generated compiler options. Then add `.radical/` to `.gitignore`.
+
+The folder also holds the generated Android and Xcode projects.
 
 ### Register the request middleware
 
@@ -262,7 +268,9 @@ This file does three things:
 - `safeAreaStyle` sets four CSS variables, such as `--radical-safe-area-top`, on `<html>`. On a phone they hold the size of the status bar and home indicator. In a browser they fall back to `env(safe-area-inset-*)`.
 - `RadicalProvider` gives Radical hooks, such as `useHapticFeedback`, access to the native bridge.
 
-`viewport-fit=cover` lets the page draw under the system bars. The CSS variables then decide where content starts. The root also drops the generated devtools panel, which would cover part of a phone screen.
+`viewport-fit=cover` lets the page draw under the system bars. The CSS variables then decide where content starts.
+
+The root also drops the generated devtools panel, which would cover part of a phone screen.
 
 ## Build the todo app
 
@@ -335,13 +343,20 @@ export const removeTodo = createServerFn({ method: "POST" })
 
 Each `createServerFn` handler runs only on the server. The client receives a small function that calls it over HTTP, so `node:fs` never reaches the browser bundle.
 
-Every change reads the whole file, edits the list, and writes it back. If the browser and the phone both send a change at the same moment, two handlers can read the same old list, and the second write erases the first. `update` puts each change on a queue, so it reads the file only after the previous change is saved. The queue works because one dev server process owns the file.
+Every change reads the whole file, edits the list, and writes it back. If the browser and the phone both send a change at the same moment, two handlers can read the same old list, and the second write erases the first.
 
-A JSON file keeps the tutorial short. Use a database when you build a real app, because a database handles concurrent writes for you. The generated `.gitignore` already lists `todos.json`.
+`update` puts each change on a queue, so it reads the file only after the previous change is saved.
+
+The queue works because one dev server process owns the file.
+
+A JSON file keeps the tutorial short. Use a database when you build a real app, because a database handles concurrent writes for you.
+
+The generated `.gitignore` already lists `todos.json`.
 
 <Callout type="info">
-  If type checking reports that `validator` does not exist, your TanStack Start
-  version names it `inputValidator`. Rename the three calls.
+
+If type checking reports that `validator` does not exist, your TanStack Start version names it `inputValidator`. Rename the three calls.
+
 </Callout>
 
 ### Add the styles
@@ -457,7 +472,9 @@ body {
 }
 ```
 
-The `@theme` block turns each token into Tailwind utilities, such as `bg-paper`, `text-muted`, and `font-display`. The `.app` class adds the Radical safe-area variables to normal padding. In a browser they resolve to `0px`, so the layout matches a plain web page. The button and checkbox classes hold the styles that would make long class lists in JSX.
+The `@theme` block turns each token into Tailwind utilities, such as `bg-paper`, `text-muted`, and `font-display`. The `.app` class adds the Radical safe-area variables to normal padding.
+
+In a browser they resolve to `0px`, so the layout matches a plain web page. The button and checkbox classes hold the styles that would make long class lists in JSX.
 
 ### Write the todo page
 
@@ -621,7 +638,9 @@ Open `http://localhost:3000` and try the app:
 3. Select **Open** and **Done**. The URL changes, and the list shows only the matching todos.
 4. Reload the page. Every todo is still there, because the server stores them in `todos.json` in the project folder. Open that file to see the data.
 
-The app is still a normal TanStack Start app. In a desktop browser, Radical's middleware and provider change nothing you can see. The safe-area variables resolve to `0px`, and haptic calls do nothing.
+The app is still a normal TanStack Start app. In a desktop browser, Radical's middleware and provider change nothing you can see.
+
+The safe-area variables resolve to `0px`, and haptic calls do nothing.
 
 Check the project before you move to a device:
 
@@ -656,13 +675,14 @@ adb -s emulator-5554 reverse tcp:3000 tcp:3000
 pnpm exec radical android --target emulator-5554
 ```
 
-`adb reverse` makes `localhost:3000` on the emulator point at port 3000 on your computer. Without it, the shell cannot reach the dev server. Radical generates the Android project in `.radical/android`, builds it with Gradle, and opens the app.
+`adb reverse` makes `localhost:3000` on the emulator point at port 3000 on your computer. Without it, the shell cannot reach the dev server.
+
+Radical generates the Android project in `.radical/android`, builds it with Gradle, and opens the app.
 
 <Callout type="warning">
-  Gradle builds with JDK 21, whatever your default Java is. It uses an installed
-  JDK 21 or downloads one, so the first build on a machine without JDK 21 needs
-  network access. If it can neither find nor download one, the build fails with
-  a toolchain error that names Java 21.
+
+Gradle builds with JDK 21, whatever your default Java is. It uses an installed JDK 21 or downloads one, so the first build on a machine without JDK 21 needs network access. If it can neither find nor download one, the build fails with a toolchain error that names Java 21.
+
 </Callout>
 
 ### iOS
@@ -685,7 +705,9 @@ Radical generates an Xcode project in `.radical/ios`, builds it, installs the ap
 
 The todos you added in the browser are already on the phone, because every client calls the same server functions. Add a todo on the phone and reload the browser to see it there too.
 
-On the phone, the heading starts below the status bar and the list stays clear of the home indicator. The `--radical-safe-area-*` variables now hold real inset values from the shell. When you tick a todo on a physical device, you feel a short success vibration. Simulators and emulators do not vibrate.
+On the phone, the heading starts below the status bar and the list stays clear of the home indicator. The `--radical-safe-area-*` variables now hold real inset values from the shell.
+
+When you tick a todo on a physical device, you feel a short success vibration. Simulators and emulators do not vibrate.
 
 Edit a class in `src/routes/index.tsx` and save. The browser and both phones update, because they all load the page from the same Vite server.
 

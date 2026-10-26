@@ -6,7 +6,7 @@ description: "Schedule a reminder, cancel it, and update the app badge."
 <Steps>
 <Step>
 
-### Enable notifications
+## Enable notifications
 
 Apply [capability setup](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.notifications: true`:
 
@@ -66,8 +66,8 @@ Keep the page open for browser reminders. See [inputs and errors](/docs/referenc
 
 ## Request exact alarms
 
-<Tabs items={["Android", "iOS"]}>
-<Tab value="Android">
+<Tabs>
+<Tab title="Android">
 
 <Steps>
 <Step>
@@ -107,12 +107,13 @@ Call `notifications.schedule()` from the button with `delaySeconds: 5`.
 </Steps>
 
 <Callout type="warning">
-  Request access before scheduling; time in settings consumes an existing
-  reminder's delay.
+
+Request access before scheduling; time in settings consumes an existing reminder's delay.
+
 </Callout>
 
 </Tab>
-<Tab value="iOS">
+<Tab title="iOS">
 
 Use display permission above; Android exact-alarm settings do not apply.
 

@@ -11,7 +11,9 @@ description: "File selection, URL opening, and native file handoff."
 
 The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
 
-`internalPlugins.filePicker` enables `@capawesome/capacitor-file-picker@8.1.1`. `internalPlugins.intents` enables `@capacitor/app-launcher@8.0.1` and `@capacitor-community/file-opener@8.0.1`. Neither capability adds runtime permissions. Native pickers use system document UI.
+- `internalPlugins.filePicker` enables `@capawesome/capacitor-file-picker@8.1.1`. `internalPlugins.intents` enables `@capacitor/app-launcher@8.0.1` and `@capacitor-community/file-opener@8.0.1`.
+- Neither capability adds runtime permissions.
+- Native pickers use system document UI.
 
 ## File selection
 
@@ -51,9 +53,13 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 
 ## External apps
 
-`openUrl(url)` accepts a parseable URL and returns an Effect of void requiring `Bridge | BrowserIntents`. Native shells use the registered handler. Browsers open a new tab with `noopener,noreferrer`; blocked browser popups cannot be detected by this API.
+- `openUrl(url)` accepts a parseable URL and returns an Effect of void requiring `Bridge | BrowserIntents`.
+- Native shells use the registered handler.
+- Browsers open a new tab with `noopener,noreferrer`; blocked browser popups cannot be detected by this API.
 
-`openFile(file, options?)` accepts `OpenableFile` with optional `uri` and `mimeType`. `OpenFileOptions.chooser` defaults to false. Browser calls and files without a native URI fail with `Unavailable`. Android's chooser and iOS Open In menu are selected by `chooser: true`. iOS's default is a Quick Look preview, which settles when the preview closes.
+- `openFile(file, options?)` accepts `OpenableFile` with optional `uri` and `mimeType`. `OpenFileOptions.chooser` defaults to false.
+- Browser calls and files without a native URI fail with `Unavailable`.
+- Android's chooser and iOS Open In menu are selected by `chooser: true`. iOS's default is a Quick Look preview, which settles when the preview closes.
 
 | Intent error | Meaning |
 | --- | --- |
@@ -61,7 +67,9 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 | `Unavailable` | Includes invalid URLs, missing files, browser file calls, or absent native URI |
 | `BridgeError` | Transport or schema failure |
 
-`intentsLive(effect)` provides `BrowserIntentsLive`. `BrowserIntents` replaces browser URL opening. `useIntent()` exposes `openUrl`, `openFile`, and action state. Its success value is `true`.
+`intentsLive(effect)` provides `BrowserIntentsLive`. `BrowserIntents` replaces browser URL opening.
+
+`useIntent()` exposes `openUrl`, `openFile`, and action state. Its success value is `true`.
 
 ## Platform support
 

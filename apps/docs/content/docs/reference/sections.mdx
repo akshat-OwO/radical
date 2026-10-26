@@ -4,12 +4,17 @@ description: Config, route memory, badges, and native navigation.
 ---
 
 <Callout type="info">
-  Sections are available in `@akshatowo/radical` 0.3.0 and later.
+
+Sections are available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 ## Config
 
-`navigation.sections` enables section navigation. Native bars are the default on both platforms. It accepts 2 to 5 sections in display order. The first is the start section.
+- `navigation.sections` enables section navigation.
+- Native bars are the default on both platforms.
+- It accepts 2 to 5 sections in display order.
+- The first is the start section.
 
 ```ts
 const navigation = {
@@ -38,7 +43,10 @@ const navigation = {
 | `icon` | `{ ios, android }`: SF Symbol name and app-root-relative SVG path |
 | `selectedIcon` | Optional icon pair. Defaults to `icon`. |
 
-Invalid declarations return `InvalidConfig` with the field path. Android converts SVGs to VectorDrawables. Paths, basic geometry, and transforms are supported. `currentColor` uses Material's item tint. Unsupported SVGs fail generation with `InvalidAsset` before replacing the shell.
+- Invalid declarations return `InvalidConfig` with the field path.
+- Android converts SVGs to VectorDrawables.
+- Paths, basic geometry, and transforms are supported. `currentColor` uses Material's item tint.
+- Unsupported SVGs fail generation with `InvalidAsset` before replacing the shell.
 
 ## Bar and Android theme
 
@@ -54,7 +62,11 @@ Invalid declarations return `InvalidConfig` with the field path. Android convert
 | `android.colors.icon.selected`, `.unselected` | Color | Material icon tint |
 | `android.colors.label.selected`, `.unselected` | Color | Material text color |
 
-A Color is `"#RRGGBB"`, `"#AARRGGBB"`, or `{ light, dark }` with either hex format. Alpha comes first. Light and dark values follow system night mode. Omitted colors keep Material 3 defaults on both the bottom bar and rail. Invalid values return `InvalidConfig` with the field path.
+- A Color is `"#RRGGBB"`, `"#AARRGGBB"`, or `{ light, dark }` with either hex format.
+- Alpha comes first.
+- Light and dark values follow system night mode.
+- Omitted colors keep Material 3 defaults on both the bottom bar and rail.
+- Invalid values return `InvalidConfig` with the field path.
 
 ```ts
 const navigation = {
@@ -71,7 +83,10 @@ const navigation = {
 };
 ```
 
-With `"web"`, the shell creates no bar or rail. The page keeps the full window and safe-area insets describe only system bars. Sections, selection, badges, iOS edge swipe, and Android predictive back still work. Android theme options apply only with `"native"`.
+- With `"web"`, the shell creates no bar or rail.
+- The page keeps the full window and safe-area insets describe only system bars.
+- Sections, selection, badges, iOS edge swipe, and Android predictive back still work.
+- Android theme options apply only with `"native"`.
 
 ## React
 
@@ -105,7 +120,9 @@ function SectionLayout({ children }) {
 
 Unknown ids, invalid badges, and actions without a provider fail with `InvalidSection`, exported from both React entry points. Without a provider, state is `{ sections: [], active: null, hidden: true, native: false }`.
 
-Custom web controls must respect `hidden`. Web controls render when `useSections().native` is `false`. `TanStackSections` must stay mounted to handle native selections. Bundled apps read `localNativeContext()` after hydration to preserve the browser context used by the first render.
+- Custom web controls must respect `hidden`.
+- Web controls render when `useSections().native` is `false`. `TanStackSections` must stay mounted to handle native selections.
+- Bundled apps read `localNativeContext()` after hydration to preserve the browser context used by the first render.
 
 ## Routing
 
@@ -134,7 +151,12 @@ Section declarations compile into the shell, so controls appear before mount in 
 
 The iOS page draws edge to edge under the status bar, tab bar, and sidebar. Native-context safe-area insets and `--radical-safe-area-*` variables describe the space clear of bars. `safeAreaStyle` exposes these values for page layout.
 
-Android native bars paint through the system gesture inset. Rails also paint through the status-bar inset. Items stay inside the system insets. Android keeps a window-sized CSS viewport. Safe-area insets include navigation controls and update with the keyboard. Hidden routes remove navigation controls and their insets.
+- Android native bars paint through the system gesture inset.
+- Rails also paint through the status-bar inset.
+- Items stay inside the system insets.
+- Android keeps a window-sized CSS viewport.
+- Safe-area insets include navigation controls and update with the keyboard.
+- Hidden routes remove navigation controls and their insets.
 
 ## Effect API
 
@@ -147,4 +169,6 @@ Android native bars paint through the system gesture inset. Rails also paint thr
 | `sectionOwnership(sections, caseSensitive = true, normalizePathname?)` | Compiles a matcher. Default normalization leaves paths unchanged. Original declarations remain navigation destinations. |
 | `Sections`, `sectionsLayer(controller)` | Service and layer for `selectSection(id)` and `setSectionBadge(id, value)` Effects. |
 
-`tanstackSections(router, sections)` from the Effect TanStack entry point returns `{ controller, mount }`. `mount` requires `Bridge` and returns cleanup. The adapter applies the router's path normalization and case setting to ownership and transition checks. React's `TanStackSections` manages mounting and cleanup.
+- `tanstackSections(router, sections)` from the Effect TanStack entry point returns `{ controller, mount }`. `mount` requires `Bridge` and returns cleanup.
+- The adapter applies the router's path normalization and case setting to ownership and transition checks.
+- React's `TanStackSections` manages mounting and cleanup.

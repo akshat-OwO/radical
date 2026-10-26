@@ -3,10 +3,12 @@ title: "Keep content inside the safe area"
 description: "Apply initial insets and subscribe to later changes."
 ---
 
+Apply safe-area insets to keep content clear of system bars and native navigation.
+
 <Steps>
 <Step>
 
-### Configure the viewport
+## Configure the viewport
 
 Add to the document head:
 
@@ -53,7 +55,9 @@ Read component state with `useSafeArea()` from `@akshatowo/radical/react`.
 </Steps>
 
 <Callout type="warning">
-  Do not add keyboard height to safe-area insets.
+
+Do not add keyboard height to safe-area insets.
+
 </Callout>
 
 See the [keyboard contract](/docs/reference/safe-area).

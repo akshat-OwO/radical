@@ -5,7 +5,9 @@ description: "Run your web app in Android and iOS shells with access to native c
 
 Radical runs your web app inside Android and iOS WebViews. It loads the UI from an HTTP origin in remote mode or packages SPA assets in bundled mode.
 
-The framework-agnostic Vite plugin generates native projects. The Plain API and React hooks expose native capabilities. The Effect API provides typed composition through `/effect/*` subpaths. Your app keeps control of routing, rendering, data fetching, and HTTP handling.
+The framework-agnostic Vite plugin generates native projects. The Plain API and React hooks expose native capabilities.
+
+The Effect API provides typed composition through `/effect/*` subpaths. Your app keeps control of routing, rendering, data fetching, and HTTP handling.
 
 ## Works with your framework
 
@@ -15,28 +17,21 @@ TanStack Start is the only supported framework adapter today. It supports both r
 
 ## Explore the docs
 
-<Cards>
-  <Card
-    title="Getting started"
-    href="/docs/getting-started"
-    description="Create a TanStack Start app with Radical and run it in a browser or native shell."
-  />
-  <Card
-    title="Change an existing app"
-    href="/docs/guides/bundled-mode"
-    description="Package the UI, add capabilities, or configure native assets."
-  />
-  <Card
-    title="Look up an API"
-    href="/docs/reference/config"
-    description="Find config fields, client operations, hooks, and errors."
-  />
-  <Card
-    title="Understand the design"
-    href="/docs/explanation/native-shells"
-    description="See the architecture, request boundaries, and generated shells."
-  />
-</Cards>
+<CardGroup>
+  <Card title="Getting started" href="/docs/getting-started">
+    Create a TanStack Start app with Radical and run it in a browser or native
+    shell.
+  </Card>
+  <Card title="Change an existing app" href="/docs/guides/bundled-mode">
+    Package the UI, add capabilities, or configure native assets.
+  </Card>
+  <Card title="Look up an API" href="/docs/reference/config">
+    Find config fields, client operations, hooks, and errors.
+  </Card>
+  <Card title="Understand the design" href="/docs/explanation/native-shells">
+    See the architecture, request boundaries, and generated shells.
+  </Card>
+</CardGroup>
 
 ## Where the UI lives
 

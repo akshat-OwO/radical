@@ -4,7 +4,9 @@ description: "Create a TanStack Start app with a live map, show the user's locat
 ---
 
 <Callout type="info">
-  The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
+The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 In this tutorial you build a one-screen maps app and run the same code in a browser, an Android emulator, and an iOS simulator. The app shows where the user is, follows them as they move, and measures the distance to pins they drop on the map.
@@ -266,7 +268,9 @@ Add the map component:
 pnpm dlx shadcn@latest add @mapcn/map
 ```
 
-The CLI writes `src/components/ui/map.tsx` and installs `maplibre-gl` 6, `lucide-react`, and `@types/geojson`. It also adds a `@layer base` block for MapLibre's popups and attribution to `src/styles.css`. The next section replaces that file and keeps the block.
+The CLI writes `src/components/ui/map.tsx` and installs `maplibre-gl` 6, `lucide-react`, and `@types/geojson`. It also adds a `@layer base` block for MapLibre's popups and attribution to `src/styles.css`.
+
+The next section replaces that file and keeps the block.
 
 ### Serve the MapLibre worker yourself
 
@@ -319,13 +323,13 @@ You pass `mapStyles` to the map's `styles` prop. OpenFreeMap also has `liberty` 
 ## Add the design
 
 <Callout type="info" title="Designed with Hallmark">
-  The design comes from [Hallmark](https://www.usehallmark.com/), a design skill
-  for coding agents. It dealt the **Wayfind** theme for an app screen: one
-  monospace face, square ink borders, cobalt for what is live, and amber figures
-  on ink plates. Hallmark wrote `tokens.css` and `base.css`; the aliases and app
-  classes in `styles.css` are hand-written. To try another look, run `/hallmark
-  redesign` in your agent. It reads the stamp at the top of `styles.css`, deals
-  a different theme, and rewrites the tokens while keeping the structure.
+
+The design comes from [Hallmark](https://www.usehallmark.com/), a design skill for coding agents. It dealt the **Wayfind** theme for an app screen: one monospace face, square ink borders, cobalt for what is live, and amber figures on ink plates.
+
+Hallmark wrote `tokens.css` and `base.css`; the aliases and app classes in `styles.css` are hand-written. To try another look, run `/hallmark redesign` in your agent.
+
+It reads the stamp at the top of `styles.css`, deals a different theme, and rewrites the tokens while keeping the structure.
+
 </Callout>
 
 ### Add the tokens
@@ -831,7 +835,9 @@ export function CenterOn({
 }
 ```
 
-`useMap` gives components inside `<Map>` access to the MapLibre map. Without `follow`, `CenterOn` frames the whole accuracy circle of the location fix, so an approximate location fix shows the area it covers instead of a false point. Step 4 uses `follow`.
+`useMap` gives components inside `<Map>` access to the MapLibre map. Without `follow`, `CenterOn` frames the whole accuracy circle of the location fix, so an approximate location fix shows the area it covers instead of a false point.
+
+Step 4 uses `follow`.
 
 Replace `src/routes/index.tsx`:
 
@@ -900,7 +906,9 @@ How the page works:
 - When the state becomes `granted`, the effect calls `getCurrent()`. `location.value` then holds one location fix with `latitude`, `longitude`, and `accuracy` in metres.
 - The page reads location only after the user taps the button, and never during server rendering.
 
-Open `http://localhost:3000` and select **Show where I am**. Allow location in the browser prompt. The map moves to your location fix, and the sheet shows its accuracy.
+Open `http://localhost:3000` and select **Show where I am**. Allow location in the browser prompt.
+
+The map moves to your location fix, and the sheet shows its accuracy.
 
 ### Step 2: Show the permission and location precision
 
@@ -1010,9 +1018,13 @@ function Home() {
 }
 ```
 
-The badge reads `permission.value`, which is `{ state, precision }`. A denied permission is a value too, `state: "denied"`. On a phone, `precision` is `precise` or `approximate`. A browser does not report location precision, so the badge reads **Shared**.
+The badge reads `permission.value`, which is `{ state, precision }`. A denied permission is a value too, `state: "denied"`.
 
-**Follow me** asks for precise location with the `followMe` purpose key, but only when the grant is approximate. Following a walk needs precise location fixes; showing which neighbourhood you are in does not. Step 4 makes the button follow you.
+On a phone, `precision` is `precise` or `approximate`. A browser does not report location precision, so the badge reads **Shared**.
+
+**Follow me** asks for precise location with the `followMe` purpose key, but only when the grant is approximate. Following a walk needs precise location fixes; showing which neighbourhood you are in does not.
+
+Step 4 makes the button follow you.
 
 ### Step 3: Handle denied permission and location services off
 
@@ -1200,7 +1212,9 @@ function Home() {
 }
 ```
 
-`blockedBy` turns the permission and the error `_tag` into one of four states. A denied check or request arrives as `state: "denied"`. A location fix or watch fails with `PermissionDenied` instead, for example when the user revokes location while the app runs, so `blockedBy` checks both.
+`blockedBy` turns the permission and the error `_tag` into one of four states. A denied check or request arrives as `state: "denied"`.
+
+A location fix or watch fails with `PermissionDenied` instead, for example when the user revokes location while the app runs, so `blockedBy` checks both.
 
 | State | Cause | Action |
 | --- | --- | --- |
@@ -1209,7 +1223,9 @@ function Home() {
 | `timeout` | No location fix arrived in time | Try again |
 | `unavailable` | Any other failure | Try again |
 
-Location services and the app's permission are separate switches, so each state opens a different Settings screen. In a browser both Settings calls fail with `Unavailable`, and the plate tells the user to allow location for the site instead. **Try again** checks the permission and asks for a new location fix. When the user comes back from Settings, `useLocationPermission` refreshes by itself, so a newly granted permission also triggers the page's effect.
+Location services and the app's permission are separate switches, so each state opens a different Settings screen. In a browser both Settings calls fail with `Unavailable`, and the plate tells the user to allow location for the site instead.
+
+**Try again** checks the permission and asks for a new location fix. When the user comes back from Settings, `useLocationPermission` refreshes by itself, so a newly granted permission also triggers the page's effect.
 
 To try it in Chrome, select the site settings icon in the address bar, block location, and reload.
 
@@ -1262,7 +1278,9 @@ export function UserLocation({ fix }: { fix: LocationFix }) {
 }
 ```
 
-The blue dot marks the location fix. The circle around it has a radius equal to the fix's `accuracy`, converted from metres to pixels at the current zoom. A small circle means a precise location fix; a wide one means the user is somewhere inside it.
+The blue dot marks the location fix. The circle around it has a radius equal to the fix's `accuracy`, converted from metres to pixels at the current zoom.
+
+A small circle means a precise location fix; a wide one means the user is somewhere inside it.
 
 Update `src/routes/index.tsx`:
 
@@ -1674,11 +1692,15 @@ function Home() {
 }
 ```
 
-Tap the map to drop a pin. Each pin gets a number on the map and a row in the sheet, sorted by distance from your location fix. The caption repeats the fix's accuracy, because a distance is only as good as the location fix it starts from.
+Tap the map to drop a pin. Each pin gets a number on the map and a row in the sheet, sorted by distance from your location fix.
+
+The caption repeats the fix's accuracy, because a distance is only as good as the location fix it starts from.
 
 ## Use mapcn's locate control
 
-Map libraries call `navigator.geolocation` directly. In a shell, Radical replaces that API with one backed by the native plugin, so third-party controls work without changes. Add mapcn's controls to the map:
+Map libraries call `navigator.geolocation` directly. In a shell, Radical replaces that API with one backed by the native plugin, so third-party controls work without changes.
+
+Add mapcn's controls to the map:
 
 ```tsx title="src/routes/index.tsx"
 import {
@@ -1693,7 +1715,9 @@ import {
 <MapControls position="top-right" showLocate />;
 ```
 
-The locate button calls `navigator.geolocation.getCurrentPosition` and flies the map to the result. In a shell, that call goes through the same native plugin and permission as the hooks. If the user has not answered yet, it asks for approximate location, as a browser would. `useLocationPermission` updates by itself when the control's prompt changes the permission, so the badge changes and the page's effect reads its own location fix. The control needs no callback.
+The locate button calls `navigator.geolocation.getCurrentPosition` and flies the map to the result. In a shell, that call goes through the same native plugin and permission as the hooks.
+
+If the user has not answered yet, it asks for approximate location, as a browser would. `useLocationPermission` updates by itself when the control's prompt changes the permission, so the badge changes and the page's effect reads its own location fix. The control needs no callback.
 
 ## Try it in the browser
 
@@ -1746,23 +1770,41 @@ Set the simulator's location in **Features > Location**. Pick **Custom Location*
 
 ### What to look for
 
-The first prompt is the system's, not the browser's. **Show where I am** asks for approximate location on both platforms, and the badge reads **Approximate**. On Android 11 and earlier there is no approximate choice, so the badge reads **Precise** straight away.
+The first prompt is the system's, not the browser's. **Show where I am** asks for approximate location on both platforms, and the badge reads **Approximate**.
 
-Select **Follow me**. Android asks to upgrade to precise location. iOS shows your `followMe` text and asks for temporary precise location. The badge turns blue and reads **Precise**, and the accuracy circle shrinks. If you decline, the badge stays **Approximate** and the map still follows the approximate location fixes. On iOS, temporary precise location expires some time after you leave the app; until then, **Follow me** does not ask again.
+On Android 11 and earlier there is no approximate choice, so the badge reads **Precise** straight away.
+
+Select **Follow me**. Android asks to upgrade to precise location. iOS shows your `followMe` text and asks for temporary precise location.
+
+The badge turns blue and reads **Precise**, and the accuracy circle shrinks. If you decline, the badge stays **Approximate** and the map still follows the approximate location fixes.
+
+On iOS, temporary precise location expires some time after you leave the app; until then, **Follow me** does not ask again.
 
 On an Android emulator with Google Play services and Google Location Accuracy off, the first location fix shows Google's dialog. Accept it, and the location fix arrives in the same request.
 
-Turn off location services: on Android in **Settings > Location**, on iOS in **Settings > Privacy & Security > Location Services**. Return to the app and select **Try again**. On Android with Google Play services, Google's dialog appears first; select **No thanks**. The plate reads **Location services are off**, and its button opens the Settings screen. The badge still shows the app's permission, because location services is a separate switch. On iOS the button opens the app's page in Settings, because iOS has no public link to the Location Services screen. Deny location for the app to see **Location is blocked** and **Open app settings** instead.
+Turn off location services: on Android in **Settings > Location**, on iOS in **Settings > Privacy & Security > Location Services**. Return to the app and select **Try again**.
 
-Select the locate control on the map. It uses `navigator.geolocation`, but you see no second prompt, because the replacement shares the app's native permission. On a fresh install, select the locate control first: it asks for approximate location, as a browser would, and the badge updates without any extra code.
+On Android with Google Play services, Google's dialog appears first; select **No thanks**. The plate reads **Location services are off**, and its button opens the Settings screen.
+
+The badge still shows the app's permission, because location services is a separate switch. On iOS the button opens the app's page in Settings, because iOS has no public link to the Location Services screen.
+
+Deny location for the app to see **Location is blocked** and **Open app settings** instead.
+
+Select the locate control on the map. It uses `navigator.geolocation`, but you see no second prompt, because the replacement shares the app's native permission.
+
+On a fresh install, select the locate control first: it asks for approximate location, as a browser would, and the badge updates without any extra code.
 
 On a phone the header starts below the status bar, and the sheet stays clear of the home indicator. When the app goes to the background, the watch pauses, and it resumes when you return.
 
 ### Bundled mode
 
-The map runs in [bundled mode](/docs/guides/bundled-mode) too. Once the root reads native context on the device, the screen calls no server functions. The shell then loads the screen from files inside the app. Set `mode: "bundled"` and an `origin` in `vite.config.ts`, then follow the bundled-mode guide to switch the root route to `localNativeContext()`, disable SSR, and mount the native context after hydration.
+The map runs in [bundled mode](/docs/guides/bundled-mode) too. Once the root reads native context on the device, the screen calls no server functions.
 
-Location works the same way in both modes. Map tiles still come from OpenFreeMap, so the map needs the network. The self-hosted MapLibre worker ships inside the app.
+The shell then loads the screen from files inside the app. Set `mode: "bundled"` and an `origin` in `vite.config.ts`, then follow the bundled-mode guide to switch the root route to `localNativeContext()`, disable SSR, and mount the native context after hydration.
+
+Location works the same way in both modes. Map tiles still come from OpenFreeMap, so the map needs the network.
+
+The self-hosted MapLibre worker ships inside the app.
 
 ## Web, Android, and iOS
 

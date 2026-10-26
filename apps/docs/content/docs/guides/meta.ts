@@ -1,5 +1,7 @@
-{
-  "pages": [
+import { defineMeta } from "blume";
+
+export default defineMeta({
+  pages: [
     "bundled-mode",
     "offline-routes",
     "run-on-a-device",
@@ -20,7 +22,7 @@
     "notification-navigation",
     "data-protection",
     "custom-plugins",
-    "effect-api"
+    "effect-api",
   ],
-  "title": "How-to guides"
-}
+  title: "How-to guides",
+});

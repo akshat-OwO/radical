@@ -5,9 +5,10 @@ description: "Why native projects live under .radical."
 
 Native projects are generated output. Keeping identity, assets, manifests, and source files outside `.radical` makes regeneration repeatable.
 
-<Mermaid
-  title="App, framework adapter, and generated shells"
-  chart={`flowchart TD
+## App, framework adapter, and generated shells
+
+```mermaid
+flowchart TD
     Config[App Vite config, assets, and manifests] --> V[radical Vite plugin]
     T[TanStack Start adapter] -->|Framework outputs and request context| V
     V --> P[Resolved native build plan]
@@ -19,16 +20,18 @@ Native projects are generated output. Keeping identity, assets, manifests, and s
     iOS --> Transport
     App -->|Effect commands via Bridge| Transport
     Transport --> Native[Enabled native plugins]
-`}
-/>
+```
 
-Radical owns loading, context, safe area, offline recovery, and transition overlays. Capacitor supplies the transport and plugin ABI. The framework keeps rendering, routing, and data fetching.
+Radical owns loading, context, safe area, offline recovery, and transition overlays. Capacitor supplies the transport and plugin ABI.
+
+The framework keeps rendering, routing, and data fetching.
 
 ## One plan drives generation and launch
 
-<Mermaid
-  title="Native CLI pipeline"
-  chart={`flowchart TD
+### Native CLI pipeline
+
+```mermaid
+flowchart TD
     CLI[radical android or radical ios] --> Resolve[Resolve Vite config and native build plan]
     Resolve --> Mode{Bundled mode?}
     Mode -->|Yes| Web[Build SPA assets]
@@ -43,33 +46,35 @@ Radical owns loading, context, safe area, offline recovery, and transition overl
     Xcode --> Boot[simctl boot]
     Boot --> Install[simctl install]
     Install --> Run[simctl launch]
-`}
-/>
+```
 
-Generation checks dependency versions and copies enabled native sources. Conflicting contributions fail rather than depending on plugin order. Bundled assets come from the adapter's client output; remote metadata records the UI origin and navigation allowlist.
+Generation checks dependency versions and copies enabled native sources. Conflicting contributions fail rather than depending on plugin order.
+
+Bundled assets come from the adapter's client output; remote metadata records the UI origin and navigation allowlist.
 
 ## Generated files have source inputs
 
-<Files>
-  <Folder name=".radical" defaultOpen>
-    <File name="native.json" />
-    <File name="plugins.d.ts" />
-    <Folder name="android" defaultOpen>
-      <File name="capacitor.config.json" />
-      <Folder name="android" />
-    </Folder>
-    <Folder name="ios" defaultOpen>
-      <File name="capacitor.config.json" />
-      <Folder name="ios" />
-    </Folder>
-  </Folder>
-</Files>
+<Tree>
+  <Tree.Folder name=".radical" defaultOpen>
+    <Tree.File name="native.json" />
+    <Tree.File name="plugins.d.ts" />
+    <Tree.Folder name="android" defaultOpen>
+      <Tree.File name="capacitor.config.json" />
+      <Tree.Folder name="android" />
+    </Tree.Folder>
+    <Tree.Folder name="ios" defaultOpen>
+      <Tree.File name="capacitor.config.json" />
+      <Tree.Folder name="ios" />
+    </Tree.Folder>
+  </Tree.Folder>
+</Tree>
 
 This tree shows selected outputs, not every generated file. `sharp` writes launcher resources and iOS asset catalogs from source images. The splash remains until the initial document or fallback finishes loading.
 
 <Callout type="warning" title="Regeneration replaces output">
-  Keep lasting changes in config, source assets, a plugin manifest, or Radical's
-  generator. Manual native-project edits can disappear.
+
+Keep lasting changes in config, source assets, a plugin manifest, or Radical's generator. Manual native-project edits can disappear.
+
 </Callout>
 
 [Run on a device](/docs/guides/run-on-a-device) and [Set app assets](/docs/guides/app-assets) contain the procedures.

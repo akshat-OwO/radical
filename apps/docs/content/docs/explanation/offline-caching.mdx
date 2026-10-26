@@ -5,9 +5,10 @@ description: "Why snapshots require an online visit and an exact URL."
 
 Remote snapshots preserve successful documents, not arbitrary application data. An online visit must store a route before that exact URL can work offline.
 
-<Mermaid
-  title="Service worker assets and exact-URL snapshots"
-  chart={`flowchart TD
+## Service worker assets and exact-URL snapshots
+
+```mermaid
+flowchart TD
     Build[Build ID and asset manifest] --> Install[Worker install: precache assets and offline.html]
     Install --> Activate[Activate: delete older app cache namespaces]
     Activate --> Nav[Same-origin GET document navigation]
@@ -21,16 +22,18 @@ Remote snapshots preserve successful documents, not arbitrary application data. 
     Match -->|No| Fallback[Return cached offline.html or Response.error]
     Cache --> Check[Shell checks completed snapshot for current URL]
     Check -->|Confirmed message| Saved[Persist saved snapshot URL]
-`}
-/>
+```
 
-A `/reports?page=1` snapshot cannot satisfy `/reports?page=2`. HTTP error responses do not trigger the network-rejection fallback. Storage failures do not discard a successful network response.
+A `/reports?page=1` snapshot cannot satisfy `/reports?page=2`. HTTP error responses do not trigger the network-rejection fallback.
+
+Storage failures do not discard a successful network response.
 
 ## Native startup adds recovery
 
-<Mermaid
-  title="Remote shell startup recovery"
-  chart={`flowchart TD
+### Remote shell startup recovery
+
+```mermaid
+flowchart TD
     subgraph Android
       Start[Android launch gate] --> Connected{Internet capability present?}
       Connected -->|Yes| Config[Select configured URL]
@@ -68,12 +71,13 @@ A `/reports?page=1` snapshot cannot satisfy `/reports?page=2`. HTTP error respon
       Reason -->|Worker fallback header| WorkerHTML[Allow worker offline.html]
       Reason -->|Load failure| Packaged[Load packaged offline HTML]
     end
-`}
-/>
+```
 
 The iOS flow covers allowed main-frame startup navigations. Recovery cancellation callbacks are consumed; unrelated cancellations go to Capacitor.
 
-Android stores `lastOfflineUrl`; iOS stores `radical.lastOfflineURL`. The saved URL records a confirmed snapshot; it does not contain HTML. Clearing web data deletes snapshots and worker registrations, so a saved URL cannot restore deleted data. Bundled mode omits this recovery path.
+Android stores `lastOfflineUrl`; iOS stores `radical.lastOfflineURL`. The saved URL records a confirmed snapshot; it does not contain HTML.
+
+Clearing web data deletes snapshots and worker registrations, so a saved URL cannot restore deleted data. Bundled mode omits this recovery path.
 
 ## Cache boundaries
 

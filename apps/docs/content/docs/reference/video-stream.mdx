@@ -15,7 +15,9 @@ Native enablement is `internalPlugins.videoStream`. The dependency is `@capgo/ca
 
 ## Session contract
 
-`startVideoStream(options)` returns `Effect<VideoStreamSession, VideoStreamError, Bridge | BrowserVideoStream | Scope>`. The caller's scope owns preview presentation, camera resources, and listeners. Closing the scope stops the session.
+- `startVideoStream(options)` returns `Effect<VideoStreamSession, VideoStreamError, Bridge | BrowserVideoStream | Scope>`.
+- The caller's scope owns preview presentation, camera resources, and listeners.
+- Closing the scope stops the session.
 
 | Option | Type | Default |
 | --- | --- | --- |
@@ -54,6 +56,8 @@ The session exposes Effect values `info` and `switchCamera`, plus `setZoom(level
 | `PermissionDenied` | Native `cameraPermissionDenied` |
 | `Unavailable` | Includes missing mounted viewfinder in the hook |
 
-`useVideoStream({ viewfinder, facing?, onDetect? })` accepts a React ref rather than an element. It returns `start`, `stop`, `switchCamera`, `setZoom`, `setTorch`, `running`, `loading`, `value`, and `error`. Unmount and provider replacement release the session.
+- `useVideoStream({ viewfinder, facing?, onDetect? })` accepts a React ref rather than an element.
+- It returns `start`, `stop`, `switchCamera`, `setZoom`, `setTorch`, `running`, `loading`, `value`, and `error`.
+- Unmount and provider replacement release the session.
 
 Source: [video implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/video-stream).

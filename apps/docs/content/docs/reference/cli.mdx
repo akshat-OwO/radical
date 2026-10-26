@@ -7,7 +7,9 @@ The `radical` executable runs in the app directory and resolves that directory's
 
 ## `radical android`
 
-Resolves the current config and generates `.radical/android`. In bundled mode, builds the UI before generation. Without `--generate-only`, builds with Gradle, installs the debug APK, and launches it with adb.
+- Resolves the current config and generates `.radical/android`.
+- In bundled mode, builds the UI before generation.
+- Without `--generate-only`, builds with Gradle, installs the debug APK, and launches it with adb.
 
 | Flag | Type | Default |
 | --- | --- | --- |
@@ -23,11 +25,16 @@ Resolves the current config and generates `.radical/android`. In bundled mode, b
 
 The SDK path resolves from `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Otherwise `adb` and `emulator` resolve through `PATH`.
 
-The generated project pins the Gradle daemon to JDK 21 in `.radical/android/android/gradle/gradle-daemon-jvm.properties`, including with `--generate-only`. `JAVA_HOME` and the default `java` only launch Gradle; they do not choose the build JDK. Gradle uses an installed JDK 21 or downloads one on the first build, which needs network access. If Gradle can neither find nor download JDK 21, the build fails with a toolchain error that names Java 21. Running `./gradlew` in the generated project behaves the same way.
+- The generated project pins the Gradle daemon to JDK 21 in `.radical/android/android/gradle/gradle-daemon-jvm.properties`, including with `--generate-only`. `JAVA_HOME` and the default `java` only launch Gradle; they do not choose the build JDK.
+- Gradle uses an installed JDK 21 or downloads one on the first build, which needs network access.
+- If Gradle can neither find nor download JDK 21, the build fails with a toolchain error that names Java 21.
+- Running `./gradlew` in the generated project behaves the same way.
 
 ## `radical ios`
 
-Resolves the config and generates `.radical/ios`. In bundled mode, builds the UI before generation. Without `--generate-only`, builds a Debug simulator app with `xcodebuild`, installs it through `simctl`, and launches it.
+- Resolves the config and generates `.radical/ios`.
+- In bundled mode, builds the UI before generation.
+- Without `--generate-only`, builds a Debug simulator app with `xcodebuild`, installs it through `simctl`, and launches it.
 
 | Flag | Type | Default |
 | --- | --- | --- |
@@ -42,11 +49,15 @@ Resolves the config and generates `.radical/ios`. In bundled mode, builds the UI
 
 ## `radical typegen`
 
-Resolves Vite config in build mode and writes `.radical/plugins.d.ts`. Does not build the UI, generate native projects, or launch a device. Has no Radical-specific flags.
+- Resolves Vite config in build mode and writes `.radical/plugins.d.ts`.
+- Does not build the UI, generate native projects, or launch a device.
+- Has no Radical-specific flags.
 
 ## Framework flags and failures
 
-The Effect CLI supplies these global flags on every command. The executable passes the package manifest version to `Command.run`. Release builds stamp that version before bundling.
+- The Effect CLI supplies these global flags on every command.
+- The executable passes the package manifest version to `Command.run`.
+- Release builds stamp that version before bundling.
 
 | Flag | Values and behavior |
 | --- | --- |
@@ -58,7 +69,9 @@ The Effect CLI supplies these global flags on every command. The executable pass
 
 The global flag list matches `radical --help` and `radical android --help`.
 
-Native generation requires the Radical Vite plugin. Remote generation requires a configured `origin` or a recorded dev-server URL. The generated metadata lives in `.radical/native.json`.
+- Native generation requires the Radical Vite plugin.
+- Remote generation requires a configured `origin` or a recorded dev-server URL.
+- The generated metadata lives in `.radical/native.json`.
 
 | Failure tag | Meaning |
 | --- | --- |

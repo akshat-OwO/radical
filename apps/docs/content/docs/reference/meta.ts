@@ -1,5 +1,7 @@
-{
-  "pages": [
+import { defineMeta } from "blume";
+
+export default defineMeta({
+  pages: [
     "config",
     "cli",
     "vite",
@@ -20,7 +22,7 @@
     "window-layout",
     "sections",
     "transitions",
-    "video-stream"
+    "video-stream",
   ],
-  "title": "Reference"
-}
+  title: "Reference",
+});

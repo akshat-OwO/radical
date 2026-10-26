@@ -23,7 +23,9 @@ Insets are finite, nonnegative CSS pixel values. Native context is untrusted pre
 
 ## `withBundledRequests(handler, outputs?)`
 
-Returns a Promise-based fetch handler. Allows credentialed CORS for `https://localhost` and `capacitor://localhost` only. Other callers retain the handler's normal behavior without a CORS grant.
+- Returns a Promise-based fetch handler.
+- Allows credentialed CORS for `https://localhost` and `capacitor://localhost` only.
+- Other callers retain the handler's normal behavior without a CORS grant.
 
 | CORS contract | Value |
 | --- | --- |
@@ -43,7 +45,9 @@ The wrapper does not authenticate callers or replace the framework's CSRF config
 
 ## Other server exports
 
-`safeAreaStyle(context?, mode?)` returns the document CSS variables. Missing context uses browser defaults. `SafeArea` is an exported type. `NativeContext` is available from `@akshatowo/radical/native-context`.
+`safeAreaStyle(context?, mode?)` returns the document CSS variables. Missing context uses browser defaults.
+
+`SafeArea` is an exported type. `NativeContext` is available from `@akshatowo/radical/native-context`.
 
 `@akshatowo/radical/native-context` exports cookie and header constants, `encodeNativeContextCookie`, `safeAreaStyle`, `zeroSafeArea`, and context types. `encodeNativeContextCookie` returns a string containing the shell context as URI-encoded JSON.
 

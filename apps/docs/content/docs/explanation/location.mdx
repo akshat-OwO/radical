@@ -4,16 +4,23 @@ description: "Why the shell replaces navigator.geolocation with the native locat
 ---
 
 <Callout type="info">
-  The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
+The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
-A web page reads location through [`navigator.geolocation`](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API). In a shell, that API runs inside WKWebView or Android WebView, and both depend on the app to finish the job. Without the right declarations and delegate code, the call fails. With them, the user still sees extra prompts, and the page cannot tell location precision or location services from permission.
+A web page reads location through [`navigator.geolocation`](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API). In a shell, that API runs inside WKWebView or Android WebView, and both depend on the app to finish the job.
 
-The native location APIs answer those questions. Radical's Location capability calls CoreLocation on iOS and the Fused Location Provider on Android through the Capacitor Geolocation plugin and a small Radical plugin. The shell then installs a `navigator.geolocation` replacement backed by the same calls, so map libraries keep working.
+Without the right declarations and delegate code, the call fails. With them, the user still sees extra prompts, and the page cannot tell location precision or location services from permission.
 
-<Mermaid
-  title="Location calls in a shell"
-  chart={`flowchart TD
+The native location APIs answer those questions. Radical's Location capability calls CoreLocation on iOS and the Fused Location Provider on Android through the Capacitor Geolocation plugin and a small Radical plugin.
+
+The shell then installs a `navigator.geolocation` replacement backed by the same calls, so map libraries keep working.
+
+## Location calls in a shell
+
+```mermaid
+flowchart TD
     Hooks[Capability hooks and Plain API] --> Ops[Location operations]
     Lib[Map library] -->|navigator.geolocation| Replace[Replacement in the client entry]
     Replace --> Ops
@@ -24,8 +31,7 @@ The native location APIs answer those questions. Radical's Location capability c
     Geo --> Native[CoreLocation or Fused Location Provider]
     RL --> Native
     Browser[Plain browser] -->|No replacement| Web[Browser navigator.geolocation]
-`}
-/>
+```
 
 ## What the WebView API can and cannot do
 
@@ -53,15 +59,20 @@ Location covers the foreground rows: location fixes, watches, permission with lo
 
 ## Why replace navigator.geolocation
 
-Map libraries call `navigator.geolocation` directly, so leaving it denied in shells would break their locate controls. The replacement sends those calls to the native plugin and shares watches with the capability hooks. It also patches `navigator.permissions.query({ name: "geolocation" })`, because MapLibre's locate control caches a `denied` result for the session and would not try again after the user grants permission.
+Map libraries call `navigator.geolocation` directly, so leaving it denied in shells would break their locate controls. The replacement sends those calls to the native plugin and shares watches with the capability hooks.
 
-The replacement keeps the web API's limits. It cannot report location precision or location services off, so it uses the three standard `GeolocationPositionError` codes. Use the hooks when the UI must explain why there is no location fix.
+It also patches `navigator.permissions.query({ name: "geolocation" })`, because MapLibre's locate control caches a `denied` result for the session and would not try again after the user grants permission.
+
+The replacement keeps the web API's limits. It cannot report location precision or location services off, so it uses the three standard `GeolocationPositionError` codes.
+
+Use the hooks when the UI must explain why there is no location fix.
 
 <Callout type="info" title="Precise location is opt-in">
-  Requests ask for approximate location unless you pass a purpose key. Google
-  Play's [location permissions
-  policy](https://support.google.com/googleplay/android-developer/answer/17033915)
-  asks apps to request the minimum location precision each feature needs.
+
+Requests ask for approximate location unless you pass a purpose key. Google Play's [location permissions policy](https://support.google.com/googleplay/android-developer/answer/17033915) asks apps to request the minimum location precision each feature needs.
+
 </Callout>
 
-[Show the user's location](/docs/guides/location) contains the procedure. [Location API](/docs/reference/location) lists the contracts. The [maps tutorial](/docs/tutorials/maps-app) uses both the hooks and the replacement.
+[Show the user's location](/docs/guides/location) contains the procedure. [Location API](/docs/reference/location) lists the contracts.
+
+The [maps tutorial](/docs/tutorials/maps-app) uses both the hooks and the replacement.

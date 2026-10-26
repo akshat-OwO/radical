@@ -3,10 +3,12 @@ title: "Capture or choose a photo"
 description: "Enable still-camera capture and a single-image library picker."
 ---
 
+Let the user take a photo or select one image from their library.
+
 <Steps>
 <Step>
 
-### Enable capture
+## Enable capture
 
 Apply the [capability setup](/docs/guides/run-on-a-device#prerequisites) with this dependency and config:
 
@@ -59,7 +61,9 @@ You see the captured or selected photo.
 </Steps>
 
 <Callout type="warning">
-  Keep the hook mounted until the picker closes. Interruption cannot dismiss it.
+
+Keep the hook mounted until the picker closes. Interruption cannot dismiss it.
+
 </Callout>
 
 See [errors and browser behavior](/docs/reference/camera).
