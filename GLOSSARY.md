@@ -36,6 +36,10 @@ _Avoid_: Branding config, app metadata
 The native Android or iOS app that hosts the web app in a WebView.\
 _Avoid_: Wrapper, container, native app (when meaning the host)
 
+**Appearance**:\
+Whether the shell draws its native UI, such as system bars, section bars, the keyboard, and dialogs, light, dark, or matching the device's theme.\
+_Avoid_: Theme, color scheme, dark mode, status bar style
+
 **Bridge**:\
 The channel through which web code calls native capabilities in the shell.\
 _Avoid_: Interface, JSI, IPC
