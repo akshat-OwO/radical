@@ -1,9 +1,10 @@
 /* Hallmark · shape: first-fold studio · genre: modern-minimal · theme: Console (deal 1/3, seed vite-plugin-runs-web-4a63·56bac58b·2026-10-26·r0) · redesign: full
- * hero: Stage · nav: edge-aligned, the orbiting mark and one docs link · footer: none, first fold only by request · imagery: the product, real todo tutorial captures · signature: one todo app switched between browser, iOS and Android shells · console: graphite, paper under light
+ * hero: Stage · nav: edge-aligned, the orbiting mark and one docs link · footer: none, first fold only by request · imagery: the product, real maps tutorial captures · signature: one maps app switched between browser, iOS and Android shells · console: graphite, paper under light
  * axes: dark/grotesk-sans/chromatic-orange · posture: restrained · contrast: pass · fold: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V4 · weakest: P, the claim is plain; the switcher proves it with three real captures instead of more words */
-/* Hallmark · waive 8 · the owner asked for one screen · setup, the todo tutorial and every shell reference stay behind the Documentation link */
+/* Hallmark · waive 8 · the owner asked for one screen · setup, the maps tutorial and every shell reference stay behind the Documentation link */
 /* Hallmark · hero-review: in-thread, ship · finish-review: in-thread, fix (stage overflow, panel seams) then ship · modes: dark+light */
+/* Hallmark · dropped /docs/tutorials/todo-app · the owner swapped the homepage shells example to the maps tutorial */
 /* Hallmark · dismissed 77 · one viewport homepage by request, the Radical docs carry everything below the fold */
 @import url("./tokens.css");
 @import url("./base.css");
@@ -76,9 +77,6 @@ body {
   transform-box: view-box;
   transform-origin: 32px 32px;
   animation: orbit 5s linear infinite;
-}
-.brand:hover .orbit {
-  animation-duration: 1.6s;
 }
 @keyframes orbit {
   to {
