@@ -4,13 +4,15 @@ description: "Read location fixes, ask for precise location, and handle denied p
 ---
 
 <Callout type="info">
-  The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
+The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 <Steps>
 <Step>
 
-### Enable location
+## Enable location
 
 Apply the [capability setup](/docs/guides/run-on-a-device#prerequisites) with this dependency and config:
 
@@ -33,7 +35,9 @@ const config = {
 } satisfies RadicalConfig;
 ```
 
-`usageDescription` explains why the app reads location. It becomes both iOS location usage strings. Each `precisePurposes` key names a feature that needs precise location fixes. iOS shows its text when the app asks for temporary precise location. Regenerate native projects after you change these values.
+`usageDescription` explains why the app reads location. It becomes both iOS location usage strings.
+
+Each `precisePurposes` key names a feature that needs precise location fixes. iOS shows its text when the app asks for temporary precise location. Regenerate native projects after you change these values.
 
 </Step>
 <Step>
@@ -50,7 +54,11 @@ permission.request();
 location.getCurrent();
 ```
 
-`useLocationPermission()` checks after mount. Check and request resolve with `state: "denied"` when the user denied location; they do not fail. Location services being off does not change the result; only location fix and watch operations fail with `LocationServicesOff`. The hook also updates by itself when permission changes through any path: another hook, the Plain or Effect API, the `navigator.geolocation` replacement, or a location fix or watch. It also refreshes when the app resumes, so a user who changes location access in Settings sees the new state when they come back.
+`useLocationPermission()` checks after mount. Check and request resolve with `state: "denied"` when the user denied location; they do not fail.
+
+Location services being off does not change the result; only location fix and watch operations fail with `LocationServicesOff`. The hook also updates by itself when permission changes through any path: another hook, the Plain or Effect API, the `navigator.geolocation` replacement, or a location fix or watch.
+
+It also refreshes when the app resumes, so a user who changes location access in Settings sees the new state when they come back.
 
 To keep a watch open while a component shows it, start it in an effect. `start` and `stop` keep their identity across renders:
 
@@ -67,7 +75,9 @@ useEffect(() => {
 
 `watch.value` holds the latest location fix while `watch.running` is true. The hook also stops its watch on unmount.
 
-A watch survives transient errors. `LocationTimeout`, `Unavailable`, and `LocationServicesOff` set `watch.error`, while `watch.running` stays `true` and `watch.value` keeps the last location fix. The next location fix clears `error`. `PermissionDenied` and bridge errors end the watch.
+A watch survives transient errors. `LocationTimeout`, `Unavailable`, and `LocationServicesOff` set `watch.error`, while `watch.running` stays `true` and `watch.value` keeps the last location fix.
+
+The next location fix clears `error`. `PermissionDenied` and bridge errors end the watch.
 
 </Step>
 <Step>
@@ -94,9 +104,13 @@ permission.request({ precise: "followMe" });
 | Android 12 and later | Asks for approximate location | Shows the system dialog to grant or upgrade to precise location |
 | Android 11 and earlier | Grants precise location | Grants precise location |
 
-On iOS, a first request with `precise` shows two prompts: the location grant, then temporary precise location. Temporary precise location expires some time after the app stops being used. While it is active, another precise request succeeds without a prompt. Android 11 and earlier have no approximate choice, so a default request reports `precision: "precise"`.
+On iOS, a first request with `precise` shows two prompts: the location grant, then temporary precise location. Temporary precise location expires some time after the app stops being used.
 
-`precision` reports the actual grant, not the requested one. `enableHighAccuracy` never upgrades location precision; with an approximate grant, fixes stay approximate. On a device, a watch started with `enableHighAccuracy: true` uses high accuracy only while precise location is granted. When the grant changes, Radical restarts the native watch with the matching setting, so a running watch switches to precise location fixes as soon as the user grants precise location. You can request precise location before or after you start the watch.
+While it is active, another precise request succeeds without a prompt. Android 11 and earlier have no approximate choice, so a default request reports `precision: "precise"`.
+
+`precision` reports the actual grant, not the requested one. `enableHighAccuracy` never upgrades location precision; with an approximate grant, fixes stay approximate. On a device, a watch started with `enableHighAccuracy: true` uses high accuracy only while precise location is granted.
+
+When the grant changes, Radical restarts the native watch with the matching setting, so a running watch switches to precise location fixes as soon as the user grants precise location. You can request precise location before or after you start the watch.
 
 </Step>
 <Step>
@@ -112,9 +126,15 @@ On iOS, a first request with `precise` shows two prompts: the location grant, th
 | `error._tag === "LocationTimeout"` | A retry action |
 | `location.value` or `watch.value` | `latitude`, `longitude`, and `accuracy` in metres |
 
-`openAppSettings` and `openLocationServicesSettings` come from `@akshatowo/radical/client`. Pass `useRadicalRuntime()` when your provider owns its runtime. Both fail with `Unavailable` in a browser, so show browser instructions instead.
+`openAppSettings` and `openLocationServicesSettings` come from `@akshatowo/radical/client`. Pass `useRadicalRuntime()` when your provider owns its runtime.
 
-Location services is the device-wide switch. It is separate from the app's permission, so on Android the app can hold a grant while location services is off. iOS reports `denied` for every app while location services is off, so a denied state on iOS can mean either. On Android with Google Play services, the first location request shows Google's dialog when location services or Google Location Accuracy do not meet the request. Accepting continues the same call, and `timeout` starts after the dialog. Declining fails with `LocationServicesOff`. On iOS, `openLocationServicesSettings` opens the app's page in Settings, because iOS has no public link to the Location Services screen.
+Both fail with `Unavailable` in a browser, so show browser instructions instead.
+
+Location services is the device-wide switch. It is separate from the app's permission, so on Android the app can hold a grant while location services is off. iOS reports `denied` for every app while location services is off, so a denied state on iOS can mean either.
+
+On Android with Google Play services, the first location request shows Google's dialog when location services or Google Location Accuracy do not meet the request. Accepting continues the same call, and `timeout` starts after the dialog.
+
+Declining fails with `LocationServicesOff`. On iOS, `openLocationServicesSettings` opens the app's page in Settings, because iOS has no public link to the Location Services screen.
 
 You see the user's location fix, or a state that tells them how to share it.
 
@@ -136,17 +156,24 @@ The replacement is not installed in a plain browser or when `replaceNavigator` i
 
 ## Plain web
 
-In a browser, the hooks use the browser's `navigator.geolocation`, and the replacement is not installed. `precision` is always `unknown`, purpose keys are ignored, and location services off appears as `Unavailable`. A request asks the browser for one location fix and resolves with `state: "denied"` when the user blocks it. Other failures, such as `LocationTimeout`, still fail the request.
+In a browser, the hooks use the browser's `navigator.geolocation`, and the replacement is not installed. `precision` is always `unknown`, purpose keys are ignored, and location services off appears as `Unavailable`. A request asks the browser for one location fix and resolves with `state: "denied"` when the user blocks it.
+
+Other failures, such as `LocationTimeout`, still fail the request.
 
 ## Declare precise location on Google Play
 
-`internalPlugins.location` adds `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` to the Android manifest. Google Play's [location permissions policy](https://support.google.com/googleplay/android-developer/answer/17033915) for apps that target Android 17 (API 37) asks for the minimum location precision each feature needs. It also requires a Play Console declaration for every use of `ACCESS_FINE_LOCATION`. Google states that the declaration is mandatory from January 27, 2027. Check the policy page before you release, because Google can change the dates.
+`internalPlugins.location` adds `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` to the Android manifest. Google Play's [location permissions policy](https://support.google.com/googleplay/android-developer/answer/17033915) for apps that target Android 17 (API 37) asks for the minimum location precision each feature needs.
+
+It also requires a Play Console declaration for every use of `ACCESS_FINE_LOCATION`. Google states that the declaration is mandatory from January 27, 2027.
+
+Check the policy page before you release, because Google can change the dates.
 
 The classic permission dialog stays allowed for ongoing features, such as navigation or follow-me. One-off precise uses need the system `LocationButton`, which Radical does not support yet.
 
 <Callout type="warning">
-  Location is foreground only. Watches pause when the app goes to the background
-  and resume when it returns.
+
+Location is foreground only. Watches pause when the app goes to the background and resume when it returns.
+
 </Callout>
 
 See [errors and browser behavior](/docs/reference/location). The [maps tutorial](/docs/tutorials/maps-app) builds a full screen with these hooks.

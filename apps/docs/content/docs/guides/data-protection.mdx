@@ -6,7 +6,7 @@ description: "Enable native screen protection and delete local WebView data."
 <Steps>
 <Step>
 
-### Enable protection
+## Enable protection
 
 [Configure and regenerate](/docs/guides/run-on-a-device#prerequisites) with `internalPlugins.dataProtection: true`.
 
@@ -43,8 +43,9 @@ After success, reload or show your signed-out screen.
 </Steps>
 
 <Callout type="warning">
-  Unmount does not disable protection. Clearing can fail after partial deletion;
-  handle `protection.error` before assuming data is gone.
+
+Unmount does not disable protection. Clearing can fail after partial deletion; handle `protection.error` before assuming data is gone.
+
 </Callout>
 
 See [deletion scope and platform limits](/docs/reference/data-protection).

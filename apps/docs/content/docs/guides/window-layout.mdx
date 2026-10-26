@@ -4,7 +4,9 @@ description: Adapt your page to window width and folds.
 ---
 
 <Callout type="info">
-  Window layout is available in `@akshatowo/radical` 0.3.0 and later.
+
+Window layout is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 Pass your loader's `nativeContext` to `RadicalProvider`, as in the [installation guide](/docs/getting-started/installation). Use `useWindowLayout()` to choose your layout:
@@ -22,7 +24,9 @@ function Content() {
 }
 ```
 
-Use `compact`, `medium`, and `expanded` to choose columns or control placement. On Android, use `tabletop` and `book` to adapt to half-open folds. See [width limits and posture values](/docs/reference/window-layout).
+Use `compact`, `medium`, and `expanded` to choose columns or control placement. On Android, use `tabletop` and `book` to adapt to half-open folds.
+
+See [width limits and posture values](/docs/reference/window-layout).
 
 To expose hinge bounds to CSS from the first render, merge `windowLayoutStyle` into your `<html>` style:
 
@@ -38,6 +42,10 @@ const style = {
 return <html style={style}>{children}</html>;
 ```
 
-Use `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height` to keep controls clear of the hinge. Bounds use CSS pixels from the window's top-left corner. Without a hinge, all four values are `0px`.
+Use `--radical-hinge-x`, `--radical-hinge-y`, `--radical-hinge-width`, and `--radical-hinge-height` to keep controls clear of the hinge. Bounds use CSS pixels from the window's top-left corner.
 
-Keep the loader context for the first render. The hook applies live values after mount. Without the style merge, the shell adds hinge variables only after mount, so hydration still matches. Bundled pages start with `compact`, `flat`, and no hinge; native CSS applies after mount.
+Without a hinge, all four values are `0px`.
+
+Keep the loader context for the first render. The hook applies live values after mount.
+
+Without the style merge, the shell adds hinge variables only after mount, so hydration still matches. Bundled pages start with `compact`, `flat`, and no hinge; native CSS applies after mount.

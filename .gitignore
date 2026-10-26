@@ -42,13 +42,14 @@ dist-ssr
 google-services.json
 GoogleService-Info.plist
 
-# Fumadocs generated content
-.source/
-
-# Next.js generated output and types
-.next/
-next-env.d.ts
+# Blume generated runtime
+.blume/
+.astro/
 *.tsbuildinfo
 
 # Vercel project links and build output
 .vercel/
+
+# Local Hallmark captures
+.hallmark/shots/
+.hallmark/salt

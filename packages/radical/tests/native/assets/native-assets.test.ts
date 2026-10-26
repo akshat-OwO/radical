@@ -11,11 +11,17 @@ import {
   prepareSectionDrawables,
   AssetGenerator,
   assetGeneratorLayer,
-  prepareNativeAssets,
+  prepareNativeAssets as prepareAssets,
+  resolveSplash,
   iosSplashResourceName,
 } from "../../../src/native/assets/native-assets.ts";
 import type { AssetGeneration } from "../../../src/native/assets/native-assets.ts";
+import type { RadicalConfig } from "../../../src/vite/config.ts";
+import mark from "../../../templates/radical-mark.svg?raw";
 import { image } from "../../fixtures/image.ts";
+
+const prepareNativeAssets = (root: string, config: RadicalConfig) =>
+  prepareAssets(root, config, resolveSplash(root, "/package", config));
 
 const missing = (name: string) =>
   PlatformError.systemError({
@@ -29,7 +35,10 @@ const filesystem = (files: Map<string, Uint8Array>) =>
   FileSystem.layerNoop({
     readFile: (name) =>
       Effect.suspend(() => {
-        const bytes = files.get(name);
+        const bytes =
+          name === "/package/templates/radical-mark.svg"
+            ? new TextEncoder().encode(mark)
+            : files.get(name);
 
         return bytes === undefined
           ? Effect.fail(missing(name))
@@ -37,7 +46,10 @@ const filesystem = (files: Map<string, Uint8Array>) =>
       }),
     readFileString: (name) =>
       Effect.suspend(() => {
-        const bytes = files.get(name);
+        const bytes =
+          name === "/package/templates/radical-mark.svg"
+            ? new TextEncoder().encode(mark)
+            : files.get(name);
 
         return bytes === undefined
           ? Effect.fail(missing(name))
@@ -213,7 +225,9 @@ describe("native asset validation", () => {
               ? [0x12, 0x34, 0x56]
               : [255, 255, 255];
 
-          for (const asset of assets) {
+          for (const asset of assets.filter(({ file }) =>
+            file.startsWith("icon-")
+          )) {
             const { data, info } = yield* Effect.promise(() =>
               sharp(asset.bytes)
                 .ensureAlpha()
@@ -352,18 +366,149 @@ const generatedAssets = Effect.gen(function* () {
 });
 
 describe("native asset outputs", () => {
+  it.effect(
+    "generates the original Radical mark with phone crop padding and a separate Android safe-zone icon",
+    () =>
+      Effect.gen(function* () {
+        const files = new Map<string, Uint8Array>();
+
+        const config = {
+          appId: "dev.example.app",
+          appearance: "dark" as const,
+        };
+
+        const assets = yield* prepareNativeAssets("/app", config).pipe(
+          Effect.provide(filesystem(files))
+        );
+
+        assert.notProperty(config, "splash");
+
+        assert.deepStrictEqual(
+          assets.map(({ file }) => file),
+          ["splash.png", "splash-dark.png", "splash-icon.png"]
+        );
+
+        assert.deepStrictEqual(assets[0].bytes, assets[1].bytes);
+
+        const again = yield* prepareNativeAssets("/app", config).pipe(
+          Effect.provide(filesystem(files))
+        );
+
+        assert.deepStrictEqual(assets, again);
+
+        for (const [asset, size, logoSize] of [
+          [assets[0], 2732, 768],
+          [assets[2], 1024, 640],
+        ] as const) {
+          const { data, info } = yield* Effect.promise(() =>
+            sharp(asset.bytes).raw().toBuffer({ resolveWithObject: true })
+          );
+
+          assert.strictEqual(info.width, size);
+
+          assert.strictEqual(info.height, size);
+
+          assert.strictEqual(info.channels, 3);
+
+          const pixel = (x: number, y: number) => [
+            ...data.subarray((y * size + x) * 3, (y * size + x) * 3 + 3),
+          ];
+
+          assert.deepStrictEqual(pixel(0, 0), [255, 255, 255]);
+
+          assert.deepStrictEqual(pixel(size / 2, size / 2), [24, 24, 27]);
+
+          const inset = (size - logoSize) / 2;
+
+          assert.deepStrictEqual(
+            pixel(
+              Math.round(inset + (logoSize * 50.38) / 64),
+              Math.round(inset + (logoSize * 13.62) / 64)
+            ),
+            [255, 90, 31]
+          );
+
+          if (size === 1024) {
+            let radiusSquared = 0;
+
+            for (let offset = 0; offset < data.length; offset += 3) {
+              if (
+                data[offset] === 255 &&
+                data[offset + 1] === 255 &&
+                data[offset + 2] === 255
+              ) {
+                continue;
+              }
+
+              const x = ((offset / 3) % size) - size / 2;
+              const y = Math.floor(offset / 3 / size) - size / 2;
+              radiusSquared = Math.max(radiusSquared, x * x + y * y);
+            }
+
+            assert.isAtMost(radiusSquared, (size / 3) ** 2);
+          }
+        }
+
+        // Even a 3:1 phone crop retains the entire 768px mark in either orientation.
+        for (const [width, height] of [
+          [900, 300],
+          [300, 900],
+        ]) {
+          const croppedPixels = yield* Effect.promise(() =>
+            sharp(assets[0].bytes)
+              .resize(width, height, { fit: "cover" })
+              .toBuffer()
+          );
+
+          const wholePixels = yield* Effect.promise(() =>
+            sharp(assets[0].bytes).resize(900, 900).toBuffer()
+          );
+
+          const cropped = yield* Effect.promise(() =>
+            sharp(croppedPixels)
+              .trim({ background: "#ffffff", threshold: 1 })
+              .toBuffer({ resolveWithObject: true })
+          );
+
+          const whole = yield* Effect.promise(() =>
+            sharp(wholePixels)
+              .trim({ background: "#ffffff", threshold: 1 })
+              .toBuffer({ resolveWithObject: true })
+          );
+
+          assert.strictEqual(cropped.info.width, whole.info.width);
+
+          assert.strictEqual(cropped.info.height, whole.info.height);
+        }
+
+        yield* generate({ ...invocation, platform: "android", assets }).pipe(
+          Effect.provide(Layer.merge(filesystem(files), assetGeneratorLayer))
+        );
+
+        assert.deepStrictEqual(
+          files.get(
+            `${project}/android/app/src/main/res/drawable-nodpi/radical_splash_icon.png`
+          ),
+          assets[2].bytes
+        );
+      })
+  );
+
   for (const platform of ["android", "ios"] as const) {
     it.effect(
       `writes the ${platform} baseline file set and sizes with complete catalogs and adaptive resources`,
       () =>
         Effect.gen(function* () {
           const assets = yield* generatedAssets;
+
           const files = new Map<string, Uint8Array>();
+
           yield* generate({ ...invocation, platform, assets }).pipe(
             Effect.provide(Layer.merge(filesystem(files), assetGeneratorLayer))
           );
 
           // Three unreferenced iOS template images are inherited, not generator writes.
+
           const expected = baseline.outputs
             .filter(
               (entry) =>
@@ -418,8 +563,11 @@ describe("native asset outputs", () => {
             ...additional,
           ]) {
             const [file, dimensions] = entry;
+
             const bytes = files.get(path.join(project, file));
+
             assert.isDefined(bytes, file);
+
             assert.isAbove(bytes?.length ?? 0, 0, file);
 
             if (file.endsWith(".png")) {
@@ -428,6 +576,7 @@ describe("native asset outputs", () => {
               );
 
               assert.strictEqual(metadata.width, dimensions.width, file);
+
               assert.strictEqual(metadata.height, dimensions.height, file);
 
               if (platform === "ios") {
@@ -457,6 +606,7 @@ describe("native asset outputs", () => {
               [...files.keys()].some((file) => file.includes("/mipmap-night-")),
               "night rasters must not override adaptive XML"
             );
+
             const res = `${project}/android/app/src/main/res`;
 
             for (const version of [26, 33]) {
@@ -466,8 +616,11 @@ describe("native asset outputs", () => {
                 );
 
                 assert.include(xml, "@mipmap/ic_launcher_foreground");
+
                 assert.include(xml, "@mipmap/ic_launcher_background");
+
                 assert.include(xml, 'android:inset="16.7%"');
+
                 assert.strictEqual(
                   xml.includes("<monochrome>"),
                   version === 33

@@ -39,7 +39,9 @@ Native enablement is `internalPlugins.googleSignIn`. The dependency is `@capawes
 | `BridgeCallFailed` | Other native rejection. |
 | `BridgeDecodeError` | Invalid native identity result. |
 
-`useGoogleSignIn()` exposes `signIn()`, `cancel()`, loading state, `value.idToken`, and `error`. Interrupting the Effect does not provide a native sign-out API. Radical does not verify tokens or create an application session.
+- `useGoogleSignIn()` exposes `signIn()`, `cancel()`, loading state, `value.idToken`, and `error`.
+- Interrupting the Effect does not provide a native sign-out API.
+- Radical does not verify tokens or create an application session.
 
 ## Platform support
 

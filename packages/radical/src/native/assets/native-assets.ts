@@ -14,8 +14,36 @@ export interface NativeAsset {
   readonly bytes: Uint8Array;
 }
 
+/** Resolve generation defaults without changing the decoded app configuration. */
+export const resolveSplash = (
+  root: string,
+  packageRoot: string,
+  config: RadicalConfig
+) =>
+  config.splash
+    ? {
+        kind: "configured" as const,
+        image: path.resolve(root, config.splash.image),
+        backgroundColor: config.splash.backgroundColor,
+      }
+    : {
+        kind: "default" as const,
+        image: path.join(packageRoot, "templates/radical-mark.svg"),
+        backgroundColor: "#ffffff",
+        // 28% of the full-screen square survives a phone's portrait/landscape
+        // aspect-fill crop. Android's icon gets a separate 62.5% safe-zone mark.
+        screenSize: 2732,
+        screenLogoSize: 768,
+        iconSize: 1024,
+        iconLogoSize: 640,
+      };
+
 /** Decode once before staging. Normalized PNGs give both projects the same pixels. */
-export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
+export const prepareNativeAssets = (
+  root: string,
+  config: RadicalConfig,
+  splash: ReturnType<typeof resolveSplash>
+) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const assets: NativeAsset[] = [];
@@ -28,8 +56,8 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
       ...(icon === undefined
         ? []
         : [{ kind: "icon", source: icon.image, size: 1024 }]),
-      ...(config.splash
-        ? [{ kind: "splash", source: config.splash.image, size: 2732 }]
+      ...(splash.kind === "configured"
+        ? [{ kind: "splash", source: splash.image, size: 2732 }]
         : []),
     ]) {
       const source = path.resolve(root, entry.source);
@@ -77,7 +105,7 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
 
       const background =
         entry.kind === "splash"
-          ? (config.splash?.backgroundColor ?? "#ffffff")
+          ? splash.backgroundColor
           : (icon?.backgroundColor ?? "#ffffff");
 
       const bytes = yield* Effect.tryPromise({
@@ -119,6 +147,57 @@ export const prepareNativeAssets = (root: string, config: RadicalConfig) =>
           { file: "splash-dark.png", bytes }
         );
       }
+    }
+
+    if (splash.kind === "default") {
+      const invalid = (cause: unknown) =>
+        new InvalidAsset({
+          message: `Default splash ${splash.image}: ${String(cause)}`,
+        });
+
+      const input = yield* fs
+        .readFile(splash.image)
+        .pipe(Effect.mapError(invalid));
+
+      // Rasterize the packaged mark once. Separate padding keeps it visible after
+      // phone aspect-fill cropping and legible in Android 12's circular icon slot.
+      const mark = yield* Effect.tryPromise({
+        try: () =>
+          sharp(input)
+            .resize(splash.screenLogoSize, splash.screenLogoSize)
+            .png()
+            .toBuffer(),
+        catch: invalid,
+      });
+
+      const render = (size: number, logoSize: number) =>
+        Effect.tryPromise({
+          try: () =>
+            sharp(mark)
+              .resize(logoSize, logoSize)
+              .extend({
+                top: (size - logoSize) / 2,
+                bottom: (size - logoSize) / 2,
+                left: (size - logoSize) / 2,
+                right: (size - logoSize) / 2,
+                background: splash.backgroundColor,
+              })
+              .flatten({ background: splash.backgroundColor })
+              .png()
+              .toBuffer(),
+          catch: invalid,
+        });
+
+      const bytes = yield* render(splash.screenSize, splash.screenLogoSize);
+
+      assets.push(
+        { file: "splash.png", bytes },
+        { file: "splash-dark.png", bytes },
+        {
+          file: "splash-icon.png",
+          bytes: yield* render(splash.iconSize, splash.iconLogoSize),
+        }
+      );
     }
 
     return assets;
@@ -246,7 +325,9 @@ const imageOutputs = (input: AssetGeneration): ImageOutput[] => {
   if (splash) {
     outputs.push({
       files: [`${androidRes}/drawable-nodpi/radical_splash_icon.png`],
-      source: "splash.png",
+      source: input.assets.some(({ file }) => file === "splash-icon.png")
+        ? "splash-icon.png"
+        : "splash.png",
       width: 1024,
       height: 1024,
     });

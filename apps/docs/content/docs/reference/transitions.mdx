@@ -7,14 +7,19 @@ description: "Router installation and the lower-level transition services."
 
 ## TanStack installer
 
-`browserTransitions(router, options?)` from `@akshatowo/radical/tanstack-start-client` installs once per router. Returns `{ cancel(), dispose() }`. SSR returns no-op methods.
+- `browserTransitions(router, options?)` from `@akshatowo/radical/tanstack-start-client` installs once per router.
+- Returns `{ cancel(), dispose() }`.
+- SSR returns no-op methods.
 
 | Option | Meaning |
 | --- | --- |
 | `timeoutMs` | Overlay and animation wait timeout. Defaults to 1000 milliseconds in the installer. Never bounds the router commit. |
 | `direction` | Callback mapping history-derived `"forward"` or `"back"` to the selected direction. |
 
-The Effect API installer at `@akshatowo/radical/effect/tanstack-start-client` accepts an optional third browser layer. Destination `staticData.radical.transition` accepts `"slide"` or `"fade"`. Shells use native overlays; capable browsers use typed view transitions. Unsupported browsers use plain navigation.
+- The Effect API installer at `@akshatowo/radical/effect/tanstack-start-client` accepts an optional third browser layer.
+- Destination `staticData.radical.transition` accepts `"slide"` or `"fade"`.
+- Shells use native overlays; capable browsers use typed view transitions.
+- Unsupported browsers use plain navigation.
 
 ## Effect API client exports
 
@@ -43,7 +48,9 @@ These exports live in `@akshatowo/radical/effect/client`.
 ## System back
 
 <Callout type="info">
-  System back handling is available in `@akshatowo/radical` 0.3.0 and later.
+
+System back handling is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 `browserTransitions(router)` handles native system back without another API. The first matching rule applies:

@@ -1,0 +1,40 @@
+[
+  {
+    "shape": "first-fold studio",
+    "theme": "console",
+    "axes": "dark/grotesk-sans/chromatic-orange",
+    "hero": "Stage",
+    "nav": "edge-aligned orbiting mark and docs link",
+    "footer": "none by request",
+    "imagery": "real todo tutorial captures",
+    "photos": [],
+    "entry": "apps/docs/pages/index.astro",
+    "fingerprint": "first-fold-stage-shell-switcher",
+    "sections": ["hero"],
+    "signature": "one todo app switched between browser, iOS and Android shells",
+    "waived": ["8"],
+    "prompt": "Radical homepage redesign, one viewport, Comet logo",
+    "mode": "redesign",
+    "depth": "full",
+    "scope": "page",
+    "date": "2026-10-26"
+  },
+  {
+    "shape": "first-fold studio",
+    "theme": "dose",
+    "axes": "light/grotesk-sans/chromatic-green",
+    "hero": "Stage",
+    "nav": "edge-aligned wordmark and docs",
+    "footer": "none by request",
+    "imagery": "real tutorial screenshot",
+    "photos": [],
+    "entry": "apps/docs/pages/index.astro",
+    "fingerprint": "first-fold-stage-native-todo",
+    "sections": ["hero"],
+    "signature": "real native todo capture beside web-first promise",
+    "waived": ["8", "47b"],
+    "prompt": "Radical homepage, one viewport, docs CTA, atom identity",
+    "date": "2026-10-26",
+    "mode": "build"
+  }
+]

@@ -18,6 +18,7 @@ import type { EnabledPlugin } from "../../vite/plugins/plugin-plan.ts";
 import {
   AssetGenerator,
   prepareNativeAssets,
+  resolveSplash,
 } from "../assets/native-assets.ts";
 import { NativeMetadata, nativeMetadataLayer } from "./native-metadata.ts";
 import { replaceAnchor } from "./native-template.ts";
@@ -147,7 +148,8 @@ export const readNativeProject = (
     )(identity.appId).pipe(
       Effect.mapError((error) => new InvalidConfig({ message: error.message }))
     );
-    const assets = yield* prepareNativeAssets(root, config);
+    const splash = resolveSplash(root, packageRoot, config);
+    const assets = yield* prepareNativeAssets(root, config, splash);
     const { origin } = new URL(url);
 
     const localOrigin =
@@ -183,6 +185,7 @@ export const readNativeProject = (
       plan,
       identity,
       assets,
+      splash,
       url: bundled ? localOrigin : url,
       bundled,
       outputs,
@@ -344,7 +347,7 @@ export const generateNativeProject = <E, R>(
               project: staging,
               platform,
               assets: native.assets,
-              backgroundColor: config.splash?.backgroundColor ?? "#ffffff",
+              backgroundColor: native.splash.backgroundColor,
             });
           }
 

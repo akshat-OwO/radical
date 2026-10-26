@@ -3,10 +3,12 @@ title: "Configure Google sign-in"
 description: "Obtain an identity token in Android and iOS shells."
 ---
 
+Ask Google to identify the user, then send the identity token to your server.
+
 <Steps>
 <Step>
 
-### Create OAuth clients
+## Create OAuth clients
 
 Configure Google Cloud clients:
 
@@ -63,7 +65,9 @@ Handle `GoogleSignInCancelled` separately.
 </Steps>
 
 <Callout type="warning">
-  Verify `value.idToken` on your backend before creating a session.
+
+Verify `value.idToken` on your backend before creating a session.
+
 </Callout>
 
 See [browser service and errors](/docs/reference/google-sign-in).

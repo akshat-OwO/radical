@@ -1,0 +1,100 @@
+---
+import "../styles/home.css";
+import data from "blume:data";
+
+const shareImage = data.config.site ? new URL("/og/index.png", data.config.site).href : "/og/index.png";
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Radical runs your web app inside Android and iOS shells. A Vite plugin generates the native projects." />
+    <meta name="color-scheme" content="dark light" />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:title" content="Radical" />
+    <meta property="og:description" content="Your web app, on Android and iOS." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500&family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap" />
+    <title>Radical: Your web app, on Android and iOS</title>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="page container">
+      <header class="bar">
+        <a class="brand" href="/" aria-label="Radical home">
+          <svg class="mark" aria-hidden="true" viewBox="0 0 64 64" fill="none" stroke-linecap="round">
+            <g class="orbit">
+              <path class="trail" d="M50.38 13.62A26 26 0 0 0 13.62 13.62" />
+              <circle class="electron" cx="50.38" cy="13.62" r="7" />
+            </g>
+            <circle class="nucleus" cx="32" cy="32" r="13" />
+          </svg>
+          <span>Radical</span>
+        </a>
+        <nav aria-label="Primary">
+          <a class="bar-link" href="/docs">Documentation</a>
+        </nav>
+      </header>
+
+      <main id="main" class="hero">
+        <div class="intro">
+          <h1>Your web app.<br />Android and iOS.</h1>
+          <p class="lead">Radical runs your web app in native shells, with device capabilities.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="/docs/getting-started">Set up Radical</a>
+            <a class="btn btn-quiet" href="https://github.com/akshat-OwO/radical">Source on GitHub</a>
+          </div>
+          <div class="install">
+            <code id="install-command">pnpm add @akshatowo/radical</code>
+            <button class="copy" type="button" data-copy="install-command" hidden>Copy</button>
+          </div>
+        </div>
+
+        <figure class="shells" aria-label="The Radical maps tutorial in a browser, an iOS shell and an Android shell">
+          <div class="shells-head">
+            <fieldset class="seg">
+              <legend class="visually-hidden">Show the maps app in</legend>
+              <input type="radio" name="shell" id="shell-web" value="web" />
+              <label for="shell-web">Browser</label>
+              <input type="radio" name="shell" id="shell-ios" value="ios" checked />
+              <label for="shell-ios">iOS</label>
+              <input type="radio" name="shell" id="shell-android" value="android" />
+              <label for="shell-android">Android</label>
+            </fieldset>
+            <p class="shells-note"><span class="note-lead">Captured from the </span><a href="/docs/tutorials/maps-app">maps tutorial</a><span class="note-lead">.</span></p>
+          </div>
+          <div class="stage">
+            <img class="shot shot-web" src="/tutorials/maps-app/web.png" alt="The maps app in a desktop browser, following the user's location" width="1280" height="800" />
+            <img class="shot shot-ios" src="/tutorials/maps-app/ios.png" alt="The same maps app in the iOS shell, with a precise location fix and two pins" width="552" height="1200" fetchpriority="high" />
+            <img class="shot shot-android" src="/tutorials/maps-app/android.png" alt="The same maps app in the Android shell, with a precise location fix" width="534" height="1200" />
+          </div>
+        </figure>
+      </main>
+    </div>
+    <script>
+      const copy = async (button: HTMLButtonElement, text: string) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = "Copied";
+          setTimeout(() => {
+            button.textContent = "Copy";
+          }, 1600);
+        } catch {
+          button.textContent = "Select and copy";
+        }
+      };
+
+      for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+        const source = document.querySelector(`#${button.dataset.copy}`);
+
+        if (source && navigator.clipboard) {
+          button.hidden = false;
+          button.addEventListener("click", () => copy(button, source.textContent ?? ""));
+        }
+      }
+    </script>
+  </body>
+</html>

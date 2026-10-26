@@ -8,7 +8,7 @@ See the [delivery flow and authentication constraints](/docs/explanation/deliver
 <Steps>
 <Step>
 
-### Configure delivery
+## Configure delivery
 
 Pass this config to both `tanstackStart(tanstackStartOptions(config))` and `radical(config)` from `@akshatowo/radical/tanstack-start`:
 
@@ -71,8 +71,8 @@ export default {
 
 Apply the [complete root setup](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) for each mode:
 
-<Tabs items={["Bundled", "Remote"]}>
-<Tab value="Bundled">
+<Tabs>
+<Tab title="Bundled">
 
 ```tsx
 // Root loader:
@@ -92,7 +92,7 @@ useEffect(() => {
 Keep `mountNativeContext()` in the root effect: the native-context handoff must run after mount. Keep startup loaders independent of unavailable APIs.
 
 </Tab>
-<Tab value="Remote">
+<Tab title="Remote">
 
 Keep the server-function native-context loader and render `<Outlet />` directly.
 
@@ -127,7 +127,7 @@ pnpm exec vp preview --host 0.0.0.0 --port 4173
 Set `origin` to a device-reachable address.
 
 <Callout type="warning">
-  Custom Vite CORS must use `cors: false` or an origin callback returning
-  `false` for both bundled origins. Static lists can consume preflights before
-  `withBundledRequests`.
+
+Custom Vite CORS must use `cors: false` or an origin callback returning `false` for both bundled origins. Static lists can consume preflights before `withBundledRequests`.
+
 </Callout>

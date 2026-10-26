@@ -1,0 +1,39 @@
+{
+  "$schema": "../../node_modules/@effect/tsgo/schema.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["es2023", "dom"],
+    "moduleDetection": "force",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "declaration": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "allowedUnstableApis": [
+          "@effect/vitest#it",
+          "effect/FileSystem",
+          "effect/PlatformError",
+          "effect/process",
+          "effect/cli",
+          "@effect/platform-node",
+          "effect/Terminal",
+          "effect/Stdio",
+          "effect/Path"
+        ]
+      }
+    ],
+    "customConditions": ["@akshatowo/radical/source"]
+  },
+  "include": ["*.ts"]
+}

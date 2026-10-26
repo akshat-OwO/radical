@@ -11,7 +11,9 @@ description: "Impact, notification, and selection feedback."
 
 The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
 
-Native enablement is `internalPlugins.haptics`. The dependency is `@capacitor/haptics@8.0.2`. No runtime permission prompt is required.
+- Native enablement is `internalPlugins.haptics`.
+- The dependency is `@capacitor/haptics@8.0.2`.
+- No runtime permission prompt is required.
 
 | Client export | Arguments | Result |
 | --- | --- | --- |
@@ -19,7 +21,11 @@ Native enablement is `internalPlugins.haptics`. The dependency is `@capacitor/ha
 | `hapticNotification(type)` | `"SUCCESS"`, `"WARNING"`, or `"ERROR"` | Effect of void |
 | `hapticSelection` | Effect value with no arguments | Effect of void |
 
-These Effects require `Bridge | BrowserHaptics`. `hapticsLive(effect)` supplies `BrowserHapticsLive`. `BrowserHaptics` provides injectable `vibrate(pattern)` behavior. `ImpactStyleSchema` and `NotificationTypeSchema` validate inputs. Their types are `ImpactStyle` and `NotificationType`.
+These Effects require `Bridge | BrowserHaptics`. `hapticsLive(effect)` supplies `BrowserHapticsLive`.
+
+`BrowserHaptics` provides injectable `vibrate(pattern)` behavior. `ImpactStyleSchema` and `NotificationTypeSchema` validate inputs.
+
+Their types are `ImpactStyle` and `NotificationType`.
 
 | Browser result | Behavior |
 | --- | --- |
@@ -33,7 +39,9 @@ These Effects require `Bridge | BrowserHaptics`. `hapticsLive(effect)` supplies 
 | `BridgeError` | Transport or schema failure; invalid style or notification input produces `BridgeDecodeError` |
 | `HapticFeedbackFailed` | Browser vibration exception; carries `cause` |
 
-`useHapticFeedback()` exposes `light`, `medium`, `heavy`, `success`, `warning`, `error`, `selection`, and `impact`, plus action state. The failure field is `failure`; `error()` is an action. A completed action sets `value` to `true`.
+- `useHapticFeedback()` exposes `light`, `medium`, `heavy`, `success`, `warning`, `error`, `selection`, and `impact`, plus action state.
+- The failure field is `failure`; `error()` is an action.
+- A completed action sets `value` to `true`.
 
 ## Platform support
 

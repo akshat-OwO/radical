@@ -1,7 +1,6 @@
 import { defineConfig } from "oxlint";
 import antiSlop from "ultracite/oxlint/anti-slop";
 import core from "ultracite/oxlint/core";
-import next from "ultracite/oxlint/next";
 import react from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import vitest from "ultracite/oxlint/vitest";
@@ -10,14 +9,17 @@ import {
   capacitorAllowedFiles,
   capacitorScopes,
 } from "./packages/radical/tests/capacitor-boundary-policy.ts";
+import { paragraphLimits } from "./tools/markdown/limits.ts";
 
 export default defineConfig({
   env: core.env,
+  jsPlugins: [
+    { name: "radical-markdown", specifier: "./tools/markdown/plugin.ts" },
+  ],
   extends: [core, react, tanstack, vitest, antiSlop],
   ignorePatterns: [...(core.ignorePatterns ?? []), "**/dist/**", ".radical/**"],
   options: { typeAware: true },
   overrides: [
-    { files: ["apps/docs/**/*.{ts,tsx,js,mjs}"], ...next },
     {
       // This wire decoder validates arbitrary worker messages without bundling Effect into native scripts.
       files: ["packages/radical/src/core/offline/offline-wire.ts"],
@@ -55,6 +57,7 @@ export default defineConfig({
     },
   ],
   rules: {
+    "radical-markdown/long-paragraph": ["error", paragraphLimits],
     "no-restricted-imports": [
       "error",
       {

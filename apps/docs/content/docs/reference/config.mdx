@@ -24,16 +24,31 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 
 Display names resolve as platform `name`, shared `name`, legacy `appName`, then `appId`. Remote iOS generation permits at most ten distinct server and allowlist hostnames.
 
-Pinned appearance applies to system bars, section bars and rails, the keyboard, and system dialogs. The WebView's `prefers-color-scheme` follows the pinned appearance. Under `"light"`, `@media (prefers-color-scheme: dark)` does not match in the shell. A plain browser still follows the device setting. Appearance is build-time only.
+A pinned appearance applies to:
+
+- System bars
+- Section bars and rails
+- The keyboard
+- System dialogs
+
+The WebView's `prefers-color-scheme` follows the pinned appearance:
+
+- Under `"light"`, `@media (prefers-color-scheme: dark)` does not match in the shell.
+- A plain browser still follows the device setting.
+- Appearance is build-time only.
 
 Invalid `appearance` values return `InvalidConfig` with the `appearance` field path.
 
 ## Navigation fields
 
-`navigation.sections` enables section navigation with 2 to 5 sections. The first is the start section. See [Sections](/docs/reference/sections) for the config fields, validation, routing, and badges.
+- `navigation.sections` enables section navigation with 2 to 5 sections.
+- The first is the start section.
+- See [Sections](/docs/reference/sections) for the config fields, validation, routing, and badges.
 
 <Callout type="info">
-  Navigation options are available in `@akshatowo/radical` 0.3.0 and later.
+
+Navigation options are available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 | Field | Values | Default |
@@ -44,7 +59,12 @@ Invalid `appearance` values return `InvalidConfig` with the `appearance` field p
 | `navigation.android.colors.icon.selected`, `.unselected` | Color | Material 3 defaults |
 | `navigation.android.colors.label.selected`, `.unselected` | Color | Material 3 defaults |
 
-Color accepts `#RRGGBB`, `#AARRGGBB`, or `{ light, dark }` containing either format. With `appearance: "system"`, Android section bars resolve these pairs against the device setting. A pinned appearance selects the matching half. The unused half is accepted without error or warning. Invalid options return `InvalidConfig` with the field path. Web mode omits native bars and keeps system-only safe-area insets. See [bar and Android theme](/docs/reference/sections#bar-and-android-theme) for an example.
+- Color accepts `#RRGGBB`, `#AARRGGBB`, or `{ light, dark }` containing either format.
+- With `appearance: "system"`, Android section bars resolve these pairs against the device setting.
+- A pinned appearance selects the matching half. The unused half is accepted without error or warning.
+- Invalid options return `InvalidConfig` with the field path.
+- Web mode omits native bars and keeps system-only safe-area insets.
+- See [bar and Android theme](/docs/reference/sections#bar-and-android-theme) for an example.
 
 ## Image fields
 
@@ -55,6 +75,8 @@ Color accepts `#RRGGBB`, `#AARRGGBB`, or `{ light, dark }` containing either for
 | `icon.backgroundColor` | `#RRGGBB` | Optional opaque RGB background. |
 | `splash.image` | Nonempty path | Square PNG or JPEG, at least 2732 pixels per side. Relative to the app root. |
 | `splash.backgroundColor` | `#RRGGBB`, required with splash | Composites transparent source pixels. Shared by light and dark appearances. |
+
+Omitting `splash` shows the Radical logo on a white background on iOS and Android, including with `appearance: "dark"`. Setting `splash` uses your image and background color in both light and dark appearances.
 
 Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGenerationFailed`. These are generation failures, not client API exports.
 
@@ -84,7 +106,10 @@ Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGene
 | `GoogleSignIn` | `webClientId`, `iosClientId` |
 | `Location` | `usageDescription`; optional `precisePurposes` and `replaceNavigator` |
 
-Camera descriptions require non-whitespace text without invalid XML control characters. Shared camera purposes compose once into the iOS camera description. Location purposes follow the same text rules; see the [Location API](/docs/reference/location#config). Google identifiers match letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`.
+- Camera descriptions require non-whitespace text without invalid XML control characters.
+- Shared camera purposes compose once into the iOS camera description.
+- Location purposes follow the same text rules; see the [Location API](/docs/reference/location#config).
+- Google identifiers match letters, digits, underscores, or hyphens followed by `.apps.googleusercontent.com`.
 
 ## Firebase fields
 
@@ -94,6 +119,8 @@ Camera descriptions require non-whitespace text without invalid XML control char
 | `notifications.ios.googleServiceInfo` | Nonempty path | App-owned Firebase plist copied into the generated iOS project. |
 | `notifications.ios.environment` | `"development"` or `"production"` | APNs entitlement. Defaults to `"development"`. |
 
-Firebase paths do not enable push by themselves. Missing runtime push configuration produces `MissingPushConfiguration`. Invalid main config produces `InvalidConfig`; manifest failures produce `InvalidPlugin` or `PluginDependencyConflict`.
+- Firebase paths do not enable push by themselves.
+- Missing runtime push configuration produces `MissingPushConfiguration`.
+- Invalid main config produces `InvalidConfig`; manifest failures produce `InvalidPlugin` or `PluginDependencyConflict`.
 
 Source: [config schema](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/vite/config.ts), [internal registry](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/plugins/internal-plugin-registry.ts).

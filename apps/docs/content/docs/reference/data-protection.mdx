@@ -34,8 +34,9 @@ Protection persists until explicitly disabled, including after hook unmount. Sta
 | Browser limits | HttpOnly cookies inaccessible; database enumeration requires `indexedDB.databases` |
 
 <Callout type="warning">
-  Clearing requires closed IndexedDB connections and can fail after partial
-  deletion. It neither reloads the document nor stops application writes.
+
+Clearing requires closed IndexedDB connections and can fail after partial deletion. It neither reloads the document nor stops application writes.
+
 </Callout>
 
 `dataProtectionLive(effect)` provides `BrowserDataProtectionLive`. `BrowserDataProtection` exposes the injectable clear operation.

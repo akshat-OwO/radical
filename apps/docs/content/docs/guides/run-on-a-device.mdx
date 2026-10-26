@@ -9,15 +9,15 @@ Install Node.js 22.18+ and pnpm. Start with [installation](/docs/getting-started
 
 For capability guides, install dependencies from the app directory, set the specified flags in Vite config, then regenerate:
 
-<Tabs items={["Android", "iOS"]}>
-<Tab value="Android">
+<Tabs>
+<Tab title="Android">
 
 ```sh
 pnpm exec radical android --generate-only
 ```
 
 </Tab>
-<Tab value="iOS">
+<Tab title="iOS">
 
 ```sh
 pnpm exec radical ios --generate-only
@@ -30,15 +30,17 @@ See the [generation pipeline](/docs/explanation/native-shells).
 
 ## Launch a target
 
-<Tabs items={["Android", "iOS"]}>
-<Tab value="Android">
+<Tabs>
+<Tab title="Android">
 
 <Steps>
 <Step>
 
 ### Prepare Android
 
-Install the SDK, platform tools, and an AVD or authorized USB device. Gradle builds with JDK 21. It uses an installed JDK 21 or downloads one on the first build, which needs network access.
+Install the SDK, platform tools, and an AVD or authorized USB device. Gradle builds with JDK 21.
+
+It uses an installed JDK 21 or downloads one on the first build, which needs network access.
 
 | Tool discovery | Set                                           |
 | -------------- | --------------------------------------------- |
@@ -73,7 +75,7 @@ You see your app on the selected target.
 </Steps>
 
 </Tab>
-<Tab value="iOS">
+<Tab title="iOS">
 
 <Steps>
 <Step>
@@ -116,8 +118,9 @@ For physical devices, generate only, open `.radical/ios/ios/App` in Xcode, confi
 | `origin`  | Update or remove if overriding the dev URL |
 
 <Callout type="warning">
-  Remote offline support requires HTTPS; plain HTTP LAN origins cannot register
-  workers.
+
+Remote offline support requires HTTPS; plain HTTP LAN origins cannot register workers.
+
 </Callout>
 
 See [target defaults](/docs/reference/cli).

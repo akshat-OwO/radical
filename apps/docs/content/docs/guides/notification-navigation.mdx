@@ -6,7 +6,7 @@ description: "Own notification navigation in the app scope."
 <Steps>
 <Step>
 
-### Mount the watcher
+## Mount the watcher
 
 In the root component's mount effect, use `useRouter()` and the [example imports](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx):
 
@@ -54,9 +54,10 @@ You see valid destinations open; invalid routes are ignored.
 </Step>
 </Steps>
 
-<Mermaid
-  title="Validated taps select a stored document or router navigation"
-  chart={`flowchart TD
+### Validated taps select a stored document or router navigation
+
+```mermaid
+flowchart TD
     Local[LocalNotifications action] --> Queue[App-scoped watcher queue]
     Push[FirebaseMessaging action when push: true] --> Queue
     Browser[radical-notification browser event] --> Queue
@@ -68,5 +69,4 @@ You see valid destinations open; invalid routes are ignored.
     Cache -->|Yes| Document[location.assign: full document navigation]
     Cache -->|No or restore error| Router
     Router -->|Failure| Error[onError callback; watcher continues]
-`}
-/>
+```

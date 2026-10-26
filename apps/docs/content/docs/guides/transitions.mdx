@@ -6,7 +6,7 @@ description: "Enable slide or fade transitions with TanStack Router."
 <Steps>
 <Step>
 
-### Install transitions
+## Install transitions
 
 Configure `src/router.tsx` once after creating the router:
 
@@ -36,14 +36,17 @@ staticData: { radical: { transition: "slide" } }, // or "fade"
 
 If disabled, enable `internalPlugins.transitions` and [regenerate](/docs/guides/run-on-a-device#prerequisites) before navigating through Router links.
 
-You see the selected transition. With `"slide"`, history back reverses the slide direction. With `"fade"`, navigation fades in both directions.
+You see the selected transition. With `"slide"`, history back reverses the slide direction.
+
+With `"fade"`, navigation fades in both directions.
 
 </Step>
 </Steps>
 
-<Mermaid
-  title="One native overlay ID per navigation"
-  chart={`sequenceDiagram
+### One native overlay ID per navigation
+
+```mermaid
+sequenceDiagram
     participant Router as Router commit hook
     participant Effect as nativeTransition
     participant Native as NativeTransitions plugin
@@ -61,7 +64,6 @@ You see the selected transition. With `"slide"`, history back reverses the slide
         Effect->>Native: remove(id), bounded and ignored on failure
         Effect->>Router: commit once without animation
     end
-`}
-/>
+```
 
 Check that failed commits remove overlays. See [timeouts and reduced motion](/docs/reference/transitions).

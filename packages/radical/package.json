@@ -16,7 +16,8 @@
     "dist",
     "templates/android",
     "templates/ios",
-    "templates/offline.html"
+    "templates/offline.html",
+    "templates/radical-mark.svg"
   ],
   "type": "module",
   "exports": {

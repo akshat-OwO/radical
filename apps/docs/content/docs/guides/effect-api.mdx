@@ -81,10 +81,16 @@ const runtime = useRadicalRuntime();
 const readDevice = () => getEffectRuntime(runtime).runPromise(getDeviceInfo);
 ```
 
-The provider disposes runtimes it creates. When you pass a `runtime` prop, you own it and call `await runtime.dispose()` after its last user unmounts. Disposal interrupts pending runtime commands and releases acquired services.
+The provider disposes runtimes it creates. When you pass a `runtime` prop, you own it and call `await runtime.dispose()` after its last user unmounts.
 
-For tests or custom bridge services, `createRadicalRuntime(layer)` from `/effect/client` accepts a `Layer<Bridge>`. The provider from `/effect/react` also accepts a `layer` prop. Capability browser layers and adapter layers remain explicit dependencies of Effect programs. Use the matching `cameraLive`, `networkLive`, `locationLive`, and other capability helpers when needed.
+Disposal interrupts pending runtime commands and releases acquired services.
+
+For tests or custom bridge services, `createRadicalRuntime(layer)` from `/effect/client` accepts a `Layer<Bridge>`. The provider from `/effect/react` also accepts a `layer` prop.
+
+Capability browser layers and adapter layers remain explicit dependencies of Effect programs. Use the matching `cameraLive`, `networkLive`, `locationLive`, and other capability helpers when needed.
 
 ## Migrate from 0.1
 
-Move imports of Effects, services, layers, Streams, and schemas to `/effect/*`. Plain plugin commands now return Promises, offline registration uses `registerOffline`, and root notification navigation uses the disposer-returning installer from `/tanstack-start-client`. `getNativeContext` and `localNativeContext` return `NativeContext` directly. `encodeNativeContextCookie` returns a string directly.
+Move imports of Effects, services, layers, Streams, and schemas to `/effect/*`. Plain plugin commands now return Promises, offline registration uses `registerOffline`, and root notification navigation uses the disposer-returning installer from `/tanstack-start-client`.
+
+`getNativeContext` and `localNativeContext` return `NativeContext` directly. `encodeNativeContextCookie` returns a string directly.

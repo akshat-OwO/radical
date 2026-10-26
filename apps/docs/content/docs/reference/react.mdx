@@ -20,7 +20,11 @@ description: "Public exports from @akshatowo/radical/react."
   }}
 />
 
-Hooks do not invoke browser APIs during render. Effects start after commit. Unmount and provider replacement interrupt pending work and remove owned listeners. Action hooks suppress overlapping actions. A native picker can remain visible after interruption.
+- Hooks do not invoke browser APIs during render.
+- Effects start after commit.
+- Unmount and provider replacement interrupt pending work and remove owned listeners.
+- Action hooks suppress overlapping actions.
+- A native picker can remain visible after interruption.
 
 ## Hook contracts
 
@@ -48,7 +52,9 @@ Hooks do not invoke browser APIs during render. Effects start after commit. Unmo
 
 The video hook accepts `{ viewfinder: RefObject<HTMLElement | null>, facing?, onDetect? }`. Its `loading` represents startup. `running` represents an acquired session.
 
-`useNotifications().cancel(id)` cancels a scheduled reminder. Its `value` is a `NotificationScheduleResult`, push-token string, readonly topic list, or `true` for other completed actions. Haptics uses `failure` because `error()` sends feedback.
+- `useNotifications().cancel(id)` cancels a scheduled reminder.
+- Its `value` is a `NotificationScheduleResult`, push-token string, readonly topic list, or `true` for other completed actions.
+- Haptics uses `failure` because `error()` sends feedback.
 
 Device and network hooks start with `loading: true`, undefined `value`, and undefined `error` during SSR and initial hydration. Action hooks start idle.
 
@@ -60,4 +66,7 @@ Each hook exports its named state type, such as `CameraState`, `NetworkStatusSta
 
 Source: [React exports](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/react/react.ts).
 
-`useRadicalRuntime()` returns the provider handle. Pass it to `createPluginClient(manifest, runtime)` or generated `createPlugins(runtime)` to use the same bridge as the hooks. A supplied runtime belongs to the caller, which calls `await runtime.dispose()`. The Effect API provider at `@akshatowo/radical/effect/react` also accepts `layer` for service injection.
+- `useRadicalRuntime()` returns the provider handle.
+- Pass it to `createPluginClient(manifest, runtime)` or generated `createPlugins(runtime)` to use the same bridge as the hooks.
+- A supplied runtime belongs to the caller, which calls `await runtime.dispose()`.
+- The Effect API provider at `@akshatowo/radical/effect/react` also accepts `layer` for service injection.

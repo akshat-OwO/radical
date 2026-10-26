@@ -4,7 +4,9 @@ description: Width classes, fold posture, hinge CSS, and layout subscriptions.
 ---
 
 <Callout type="info">
-  Window layout is available in `@akshatowo/radical` 0.3.0 and later.
+
+Window layout is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 `NativeContext.windowLayout` contains:
@@ -30,7 +32,9 @@ Missing or invalid layout defaults to `{ widthClass: "compact", posture: "flat",
 | Android | Activity window and Jetpack WindowManager. Half-open horizontal folds report `tabletop`; vertical folds report `book`. Other states report `flat`. Folding features supply hinge bounds, including zero-width folds. |
 | Browser | `matchMedia` at 600 and 840 CSS pixels. Always `flat`, no hinge. |
 
-`windowLayoutStyle` supplies hinge variables on `<html>` from the first render. Without it, the shell adds them after mount to preserve hydration. See [Adapt to window layout](/docs/guides/window-layout).
+- `windowLayoutStyle` supplies hinge variables on `<html>` from the first render.
+- Without it, the shell adds them after mount to preserve hydration.
+- See [Adapt to window layout](/docs/guides/window-layout).
 
 | Export | Entry point |
 | --- | --- |

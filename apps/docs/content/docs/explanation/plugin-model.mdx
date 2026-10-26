@@ -5,9 +5,10 @@ description: "Why capability enablement controls native output."
 
 A manifest connects a JavaScript command contract to native implementations. The same Effect Schema codecs supply argument types, result validation, and rejection mapping.
 
-<Mermaid
-  title="Enabled manifests produce clients and native contributions"
-  chart={`flowchart TD
+## Enabled manifests produce clients and native contributions
+
+```mermaid
+flowchart TD
     Custom[Config plugins: custom manifest paths] --> Resolve[Resolve enabled manifests]
     Internal[internalPlugins flags and registry defaults] --> Resolve
     Push[pushNotifications] --> Notifications[notifications]
@@ -20,15 +21,20 @@ A manifest connects a JavaScript command contract to native implementations. The
     Plan --> Deps[npm, Gradle, and SPM requirements]
     Plan --> Config[Permissions, plist, entitlements, and runtime defines]
     Plan -->|Conflicting contributions| Fail[Generation failure]
-`}
-/>
+```
 
-Custom plugins stay disabled until listed in config. Internal `device` and `transitions` default to enabled; other capabilities are opt-in. Required implications override explicit false flags.
+Custom plugins stay disabled until listed in config. Internal `device` and `transitions` default to enabled; other capabilities are opt-in.
+
+Required implications override explicit false flags.
 
 ## Build contracts and runtime contracts stay separate
 
-Browser-safe manifests describe commands. Build-only contributions add camera descriptions, Firebase files, entitlements, and runtime defines. Conflicting plist values fail generation instead of depending on plugin order.
+Browser-safe manifests describe commands. Build-only contributions add camera descriptions, Firebase files, entitlements, and runtime defines.
 
-Generated clients preserve schema-derived types. Type generation neither installs missing packages nor implements native methods. Changing the plugin set requires native regeneration.
+Conflicting plist values fail generation instead of depending on plugin order.
+
+Generated clients preserve schema-derived types. Type generation neither installs missing packages nor implements native methods.
+
+Changing the plugin set requires native regeneration.
 
 [Add a typed native plugin](/docs/guides/custom-plugins) contains the authoring procedure. [Plugin manifest reference](/docs/reference/plugins) lists fields and error rules.

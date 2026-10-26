@@ -4,7 +4,9 @@ description: "Location fixes, watches, permission with location precision, and t
 ---
 
 <Callout type="info">
-  The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
+The location capability is available in `@akshatowo/radical` 0.3.0 and later.
+
 </Callout>
 
 ## Plain API
@@ -28,7 +30,9 @@ These functions come from `@akshatowo/radical/client`. Each takes an optional `r
 
 The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
 
-Native enablement is `internalPlugins.location`. The required dependency is `@capacitor/geolocation@8.2.4`. The config selector is `Location`.
+- Native enablement is `internalPlugins.location`.
+- The required dependency is `@capacitor/geolocation@8.2.4`.
+- The config selector is `Location`.
 
 ## Operations
 
@@ -41,11 +45,24 @@ Native enablement is `internalPlugins.location`. The required dependency is `@ca
 | `openLocationServicesSettings` | `void` | `Bridge` |
 | `openAppSettings` | `void` | `Bridge` |
 
-`checkLocationPermission`, `openLocationServicesSettings`, and `openAppSettings` are Effect values, not functions. `locationLive(effect)` provides `BrowserLocationLive`. `browserLocationLayer(read)` builds a layer from a browser `geolocation` and `permissions` source. `BrowserLocation` is injectable for tests. `LocationFixSchema` and `LocationPermissionSchema` validate results.
+`checkLocationPermission`, `openLocationServicesSettings`, and `openAppSettings` are Effect values, not functions. `locationLive(effect)` provides `BrowserLocationLive`.
 
-`LocationWatchPoolLive` provides `LocationWatchPool`, and the shared runtime includes it. The pool keys watches by their normalized options and counts subscribers, so hooks, Plain API watches, and the `navigator.geolocation` replacement share one native watch for the same options. New subscribers receive the latest location fix. A slow subscriber skips to the newest fix. On a device, a watch with `enableHighAccuracy: true` runs with high accuracy only while precise location is granted. When the grant changes, the pool restarts the native watch with the matching setting, and subscribers keep receiving location fixes from it.
+`browserLocationLayer(read)` builds a layer from a browser `geolocation` and `permissions` source. `BrowserLocation` is injectable for tests.
 
-The pool keeps a native watch running through transient errors: `LocationTimeout`, `Unavailable`, and `LocationServicesOff`. Hooks, Plain API watches, and the replacement report them and keep watching. After a timeout, the pool starts a new native watch, backing off from 100 ms to 5 seconds. After `LocationServicesOff` it waits instead: on Android each new watch would reopen Google's location settings dialog, so the pool starts one only when the app returns to the foreground or location precision changes. The Effect `watchLocation` stream fails on any error, transient ones included; apply `Stream.retry` to reacquire.
+`LocationFixSchema` and `LocationPermissionSchema` validate results.
+
+- `LocationWatchPoolLive` provides `LocationWatchPool`, and the shared runtime includes it.
+- The pool keys watches by their normalized options and counts subscribers, so hooks, Plain API watches, and the `navigator.geolocation` replacement share one native watch for the same options.
+- New subscribers receive the latest location fix.
+- A slow subscriber skips to the newest fix.
+- On a device, a watch with `enableHighAccuracy: true` runs with high accuracy only while precise location is granted.
+- When the grant changes, the pool restarts the native watch with the matching setting, and subscribers keep receiving location fixes from it.
+
+- The pool keeps a native watch running through transient errors: `LocationTimeout`, `Unavailable`, and `LocationServicesOff`.
+- Hooks, Plain API watches, and the replacement report them and keep watching.
+- After a timeout, the pool starts a new native watch, backing off from 100 ms to 5 seconds.
+- After `LocationServicesOff` it waits instead: on Android each new watch would reopen Google's location settings dialog, so the pool starts one only when the app returns to the foreground or location precision changes.
+- The Effect `watchLocation` stream fails on any error, transient ones included; apply `Stream.retry` to reacquire.
 
 ## Types
 
@@ -68,15 +85,30 @@ The pool keeps a native watch running through transient errors: `LocationTimeout
 | `speed`            | Metres per second, or `null`        |
 | `timestamp`        | Milliseconds since the Unix epoch   |
 
-Native location fixes replace invalid platform values with `null`. A negative `speed`, `heading`, or `altitudeAccuracy` becomes `null`, and a negative `altitudeAccuracy` also makes `altitude` `null`. On Android, `speed` and `altitude` can be `0` when the platform has no measurement, because the upstream plugin drops Android's validity flags. Treat `0` there as possibly missing. Browser location fixes keep the browser's values.
+- Native location fixes replace invalid platform values with `null`.
+- A negative `speed`, `heading`, or `altitudeAccuracy` becomes `null`, and a negative `altitudeAccuracy` also makes `altitude` `null`.
+- On Android, `speed` and `altitude` can be `0` when the platform has no measurement, because the upstream plugin drops Android's validity flags.
+- Treat `0` there as possibly missing.
+- Browser location fixes keep the browser's values.
 
-The platform applies `maximumAge`; Radical does not filter location fixes by age. On Android with Google Play services, the Fused Location Provider honours it, and the default `0` asks for a fresh location fix. Without Google Play services, for example on Huawei or Amazon devices, the plugin falls back to `LocationManager`, which can return a stale location fix even with `maximumAge: 0`. Compare `timestamp` with the current time when age matters.
+- The platform applies `maximumAge`; Radical does not filter location fixes by age.
+- On Android with Google Play services, the Fused Location Provider honours it, and the default `0` asks for a fresh location fix.
+- Without Google Play services, for example on Huawei or Amazon devices, the plugin falls back to `LocationManager`, which can return a stale location fix even with `maximumAge: 0`.
+- Compare `timestamp` with the current time when age matters.
 
-`timeout` starts when the platform begins looking for a location fix. On Android with Google Play services, when the device location settings, such as Google Location Accuracy, do not meet the request, the first request shows Google's dialog to change them. Accepting continues the same call, and `timeout` starts after the dialog closes. Declining fails with `LocationServicesOff`. On iOS and in a browser, `timeout` covers the whole call.
+- `timeout` starts when the platform begins looking for a location fix.
+- On Android with Google Play services, when the device location settings, such as Google Location Accuracy, do not meet the request, the first request shows Google's dialog to change them.
+- Accepting continues the same call, and `timeout` starts after the dialog closes.
+- Declining fails with `LocationServicesOff`.
+- On iOS and in a browser, `timeout` covers the whole call.
 
-`enableHighAccuracy` is a hint. Native requests use it only with a precise grant, so it never upgrades location precision. A running native watch restarts when the grant changes, so it switches to high accuracy once precise location is granted.
+- `enableHighAccuracy` is a hint.
+- Native requests use it only with a precise grant, so it never upgrades location precision.
+- A running native watch restarts when the grant changes, so it switches to high accuracy once precise location is granted.
 
-`checkLocationPermission` and `requestLocationPermission` resolve with `state: "denied"` when location is denied or restricted, on every runtime. They resolve with the app's permission even while location services is off, except on iOS, which reports `denied` for every app while location services is off. Only location fix and watch operations fail with `PermissionDenied`. `precision` reports the actual grant:
+- `checkLocationPermission` and `requestLocationPermission` resolve with `state: "denied"` when location is denied or restricted, on every runtime.
+- They resolve with the app's permission even while location services is off, except on iOS, which reports `denied` for every app while location services is off.
+- Only location fix and watch operations fail with `PermissionDenied`. `precision` reports the actual grant:
 
 - A request without `precise` asks for approximate location.
 - On iOS, the generated `NSLocationDefaultAccuracyReduced` makes the first prompt ask for approximate location. A request with `precise` asks for the grant if needed, then for temporary precise location with that purpose key. A first precise request therefore shows two prompts. Declining the second keeps `precision: "approximate"`. Temporary precise location expires; while it is active, another precise request resolves `precise` without a prompt.
@@ -110,7 +142,13 @@ Purpose strings require non-whitespace text without control characters. Android 
 | `navigator.geolocation` | Replaced unless `replaceNavigator: false` | Replaced unless `replaceNavigator: false` | Browser API |
 | Background | Watches pause | Watches pause | Browser-dependent |
 
-The replacement implements `getCurrentPosition`, `watchPosition`, and `clearWatch`. Each position call checks permission first, one call at a time, and asks for approximate location when the state is `prompt`. If the result is not `granted`, the error callback receives code `1`. Watches join the shared pool. A watch's error callback receives transient errors and the watch keeps its ID; `PermissionDenied`, code `1`, and bridge errors end it. `navigator.permissions.query({ name: "geolocation" })` resolves one shared `PermissionStatus` whose `state` updates and fires `change` when any API checks or requests location permission, and when the app returns from the background. Other permission names use the WebView's own query. The client entry skips the replacement in a browser and when `replaceNavigator` is `false`.
+- The replacement implements `getCurrentPosition`, `watchPosition`, and `clearWatch`.
+- Each position call checks permission first, one call at a time, and asks for approximate location when the state is `prompt`.
+- If the result is not `granted`, the error callback receives code `1`.
+- Watches join the shared pool.
+- A watch's error callback receives transient errors and the watch keeps its ID; `PermissionDenied`, code `1`, and bridge errors end it. `navigator.permissions.query({ name: "geolocation" })` resolves one shared `PermissionStatus` whose `state` updates and fires `change` when any API checks or requests location permission, and when the app returns from the background.
+- Other permission names use the WebView's own query.
+- The client entry skips the replacement in a browser and when `replaceNavigator` is `false`.
 
 ## Errors and hooks
 

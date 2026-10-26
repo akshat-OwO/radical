@@ -5,9 +5,10 @@ description: "Why native commands use services and schemas."
 
 The WebView and native shell run in different runtimes. Capacitor transports calls; Radical's `Bridge` service gives those calls an Effect error contract.
 
-<Mermaid
-  title="A manifest command across the bridge"
-  chart={`sequenceDiagram
+## A manifest command across the bridge
+
+```mermaid
+sequenceDiagram
     participant App as App Effect
     participant Client as callPlugin
     participant Bridge as BridgeLive
@@ -26,13 +27,16 @@ The WebView and native shell run in different runtimes. Capacitor transports cal
         Client->>Client: Decode declared code and error data
         Client-->>App: Declared tagged error or BridgeCallFailed
     end
-`}
-/>
+```
 
-Invalid arguments fail before transport. A missing native bridge produces `BridgeUnavailable`. Unknown rejection codes and invalid error data remain `BridgeCallFailed`, so an unexpected failure cannot masquerade as a declared capability error.
+Invalid arguments fail before transport. A missing native bridge produces `BridgeUnavailable`.
+
+Unknown rejection codes and invalid error data remain `BridgeCallFailed`, so an unexpected failure cannot masquerade as a declared capability error.
 
 ## Runtime selection stays replaceable
 
 Capability operations select native commands or browser services when the Effect runs. Browser services use web APIs; default Google sign-in and native push have no browser equivalent.
 
-Injectable layers let tests replace the bridge and browser services without a native project. React hooks start Effects after mount and release owned work on unmount. See [Client reference](/docs/reference/client) for services and errors, or [Plugin manifests](/docs/reference/plugins) for command schemas.
+Injectable layers let tests replace the bridge and browser services without a native project. React hooks start Effects after mount and release owned work on unmount.
+
+See [Client reference](/docs/reference/client) for services and errors, or [Plugin manifests](/docs/reference/plugins) for command schemas.

@@ -11,7 +11,9 @@ description: "Still-photo operations, permissions, and typed failures."
 
 The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
 
-Native enablement is `internalPlugins.camera`. The required dependency is `@capacitor/camera@8.2.6`. The config selector is `Camera`, with required `usageDescription` and `photoLibraryUsageDescription` strings.
+- Native enablement is `internalPlugins.camera`.
+- The required dependency is `@capacitor/camera@8.2.6`.
+- The config selector is `Camera`, with required `usageDescription` and `photoLibraryUsageDescription` strings.
 
 ## Operations
 
@@ -22,11 +24,17 @@ Native enablement is `internalPlugins.camera`. The required dependency is `@capa
 | `checkCameraPermission` | `CameraPermission` | `Bridge`, `BrowserCamera` |
 | `requestCameraPermission` | `CameraPermission` | `Bridge`, `BrowserCamera` |
 
-These are Effect values, not functions. `cameraLive(effect)` provides `BrowserCameraLive`. `BrowserCamera` is injectable for tests. `PhotoSchema` and `CameraPermissionSchema` validate results.
+These are Effect values, not functions. `cameraLive(effect)` provides `BrowserCameraLive`.
 
-`Photo` has `dataUrl`, `mimeType`, and optional `width` and `height`. Dimensions are decoded after orientation correction. The data URL remains valid after hook unmount. `choosePhoto` selects one image.
+`BrowserCamera` is injectable for tests. `PhotoSchema` and `CameraPermissionSchema` validate results.
 
-`CameraPermission` is `"granted" | "denied" | "prompt"`. A check can return `"denied"` without failure. A denied request fails with `PermissionDenied`.
+- `Photo` has `dataUrl`, `mimeType`, and optional `width` and `height`.
+- Dimensions are decoded after orientation correction.
+- The data URL remains valid after hook unmount. `choosePhoto` selects one image.
+
+- `CameraPermission` is `"granted" | "denied" | "prompt"`.
+- A check can return `"denied"` without failure.
+- A denied request fails with `PermissionDenied`.
 
 ## Runtime behavior
 

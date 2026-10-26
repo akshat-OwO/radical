@@ -3,11 +3,14 @@ title: "Remote and bundled modes"
 description: "Why UI delivery changes requests, startup, and offline behavior."
 ---
 
-Remote mode keeps the server as the document origin. Bundled mode moves the UI into the shell and keeps data on an API origin. That choice changes startup and the browser's request boundary.
+Remote mode keeps the server as the document origin. Bundled mode moves the UI into the shell and keeps data on an API origin.
 
-<Mermaid
-  title="Remote documents and bundled API requests"
-  chart={`flowchart TD
+That choice changes startup and the browser's request boundary.
+
+## Remote documents and bundled API requests
+
+```mermaid
+flowchart TD
     subgraph Remote
         R[Remote WebView] -->|HTTP document, fetch, or form with radical-context cookie| S[Framework server]
         S -->|Server-rendered HTML and data| R
@@ -21,10 +24,11 @@ Remote mode keeps the server as the document origin. Bundled mode moves the UI i
         M --> A[Start handler and API]
         A -->|Response through wrapper, CORS and exposed headers| L
     end
-`}
-/>
+```
 
-The bundled origins are `https://localhost` on Android and `capacitor://localhost` on iOS. Global fetch, HTML forms, third-party origins, and ordinary browsers retain normal request behavior. Only `createRadicalFetch` routes eligible shell requests.
+The bundled origins are `https://localhost` on Android and `capacitor://localhost` on iOS. Global fetch, HTML forms, third-party origins, and ordinary browsers retain normal request behavior.
+
+Only `createRadicalFetch` routes eligible shell requests.
 
 ## Startup follows the UI location
 
@@ -40,13 +44,18 @@ Packaging HTML does not make remote data available offline.
 
 ## CORS grants access, not identity
 
-The wrapper grants credentialed CORS only to the two local origins. Start's middleware permits those origins through server-function CSRF checks and retains checks for other callers. Neither authenticates requests.
+The wrapper grants credentialed CORS only to the two local origins. Start's middleware permits those origins through server-function CSRF checks and retains checks for other callers.
 
-The TanStack wrapper exposes `x-tss-serialized`, `x-tss-raw`, and `x-tss-error`. Core `withBundledRequests(handler, outputs?)` exposes no headers unless supplied with adapter outputs. Without those headers, bundled Start clients cannot read the response protocol.
+Neither authenticates requests.
+
+The TanStack wrapper exposes `x-tss-serialized`, `x-tss-raw`, and `x-tss-error`. Core `withBundledRequests(handler, outputs?)` exposes no headers unless supplied with adapter outputs.
+
+Without those headers, bundled Start clients cannot read the response protocol.
 
 <Callout type="warning" title="Authentication remains app-owned">
-  Cross-site WebView cookie restrictions still apply. Use HTTPS and a compatible
-  authentication design. Native context cannot authorize a request.
+
+Cross-site WebView cookie restrictions still apply. Use HTTPS and a compatible authentication design. Native context cannot authorize a request.
+
 </Callout>
 
 [Switch to bundled mode](/docs/guides/bundled-mode) contains the setup steps. The [bundled-mode decision](https://github.com/akshat-OwO/radical/blob/main/docs/adr/0004-bundled-mode.md) records the request contract.
