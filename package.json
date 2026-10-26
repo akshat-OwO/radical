@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "prepare": "vp config",
-    "check": "ultracite check",
+    "check": "ultracite check && pnpm --filter @radical/markdown check",
     "fix": "ultracite fix"
   },
   "devDependencies": {
