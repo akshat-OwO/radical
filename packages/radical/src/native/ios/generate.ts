@@ -124,8 +124,8 @@ export const generateIos = (
       Effect.gen(function* () {
         const app = path.join(staging, "ios/App/App");
 
-        if (native.config.splash) {
-          const color = native.config.splash.backgroundColor;
+        {
+          const color = native.splash.backgroundColor;
           const storyboard = "LaunchScreen.storyboard";
           yield* fs.writeFileString(
             path.join(app, "Base.lproj", storyboard),

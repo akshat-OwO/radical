@@ -45,6 +45,7 @@ import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin
 import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../../../templates/offline.html?raw";
+import mark from "../../../templates/radical-mark.svg?raw";
 import { adapterOutputs, fakeAdapter } from "../../fixtures/adapter.ts";
 import { echo } from "../../fixtures/echo-plugin.ts";
 import { image } from "../../fixtures/image.ts";
@@ -112,7 +113,10 @@ const memory = (
   const fs = FileSystem.layerNoop({
     readFile: (name) =>
       Effect.suspend(() => {
-        const bytes = binaries.get(name);
+        const bytes =
+          name === "/package/templates/radical-mark.svg"
+            ? new TextEncoder().encode(mark)
+            : binaries.get(name);
 
         return bytes === undefined
           ? Effect.fail(
@@ -759,6 +763,43 @@ describe("Android shell generation", () => {
 });
 
 describe("android app identity", () => {
+  for (const appearance of ["system", "light", "dark"] as const) {
+    it.effect(
+      `generates the default Radical splash with ${appearance} appearance when splash is omitted`,
+      () => {
+        const state = memory(false, { ...defaultConfig, appearance });
+
+        return Effect.gen(function* () {
+          yield* generate;
+
+          assert.strictEqual(state.assetCalls.length, 1);
+
+          assert.strictEqual(state.assetCalls[0].backgroundColor, "#ffffff");
+
+          assert.deepStrictEqual(
+            state.assetCalls[0].assets.map(({ file }) => file),
+            ["splash.png", "splash-dark.png", "splash-icon.png"]
+          );
+
+          const styles =
+            state.files.get(
+              `${destination}/android/app/src/main/res/values/styles.xml`
+            ) ?? "";
+
+          assert.include(
+            styles,
+            '<item name="windowSplashScreenBackground">#ffffff</item>'
+          );
+
+          assert.include(
+            styles,
+            '<item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>'
+          );
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
+
   it.effect(
     "reports invalid android fallback and explicit ids with an actionable typed error",
     () =>

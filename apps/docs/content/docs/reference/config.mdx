@@ -76,6 +76,8 @@ Navigation options are available in `@akshatowo/radical` 0.3.0 and later.
 | `splash.image` | Nonempty path | Square PNG or JPEG, at least 2732 pixels per side. Relative to the app root. |
 | `splash.backgroundColor` | `#RRGGBB`, required with splash | Composites transparent source pixels. Shared by light and dark appearances. |
 
+Omitting `splash` shows the Radical logo on a white background on iOS and Android, including with `appearance: "dark"`. Setting `splash` uses your image and background color in both light and dark appearances.
+
 Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGenerationFailed`. These are generation failures, not client API exports.
 
 ## Plugin fields

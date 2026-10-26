@@ -266,7 +266,7 @@ export const generateAndroid = (
           )
         );
 
-        if (config.splash) {
+        {
           const styles = path.join(
             staging,
             "android/app/src/main/res/values/styles.xml"
@@ -278,7 +278,7 @@ export const generateAndroid = (
               styles,
               yield* fs.readFileString(styles),
               '<item name="android:background">@drawable/splash</item>',
-              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${config.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>`
+              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${native.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>`
             )
           );
         }
