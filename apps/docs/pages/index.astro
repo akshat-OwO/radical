@@ -1,0 +1,48 @@
+---
+import "../styles/home.css";
+import data from "blume:data";
+
+const shareImage = data.config.site ? new URL("/og/index.png", data.config.site).href : "/og/index.png";
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Radical runs your web app inside Android and iOS shells. A Vite plugin generates the native projects." />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:title" content="Radical" />
+    <meta property="og:description" content="Your web app, on Android and iOS." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@700&family=Instrument+Sans:wght@400;500&display=swap" />
+    <title>Radical: Your web app, on Android and iOS</title>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="page container">
+      <header>
+        <a class="brand" href="/" aria-label="Radical home">
+          <svg aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="16" cy="16" r="12" /><circle cx="16" cy="16" r="2.5" /><circle cx="24.485" cy="7.515" r="2.5" /></svg>
+          Radical
+        </a>
+        <a class="nav-link" href="/docs">Documentation</a>
+      </header>
+      <main id="main" class="hero">
+        <div class="intro">
+          <h1>Your web app.<br />Android and iOS.</h1>
+          <p>Radical runs your web app in native shells, with device capabilities.</p>
+          <div class="actions">
+            <a class="button primary" href="/docs/getting-started">Get started</a>
+            <a class="button secondary" href="https://github.com/akshat-OwO/radical">GitHub</a>
+          </div>
+          <code class="install">pnpm add @akshatowo/radical</code>
+        </div>
+        <figure class="product">
+          <img src="/tutorials/todo-app/ios.png" alt="Radical todo tutorial running in an iOS shell, with a task list" width="552" height="1200" fetchpriority="high" />
+          <figcaption><a href="/docs/tutorials/todo-app">Todo tutorial</a></figcaption>
+        </figure>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "scanned": "2026-10-26",
+  "findings": {
+    "product": "README.md:3 and GLOSSARY.md:3 describe a Vite plugin and runtime for Android and iOS WebView shells.",
+    "material": "apps/docs/public/tutorials/todo-app/ios.png is a real tutorial capture. The supplied atom sketch defines the identity.",
+    "framework": "apps/docs/package.json migrates from Next.js and Fumadocs to Blume and Astro."
+  },
+  "preserve": [
+    "All /docs routes",
+    "Tutorial screenshots",
+    "Technical contracts and code samples",
+    "Diataxis sections"
+  ],
+  "introduce": [
+    "Atom mark",
+    "Dose palette and typography",
+    "One viewport homepage"
+  ],
+  "inferred": {
+    "audience": "Web developers adding Android and iOS shells",
+    "action": "Open getting started",
+    "tone": "Precise and technical, with warm paper and green"
+  }
+}
