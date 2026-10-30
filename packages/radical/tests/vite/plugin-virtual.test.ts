@@ -6,7 +6,7 @@ import { nativePlugins } from "../../src/vite/plugins/plugin-virtual.ts";
 import { fakeAdapter, adapterOutputs } from "../fixtures/adapter.ts";
 import { echo } from "../fixtures/echo-plugin.ts";
 import { metadataMemory, metadataFile } from "../fixtures/native-metadata.ts";
-import { resolvePlugin } from "../fixtures/vite-hooks.ts";
+import { hookHandler, resolvePlugin } from "../fixtures/vite-hooks.ts";
 
 it.effect(
   "persists config, adapter outputs and declarations through configResolved while preserving identical declaration mtimes",
@@ -42,12 +42,35 @@ it.effect(
 
       const config = {
         appId: "dev.test.app",
+        android: { packageId: "dev.test.android" },
+        ios: { bundleId: "dev.test.ios", appStoreId: "123" },
         pluginOptions: { Echo: { prefix: "test" } },
         plugins: [{ manifest: "./plugins/echo.ts", selector: "echo" }],
       };
 
       const plugin = nativePlugins(config, fakeAdapter, services);
       yield* resolvePlugin(plugin);
+      const { load } = plugin;
+      assert.isDefined(load);
+      const handler = hookHandler(load);
+
+      const clientConfig = yield* Effect.promise(
+        async () =>
+          // SAFETY: The config loader uses no Vite context fields.
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Minimal Vite hook fixture.
+          await handler.call(
+            // SAFETY: The loader reads no fields from its Vite context.
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Minimal Vite hook fixture.
+            {} as ThisParameterType<typeof handler>,
+            "\0virtual:radical/config",
+            {}
+          )
+      );
+
+      assert.isString(clientConfig);
+      assert.include(clientConfig, '"packageId":"dev.test.android"');
+      assert.include(clientConfig, '"appStoreId":"123"');
+      assert.notInclude(clientConfig, '"pluginOptions"');
 
       const metadata: unknown = JSON.parse(
         memory.files.get(metadataFile) ?? "null"

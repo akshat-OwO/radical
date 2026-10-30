@@ -70,3 +70,17 @@ Source: [React exports](https://github.com/akshat-OwO/radical/blob/main/packages
 - Pass it to `createPluginClient(manifest, runtime)` or generated `createPlugins(runtime)` to use the same bridge as the hooks.
 - A supplied runtime belongs to the caller, which calls `await runtime.dispose()`.
 - The Effect API provider at `@akshatowo/radical/effect/react` also accepts `layer` for service injection.
+
+## App update UI
+
+`useAppUpdate(store?)` returns `{ status: "current" | "required" | "unknown", storeUrl: string | null }`. It subscribes to the same controller used by `createRadicalFetch` and `fetchAppUpdate`.
+
+`AppUpdateProvider` accepts request-scoped `initialState` and `children`. It supplies stable SSR and hydration state without writing to the client controller on the server. With TanStack Start, that state comes from `context.appUpdate`.
+
+`AppUpdateBoundary` accepts `children`, optional `fallback`, and optional `store`. Required state replaces children with the fallback or `AppUpdateScreen`. Unknown and current states render children.
+
+Apps can replace the boundary and screen with UI driven by the hook.
+
+`AppUpdateScreen` accepts optional `store`. It shows the required-update message and opens the store through `useIntent().openUrl`. It must be under `RadicalProvider`.
+
+Missing iOS store identity produces instructions without a store button. These exports are also available from `@akshatowo/radical/effect/react`.

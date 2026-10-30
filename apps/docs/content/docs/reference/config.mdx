@@ -22,6 +22,7 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 | `android.name` | Nonempty string | Overrides the shared name on Android. |
 | `android.packageId` | `string` | Defaults to `appId`. At least two dot-separated segments starting with a letter. Letters, digits, and underscores allowed. Java keywords forbidden. |
 | `ios.name` | Nonempty string | Overrides the shared name on iOS. |
+| `ios.appStoreId` | Numeric string | Optional App Store listing id used by the update screen, such as `"1234567890"`. |
 | `ios.bundleId` | `string` | Defaults to `appId`. At least two dot-separated segments containing letters, digits, or hyphens. |
 
 Display names resolve as platform `name`, shared `name`, legacy `appName`, then `appId`. Remote iOS generation permits at most ten distinct server and allowlist hostnames.

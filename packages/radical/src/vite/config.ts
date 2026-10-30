@@ -122,6 +122,9 @@ export const RadicalConfigSchema = Schema.Struct({
     Schema.Struct({
       name: Schema.optional(Schema.NonEmptyString),
       bundleId: Schema.optional(IosBundleIdSchema),
+      appStoreId: Schema.optional(
+        Schema.String.check(Schema.isPattern(/^[0-9]+$/u))
+      ),
     })
   ),
   icon: Schema.optional(
@@ -148,16 +151,7 @@ export const RadicalConfigSchema = Schema.Struct({
   )
 );
 
-export const nativeIdentity = (
-  config: RadicalConfig,
-  platform: "android" | "ios"
-) => ({
-  appId:
-    platform === "android"
-      ? (config.android?.packageId ?? config.appId)
-      : (config.ios?.bundleId ?? config.appId),
-  name: config[platform]?.name ?? config.name ?? config.appName ?? config.appId,
-});
+export { nativeIdentity } from "../core/context/native-identity.ts";
 
 export type RadicalConfig = typeof RadicalConfigSchema.Type;
 

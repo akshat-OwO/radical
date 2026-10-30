@@ -49,7 +49,11 @@ const config = {
     name: "Radical Android",
     packageId: "dev.radical.example.android",
   },
-  ios: { name: "Radical iOS", bundleId: "dev.radical.example.ios" },
+  ios: {
+    name: "Radical iOS",
+    bundleId: "dev.radical.example.ios",
+    appStoreId: "1234567890",
+  },
   icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
   splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
@@ -92,8 +96,8 @@ const config = {
     },
   },
   devHost: "localhost",
-  mode: "remote",
-  origin: "http://localhost:4173",
+  mode: process.env.RADICAL_MODE === "bundled" ? "bundled" : "remote",
+  origin: process.env.RADICAL_ORIGIN ?? "http://localhost:4173",
 } satisfies RadicalConfig;
 
 export default defineConfig({

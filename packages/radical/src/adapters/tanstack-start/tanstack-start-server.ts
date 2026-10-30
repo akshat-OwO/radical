@@ -1,15 +1,17 @@
 import { Effect } from "effect";
 
 import { withBundledRequests as coreBundledRequests } from "../../core/bundled/bundled-server.ts";
+import type { AppUpdateOptions } from "../../core/update/update-server.ts";
 import { tanstackOutputs } from "./tanstack-outputs.ts";
 
 /** Expose Start's response protocol to bundled clients. */
 export const withBundledRequests = (
-  handler: (request: Request) => Response | Promise<Response>
+  handler: (request: Request) => Response | Promise<Response>,
+  updates?: AppUpdateOptions
 ) =>
   Effect.runSync(
     tanstackOutputs.pipe(
-      Effect.map((outputs) => coreBundledRequests(handler, outputs))
+      Effect.map((outputs) => coreBundledRequests(handler, outputs, updates))
     )
   );
 

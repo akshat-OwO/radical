@@ -56,3 +56,30 @@ The wrapper does not authenticate callers or replace the framework's CSRF config
 Source: [bundled CORS implementation](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/bundled/bundled-server.ts), [server entry](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/entry/server.ts), [context module](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/context/native-context.ts).
 
 The schemas and Effect-returning functions are available from `@akshatowo/radical/effect/native-context` and `@akshatowo/radical/effect/server`.
+
+## Minimum build policy
+
+`withBundledRequests(handler, outputs?, updates?)` accepts `AppUpdateOptions`. The TanStack Start wrapper accepts `withBundledRequests(handler, updates?)`. `createRadicalRequestMiddleware(updates?)` and `createRadicalMiddleware(get?, updates?)` accept the same options.
+
+| Option | Contract |
+| --- | --- |
+| `config` | App config used to resolve store identities |
+| `minimumBuild` | `{ android?: number, ios?: number }`, each a positive safe integer |
+| `updatePath` | Remote update document route, default `/update`. Below-minimum document requests redirect here. Only GET document requests to this exact path bypass the gate. |
+| `renderUpdate` | Optional synchronous `(state, request) => Response` replacing the remote redirect. |
+
+A missing native `appBuild` is below every configured minimum.
+
+Browsers and platforms without a minimum remain current. Bundled requests and other API requests below the minimum receive a marked JSON `426 Upgrade Required` before the app handler.
+
+Allowed CORS preflights still return 204.
+
+`GET /__radical/update-policy` returns `{ status, storeUrl }` even for below-minimum clients. Update responses use `Cache-Control: no-store` and cannot become offline snapshots.
+
+The Start middleware adds request-scoped `context.appUpdate` beside `context.nativeContext`, including on the update document route.
+
+The app owns this route and can render `AppUpdateScreen` there. It must render without server calls or loaders that require a supported build.
+
+`appStoreUrl(config, platform)` returns a store URL or `null`. `resolveAppUpdate(context, policy, config)` returns `AppUpdateState`. `AppUpdatePolicySchema` validates the platform minimums.
+
+The minimum must remain unchanged until the replacement build is live in its store. Bundled server functions must remain backward compatible with every build at or above its platform minimum. Context and build numbers are untrusted compatibility data, never authorization.

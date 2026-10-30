@@ -1,0 +1,87 @@
+---
+title: "Set a minimum build"
+description: "Require a supported app build on each platform."
+---
+
+Set a minimum build on the server to require a newer release. Set Android and iOS independently.
+
+A missing app build counts as older than every minimum. Browsers are never blocked.
+
+Raise a platform's minimum only after the replacement release is live in its store. In bundled mode, keep server functions and APIs compatible with every app build at or above the minimum.
+
+## Configure the server
+
+For TanStack Start, pass the policy to the request middleware. Keep the policy on the server. This example uses fixed values; change them as releases become available.
+
+```ts
+// update-policy.ts
+import type { AppUpdateOptions } from "@akshatowo/radical/server";
+import { config } from "virtual:radical/config";
+
+export const readUpdatePolicy = (): AppUpdateOptions => ({
+  config,
+  updatePath: "/update",
+  minimumBuild: { android: 127, ios: 130 },
+});
+```
+
+```ts
+// start.ts
+import { createRadicalFetch } from "@akshatowo/radical/client";
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
+import { createIsomorphicFn, createStart } from "@tanstack/react-start";
+import { config } from "virtual:radical/config";
+import { readUpdatePolicy } from "./update-policy.ts";
+
+const updatePolicy = createIsomorphicFn()
+  .server(readUpdatePolicy)
+  .client(() => null);
+
+export const startInstance = createStart(() => ({
+  defaultSsr: config.mode !== "bundled",
+  requestMiddleware: [
+    ...createRadicalRequestMiddleware(updatePolicy() ?? undefined),
+  ],
+  serverFns: { fetch: createRadicalFetch(config) },
+}));
+```
+
+## Add the update screen
+
+In remote mode, an unsupported document request redirects to the app-owned `updatePath`, which defaults to `/update`. Add that route and keep it free of loaders or server calls that require a supported app build:
+
+```tsx
+import { AppUpdateScreen } from "@akshatowo/radical/react";
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/update")({ component: AppUpdateScreen });
+```
+
+Mount the screen under `RadicalProvider` and provide request-scoped `context.appUpdate` through `AppUpdateProvider`. The [example root](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) shows how to load that state and mount the providers.
+
+For a custom screen, use `useAppUpdate()` to read `status` and `storeUrl`. The status is `unknown`, `current`, or `required`; the URL can be `null`. See the [React reference](/docs/reference/react) for the provider, boundary, and hook.
+
+## Support bundled mode
+
+In bundled mode, the server returns HTTP 426 for unsupported API requests before the handler runs. Use `createRadicalFetch(config)` for server functions and API requests so marked responses update the shared state.
+
+Mount `AppUpdateBoundary` under `RadicalProvider` and `AppUpdateProvider` to show the default screen when an update is required. Pass a `fallback` for a custom screen.
+
+Fetch the policy at startup as well, so the app can show the screen before another API request. For example, call this in a client-side effect:
+
+```ts
+import { createRadicalFetch, fetchAppUpdate } from "@akshatowo/radical/client";
+import { config } from "virtual:radical/config";
+
+void fetchAppUpdate(createRadicalFetch(config)).catch(() => {
+  // A later API response can still require an update.
+});
+```
+
+A failed startup fetch leaves the previous state unchanged. The update screen and its fetch handling must ship in the first bundled binary: an older bundled release cannot receive new UI from a server deploy.
+
+## Set store identities
+
+Android store links use the package id, which defaults to `appId` and can be set with `android.packageId`. Set `ios.appStoreId` to the numeric App Store listing id.
+
+Without it, the default iOS screen shows instructions without a store button. See the [config reference](/docs/reference/config).

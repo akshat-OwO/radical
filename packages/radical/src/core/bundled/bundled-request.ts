@@ -1,4 +1,4 @@
-import { Effect, Schema, flow } from "effect";
+import { Context, Effect, Layer, Schema, flow } from "effect";
 
 import { safeAreaStyle } from "../../capabilities/safe-area/safe-area-style.ts";
 import { windowLayoutStyle } from "../../capabilities/window-layout/window-layout-style.ts";
@@ -9,6 +9,12 @@ import {
   NATIVE_CONTEXT_HEADER,
 } from "../context/native-context.ts";
 import type { NativeContext } from "../context/native-context.ts";
+import { appUpdateStore } from "../update/app-update.ts";
+import type { AppUpdateStore } from "../update/app-update.ts";
+import { receiveAppUpdate } from "../update/update-client.ts";
+import { RequestFailed } from "./request-error.ts";
+
+export { RequestFailed } from "./request-error.ts";
 
 export { browserContext } from "../context/browser-context.ts";
 
@@ -17,10 +23,14 @@ export const bundledOrigins = [
   "capacitor://localhost",
 ] as const;
 
-export class RequestFailed extends Schema.TaggedError<
-  RequestFailed,
-  { readonly brand: unique symbol }
->()("RequestFailed", { cause: Schema.Unknown }) {}
+/** WebKit reports `capacitor://localhost` without a trailing slash, so accept the bare origin too. */
+const isBundledPage = (page: string) =>
+  bundledOrigins.some(
+    (origin) =>
+      page === origin ||
+      (page.startsWith(origin) &&
+        ["/", "?", "#"].includes(page.charAt(origin.length)))
+  );
 
 interface BundledDocument {
   readonly __radicalNativeContext?: unknown;
@@ -89,9 +99,9 @@ export const routeBundledRequest = (
     try: () => {
       const source = input instanceof Request ? input.url : String(input);
       const url = new URL(source, page);
+      const local = isBundledPage(page);
       const pageUrl = new URL(page);
       const pageOrigin = `${pageUrl.protocol}//${pageUrl.host}`;
-      const local = bundledOrigins.some((origin) => pageOrigin === origin);
       const urlOrigin = `${url.protocol}//${url.host}`;
 
       const routed =
@@ -125,43 +135,83 @@ export const routeBundledRequest = (
     catch: (cause) => new RequestFailed({ cause }),
   });
 
-/** Start's serverFns.fetch hook and application API calls share this fetch facade. */
+/** In-memory transports let callers test routing and update handling without a network. */
+export class RadicalFetchEnvironment extends Context.Service<
+  RadicalFetchEnvironment,
+  {
+    readonly page: Effect.Effect<string>;
+    readonly context: Effect.Effect<NativeContext>;
+    readonly fetch: (
+      input: string | URL | Request,
+      init?: RequestInit
+    ) => Effect.Effect<Response, RequestFailed>;
+  }
+>()("radical/RadicalFetchEnvironment") {}
+
+export const RadicalFetchEnvironmentLive = Layer.succeed(
+  RadicalFetchEnvironment,
+  {
+    page: Effect.sync(() =>
+      typeof location === "undefined" ? "" : location.href
+    ),
+    context: Effect.suspend(() =>
+      injectedNativeContext(shellDocument()?.__radicalNativeContext)
+    ),
+    fetch: (input, init) =>
+      Effect.tryPromise({
+        try: () => fetch(input, init),
+        catch: (cause) => new RequestFailed({ cause }),
+      }),
+  }
+);
+
+/** Effect API for Start's fetch hook and application API calls. */
+export const radicalFetch = (
+  config: Pick<RadicalConfig, "mode" | "origin">,
+  input: string | URL | Request,
+  init?: RequestInit,
+  store: AppUpdateStore = appUpdateStore
+) =>
+  Effect.gen(function* () {
+    const environment = yield* RadicalFetchEnvironment;
+    const page = yield* environment.page;
+
+    const local = isBundledPage(page);
+
+    if (config.mode !== "bundled" || !local) {
+      return yield* environment.fetch(input, init);
+    }
+
+    const request = yield* routeBundledRequest(
+      config,
+      input,
+      init,
+      page,
+      yield* environment.context
+    );
+
+    const response = yield* environment.fetch(request);
+
+    // Only responses from the configured app origin may change the update state.
+    if (
+      response.status === 426 &&
+      new URL(request.url).origin === config.origin
+    ) {
+      yield* receiveAppUpdate(response, store).pipe(Effect.ignore);
+    }
+
+    return response;
+  });
+
+/** Plain fetch facade; the implementation is shared with the Effect API. */
 export const createRadicalFetch =
-  (config: Pick<RadicalConfig, "mode" | "origin">) =>
+  (
+    config: Pick<RadicalConfig, "mode" | "origin">,
+    store: AppUpdateStore = appUpdateStore
+  ) =>
   (input: string | URL | Request, init?: RequestInit): Promise<Response> =>
     Effect.runPromise(
-      Effect.gen(function* () {
-        // Normal browsers and remote shells retain their normal fetch semantics.
-        const page =
-          typeof location === "undefined"
-            ? ""
-            : `${location.protocol}//${location.host}`;
-
-        if (
-          config.mode !== "bundled" ||
-          !bundledOrigins.some((origin) => page === origin)
-        ) {
-          return yield* Effect.tryPromise({
-            try: () => fetch(input, init),
-            catch: (cause) => new RequestFailed({ cause }),
-          });
-        }
-
-        const context = yield* injectedNativeContext(
-          shellDocument()?.__radicalNativeContext
-        );
-
-        const request = yield* routeBundledRequest(
-          config,
-          input,
-          init,
-          location.href,
-          context
-        );
-
-        return yield* Effect.tryPromise({
-          try: () => fetch(request),
-          catch: (cause) => new RequestFailed({ cause }),
-        });
-      })
+      radicalFetch(config, input, init, store).pipe(
+        Effect.provide(RadicalFetchEnvironmentLive)
+      )
     );
