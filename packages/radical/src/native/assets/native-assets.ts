@@ -3,11 +3,11 @@ import path from "node:path";
 
 import { Context, Effect, FileSystem, Layer, Predicate } from "effect";
 import sharp from "sharp";
-import svg2vectordrawable from "svg2vectordrawable";
 
 import type { Section } from "../../capabilities/sections/sections.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
 import { AssetGenerationFailed, InvalidAsset } from "./errors.ts";
+import { svgToVectorDrawable } from "./vector-drawable.ts";
 
 export interface NativeAsset {
   readonly file: string;
@@ -565,17 +565,7 @@ interface SplashImage {
 
 /** Convert before staging so unreadable or unsupported icons leave the existing shell intact. */
 export const sectionVectorDrawable = (svg: string, source: string) =>
-  Effect.tryPromise({
-    try: () =>
-      svg2vectordrawable(svg.replaceAll("currentColor", "#000000"), {
-        strict: true,
-        fillBlack: true,
-        floatPrecision: 4,
-        xmlTag: true,
-      }),
-    catch: (cause) =>
-      new InvalidAsset({ message: `Section icon ${source}: ${String(cause)}` }),
-  });
+  svgToVectorDrawable(svg, source);
 
 export const prepareSectionDrawables = (
   root: string,

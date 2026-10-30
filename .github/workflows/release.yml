@@ -32,12 +32,12 @@ jobs:
       is_prerelease: ${{ steps.release.outputs.is_prerelease }}
       make_latest: ${{ steps.release.outputs.make_latest }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: voidzero-dev/setup-vp@v1.21.2
+      - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
         with:
           node-version: "24"
           cache: true
@@ -73,11 +73,11 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.sha }}
           persist-credentials: false
-      - uses: voidzero-dev/setup-vp@v1.21.2
+      - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
         with:
           node-version: "24"
           cache: true
@@ -87,11 +87,11 @@ jobs:
     needs: [preflight, quality]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.sha }}
           persist-credentials: false
-      - uses: voidzero-dev/setup-vp@v1.21.2
+      - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
         with:
           node-version: "24"
           cache: true
@@ -99,7 +99,7 @@ jobs:
         id: artifact
         with:
           version: ${{ needs.preflight.outputs.version }}
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: radical-${{ needs.preflight.outputs.version }}
           path: ${{ steps.artifact.outputs.tarball }}
@@ -120,18 +120,18 @@ jobs:
       SHA: ${{ needs.preflight.outputs.sha }}
       DIST_TAG: ${{ needs.preflight.outputs.dist_tag }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "24"
       - name: Install release npm
         working-directory: ${{ runner.temp }}
         run: npm install --global npm@12.2.1
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: radical-${{ needs.preflight.outputs.version }}
           path: ${{ runner.temp }}/radical-publish
@@ -167,12 +167,12 @@ jobs:
       MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: radical-${{ needs.preflight.outputs.version }}
           path: ${{ runner.temp }}/radical-publish
@@ -219,7 +219,7 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.sha }}
           fetch-depth: 0
@@ -233,7 +233,7 @@ jobs:
           else
             echo "::notice::Skipping production docs because $SHA is not an ancestor of origin/stable."
           fi
-      - uses: voidzero-dev/setup-vp@v1.21.2
+      - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
         if: ${{ steps.stable.outputs.deploy == 'true' }}
         with:
           node-version: "24"
