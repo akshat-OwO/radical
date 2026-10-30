@@ -57,7 +57,7 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/update")({ component: AppUpdateScreen });
 ```
 
-Mount the screen under `RadicalProvider` and provide request-scoped `context.appUpdate` through `AppUpdateProvider`. The [example root](https://github.com/akshat-OwO/radical/blob/feat/minimum-build/apps/example/src/routes/__root.tsx) shows how to load that state and mount the providers.
+Mount the screen under `RadicalProvider` and provide request-scoped `context.appUpdate` through `AppUpdateProvider`. The [example root](https://github.com/akshat-OwO/radical/blob/main/apps/example/src/routes/__root.tsx) shows how to load that state and mount the providers.
 
 For a custom screen, use `useAppUpdate()` to read `status` and `storeUrl`. The status is `unknown`, `current`, or `required`; the URL can be `null`. See the [React reference](/docs/reference/react) for the provider, boundary, and hook.
 
