@@ -163,3 +163,29 @@ _Avoid_: Native tabs, nav chrome, tab bar (when meaning the whole system)
 **Window layout**:\
 The app window's width class, fold posture, and hinge bounds.\
 _Avoid_: Device type, screen size, form factor
+
+### Releases
+
+**Release**:\
+One store upload of the shell, identified by its app version and app build.\
+_Avoid_: Deployment (a web change), binary version
+
+**App version**:\
+The marketing version of a release, shown to users in the stores.\
+_Avoid_: Shell version (radical's own version), version name
+
+**App build**:\
+The integer that orders releases and increases with every store upload.\
+_Avoid_: Build id (a web deployment), version code, build number
+
+**Shell commands**:\
+The native plugin commands contained in an installed release.\
+_Avoid_: Capabilities (when meaning the hooks), plugin list
+
+**Minimum build**:\
+The oldest app build a platform's server still supports.\
+_Avoid_: Forced update, version gate
+
+**Update screen**:\
+The page that asks the user to install a newer release from the store.\
+_Avoid_: Upgrade prompt, update gate
