@@ -165,7 +165,7 @@ catalogs:
       version: 2.9.1
 
 overrides:
-  happy-dom: '>=21.0.4'
+  happy-dom@>=17 <21.0.4: ^21.0.4
   seroval@>=1.5.5 <1.6.11: ^1.6.11
   path-to-regexp@>=4 <6.3.0: ^6.3.0
   zod@>=4 <4.6.6: ^4.6.6
@@ -343,7 +343,7 @@ importers:
         specifier: 'catalog:'
         version: 4.0.5
       happy-dom:
-        specifier: '>=21.0.4'
+        specifier: ^21.0.4
         version: 21.0.4
       ignore:
         specifier: 'catalog:'
@@ -6238,7 +6238,7 @@ packages:
       '@vitest/coverage-istanbul': 5.0.5
       '@vitest/coverage-v8': 5.0.5
       '@vitest/ui': 5.0.5
-      happy-dom: '>=21.0.4'
+      happy-dom: ^21.0.4
       jsdom: '*'
       vite: ^6.4.0 || ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
