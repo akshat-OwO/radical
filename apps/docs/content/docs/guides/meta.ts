@@ -7,6 +7,7 @@ export default defineMeta({
     "run-on-a-device",
     "app-assets",
     "release-versions",
+    "minimum-build",
     "safe-area",
     "window-layout",
     "device-info",
