@@ -59,7 +59,7 @@ catalog:
   "@babel/types": 7.29.8
   ignore: ^7.0.13
   yaml: ^2.9.1
-  svg2vectordrawable: 2.9.1
+  svgo: ^4.1.0
 overrides:
   happy-dom: ">=21.0.4"
   "seroval@>=1.5.5 <1.6.11": ^1.6.11
