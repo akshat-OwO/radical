@@ -17,6 +17,8 @@ description: "Request parsing and bundled CORS exports from @akshatowo/radical/s
 | `platform` | `"android"` or `"ios"` | `"browser"` |
 | `windowLayout` | `{ widthClass, posture, hinge }` | `{ widthClass: "compact", posture: "flat", hinge: null }` |
 | `safeArea` | `{ top, right, bottom, left }` | Zero insets |
+| `appVersion` | Installed app marketing version, when available | Absent |
+| `appBuild` | Installed app build as a positive integer, when available | Absent |
 | `shellVersion` | Nonempty string | `null` |
 
 Insets are finite, nonnegative CSS pixel values. Native context is untrusted presentation data.

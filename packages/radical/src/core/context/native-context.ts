@@ -17,6 +17,7 @@ import { Effect, Option, Schema } from "effect";
  * Shells set it with `Path=/; HttpOnly; SameSite=Lax`, plus `Secure` on HTTPS origins.
  *
  * Window layout defaults to compact, flat, and no hinge when absent or invalid.
+ * App version and build are optional and omitted when invalid.
  * The other fields are required. Platform is `android` or `ios`; safe-area insets are
  * finite, nonnegative numbers in CSS pixels; shellVersion is a nonempty string.
  * Unknown fields are ignored for forward compatibility. A missing or invalid
@@ -64,6 +65,16 @@ export const ShellContextSchema = Schema.Struct({
   safeArea: SafeAreaSchema,
   windowLayout: windowLayoutField,
   shellVersion: Schema.NonEmptyString,
+  appVersion: Schema.optional(Schema.NonEmptyString).pipe(
+    Schema.catchDecoding(() => Effect.succeed(Option.none()))
+  ),
+  appBuild: Schema.optional(
+    Schema.Number.check(
+      Schema.isInt(),
+      Schema.isGreaterThan(0),
+      Schema.isLessThanOrEqualTo(Number.MAX_SAFE_INTEGER)
+    )
+  ).pipe(Schema.catchDecoding(() => Effect.succeed(Option.none()))),
   nativeSectionBar: Schema.optional(Schema.Boolean),
 });
 

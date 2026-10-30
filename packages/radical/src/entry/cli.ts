@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 
 import { generateAndroid } from "../native/android/generate.ts";
@@ -30,15 +30,21 @@ export const makeCli = (root: string) => {
   const android = Command.make(
     "android",
     {
+      build: Flag.String("build").pipe(Flag.optional),
       generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
       target: Flag.String("target").pipe(Flag.withDefault("")),
     },
-    ({ generateOnly, target }) =>
+    ({ build, generateOnly, target }) =>
       prepareNative.pipe(
         Effect.flatMap((plan) =>
           CliNative.pipe(
             Effect.flatMap((native) =>
-              native.generateAndroid(root, undefined, plan)
+              native.generateAndroid(
+                root,
+                undefined,
+                plan,
+                Option.getOrUndefined(build)
+              )
             )
           )
         ),
@@ -55,15 +61,21 @@ export const makeCli = (root: string) => {
   const ios = Command.make(
     "ios",
     {
+      build: Flag.String("build").pipe(Flag.optional),
       generateOnly: Flag.Boolean("generate-only").pipe(Flag.withDefault(false)),
       target: Flag.String("target").pipe(Flag.withDefault("")),
     },
-    ({ generateOnly, target }) =>
+    ({ build, generateOnly, target }) =>
       prepareNative.pipe(
         Effect.flatMap((plan) =>
           CliNative.pipe(
             Effect.flatMap((native) =>
-              native.generateIos(root, undefined, plan)
+              native.generateIos(
+                root,
+                undefined,
+                plan,
+                Option.getOrUndefined(build)
+              )
             )
           )
         ),

@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 
 import { assert, describe, it } from "@effect/vitest";
 import {
+  ConfigProvider,
   Effect,
   FileSystem,
   Layer,
@@ -87,6 +88,7 @@ const memory = (
     ["/package/templates/offline.html", fallback],
     ["/package/templates/android/launch.html", launch],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
+    ["/app/package.json", JSON.stringify({ version: "2.3.4" })],
     ["/package/templates/android/radical.gradle", gradle],
     ["/package/templates/android/gradle-daemon-jvm.properties", daemonJvm],
   ]);
@@ -219,7 +221,7 @@ const memory = (
           );
           files.set(
             `${command.options.cwd}/android/app/build.gradle`,
-            "// Capacitor app"
+            '// Capacitor app\nversionCode 1\nversionName "1.0"'
           );
           files.set(
             `${command.options.cwd}/android/generated.txt`,
@@ -239,6 +241,7 @@ const memory = (
     commands,
     layer: Layer.mergeAll(
       fs,
+      ConfigProvider.layer(ConfigProvider.fromUnknown({ RADICAL_BUILD: "42" })),
       spawner,
       Layer.succeed(AssetGenerator, {
         generate: (input) =>
@@ -1584,3 +1587,31 @@ it.effect("embeds the build plan commands in the document-start script", () => {
     assert.notInclude(source, "__SHELL_COMMANDS_SCRIPT__");
   }).pipe(Effect.provide(state.layer));
 });
+
+it.effect(
+  "writes configured app version and build and reads installed metadata at runtime",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      version: "4.5.6",
+      build: 127,
+    });
+
+    return Effect.gen(function* () {
+      yield* generateAndroid("/app", "/package");
+
+      const appGradle =
+        state.files.get(`${destination}/android/app/build.gradle`) ?? "";
+
+      assert.include(appGradle, "versionCode 127");
+
+      assert.include(appGradle, 'versionName "4.5.6"');
+
+      const source = state.files.get(mainActivity) ?? "";
+
+      assert.include(source, 'context.put("appVersion", appInfo.versionName)');
+
+      assert.include(source, "PackageInfoCompat.getLongVersionCode(appInfo)");
+    }).pipe(Effect.provide(state.layer));
+  }
+);

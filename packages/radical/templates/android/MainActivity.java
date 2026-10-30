@@ -61,6 +61,7 @@ import org.json.JSONObject;
 
 /** Remote mode keeps Chromium's networking, streaming, cookies and origin. */
 public class MainActivity extends BridgeActivity {
+    private android.content.pm.PackageInfo appInfo;
     private static final boolean BUNDLED = __BUNDLED__;
     private static final String URL = __URL__;
     private static final String OFFLINE_LAUNCH = __OFFLINE_LAUNCH__;
@@ -231,6 +232,9 @@ public class MainActivity extends BridgeActivity {
                 break;
             }
             JSONObject context = new JSONObject(URLDecoder.decode(MainActivity.COOKIE.split("=", 2)[1], StandardCharsets.UTF_8.name()));
+            if (appInfo == null) appInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            context.put("appVersion", appInfo.versionName);
+            context.put("appBuild", androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(appInfo));
             context.put("safeArea", area);
             context.put("windowLayout", layout);
             if (context.toString().equals(lastContext)) return;

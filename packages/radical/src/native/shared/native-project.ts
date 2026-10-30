@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 
-import { Effect, FileSystem, Schema } from "effect";
+import { Console, Effect, FileSystem, Schema } from "effect";
 import semver from "semver";
 
 import { encodeNativeContextCookie } from "../../core/context/native-context.ts";
@@ -20,6 +20,7 @@ import {
   prepareNativeAssets,
   resolveSplash,
 } from "../assets/native-assets.ts";
+import { resolveAppRelease } from "./app-release.ts";
 import { NativeMetadata, nativeMetadataLayer } from "./native-metadata.ts";
 import { replaceAnchor } from "./native-template.ts";
 import { execute, replaceProject } from "./shell.ts";
@@ -125,7 +126,8 @@ export const readNativeProject = (
   root: string,
   packageRoot: string,
   platform: "android" | "ios",
-  resolvedPlan?: BuildPlan
+  resolvedPlan?: BuildPlan,
+  cliBuild?: string
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -141,6 +143,10 @@ export const readNativeProject = (
 
     const plan = resolvedPlan ?? (yield* resolveBuildPlan(input));
     const { config, plugins } = plan;
+    const release = yield* resolveAppRelease(root, config, platform, cliBuild);
+    yield* Console.log(
+      `App version: ${release.version}, build: ${release.build}`
+    );
     const bundled = config.mode === "bundled";
     const identity = nativeIdentity(config, platform);
     yield* Schema.decodeEffect(
@@ -182,6 +188,7 @@ export const readNativeProject = (
 
     return {
       config,
+      release,
       plan,
       identity,
       assets,
