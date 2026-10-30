@@ -26,6 +26,10 @@ description: "Schema-defined native commands and generation metadata."
 | `android` | Optional `{ className, sources, dependencies }`. |
 | `ios` | Optional `{ className, sources, dependencies }`. |
 
+Shells report their platform's plugin commands before page scripts run. A command absent from that list fails with `BridgeUnavailable` without calling native code.
+
+Shells without a list keep the existing bridge behavior. Commands evolve additively; an incompatible change requires a new command.
+
 Each command's `args` and `result` are Effect Schema codecs. `errors` maps native rejection codes to codecs for tagged errors. Arguments must encode to an object accepted by the bridge.
 
 - Native error mapping decodes `{ ...cause.data, _tag: cause.code }`.

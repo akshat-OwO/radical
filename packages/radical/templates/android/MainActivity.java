@@ -239,7 +239,7 @@ public class MainActivity extends BridgeActivity {
             CookieManager cookies = CookieManager.getInstance();
             __COOKIES__
             cookies.flush();
-            String script = "window.__radicalBundled=" + BUNDLED + ";window.__radicalNativeContext=" + context + ";" + __SAFE_AREA_SCRIPT__ + area + ");" + __WINDOW_LAYOUT_SCRIPT__ + layout + ");";
+            String script = "window.__radicalBundled=" + BUNDLED + ";window.__radicalNativeContext=" + context + ";" + __SHELL_COMMANDS_SCRIPT__ + __SAFE_AREA_SCRIPT__ + area + ");" + __WINDOW_LAYOUT_SCRIPT__ + layout + ");";
             if (safeAreaScript != null) safeAreaScript.remove();
             safeAreaScript = WebViewCompat.addDocumentStartJavaScript(view, script, ORIGINS);
             if (!started) {

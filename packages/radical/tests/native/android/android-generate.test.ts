@@ -1568,3 +1568,19 @@ describe("Android shell appearance", () => {
     });
   }
 });
+
+it.effect("embeds the build plan commands in the document-start script", () => {
+  const state = memory();
+
+  return Effect.gen(function* () {
+    yield* generate;
+    const source = state.files.get(mainActivity) ?? "";
+    assert.include(
+      source,
+      JSON.stringify(
+        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"]};'
+      )
+    );
+    assert.notInclude(source, "__SHELL_COMMANDS_SCRIPT__");
+  }).pipe(Effect.provide(state.layer));
+});

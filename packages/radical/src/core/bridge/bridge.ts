@@ -5,6 +5,8 @@ import {
   BridgeDecodeError,
   BridgeUnavailable,
 } from "./errors.ts";
+import { hasShellCommand, injectedShellCommands } from "./shell-commands.ts";
+import type { ShellCommands } from "./shell-commands.ts";
 
 export { BridgeUnavailable } from "./errors.ts";
 
@@ -112,7 +114,8 @@ interface ShellEvents extends EventTarget {
 /** Acquisition is lazy so importing or constructing a layer is SSR-safe. */
 export const bridgeLayer = (
   read: () => InjectedBridge | undefined,
-  readEvents: () => ShellEvents = () => window
+  readEvents: () => ShellEvents = () => window,
+  readCommands: () => ShellCommands | undefined = injectedShellCommands
 ) =>
   Layer.succeed(Bridge, {
     runtime: Effect.sync(() => runtimeOf(read())),
@@ -139,7 +142,10 @@ export const bridgeLayer = (
       >(() => {
         const bridge = read();
 
-        if (!bridge?.nativeCallback) {
+        if (
+          !bridge?.nativeCallback ||
+          !hasShellCommand(readCommands(), plugin, "addListener")
+        ) {
           return Effect.fail(
             new BridgeUnavailable({ plugin, method: "addListener" })
           );
@@ -182,7 +188,12 @@ export const bridgeLayer = (
       >(() => {
         const bridge = read();
 
-        if (!bridge?.nativeCallback || runtimeOf(bridge) === "browser") {
+        if (
+          !bridge?.nativeCallback ||
+          runtimeOf(bridge) === "browser" ||
+          !hasShellCommand(readCommands(), plugin, method) ||
+          !hasShellCommand(readCommands(), plugin, release.method)
+        ) {
           return Effect.fail(new BridgeUnavailable({ plugin, method }));
         }
 
@@ -239,7 +250,8 @@ export const bridgeLayer = (
           if (
             !bridge ||
             runtimeOf(bridge) === "browser" ||
-            !Predicate.isFunction(bridge.nativePromise)
+            !Predicate.isFunction(bridge.nativePromise) ||
+            !hasShellCommand(readCommands(), plugin, method)
           ) {
             return Effect.fail(new BridgeUnavailable({ plugin, method }));
           }
