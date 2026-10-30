@@ -13,6 +13,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Types must match the oldest supported runtime in engines.node, not the newest Node.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
     cooldown:
       default-days: 3
     groups:
