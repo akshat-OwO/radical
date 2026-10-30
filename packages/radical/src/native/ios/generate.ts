@@ -19,6 +19,7 @@ import {
   renderTemplate,
 } from "../shared/native-project.ts";
 import { replaceAnchor } from "../shared/native-template.ts";
+import { shellCommandsScript } from "../shared/shell-commands.ts";
 import {
   safeAreaUpdateScript,
   windowLayoutUpdateScript,
@@ -94,6 +95,9 @@ export const generateIos = (
         __OFFLINE_SAVED_URL_KEY__: JSON.stringify(savedOfflineURLKeys.ios),
         __BUNDLED__: String(native.bundled),
         __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
+        __SHELL_COMMANDS_SCRIPT__: JSON.stringify(
+          shellCommandsScript(native.plan, "ios")
+        ),
         __SPLASH_NAME__: JSON.stringify(iosSplashResourceName(native.assets)),
         __URL__: JSON.stringify(native.url),
         __SNAPSHOT_CHECK__: JSON.stringify(

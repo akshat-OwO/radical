@@ -42,6 +42,16 @@ export const locationPlugin = definePlugin({
   config: { selector: "Location", schema: LocationConfigSchema },
   commands: {
     ...permissionCommands,
+    watchPosition: {
+      args: Schema.Record(Schema.String, Schema.Unknown),
+      result: Schema.Unknown,
+      errors: {},
+    },
+    clearWatch: {
+      args: Schema.Struct({ id: Schema.String }),
+      result: Schema.Unknown,
+      errors: {},
+    },
     getCurrentPosition: {
       args: Schema.Record(Schema.String, Schema.Unknown),
       result: Schema.Unknown,

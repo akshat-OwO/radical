@@ -20,6 +20,7 @@ import {
   NativeTemplateMismatch,
   replaceAnchor,
 } from "../shared/native-template.ts";
+import { shellCommandsScript } from "../shared/shell-commands.ts";
 import {
   safeAreaUpdateScript,
   windowLayoutUpdateScript,
@@ -100,6 +101,9 @@ export const generateAndroid = (
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
       __WINDOW_LAYOUT_SCRIPT__: JSON.stringify(windowLayoutUpdateScript),
       __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "android"),
+      __SHELL_COMMANDS_SCRIPT__: JSON.stringify(
+        shellCommandsScript(native.plan, "android")
+      ),
       __URL__: JSON.stringify(url),
       __COOKIES__: native.cookies
         .map(

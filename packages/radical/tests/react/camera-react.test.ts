@@ -6,7 +6,7 @@ import { createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-import { bridgeTestLayer } from "../../src/core/bridge/bridge.ts";
+import { bridgeLayer, bridgeTestLayer } from "../../src/core/bridge/bridge.ts";
 import type { Bridge } from "../../src/core/bridge/bridge.ts";
 import {
   RadicalProvider,
@@ -217,4 +217,42 @@ it.effect("interrupts the previous provider and ignores its old actions", () =>
       assert.strictEqual(calls, 1);
     })
   )
+);
+
+it.effect(
+  "reports an unavailable camera permission command without calling native",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const done = yield* Deferred.make<CameraPermissionState>();
+        let calls = 0;
+        yield* mount(
+          bridgeLayer(
+            () => ({
+              getPlatform: () => "ios",
+              nativePromise: async () => {
+                calls += 1;
+
+                return await Effect.runPromise(
+                  Effect.succeed({ camera: "granted" })
+                );
+              },
+            }),
+            undefined,
+            () => ({ Camera: ["getPhoto"] })
+          ),
+          (_camera, permission) => {
+            if (permission.error) {
+              queueMicrotask(() => {
+                Effect.runSync(Deferred.succeed(done, permission));
+              });
+            }
+          }
+        );
+        const state = yield* Deferred.await(done);
+        assert.strictEqual(state.error?._tag, "BridgeUnavailable");
+        assert.isFalse(state.loading);
+        assert.strictEqual(calls, 0);
+      })
+    )
 );

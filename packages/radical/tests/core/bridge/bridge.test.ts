@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
+import type { ShellCommands } from "../../../src/core/bridge/shell-commands.ts";
 import {
   Bridge,
   BridgeCallFailed,
@@ -147,3 +148,140 @@ describe("injected bridge", () => {
       })
   );
 });
+
+it.effect(
+  "rejects missing plugins and commands without invoking native code",
+  () =>
+    Effect.gen(function* () {
+      let calls = 0;
+
+      const layer = bridgeLayer(
+        () => ({
+          getPlatform: () => "ios",
+          nativePromise: async () => {
+            calls += 1;
+
+            return await Effect.runPromise(Effect.succeed({}));
+          },
+        }),
+        undefined,
+        () => ({ Device: ["getInfo"] })
+      );
+
+      for (const [plugin, method] of [
+        ["Device", "newMethod"],
+        ["Camera", "getPhoto"],
+        ["toString", "getInfo"],
+      ]) {
+        const error = yield* Bridge.pipe(
+          Effect.flatMap((bridge) =>
+            bridge.call(plugin ?? "", method ?? "", {})
+          ),
+          Effect.provide(layer),
+          Effect.flip
+        );
+
+        assert.strictEqual(error._tag, "BridgeUnavailable");
+      }
+
+      assert.strictEqual(calls, 0);
+    })
+);
+
+it.effect(
+  "allows listed commands and preserves legacy shells without a list",
+  () =>
+    Effect.gen(function* () {
+      for (const commands of [undefined, { Device: ["getInfo"] }]) {
+        let calls = 0;
+
+        const result = yield* getDeviceInfo.pipe(
+          Effect.provide(
+            bridgeLayer(
+              () => ({
+                getPlatform: () => "android",
+                nativePromise: async () => {
+                  calls += 1;
+
+                  return await Effect.runPromise(Effect.succeed(nativeInfo));
+                },
+              }),
+              undefined,
+              () => commands
+            )
+          )
+        );
+
+        assert.deepStrictEqual(result, nativeInfo);
+        assert.strictEqual(calls, 1);
+      }
+    })
+);
+
+it.effect(
+  "rejects unavailable listeners and subscriptions before acquisition",
+  () =>
+    Effect.gen(function* () {
+      const lists: readonly ShellCommands[] = [
+        {},
+        { Geolocation: ["watchPosition"] },
+      ];
+
+      for (const commands of lists) {
+        let calls = 0;
+
+        const layer = bridgeLayer(
+          () => ({
+            getPlatform: () => "ios",
+            nativePromise: async () =>
+              await Effect.runPromise(Effect.succeed({})),
+            nativeCallback: () => {
+              calls += 1;
+
+              return "callback";
+            },
+          }),
+          undefined,
+          () => commands
+        );
+
+        yield* Effect.gen(function* () {
+          const bridge = yield* Bridge;
+
+          if (!bridge.subscribe || !bridge.listen) {
+            assert.fail("Live bridge must support listeners and subscriptions");
+          }
+
+          const error = yield* bridge
+            .subscribe(
+              "Geolocation",
+              "watchPosition",
+              {},
+              DeviceInfoSchema,
+              () => {},
+              { method: "clearWatch", key: "id" }
+            )
+            .pipe(
+              Effect.match({
+                onFailure: (failure) => failure,
+                onSuccess: () => {},
+              })
+            );
+
+          assert.strictEqual(error?._tag, "BridgeUnavailable");
+
+          const listenerError = yield* bridge
+            .listen("MissingPlugin", "change", () => {})
+            .pipe(
+              Effect.match({
+                onFailure: (failure) => failure,
+                onSuccess: () => {},
+              })
+            );
+
+          assert.strictEqual(listenerError?._tag, "BridgeUnavailable");
+        }).pipe(Effect.provide(layer));
+        assert.strictEqual(calls, 0);
+      }
+    })
+);

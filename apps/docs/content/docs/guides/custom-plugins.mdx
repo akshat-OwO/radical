@@ -67,4 +67,8 @@ You receive the native Echo result or handled rejection.
 </Step>
 </Steps>
 
-See the [bridge sequence](/docs/explanation/bridge).
+## Change commands across releases
+
+Evolve shell commands additively. For an incompatible change, add a new command instead of changing an existing one. Handle `BridgeUnavailable` when a release was built before a command existed.
+
+See the [bridge explanation](/docs/explanation/bridge) for how shells report commands.

@@ -166,31 +166,40 @@ describe("internal plugin registry", () => {
       );
     })
   );
-  it.effect(
-    "validates the same ordered plugin set through resolvePlugins for all 8192 boolean combinations",
-    () =>
-      Effect.gen(function* () {
-        const modules = Layer.succeed(PluginModules, {
-          load: () =>
-            Effect.die("Internal resolution must not load custom modules"),
-        });
 
-        for (let index = 0; index < 2 ** flags.length; index += 1) {
-          const internalPlugins = combination(index);
+  // Keep exhaustive coverage within a bounded amount of work per test.
+  for (let first = 0; first < 2 ** flags.length; first += 1024) {
+    const end = Math.min(first + 1024, 2 ** flags.length);
 
-          const plugins = yield* resolvePlugins({
-            appId: "dev.test.app",
-            internalPlugins,
-            pluginOptions,
-          }).pipe(Effect.provide(modules));
+    it.effect(
+      `validates the ordered plugin set through resolvePlugins for boolean combinations ${first} through ${end - 1}`,
+      () =>
+        Effect.gen(function* () {
+          for (let index = first; index < end; index += 1) {
+            const internalPlugins = combination(index);
 
-          assert.deepStrictEqual(
-            plugins.map(({ manifest }) => manifest.id),
-            legacyPlugins(internalPlugins)
-          );
-        }
-      })
-  );
+            const plugins = yield* resolvePlugins({
+              appId: "dev.test.app",
+              internalPlugins,
+              pluginOptions,
+            });
+
+            assert.deepStrictEqual(
+              plugins.map(({ manifest }) => manifest.id),
+              legacyPlugins(internalPlugins)
+            );
+          }
+        }).pipe(
+          Effect.provide(
+            Layer.succeed(PluginModules, {
+              load: () =>
+                Effect.die("Internal resolution must not load custom modules"),
+            })
+          )
+        )
+    );
+  }
+
   it.effect(
     "names actual radical/internal-plugins exports with matching manifests",
     () =>
