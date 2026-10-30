@@ -4,6 +4,7 @@ Import the stylesheet once, then install transitions on each TanStack Router in 
 
 ```ts
 import { browserTransitions } from "@akshatowo/radical/tanstack-start-client";
+
 import "@akshatowo/radical/transitions.css";
 
 const router = createRouter({ routeTree });

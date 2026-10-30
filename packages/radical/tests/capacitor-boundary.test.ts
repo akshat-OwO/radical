@@ -83,10 +83,11 @@ const updateBindings = (node: Node, bindings: Bindings) => {
 const opensScope = (node: Node) =>
   node.type === "Program" || node.type === "BlockStatement" || isFunction(node);
 
-const restrictedLoads = (source: string) => {
+// Babel 8 reads `<A>(x) =>` as JSX when the plugin is on, so only JSX files get it.
+const restrictedLoads = (source: string, file = "fixture.ts") => {
   const ast = parse(source, {
     sourceType: "unambiguous",
-    plugins: ["typescript", "jsx"],
+    plugins: /\.[jt]sx$/u.test(file) ? ["typescript", "jsx"] : ["typescript"],
     createImportExpressions: true,
   });
 
@@ -124,7 +125,7 @@ const restrictedLoads = (source: string) => {
       if (node.type === "ImportExpression") {
         record(node.source);
       } else if (node.type === "TSImportType") {
-        record(node.argument);
+        record(node.source);
       } else if (
         node.type === "CallExpression" &&
         isRequire(node.callee, bindings)
@@ -149,7 +150,7 @@ const restrictedLoads = (source: string) => {
 const violationsIn = (file: string, source: string) =>
   allowed.has(file)
     ? []
-    : restrictedLoads(source).map((specifier) => `${file}: ${specifier}`);
+    : restrictedLoads(source, file).map((specifier) => `${file}: ${specifier}`);
 
 it.effect("detects dynamic Capacitor imports with quotes or templates", () =>
   Effect.sync(() => {
