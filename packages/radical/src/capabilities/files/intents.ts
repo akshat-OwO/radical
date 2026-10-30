@@ -46,10 +46,12 @@ export const BrowserIntentsLive = Layer.succeed(BrowserIntents, {
     }),
 });
 
+/** `URL.canParse` arrived in Safari 17, and iOS 15 and 16 WebViews are still supported. */
 const parse = (url: string) =>
-  URL.canParse(url)
-    ? Effect.succeed(url)
-    : Effect.fail(new Unavailable({ reason: `Invalid URL: ${url}` }));
+  Effect.try({
+    try: () => new URL(url),
+    catch: () => new Unavailable({ reason: `Invalid URL: ${url}` }),
+  }).pipe(Effect.as(url));
 
 /** Opens a URL in the app that handles it, such as the browser, mail, or maps. */
 export const openUrl = (url: string) =>

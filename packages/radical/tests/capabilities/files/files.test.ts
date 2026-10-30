@@ -430,6 +430,41 @@ describe("intents", () => {
       })
   );
 
+  it.effect("validates URLs in WebViews without URL.canParse", () =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const canParse = Object.getOwnPropertyDescriptor(URL, "canParse");
+          Reflect.deleteProperty(URL, "canParse");
+
+          return canParse;
+        }),
+        (canParse) =>
+          Effect.sync(() => {
+            if (canParse !== undefined) {
+              Object.defineProperty(URL, "canParse", canParse);
+            }
+          })
+      );
+
+      const layer = Layer.merge(
+        bridgeTestLayer("android", (_plugin, _method, options) =>
+          Effect.succeed({ completed: true, options })
+        ),
+        intentsLayer()
+      );
+
+      yield* openUrl("https://apps.apple.com/app/id1").pipe(
+        Effect.provide(layer)
+      );
+      assert.isFalse("canParse" in URL);
+      assert.instanceOf(
+        yield* openUrl("not a url").pipe(Effect.provide(layer), Effect.flip),
+        Unavailable
+      );
+    }).pipe(Effect.scoped)
+  );
+
   it.effect(
     "opens native files with the default handler or chooser and maps opener codes",
     () =>
