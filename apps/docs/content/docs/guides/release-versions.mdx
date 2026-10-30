@@ -38,10 +38,13 @@ Use `getNativeContext` with the incoming request to read the installed release's
 import { getNativeContext } from "@akshatowo/radical/server";
 
 const context = getNativeContext(request);
-const { appVersion, appBuild } = context;
+
+if (context.platform !== "browser") {
+  const { appVersion, appBuild } = context;
+}
 ```
 
-Both fields are optional. Older releases and browser requests may omit them.
+Browser requests have no app version or app build. Both fields are optional on Android and iOS, because releases built before Radical reported them omit them.
 
 Use them for compatibility decisions, not authorization: clients can change native context. See the [server reference](/docs/reference/server).
 
