@@ -23,6 +23,17 @@ export const bundledOrigins = [
   "capacitor://localhost",
 ] as const;
 
+/** WebKit reports `capacitor://localhost` without a trailing slash, so compare origins, not prefixes. */
+const isBundledPage = (page: string) => {
+  if (!URL.canParse(page)) {
+    return false;
+  }
+
+  const { protocol, host } = new URL(page);
+
+  return bundledOrigins.some((origin) => `${protocol}//${host}` === origin);
+};
+
 interface BundledDocument {
   readonly __radicalNativeContext?: unknown;
   __radicalMounted?: boolean;
@@ -90,9 +101,9 @@ export const routeBundledRequest = (
     try: () => {
       const source = input instanceof Request ? input.url : String(input);
       const url = new URL(source, page);
+      const local = isBundledPage(page);
       const pageUrl = new URL(page);
       const pageOrigin = `${pageUrl.protocol}//${pageUrl.host}`;
-      const local = bundledOrigins.some((origin) => pageOrigin === origin);
       const urlOrigin = `${url.protocol}//${url.host}`;
 
       const routed =
@@ -167,9 +178,7 @@ export const radicalFetch = (
     const environment = yield* RadicalFetchEnvironment;
     const page = yield* environment.page;
 
-    const local = bundledOrigins.some((origin) =>
-      page.startsWith(`${origin}/`)
-    );
+    const local = isBundledPage(page);
 
     if (config.mode !== "bundled" || !local) {
       return yield* environment.fetch(input, init);

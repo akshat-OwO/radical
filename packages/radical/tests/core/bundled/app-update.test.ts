@@ -309,6 +309,40 @@ describe("minimum build", () => {
       })
   );
   it.effect(
+    "routes requests from an iOS page whose href has no trailing slash",
+    () =>
+      Effect.gen(function* () {
+        const store = createAppUpdateStore();
+        const requested: string[] = [];
+
+        const layer = Layer.succeed(RadicalFetchEnvironment, {
+          page: Effect.succeed("capacitor://localhost"),
+          context: Effect.succeed(context("ios", 1)),
+          fetch: (input) =>
+            Effect.sync(() => {
+              requested.push(
+                input instanceof Request ? input.url : String(input)
+              );
+
+              return Response.json(
+                { status: "required", storeUrl: null },
+                { status: 426, headers: { [APP_UPDATE_HEADER]: "1" } }
+              );
+            }),
+        });
+
+        yield* radicalFetch(
+          { mode: "bundled", origin: "https://api.example" },
+          "/function",
+          undefined,
+          store
+        ).pipe(Effect.provide(layer));
+
+        assert.deepStrictEqual(requested, ["https://api.example/function"]);
+        assert.strictEqual(store.snapshot().status, "required");
+      })
+  );
+  it.effect(
     "moves the fetch store to required without consuming the 426 response and ignores unrelated origins",
     () =>
       Effect.gen(function* () {
