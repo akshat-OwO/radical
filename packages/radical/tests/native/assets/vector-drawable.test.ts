@@ -97,6 +97,23 @@ describe("SVG conversion", () => {
     })
   );
 
+  it.effect("traces rounded rectangles with defaulted and clamped radii", () =>
+    Effect.gen(function* () {
+      const xml = yield* sectionVectorDrawable(
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="0" y="0" width="4" height="8" ry="9"/></svg>',
+        "rounded.svg"
+      );
+
+      assert.strictEqual(
+        xml,
+        document(
+          24,
+          '    <path android:pathData="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" android:strokeColor="#FF000000" android:strokeWidth="2" />\n    <path android:pathData="M2 0a2 4 0 0 1 2 4 2 4 0 0 1-2 4 2 4 0 0 1-2-4 2 4 0 0 1 2-4Z" android:strokeColor="#FF000000" android:strokeWidth="2" />'
+        )
+      );
+    })
+  );
+
   it.effect(
     "rejects unsupported rendering features and invalid viewports with typed errors",
     () =>
@@ -107,6 +124,7 @@ describe("SVG conversion", () => {
           '<svg viewBox="0 0 24 24"><path d="M0 0h4" fill="url(#gradient)"/></svg>',
           '<svg viewBox="0 0 0 24"/>',
           '<svg width="100%" height="100%"/>',
+          '<svg viewBox="0 0 24 24"><svg width="24" height="24" viewBox="0 0 2 2"><path d="M0 0h2v2z"/></svg></svg>',
         ]) {
           const error = yield* Effect.flip(
             sectionVectorDrawable(svg, "unsupported.svg")

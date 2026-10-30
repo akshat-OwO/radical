@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { optimize } from "svgo";
 import type { XastChild, XastElement, XastRoot } from "svgo";
 
@@ -44,6 +44,59 @@ const color = (value: string) => {
   return `#${expanded.length === 8 ? expanded.slice(6) : "ff"}${expanded.slice(0, 6)}`.toUpperCase();
 };
 
+const length = (value: string | undefined) =>
+  value !== undefined && /^-?\d*\.?\d+(?:px)?$/u.test(value)
+    ? Number(value.replace(/px$/u, ""))
+    : undefined;
+
+/** SVGO leaves rounded rectangles alone, so trace them with SVG's rx/ry defaulting and clamping. */
+const roundedRectPath = (attributes: Record<string, string>) => {
+  const x = length(attributes.x ?? "0");
+  const y = length(attributes.y ?? "0");
+  const width = length(attributes.width);
+  const height = length(attributes.height);
+  const rxValue = length(attributes.rx);
+  const ryValue = length(attributes.ry);
+
+  if (
+    x === undefined ||
+    y === undefined ||
+    width === undefined ||
+    height === undefined ||
+    width <= 0 ||
+    height <= 0 ||
+    (rxValue === undefined && ryValue === undefined)
+  ) {
+    return Option.none<string>();
+  }
+
+  const rx = Math.min(Math.max(rxValue ?? ryValue ?? 0, 0), width / 2);
+  const ry = Math.min(Math.max(ryValue ?? rxValue ?? 0, 0), height / 2);
+
+  if (rx === 0 || ry === 0) {
+    return Option.none<string>();
+  }
+
+  const arc = `A${rx} ${ry} 0 0 1`;
+
+  return Option.some(
+    [
+      `M${x + rx} ${y}`,
+      `H${x + width - rx}`,
+      `${arc} ${x + width} ${y + ry}`,
+      `V${y + height - ry}`,
+      `${arc} ${x + width - rx} ${y + height}`,
+      `H${x + rx}`,
+      `${arc} ${x} ${y + height - ry}`,
+      `V${y + ry}`,
+      `${arc} ${x + rx} ${y}`,
+      "Z",
+    ].join("")
+  );
+};
+
+const rectGeometry = new Set(["x", "y", "width", "height", "rx", "ry"]);
+
 const parse = (input: string, source: string) =>
   Effect.try({
     try: () => {
@@ -56,6 +109,34 @@ const parse = (input: string, source: string) =>
           {
             name: "convertColors",
             params: { shorthex: false, shortname: false, names2hex: true },
+          },
+          {
+            name: "convertRoundedRects",
+            fn: () => ({
+              element: {
+                enter: (node) => {
+                  if (node.name !== "rect") {
+                    return;
+                  }
+
+                  const traced = roundedRectPath(node.attributes);
+
+                  if (Option.isNone(traced)) {
+                    return;
+                  }
+
+                  node.name = "path";
+                  node.attributes = {
+                    ...Object.fromEntries(
+                      Object.entries(node.attributes).filter(
+                        ([name]) => !rectGeometry.has(name)
+                      )
+                    ),
+                    d: traced.value,
+                  };
+                },
+              },
+            }),
           },
           { name: "convertShapeToPath", params: { convertArcs: true } },
           "moveGroupAttrsToElems",
@@ -297,7 +378,8 @@ const drawablePaths = (
       return [];
     }
 
-    if (node.name !== "svg" && node.name !== "g" && node.name !== "path") {
+    // Nested viewports need their own transform and clip, which Android cannot express here.
+    if (node.name !== "g" && node.name !== "path") {
       return yield* invalid(source, `Unsupported element ${node.name}`);
     }
 
@@ -331,7 +413,13 @@ export const svgToVectorDrawable = (input: string, source: string) =>
     }
 
     const { box, width, height } = yield* viewport(svg, source);
-    const paths = yield* drawablePaths(svg, new Map(), source);
+    const attrs = yield* inheritedAttributes(svg, new Map(), source);
+    const paths: string[] = [];
+
+    for (const child of svg.children) {
+      paths.push(...(yield* drawablePaths(child, attrs, source)));
+    }
+
     const contents = paths.join("\n");
 
     const translated =
