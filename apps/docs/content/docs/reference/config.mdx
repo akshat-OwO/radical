@@ -9,6 +9,8 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 
 | Field | Type | Default and constraints |
 | --- | --- | --- |
+| `version` | Nonempty string | App version shown in stores. Defaults to the app's `package.json` version. On iOS, one to three period-separated integers. |
+| `build` | Positive safe integer | App build. Defaults to `1` when no CLI flag or environment variable is set. Android permits at most `2100000000`. |
 | `appId` | `string`, required | Dot-separated segments. Each starts with a letter and contains letters, digits, or underscores. Identifies web cache storage and supplies native identifier defaults. |
 | `appearance` | `"system"`, `"light"`, or `"dark"` | Defaults to `"system"`, which follows the device. `"light"` and `"dark"` pin the whole native shell. |
 | `mode` | `"remote"` or `"bundled"` | Omitted means remote behavior. |

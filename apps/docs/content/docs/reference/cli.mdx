@@ -13,6 +13,7 @@ The `radical` executable runs in the app directory and resolves that directory's
 
 | Flag | Type | Default |
 | --- | --- | --- |
+| `--build` | Positive integer | App build for generation. Overrides `RADICAL_BUILD` and config `build`. |
 | `--generate-only` | Boolean | `false`. Generates without building or launching the native app. Bundled UI still builds. |
 | `--target` | String | Empty. An adb serial or installed AVD name. |
 
@@ -38,6 +39,7 @@ The SDK path resolves from `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Otherwise `a
 
 | Flag | Type | Default |
 | --- | --- | --- |
+| `--build` | Positive integer | App build for generation. Overrides `RADICAL_BUILD` and config `build`. |
 | `--generate-only` | Boolean | `false`. Generates without building or launching the native app. Bundled UI still builds. |
 | `--target` | String | Empty. A simulator UDID. |
 
@@ -46,6 +48,12 @@ The SDK path resolves from `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Otherwise `a
 | No `--target` | Booted available iPhone simulator, then first available iPhone |
 | Physical iOS device | Not selected by CLI |
 | Build host | macOS with Xcode |
+
+## App release values
+
+For Android and iOS, the app build resolves from `--build`, then the nonempty `RADICAL_BUILD` environment variable, then config `build`. If none is set, generation uses `1` and prints a notice. Android permits at most `2100000000`.
+
+Generation prints the resolved app version and app build and writes them to Gradle and Xcode. Each run regenerates the native project, so generated file edits do not persist. See [Publish a new release](/docs/guides/release-versions).
 
 ## `radical typegen`
 
