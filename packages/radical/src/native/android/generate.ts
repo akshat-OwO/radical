@@ -43,11 +43,20 @@ export const navigationGuardScript = (origins: readonly string[]) =>
 export const generateAndroid = (
   root: string,
   packageRoot = resolvePackageRoot(import.meta.url),
-  plan?: BuildPlan
+  plan?: BuildPlan,
+  cliBuild?: string
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const native = yield* readNativeProject(root, packageRoot, "android", plan);
+
+    const native = yield* readNativeProject(
+      root,
+      packageRoot,
+      "android",
+      plan,
+      cliBuild
+    );
+
     const { config, url, origins, cookie } = native;
 
     const template = yield* fs.readFileString(
@@ -288,17 +297,33 @@ export const generateAndroid = (
         }
 
         const appGradle = path.join(staging, "android/app/build.gradle");
-        const gradle = yield* fs.readFileString(appGradle);
+
+        const withBuild = yield* replaceAnchor(
+          appGradle,
+          yield* fs.readFileString(appGradle),
+          /versionCode \d+/u,
+          `versionCode ${native.release.build}`
+        );
+
+        const gradle = yield* replaceAnchor(
+          appGradle,
+          withBuild,
+          /versionName "[^"\n]*"/u,
+          `versionName ${JSON.stringify(native.release.version).replaceAll("$", "\\$")}`
+        );
+
         yield* fs.writeFileString(
           path.join(staging, "android/app/radical.gradle"),
           navigation
             ? `${gradleTemplate}\ndependencies { implementation "com.google.android.material:material:1.14.0" }\n`
             : gradleTemplate
         );
+
         yield* fs.writeFileString(
           appGradle,
           `${gradle}\napply from: 'radical.gradle'\n`
         );
+
         yield* fs.writeFileString(
           path.join(
             staging,

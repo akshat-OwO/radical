@@ -8,6 +8,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
 const config = {
+  version: "1.2.3",
+  build: 127,
   navigation: {
     android: {
       labels: "labeled",

@@ -6,6 +6,7 @@ export default defineMeta({
     "offline-routes",
     "run-on-a-device",
     "app-assets",
+    "release-versions",
     "safe-area",
     "window-layout",
     "device-info",

@@ -14,7 +14,7 @@ In bundled mode each release keeps the UI packaged in its binary, and every rele
 
 ## App version and app build
 
-The config gains `version`, the marketing version shown in the stores, and `build`, a positive integer that increases with every upload. `version` defaults to the app's `package.json` version. `build` comes only from config, a `--build` CLI flag, or an environment variable, in that order of precedence, and is never incremented at generation time. CI owns the counter. One integer serves both platforms. Generation writes both values into Gradle and the Xcode build settings, validates platform limits, and prints the resolved values.
+The config gains `version`, the marketing version shown in the stores, and `build`, a positive integer that increases with every upload. `version` defaults to the app's `package.json` version. `build` comes from a `--build` CLI flag, the `RADICAL_BUILD` environment variable, or config. The most specific source wins, so CI can override a value kept in config. Without any source, generation uses 1 and says so, which keeps local runs working; the stores reject a second upload with that number. Generation never increments the build. CI owns the counter. One integer serves both platforms. Generation writes both values into Gradle and the Xcode build settings, validates platform limits, and prints the resolved values.
 
 Shells read their version and build at runtime from the installed binary, through `PackageManager` on Android and `Bundle.main` on iOS. Values changed at archive time are then still reported correctly. Native context gains optional `appVersion` and `appBuild`, sent through the existing cookie in remote mode and the `x-radical-context` header in bundled mode.
 

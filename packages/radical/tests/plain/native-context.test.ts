@@ -25,6 +25,8 @@ it.effect("encodes shell cookies and reads request context synchronously", () =>
       },
       safeArea: { top: 24, right: 0, bottom: 16, left: 0 },
       shellVersion: "1.0.0",
+      appVersion: "2.3.4",
+      appBuild: 127,
     };
 
     const cookie: string = encodeNativeContextCookie(context);
@@ -97,4 +99,50 @@ it.effect("reads local browser context synchronously before mount", () =>
       shellVersion: null,
     });
   })
+);
+
+it.effect(
+  "keeps older shells and ignores invalid optional release fields",
+  () =>
+    Effect.sync(() => {
+      for (const release of [
+        {},
+        { appVersion: "", appBuild: -1 },
+        { appVersion: 123, appBuild: "5" },
+      ]) {
+        const context = {
+          platform: "ios",
+          safeArea: zeroSafeArea,
+          shellVersion: "1.0.0",
+          ...release,
+        };
+
+        for (const headers of [
+          {
+            cookie: `${NATIVE_CONTEXT_COOKIE}=${encodeURIComponent(JSON.stringify(context))}`,
+          },
+          {
+            [NATIVE_CONTEXT_HEADER]: encodeURIComponent(
+              JSON.stringify(context)
+            ),
+          },
+        ]) {
+          const decoded = getNativeContext(
+            new Request("https://example.com", {
+              headers: new Headers(
+                Object.entries(headers).filter(
+                  (entry): entry is [string, string] => entry[1] !== undefined
+                )
+              ),
+            })
+          );
+
+          assert.strictEqual(decoded.platform, "ios");
+
+          assert.notProperty(decoded, "appVersion");
+
+          assert.notProperty(decoded, "appBuild");
+        }
+      }
+    })
 );

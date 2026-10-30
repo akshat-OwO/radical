@@ -54,11 +54,16 @@ const fixture = (
     (
       root: string,
       _packageRoot?: string,
-      prepared?: Effect.Success<typeof plan>
+      prepared?: Effect.Success<typeof plan>,
+      build?: string
     ) =>
       Effect.gen(function* () {
         assert.deepStrictEqual(prepared, yield* plan);
         yield* record(["generate", platform, root]);
+
+        if (build !== undefined) {
+          yield* record(["build-flag", build]);
+        }
 
         return yield* failure === "generate"
           ? Effect.fail(error)
@@ -179,6 +184,21 @@ describe("CLI orchestration", () => {
         }).pipe(Effect.provide(fake.layer));
       }
     );
+  }
+
+  for (const platform of ["android", "ios"]) {
+    it.effect(`passes --build to the ${platform} generator`, () => {
+      const fake = fixture();
+
+      return Effect.gen(function* () {
+        yield* command([platform, "--generate-only", "--build", "127"]);
+        assert.deepStrictEqual(fake.calls, [
+          ["resolve", false],
+          ["generate", platform, "/app"],
+          ["build-flag", "127"],
+        ]);
+      }).pipe(Effect.provide(fake.layer));
+    });
   }
 
   it.effect(

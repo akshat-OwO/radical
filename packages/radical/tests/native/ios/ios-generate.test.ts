@@ -1,7 +1,14 @@
 import { createRequire } from "node:module";
 
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, FileSystem, Layer, PlatformError, Schema } from "effect";
+import {
+  ConfigProvider,
+  Effect,
+  FileSystem,
+  Layer,
+  PlatformError,
+  Schema,
+} from "effect";
 import { ChildProcessSpawner } from "effect/process";
 
 import echoSource from "../../../../../apps/example/plugins/EchoPlugin.swift?raw";
@@ -65,6 +72,7 @@ const memory = (
     ["/package/templates/ios/LaunchScreen.storyboard", launchScreen],
     ["/package/templates/offline.html", offlinePage],
     ["/package/package.json", JSON.stringify({ version: "1.2.3" })],
+    ["/app/package.json", JSON.stringify({ version: "2.3.4" })],
   ]);
 
   const require = createRequire(import.meta.url);
@@ -168,7 +176,7 @@ const memory = (
           const app = `${command.options.cwd}/ios/App/App`;
           files.set(
             `${command.options.cwd}/ios/App/App.xcodeproj/project.pbxproj`,
-            "IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;"
+            "IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;"
           );
           files.set(
             `${command.options.cwd}/ios/App/CapApp-SPM/Package.swift`,
@@ -208,6 +216,7 @@ const memory = (
     commands,
     layer: Layer.mergeAll(
       fs,
+      ConfigProvider.layer(ConfigProvider.fromUnknown({})),
       spawner,
       Layer.succeed(AssetGenerator, {
         generate: (input) =>
@@ -1256,7 +1265,7 @@ describe("ios native navigation", () => {
             state.files.get(
               `${destination}/ios/App/App.xcodeproj/project.pbxproj`
             ),
-            "IPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;"
+            "IPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;"
           );
           assert.strictEqual(
             state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),
@@ -1414,3 +1423,42 @@ it.effect("embeds the build plan commands in the document-start script", () => {
     assert.notInclude(source, "__SHELL_COMMANDS_SCRIPT__");
   }).pipe(Effect.provide(state.layer));
 });
+
+it.effect(
+  "writes configured app version and build and reads installed metadata at runtime",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      version: "4.5.6",
+      build: 127,
+    });
+
+    return Effect.gen(function* () {
+      yield* generateIos("/app", "/package");
+
+      const project =
+        state.files.get(
+          `${destination}/ios/App/App.xcodeproj/project.pbxproj`
+        ) ?? "";
+
+      assert.strictEqual(
+        project.match(/CURRENT_PROJECT_VERSION = 127;/gu)?.length,
+        2
+      );
+
+      assert.strictEqual(
+        project.match(/MARKETING_VERSION = 4\.5\.6;/gu)?.length,
+        2
+      );
+
+      const source = state.files.get(appDelegate) ?? "";
+
+      assert.include(
+        source,
+        'Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString")'
+      );
+
+      assert.include(source, 'context["appBuild"] = number');
+    }).pipe(Effect.provide(state.layer));
+  }
+);

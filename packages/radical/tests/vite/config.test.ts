@@ -201,3 +201,38 @@ describe("shell appearance config", () => {
       })
   );
 });
+
+it.effect(
+  "validates version and positive safe integer build configuration",
+  () =>
+    Effect.gen(function* () {
+      const config = {
+        appId: "dev.radical.example",
+        version: "2.3.4",
+        build: 127,
+      };
+
+      assert.deepStrictEqual(yield* validateConfig(config), config);
+
+      for (const version of ["", 123]) {
+        assert.strictEqual(
+          (yield* Effect.flip(validateConfig({ ...config, version })))._tag,
+          "InvalidConfig"
+        );
+      }
+
+      for (const build of [
+        0,
+        -1,
+        1.5,
+        Number.POSITIVE_INFINITY,
+        Number.MAX_SAFE_INTEGER + 1,
+        "127",
+      ]) {
+        assert.strictEqual(
+          (yield* Effect.flip(validateConfig({ ...config, build })))._tag,
+          "InvalidConfig"
+        );
+      }
+    })
+);

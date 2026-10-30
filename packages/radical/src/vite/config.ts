@@ -58,6 +58,14 @@ export const SplashColorSchema = Schema.String.check(
 );
 
 export const RadicalConfigSchema = Schema.Struct({
+  version: Schema.optional(Schema.NonEmptyString),
+  build: Schema.optional(
+    Schema.Number.check(
+      Schema.isInt(),
+      Schema.isGreaterThan(0),
+      Schema.isLessThanOrEqualTo(Number.MAX_SAFE_INTEGER)
+    )
+  ),
   appearance: Schema.optional(Schema.Literals(["system", "light", "dark"])),
   navigation: Schema.optional(NavigationSchema),
   plugins: Schema.optional(

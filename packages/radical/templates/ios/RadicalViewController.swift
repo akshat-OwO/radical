@@ -136,6 +136,10 @@ final class RadicalViewController: CAPBridgeViewController {
         let area: [String: CGFloat] = ["top": insets.top, "right": insets.right, "bottom": insets.bottom, "left": insets.left]
         let seed = __COOKIE_VALUE__.removingPercentEncoding!.data(using: .utf8)!
         var context = try! JSONSerialization.jsonObject(with: seed) as! [String: Any]
+        context["appVersion"] = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        if let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String, let number = Int(build), number > 0 {
+            context["appBuild"] = number
+        }
         context["safeArea"] = area
         let layout: [String: Any] = ["widthClass": width < 600 ? "compact" : width < 840 ? "medium" : "expanded", "posture": "flat", "hinge": NSNull()]
         context["windowLayout"] = layout

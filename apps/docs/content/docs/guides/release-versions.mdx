@@ -1,0 +1,59 @@
+---
+title: "Publish a new release"
+description: "Set an app version and app build for a store release."
+---
+
+## Set the app version
+
+Set `version` in the config passed to `radical(config)` in your Vite config:
+
+```ts
+version: "1.2.3",
+```
+
+If omitted, Radical uses the app's `package.json` version. For iOS, use one to three period-separated integers.
+
+## Set an increasing app build
+
+Configure CI to supply a positive integer that increases for every store upload. For example, pass your CI counter as `RADICAL_BUILD`:
+
+```sh
+RADICAL_BUILD=127 pnpm exec radical android --generate-only
+RADICAL_BUILD=127 pnpm exec radical ios --generate-only
+```
+
+Replace `127` with the next app build from your CI system. Android limits the app build to `2100000000`.
+
+You can also set `build` in config or pass `--build` to either command. The flag takes precedence over `RADICAL_BUILD`, which takes precedence over config.
+
+When no source is set, generation uses `1` and prints a notice. Stores reject a repeated app build.
+
+Radical prints the resolved app version and app build and writes them into Gradle and Xcode. Each run regenerates the native projects, so set these values through Radical instead of editing generated files. Sign and upload the generated app through your usual store release process.
+
+## Read release values on the server
+
+Use `getNativeContext` with the incoming request to read the installed release's values:
+
+```ts
+import { getNativeContext } from "@akshatowo/radical/server";
+
+const context = getNativeContext(request);
+
+if (context.platform !== "browser") {
+  const { appVersion, appBuild } = context;
+}
+```
+
+Browser requests have no app version or app build. Both fields are optional on Android and iOS, because releases built before Radical reported them omit them.
+
+Use them for compatibility decisions, not authorization: clients can change native context. See the [server reference](/docs/reference/server).
+
+## Choose a store release or web deploy
+
+| Change | Remote mode | Bundled mode |
+| --- | --- | --- |
+| UI change | Deploy the web app. Installed shells load the current deployment on their next load. | Upload a new release. The UI is packaged in the binary. |
+| Native shell or plugin change | Upload a new release. | Upload a new release. |
+| Server change | Deploy the server. Keep it compatible with installed shells. | Deploy the server. Keep server functions and APIs compatible with installed releases. |
+
+For bundled releases, make server function and API changes additive while older releases still use them. See [delivery modes](/docs/explanation/delivery-modes).

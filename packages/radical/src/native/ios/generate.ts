@@ -28,11 +28,19 @@ import {
 export const generateIos = (
   root: string,
   packageRoot = resolvePackageRoot(import.meta.url),
-  plan?: BuildPlan
+  plan?: BuildPlan,
+  cliBuild?: string
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const native = yield* readNativeProject(root, packageRoot, "ios", plan);
+
+    const native = yield* readNativeProject(
+      root,
+      packageRoot,
+      "ios",
+      plan,
+      cliBuild
+    );
 
     const domains = [
       ...new Set(native.origins.map((origin) => new URL(origin).hostname)),
@@ -126,6 +134,28 @@ export const generateIos = (
 
     return yield* generateNativeProject(root, "ios", native, (staging) =>
       Effect.gen(function* () {
+        const project = path.join(
+          staging,
+          "ios/App/App.xcodeproj/project.pbxproj"
+        );
+
+        const withBuild = yield* replaceAnchor(
+          project,
+          yield* fs.readFileString(project),
+          /CURRENT_PROJECT_VERSION = [^;]+;/gu,
+          `CURRENT_PROJECT_VERSION = ${native.release.build};`
+        );
+
+        yield* fs.writeFileString(
+          project,
+          yield* replaceAnchor(
+            project,
+            withBuild,
+            /MARKETING_VERSION = [^;]+;/gu,
+            `MARKETING_VERSION = ${native.release.version};`
+          )
+        );
+
         const app = path.join(staging, "ios/App/App");
 
         {
@@ -170,6 +200,7 @@ export const generateIos = (
             rootController
           )
         );
+
         const storyboard = path.join(app, "Base.lproj/Main.storyboard");
         yield* fs.writeFileString(
           storyboard,

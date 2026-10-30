@@ -22,6 +22,10 @@ flowchart TD
     Shell -->|radicalSafeArea event| React[React safe-area state]
 ```
 
+The installed binary supplies optional `appVersion` and `appBuild` values. They reach the server in the remote-mode cookie or bundled-mode header, so the server can account for older releases.
+
+`shellVersion` identifies Radical's version, not the app version. Like all native context, these values are untrusted and cannot authorize a request.
+
 ## Hydration and live insets have different owners
 
 Bundled rendering starts with CSS `env()` values and stable browser context. TanStack's SSR-disabled shell skips its loader; absent loader data also produces browser styles. `mountNativeContext` hands live CSS values to the shell after mount, without changing React's initial style props.
