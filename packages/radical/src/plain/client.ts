@@ -87,6 +87,8 @@ import {
   mountNativeContext as mountContext,
 } from "../core/bundled/bundled-request.ts";
 import type { NativeContext } from "../core/context/native-context.ts";
+import type { AppUpdateStore } from "../core/update/app-update.ts";
+import { fetchAppUpdate as fetchUpdateEffect } from "../core/update/update-client.ts";
 import { registerOfflineEffect } from "../entry/client.ts";
 import { defaultRuntime, getEffectRuntime } from "./runtime.ts";
 import type { RadicalRuntime } from "./runtime.ts";
@@ -455,3 +457,13 @@ export const watchLocation = (
 export { windowLayoutStyle } from "../capabilities/window-layout/window-layout-style.ts";
 
 export type { WindowLayout } from "../core/context/native-context.ts";
+
+export { createAppUpdateStore } from "../core/update/app-update.ts";
+
+export type {
+  AppUpdateState,
+  AppUpdateStore,
+} from "../core/update/app-update.ts";
+
+export const fetchAppUpdate = (request: typeof fetch, store?: AppUpdateStore) =>
+  Effect.runPromise(fetchUpdateEffect(request, store));

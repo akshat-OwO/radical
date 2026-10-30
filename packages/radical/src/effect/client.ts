@@ -227,3 +227,18 @@ export type {
   SectionOwnership,
   SectionsSnapshot,
 } from "../capabilities/sections/sections.ts";
+
+export { fetchAppUpdate } from "../core/update/update-client.ts";
+
+export { createAppUpdateStore } from "../core/update/app-update.ts";
+
+export type {
+  AppUpdateState,
+  AppUpdateStore,
+} from "../core/update/app-update.ts";
+
+export {
+  radicalFetch,
+  RadicalFetchEnvironment,
+  RadicalFetchEnvironmentLive,
+} from "../core/bundled/bundled-request.ts";

@@ -22,6 +22,7 @@ import { Route as NetworkRouteImport } from './routes/network'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
+import { Route as UpdateRouteImport } from './routes/update'
 import { Route as VideoRouteImport } from './routes/video'
 
 const IndexRoute = IndexRouteImport.update({
@@ -89,6 +90,11 @@ const OnlineRouteRoute = OnlineRouteRouteImport.update({
   path: '/online-route',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UpdateRoute = UpdateRouteImport.update({
+  id: '/update',
+  path: '/update',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VideoRoute = VideoRouteImport.update({
   id: '/video',
   path: '/video',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/update': typeof UpdateRoute
   '/video': typeof VideoRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/update': typeof UpdateRoute
   '/video': typeof VideoRoute
 }
 export interface FileRoutesById {
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/update': typeof UpdateRoute
   '/video': typeof VideoRoute
 }
 export interface FileRouteTypes {
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/offline-route'
     | '/online-route'
+    | '/update'
     | '/video'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/offline-route'
     | '/online-route'
+    | '/update'
     | '/video'
   id:
     | '__root__'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/offline-route'
     | '/online-route'
+    | '/update'
     | '/video'
   fileRoutesById: FileRoutesById
 }
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
+  UpdateRoute: typeof UpdateRoute
   VideoRoute: typeof VideoRoute
 }
 
@@ -305,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/update': {
+      id: '/update'
+      path: '/update'
+      fullPath: '/update'
+      preLoaderRoute: typeof UpdateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/video': {
       id: '/video'
       path: '/video'
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
+  UpdateRoute: UpdateRoute,
   VideoRoute: VideoRoute,
 }
 export const routeTree = rootRouteImport

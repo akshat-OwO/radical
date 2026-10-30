@@ -70,6 +70,7 @@ describe("TanStack Start adapter", () => {
             next: ((provided) => {
               assert.deepStrictEqual<unknown>(provided?.context, {
                 nativeContext: expected,
+                appUpdate: { status: "unknown", storeUrl: null },
               });
 
               return {
@@ -155,6 +156,7 @@ describe("TanStack Start adapter", () => {
                   next: async (options) => {
                     assert.deepStrictEqual<unknown>(options?.context, {
                       nativeContext: expected,
+                      appUpdate: { status: "unknown", storeUrl: null },
                     });
 
                     // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- Start rejects redirects as Response objects.
@@ -370,3 +372,66 @@ describe("bundled server-function CSRF opt-in", () => {
       })
   );
 });
+
+it.effect(
+  "minimum-build middleware redirects before a route runs and supplies update state to the update route",
+  () =>
+    Effect.gen(function* () {
+      const config = { appId: "dev.test.app", ios: { appStoreId: "123" } };
+
+      const [, middleware] = createRadicalRequestMiddleware({
+        config,
+        minimumBuild: { ios: 2 },
+        updatePath: "/update",
+      });
+
+      const { server } = middleware.options;
+      assert.isDefined(server);
+      const calls = { count: 0 };
+
+      for (const path of ["/private", "/update"]) {
+        const request = new Request(`https://app.test${path}`, {
+          headers: {
+            accept: "text/html",
+            cookie: `radical-context=${encodeURIComponent(JSON.stringify({ platform: "ios", shellVersion: "1", appBuild: 1, safeArea: { top: 0, right: 0, bottom: 0, left: 0 } }))}`,
+          },
+        });
+
+        const options = {
+          request,
+          pathname: path,
+          handlerType: "router" as const,
+          context: undefined,
+        };
+
+        // SAFETY: Start supplies the generic context at runtime; this fixture returns it unchanged.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Model Start's continuation boundary.
+        const next = ((provided: {
+          context?: { appUpdate: { status: string; storeUrl: string | null } };
+        }) => {
+          calls.count += 1;
+          assert.deepStrictEqual(provided.context?.appUpdate, {
+            status: "required",
+            storeUrl: "https://apps.apple.com/app/id123",
+          });
+
+          return {
+            ...options,
+            context: provided.context,
+            response: new Response("update route"),
+          };
+        }) as Parameters<typeof server>[0]["next"];
+
+        const result = yield* Effect.tryPromise({
+          try: async () => await server({ ...options, next }),
+          catch: (cause) => new MiddlewareFailure({ cause }),
+        });
+
+        const response = result instanceof Response ? result : result.response;
+        assert.strictEqual(response.status, path === "/private" ? 307 : 200);
+        assert.strictEqual(response.headers.get("cache-control"), "no-store");
+      }
+
+      assert.strictEqual(calls.count, 1);
+    })
+);

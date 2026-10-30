@@ -1,9 +1,13 @@
 import {
+  fetchAppUpdate,
+  createRadicalFetch,
   localNativeContext,
   mountNativeContext,
   safeAreaStyle,
 } from "@akshatowo/radical/client";
 import {
+  AppUpdateProvider,
+  AppUpdateBoundary,
   RadicalProvider,
   useRadicalRuntime,
   useSections,
@@ -27,7 +31,10 @@ import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
 
 const readNativeContext = createServerFn({ method: "GET" }).handler(
-  ({ context }) => context.nativeContext
+  ({ context }) => ({
+    nativeContext: context.nativeContext,
+    appUpdate: context.appUpdate,
+  })
 );
 
 const NotificationNavigation = () => {
@@ -113,7 +120,10 @@ const SectionLayout = ({ children }: { children: ReactNode }) => {
 };
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
-  const nativeContext = Route.useLoaderData();
+  const { nativeContext, appUpdate } = Route.useLoaderData() ?? {
+    nativeContext: localNativeContext(),
+    appUpdate: { status: "unknown" as const, storeUrl: null },
+  };
 
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
     safeAreaStyle(nativeContext, config.mode);
@@ -121,6 +131,9 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (config.mode === "bundled") {
       mountNativeContext();
+      void fetchAppUpdate(createRadicalFetch(config)).catch(() => {
+        // Startup failure leaves the update status unknown; later API responses still enforce it.
+      });
     }
   }, []);
 
@@ -132,8 +145,12 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
       </head>
       <body>
         <RadicalProvider nativeContext={nativeContext}>
-          <NotificationNavigation />
-          <SectionLayout>{children}</SectionLayout>
+          <AppUpdateProvider initialState={appUpdate}>
+            <AppUpdateBoundary>
+              <NotificationNavigation />
+              <SectionLayout>{children}</SectionLayout>
+            </AppUpdateBoundary>
+          </AppUpdateProvider>
         </RadicalProvider>
         <Scripts />
       </body>
@@ -144,7 +161,10 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 export const Route = createRootRoute({
   loader: async () =>
     config.mode === "bundled"
-      ? localNativeContext()
+      ? {
+          nativeContext: localNativeContext(),
+          appUpdate: { status: "unknown" as const, storeUrl: null },
+        }
       : await readNativeContext(),
   head: () => ({
     meta: [

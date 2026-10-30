@@ -46,3 +46,15 @@ Disposal interrupts pending runtime commands and waits for resource cleanup. The
 - Registration failures use `ServiceWorkerRegistrationError`; fetch failures use `RequestFailed`.
 
 Services, layers, Streams, schema codecs, and `registerOfflineEffect` are exported from `@akshatowo/radical/effect/client`.
+
+## App update policy
+
+`createRadicalFetch(config, store?)` recognises Radical's marked 426 responses from the configured bundled API origin. It sets the update state to `required` and returns the original response without consuming its body. Other origins and ordinary browser fetches retain their normal behavior.
+
+`fetchAppUpdate(createRadicalFetch(config), store?)` fetches the startup policy and returns a Promise of `{ status: "current" | "required" | "unknown", storeUrl: string | null }`. A failed fetch rejects with `RequestFailed`; the previous state remains unchanged. A required state persists until the app reloads, including when an earlier startup request finishes later.
+
+`createAppUpdateStore(initialState?)` creates an isolated controller.
+
+Fetch helpers, hooks, screens, and boundaries accept the same optional store. Omitting it uses the shared client controller. Initial state defaults to `unknown` with no store URL.
+
+The Effect API exports `fetchAppUpdate` and `radicalFetch(config, input, init?, store?)` from `@akshatowo/radical/effect/client`. `radicalFetch` requires `RadicalFetchEnvironment`; `RadicalFetchEnvironmentLive` supplies browser transport and injected shell context. Tests can supply an in-memory layer.

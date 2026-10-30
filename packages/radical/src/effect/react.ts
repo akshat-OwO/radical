@@ -107,3 +107,12 @@ export type {
 } from "../capabilities/sections/sections.ts";
 
 export { InvalidSection } from "../capabilities/sections/sections.ts";
+
+export {
+  AppUpdateProvider,
+  useAppUpdate,
+  AppUpdateScreen,
+  AppUpdateBoundary,
+} from "../react/use-app-update.ts";
+
+export type { AppUpdateState } from "../core/update/app-update.ts";
