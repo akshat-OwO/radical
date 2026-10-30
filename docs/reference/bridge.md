@@ -11,12 +11,12 @@
 Provide `BridgeLive` for the shell transport or `bridgeTestLayer(runtime, handler)` for an in-memory transport. Both use the same decoding boundary. `bridgeLayer(readInjectedBridge)` supplies a custom bridge acquisition function without reading globals at construction time.
 
 ```ts
-import { Effect } from "effect";
 import {
   BridgeLive,
   callBridge,
   DeviceInfoSchema,
 } from "@akshatowo/radical/client";
+import { Effect } from "effect";
 
 const device = callBridge("Device", "getInfo", DeviceInfoSchema).pipe(
   Effect.provide(BridgeLive)

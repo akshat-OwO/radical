@@ -72,6 +72,9 @@ export default defineConfig({
         ],
       },
     ],
+    // Ultracite 8.1 enables this alongside no-useless-return, no-useless-undefined and
+    // no-confusing-void-expression, which together reject every void then() callback.
+    "promise/always-return": "off",
     // Effect.gen takes anonymous generator functions.
     "func-names": ["error", "always", { generators: "never" }],
     "vitest/no-standalone-expect": [
