@@ -23,16 +23,14 @@ export const bundledOrigins = [
   "capacitor://localhost",
 ] as const;
 
-/** WebKit reports `capacitor://localhost` without a trailing slash, so compare origins, not prefixes. */
-const isBundledPage = (page: string) => {
-  if (!URL.canParse(page)) {
-    return false;
-  }
-
-  const { protocol, host } = new URL(page);
-
-  return bundledOrigins.some((origin) => `${protocol}//${host}` === origin);
-};
+/** WebKit reports `capacitor://localhost` without a trailing slash, so accept the bare origin too. */
+const isBundledPage = (page: string) =>
+  bundledOrigins.some(
+    (origin) =>
+      page === origin ||
+      (page.startsWith(origin) &&
+        ["/", "?", "#"].includes(page.charAt(origin.length)))
+  );
 
 interface BundledDocument {
   readonly __radicalNativeContext?: unknown;

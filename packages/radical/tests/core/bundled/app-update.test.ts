@@ -340,6 +340,30 @@ describe("minimum build", () => {
 
         assert.deepStrictEqual(requested, ["https://api.example/function"]);
         assert.strictEqual(store.snapshot().status, "required");
+
+        yield* radicalFetch(
+          { mode: "bundled", origin: "https://api.example" },
+          "/function",
+          undefined,
+          store
+        ).pipe(
+          Effect.provide(
+            Layer.succeed(RadicalFetchEnvironment, {
+              page: Effect.succeed("capacitor://localhost.evil/"),
+              context: Effect.succeed(context("ios", 1)),
+              fetch: (input) =>
+                Effect.sync(() => {
+                  requested.push(
+                    input instanceof Request ? input.url : String(input)
+                  );
+
+                  return new Response(null);
+                }),
+            })
+          )
+        );
+
+        assert.strictEqual(requested[1], "/function");
       })
   );
   it.effect(
