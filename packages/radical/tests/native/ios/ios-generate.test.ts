@@ -216,7 +216,7 @@ const memory = (
     commands,
     layer: Layer.mergeAll(
       fs,
-      ConfigProvider.layer(ConfigProvider.fromUnknown({ RADICAL_BUILD: "42" })),
+      ConfigProvider.layer(ConfigProvider.fromUnknown({})),
       spawner,
       Layer.succeed(AssetGenerator, {
         generate: (input) =>
@@ -1265,7 +1265,7 @@ describe("ios native navigation", () => {
             state.files.get(
               `${destination}/ios/App/App.xcodeproj/project.pbxproj`
             ),
-            "IPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 42;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 42;\nMARKETING_VERSION = 2.3.4;"
+            "IPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;"
           );
           assert.strictEqual(
             state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),

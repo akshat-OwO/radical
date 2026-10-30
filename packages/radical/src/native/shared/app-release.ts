@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { Config, Effect, FileSystem, Schema } from "effect";
+import { Config, Console, Effect, FileSystem, Option, Schema } from "effect";
 
 import { InvalidConfig } from "../../vite/config.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
@@ -34,23 +34,30 @@ export const resolveAppRelease = (
         )
       ));
 
-    const source = String(
-      config.build ??
-        cliBuild ??
-        (yield* Config.String("RADICAL_BUILD").pipe(
-          Config.withDefault(""),
-          Effect.mapError(
-            (error) => new InvalidConfig({ message: error.message })
-          )
-        ))
+    const env = yield* Config.String("RADICAL_BUILD").pipe(
+      Config.option,
+      Effect.mapError((error) => new InvalidConfig({ message: error.message }))
     );
 
-    const build = /^[0-9]+$/u.test(source) ? Number(source) : Number.NaN;
+    // The most specific source wins, so CI can override a build kept in config.
+    const source =
+      cliBuild ??
+      Option.getOrUndefined(env.pipe(Option.filter((value) => value !== ""))) ??
+      (config.build === undefined ? undefined : String(config.build));
+
+    if (source === undefined) {
+      yield* Console.log(
+        "No build set; using 1. Set --build, RADICAL_BUILD, or config.build before uploading to a store."
+      );
+    }
+
+    const digits = source ?? "1";
+    const build = /^[0-9]+$/u.test(digits) ? Number(digits) : Number.NaN;
 
     if (!Number.isSafeInteger(build) || build <= 0) {
       return yield* new InvalidConfig({
         message:
-          "build must be a positive safe integer. Set config.build, --build, or RADICAL_BUILD.",
+          "build must be a positive safe integer. Set --build, RADICAL_BUILD, or config.build.",
       });
     }
 
@@ -61,10 +68,10 @@ export const resolveAppRelease = (
       });
     }
 
-    if (platform === "ios" && !/^[0-9]+\.[0-9]+\.[0-9]+$/u.test(version)) {
+    if (platform === "ios" && !/^[0-9]+(?:\.[0-9]+){0,2}$/u.test(version)) {
       return yield* new InvalidConfig({
         message:
-          "iOS version must contain three period-separated integers, for example 1.2.3.",
+          "iOS version must be one to three period-separated integers, for example 1.2.3.",
       });
     }
 

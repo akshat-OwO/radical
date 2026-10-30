@@ -241,7 +241,7 @@ const memory = (
     commands,
     layer: Layer.mergeAll(
       fs,
-      ConfigProvider.layer(ConfigProvider.fromUnknown({ RADICAL_BUILD: "42" })),
+      ConfigProvider.layer(ConfigProvider.fromUnknown({})),
       spawner,
       Layer.succeed(AssetGenerator, {
         generate: (input) =>
