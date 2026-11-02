@@ -16,5 +16,5 @@ The shells animate a bar when its visibility changes and the active section stay
 
 - Insets change when the page hides or shows the bar. Content anchored to the bottom inset moves once when the bar slides in.
 - Android slides the bar. iOS uses `setTabBarHidden(_:animated:)`, which fades the glass tab bar on iOS 26. The iPad sidebar shows and hides at once, since UIKit has no animated variant.
-- While the Android bottom bar slides, the WebView stays unclipped, so the page shows where the bar has not arrived yet.
+- While an Android bar (bottom bar or rail) slides, the WebView stays unclipped on that edge, so the page shows where the bar has not arrived yet.
 - The override lives in memory and resets on reload.

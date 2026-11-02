@@ -33,8 +33,9 @@ final class RadicalNavigation {
     private boolean slide;
     private String activeId;
     private boolean bottomShown;
-    // While the bottom bar slides, the page stays unclipped so no blank strip shows.
-    private boolean sliding;
+    // While a bar slides in or out, the page stays unclipped on that edge so no blank strip shows.
+    private boolean bottomSliding;
+    private boolean railSliding;
     private boolean railShown;
     private int active;
     private int nightMode;
@@ -180,9 +181,10 @@ final class RadicalNavigation {
         int insetBottom = show && compact ? h - bottomEdge + barHeight : keyboard ? 0 : system.bottom;
         // Keep CSS dimensions unchanged. Safe area places HTML inside this clipped rectangle.
         // Only the bottom bar covers the page; elsewhere it paints through the gesture inset.
-        int clipBottom = show && compact && !sliding ? Math.max(0, h - insetBottom) : h;
-        if (clip.left != insetLeft || clip.right != w || clip.bottom != clipBottom) {
-            clip.set(insetLeft, 0, w, clipBottom);
+        int clipLeft = show && !compact && !railSliding ? insetLeft : system.left;
+        int clipBottom = show && compact && !bottomSliding ? Math.max(0, h - insetBottom) : h;
+        if (clip.left != clipLeft || clip.right != w || clip.bottom != clipBottom) {
+            clip.set(clipLeft, 0, w, clipBottom);
             webView.setClipBounds(clip);
         }
         return Insets.of(insetLeft, system.top, system.right, insetBottom);
@@ -193,9 +195,9 @@ final class RadicalNavigation {
     private boolean reveal(View bar, boolean shown, boolean show, boolean animate) {
         if (shown == show) return show;
         bar.animate().cancel();
-        if (bar == bottom) sliding = false;
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) bar.getLayoutParams();
         boolean vertical = bar == bottom;
+        setSliding(vertical, false);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) bar.getLayoutParams();
         float distance = vertical ? params.height : -params.width;
         if (!animate || distance == 0) {
             bar.setTranslationX(0);
@@ -211,18 +213,22 @@ final class RadicalNavigation {
             .setDuration(show ? 300 : 200)
             .setInterpolator(show ? new android.view.animation.DecelerateInterpolator() : new android.view.animation.AccelerateInterpolator());
         if (vertical) animator.translationY(show ? 0 : distance); else animator.translationX(show ? 0 : distance);
-        sliding = vertical;
+        setSliding(vertical, true);
         animator.withEndAction(() -> {
             if (!show) {
                 bar.setVisibility(View.GONE);
                 bar.setTranslationX(0);
                 bar.setTranslationY(0);
             }
-            sliding = false;
+            setSliding(vertical, false);
             activity.refreshWindowContext();
         });
         animator.start();
         return show;
+    }
+
+    private void setSliding(boolean vertical, boolean value) {
+        if (vertical) bottomSliding = value; else railSliding = value;
     }
 
     private void place(View view, int x, int y, int width, int height) {

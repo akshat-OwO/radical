@@ -1227,6 +1227,10 @@ describe("Android section navigation", () => {
             source,
             "bottomShown = reveal(bottom, bottomShown, show && compact, animate)"
           );
+          assert.include(
+            source,
+            "int clipLeft = show && !compact && !railSliding ? insetLeft : system.left;"
+          );
           assert.include(source, "new BottomNavigationView");
           assert.include(source, "LABEL_VISIBILITY_SELECTED");
           assert.include(source, "setBackgroundTintList");
