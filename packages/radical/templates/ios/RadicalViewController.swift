@@ -30,6 +30,7 @@ final class RadicalViewController: CAPBridgeViewController {
     }
 
     override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(RadicalSplashPlugin())
         __PLUGIN_REGISTRATION__
         __NAVIGATION_REGISTRATION__
     }
@@ -48,9 +49,14 @@ final class RadicalViewController: CAPBridgeViewController {
             view.addSubview(splash)
             startupSplash = splash
         }
-        proxy.onDocumentReady = { [weak self] in
-            self?.startupSplash?.removeFromSuperview()
-            self?.startupSplash = nil
+        // A manual splash waits for the page, or for its timeout if the page never asks.
+        let splashTimeout: TimeInterval = __SPLASH_TIMEOUT__
+        if __SPLASH_MANUAL__ && splashTimeout > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + splashTimeout) { [weak self] in self?.hideSplash() }
+        }
+        // Packaged fallback pages cannot run app code, so they always end the splash.
+        proxy.onDocumentReady = { [weak self] fallback in
+            if !__SPLASH_MANUAL__ || fallback { self?.hideSplash() }
         }
         webView.navigationDelegate = proxy
         let controller = webView.configuration.userContentController
@@ -67,6 +73,11 @@ final class RadicalViewController: CAPBridgeViewController {
             name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)),
             name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    func hideSplash() {
+        startupSplash?.removeFromSuperview()
+        startupSplash = nil
     }
 
     deinit {
@@ -187,7 +198,7 @@ final class RadicalViewController: CAPBridgeViewController {
 
 // navigationDelegate is weak; the controller retains this proxy and it retains Capacitor.
 final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-    var onDocumentReady: (() -> Void)?
+    var onDocumentReady: ((_ fallback: Bool) -> Void)?
     private let serverURL = URL(string: __URL__)!
     private let savedURLKey = __OFFLINE_SAVED_URL_KEY__
     private var launching = true
@@ -290,7 +301,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         if let navigation = navigation { recoveryCancellations.remove(navigation) }
         completed(navigation)
         launching = false
-        onDocumentReady?()
+        onDocumentReady?(showingFallback || webView.url == errorPathURL)
         if !__BUNDLED__ && !showingFallback { webView.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil) }
         delegate.webView?(webView, didFinish: navigation)
     }
@@ -341,5 +352,22 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
 
     override func forwardingTarget(for selector: Selector!) -> Any? {
         delegate.responds(to: selector) ? delegate : super.forwardingTarget(for: selector)
+    }
+}
+
+@objc(RadicalSplashPlugin)
+public class RadicalSplashPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "RadicalSplashPlugin"
+    public let jsName = "RadicalSplash"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise)
+    ]
+
+    // Hiding twice, or after the timeout, resolves without effect.
+    @objc func hide(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            (self?.bridge?.viewController as? RadicalViewController)?.hideSplash()
+            call.resolve()
+        }
     }
 }

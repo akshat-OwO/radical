@@ -107,6 +107,10 @@ export const generateIos = (
           shellCommandsScript(native.plan, "ios")
         ),
         __SPLASH_NAME__: JSON.stringify(iosSplashResourceName(native.assets)),
+        __SPLASH_MANUAL__: String(native.splash.dismiss === "manual"),
+        __SPLASH_TIMEOUT__: String(
+          native.splash.timeout === false ? 0 : native.splash.timeout / 1000
+        ),
         __URL__: JSON.stringify(native.url),
         __SNAPSHOT_CHECK__: JSON.stringify(
           `(() => { const radicalOffline = window.webkit.messageHandlers.radicalOffline; return (${offlineSnapshotCheckScript(native.config.appId)})(location.href); })()`

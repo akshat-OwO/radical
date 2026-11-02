@@ -5,6 +5,7 @@ import { Effect, FileSystem, Layer } from "effect";
 import type { Plugin, UserConfig } from "vite";
 import { defaultAllowedOrigins } from "vite";
 
+import { DEFAULT_SPLASH_BACKGROUND } from "../../capabilities/splash/splash-layout.ts";
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { bundledOrigins } from "../../core/bundled/bundled-request.ts";
 import {
@@ -99,6 +100,12 @@ export const nativePlugins = (
     navigation: config.navigation,
   });
 
+  // Resolved in configResolved; the image is imported so Vite serves and emits it.
+  let splashImage: string | undefined;
+
+  const splashColor =
+    config.splash?.backgroundColor ?? DEFAULT_SPLASH_BACKGROUND;
+
   return {
     name: "radical:plugins",
     api: new BuildPlanApi(resolvePlan),
@@ -142,6 +149,10 @@ export const nativePlugins = (
       Effect.runPromise(
         Effect.gen(function* () {
           const { plugins } = yield* resolvePlan(resolved.root);
+          splashImage =
+            config.splash?.image === undefined
+              ? undefined
+              : path.resolve(resolved.root, config.splash.image);
           source = pluginVirtualSource(resolved.root, plugins);
           effectSource = pluginVirtualSource(resolved.root, plugins, true);
           const fs = yield* FileSystem.FileSystem;
@@ -159,7 +170,7 @@ export const nativePlugins = (
             recursive: true,
           });
           const file = path.join(resolved.root, ".radical/plugins.d.ts");
-          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string; readonly android?: import("@akshatowo/radical/vite").RadicalConfig["android"]; readonly ios?: import("@akshatowo/radical/vite").RadicalConfig["ios"]; readonly navigation?: import("@akshatowo/radical/vite").RadicalConfig["navigation"] }; }\n`;
+          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string; readonly android?: import("@akshatowo/radical/vite").RadicalConfig["android"]; readonly ios?: import("@akshatowo/radical/vite").RadicalConfig["ios"]; readonly navigation?: import("@akshatowo/radical/vite").RadicalConfig["navigation"]; readonly splash: import("@akshatowo/radical/react").SplashAppearance }; }\n`;
 
           // Preserve mtime to avoid restarting Vite's watcher on identical config.
           if (
@@ -192,7 +203,9 @@ export const nativePlugins = (
         : undefined,
     load: (id) => {
       if (id === "\0virtual:radical/config") {
-        return `export const config = ${browserConfig};`;
+        const splash = `{ backgroundColor: ${JSON.stringify(splashColor)}${splashImage === undefined ? "" : ", image: splashImage"} }`;
+
+        return `${splashImage === undefined ? "" : `import splashImage from ${JSON.stringify(`${splashImage}?url`)};\n`}export const config = { ...${browserConfig}, splash: ${splash} };`;
       }
 
       if (id === "\0virtual:radical/plugins") {

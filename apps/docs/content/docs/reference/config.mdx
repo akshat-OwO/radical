@@ -77,7 +77,11 @@ Navigation options are available in `@akshatowo/radical` 0.3.0 and later.
 | `icon.image` | Nonempty path | Same constraints as string-form `icon`. |
 | `icon.backgroundColor` | `#RRGGBB` | Optional opaque RGB background. |
 | `splash.image` | Nonempty path | Square PNG or JPEG, at least 2732 pixels per side. Relative to the app root. |
-| `splash.backgroundColor` | `#RRGGBB`, required with splash | Composites transparent source pixels. Shared by light and dark appearances. |
+| `splash.backgroundColor` | `#RRGGBB`, required with `splash.image` | Composites transparent source pixels. Shared by light and dark appearances. |
+| `splash.dismiss` | `"auto"` or `"manual"`. Default `"auto"`. | `"auto"` hides the splash when the first document loads. `"manual"` keeps it until the page calls `hideSplash()`. See [Splash API](/docs/reference/splash). |
+| `splash.timeout` | Milliseconds from 1 to 600000, or `false`. Default `10000`. | Requires `dismiss: "manual"`. The shell hides the splash after this time even if the page never calls `hideSplash()`. `false` disables the timeout. |
+
+Set `splash.image` and `splash.backgroundColor` together. A `splash` object with only `dismiss` and `timeout` keeps the default image.
 
 Omitting `splash` shows the Radical logo on a white background on iOS and Android, including with `appearance: "dark"`. Setting `splash` uses your image and background color in both light and dark appearances.
 

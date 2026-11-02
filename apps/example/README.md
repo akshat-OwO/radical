@@ -75,7 +75,7 @@ Screenshots and observed results are in [Android offline verification](../../doc
 
 ## App identity
 
-The example config uses `Radical Android` with package id `dev.radical.example.android` and `Radical iOS` with bundle id `dev.radical.example.ios`. Both use the square-root launcher icon and a white square-root splash on `#241044`. The shared `appId` remains `dev.radical.example` for offline storage. Use the platform identifier in device install, launch, and clear-storage commands.
+The example config uses `Radical Android` with package id `dev.radical.example.android` and `Radical iOS` with bundle id `dev.radical.example.ios`. Both use the square-root launcher icon and the default Radical logo splash. The splash uses `dismiss: "manual"`: the root redraws it with `<Splash />`, hides the native splash with `useHideSplash()`, bounces the logo, and grows it into a window onto the app. The shared `appId` remains `dev.radical.example` for offline storage. Use the platform identifier in device install, launch, and clear-storage commands.
 
 Regenerate the small source PNGs with `python3 assets/generate.py` from this directory. After an identity change, start dev to refresh native config, then run `pnpm exec radical ios --generate-only` and `pnpm exec radical android --generate-only`. See the [app identity reference](../../packages/radical/README.md#app-identity) for source requirements and name precedence.
 

@@ -5,6 +5,14 @@ import { Context, Effect, FileSystem, Layer, Predicate } from "effect";
 import sharp from "sharp";
 
 import type { Section } from "../../capabilities/sections/sections.ts";
+import {
+  DEFAULT_SPLASH_BACKGROUND,
+  SPLASH_ICON_LOGO_SIZE,
+  SPLASH_ICON_SIZE,
+  SPLASH_SCREEN_LOGO_SIZE,
+  SPLASH_SCREEN_SIZE,
+} from "../../capabilities/splash/splash-layout.ts";
+import { DEFAULT_SPLASH_TIMEOUT } from "../../vite/config.ts";
 import type { RadicalConfig } from "../../vite/config.ts";
 import { AssetGenerationFailed, InvalidAsset } from "./errors.ts";
 import { svgToVectorDrawable } from "./vector-drawable.ts";
@@ -19,24 +27,37 @@ export const resolveSplash = (
   root: string,
   packageRoot: string,
   config: RadicalConfig
-) =>
-  config.splash
+) => {
+  const dismiss = config.splash?.dismiss ?? "auto";
+
+  const timeout =
+    dismiss === "manual"
+      ? (config.splash?.timeout ?? DEFAULT_SPLASH_TIMEOUT)
+      : false;
+
+  return config.splash?.image !== undefined &&
+    config.splash.backgroundColor !== undefined
     ? {
         kind: "configured" as const,
         image: path.resolve(root, config.splash.image),
         backgroundColor: config.splash.backgroundColor,
+        dismiss,
+        timeout,
       }
     : {
         kind: "default" as const,
+        dismiss,
+        timeout,
         image: path.join(packageRoot, "templates/radical-mark.svg"),
-        backgroundColor: "#ffffff",
+        backgroundColor: DEFAULT_SPLASH_BACKGROUND,
         // 28% of the full-screen square survives a phone's portrait/landscape
         // aspect-fill crop. Android's icon gets a separate 62.5% safe-zone mark.
-        screenSize: 2732,
-        screenLogoSize: 768,
-        iconSize: 1024,
-        iconLogoSize: 640,
+        screenSize: SPLASH_SCREEN_SIZE,
+        screenLogoSize: SPLASH_SCREEN_LOGO_SIZE,
+        iconSize: SPLASH_ICON_SIZE,
+        iconLogoSize: SPLASH_ICON_LOGO_SIZE,
       };
+};
 
 /** Decode once before staging. Normalized PNGs give both projects the same pixels. */
 export const prepareNativeAssets = (
@@ -57,7 +78,7 @@ export const prepareNativeAssets = (
         ? []
         : [{ kind: "icon", source: icon.image, size: 1024 }]),
       ...(splash.kind === "configured"
-        ? [{ kind: "splash", source: splash.image, size: 2732 }]
+        ? [{ kind: "splash", source: splash.image, size: SPLASH_SCREEN_SIZE }]
         : []),
     ]) {
       const source = path.resolve(root, entry.source);

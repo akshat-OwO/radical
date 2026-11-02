@@ -19,6 +19,9 @@ export const shellCommands = (
       ])
   );
 
+  // Every shell owns a splash, independent of internal plugin flags.
+  commands.RadicalSplash = ["hide"];
+
   if (plan.navigation && plan.navigation.bar?.[platform] !== "web") {
     commands.RadicalNavigation = ["update"];
   }

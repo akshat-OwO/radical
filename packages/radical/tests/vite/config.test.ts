@@ -236,3 +236,51 @@ it.effect(
       }
     })
 );
+
+describe("splash dismissal config", () => {
+  it.effect(
+    "accepts dismissal settings with or without a custom splash image",
+    () =>
+      Effect.gen(function* () {
+        for (const splash of [
+          { dismiss: "auto" },
+          { dismiss: "manual" },
+          { dismiss: "manual", timeout: 2500 },
+          { dismiss: "manual", timeout: false },
+          {
+            image: "splash.png",
+            backgroundColor: "#241044",
+            dismiss: "manual",
+          },
+        ] as const) {
+          const config = { appId: "dev.example.app", splash };
+
+          assert.deepStrictEqual(yield* validateConfig(config), config);
+        }
+      })
+  );
+
+  it.effect(
+    "rejects a lone image or colour, a timeout without manual dismissal and invalid timeouts",
+    () =>
+      Effect.gen(function* () {
+        for (const splash of [
+          { image: "splash.png" },
+          { backgroundColor: "#241044" },
+          { timeout: 2500 },
+          { dismiss: "auto", timeout: 2500 },
+          { dismiss: "manual", timeout: 0 },
+          { dismiss: "manual", timeout: 1.5 },
+          { dismiss: "manual", timeout: true },
+          { dismiss: "later" },
+        ]) {
+          const error = yield* Effect.flip(
+            validateConfig({ appId: "dev.example.app", splash })
+          );
+
+          assert.strictEqual(error._tag, "InvalidConfig");
+          assert.include(error.message, "splash");
+        }
+      })
+  );
+});

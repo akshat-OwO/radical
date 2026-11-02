@@ -1005,3 +1005,43 @@ describe("Android section VectorDrawables", () => {
     }
   );
 });
+
+describe("splash dismissal resolution", () => {
+  it.effect(
+    "keeps automatic dismissal by default and gives manual dismissal a timeout",
+    () =>
+      Effect.sync(() => {
+        for (const [splash, dismiss, timeout] of [
+          [undefined, "auto", false],
+          [{ dismiss: "auto" }, "auto", false],
+          [{ dismiss: "manual" }, "manual", 10_000],
+          [{ dismiss: "manual", timeout: 2500 }, "manual", 2500],
+          [{ dismiss: "manual", timeout: false }, "manual", false],
+        ] as const) {
+          const config: RadicalConfig =
+            splash === undefined
+              ? { appId: "dev.example.app" }
+              : { appId: "dev.example.app", splash };
+
+          const resolved = resolveSplash("/app", "/package", config);
+
+          assert.strictEqual(resolved.kind, "default");
+          assert.strictEqual(resolved.dismiss, dismiss);
+          assert.strictEqual(resolved.timeout, timeout);
+        }
+
+        const configured = resolveSplash("/app", "/package", {
+          appId: "dev.example.app",
+          splash: {
+            image: "splash.png",
+            backgroundColor: "#241044",
+            dismiss: "manual",
+          },
+        });
+
+        assert.strictEqual(configured.kind, "configured");
+        assert.strictEqual(configured.image, "/app/splash.png");
+        assert.strictEqual(configured.timeout, 10_000);
+      })
+  );
+});

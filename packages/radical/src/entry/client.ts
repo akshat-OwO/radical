@@ -181,6 +181,23 @@ export type {
 } from "../capabilities/video-stream/video-stream.ts";
 
 export {
+  hideSplash,
+  splashLive,
+  splashPlugin,
+  SplashPaint,
+  SplashPaintLive,
+} from "../capabilities/splash/splash.ts";
+
+export type { SplashError } from "../capabilities/splash/splash.ts";
+
+export { splashLayout } from "../capabilities/splash/splash-layout.ts";
+
+export type {
+  SplashAppearance,
+  SplashLayout,
+} from "../capabilities/splash/splash-layout.ts";
+
+export {
   hapticImpact,
   hapticNotification,
   hapticSelection,

@@ -1,0 +1,64 @@
+---
+title: "Splash API"
+description: "Hide the shell's splash from the page."
+---
+
+## Plain API
+
+`hideSplash()` from `@akshatowo/radical/client` returns `Promise<void>`. `useHideSplash(ready?)` from `@akshatowo/radical/react` returns a stable `hide` function with the same result.
+
+## Redrawing the splash
+
+`config.splash` from `virtual:radical/config` is a `SplashAppearance`: `{ image?: string, backgroundColor: string }`. `image` is the URL of the configured splash image and is omitted for the default Radical logo.
+
+| Export | Result |
+| --- | --- |
+| `<Splash splash markRef? style? children?>` | A fixed, full-screen frame that matches the shell's splash. Renders nothing in a browser. `markRef` receives the centered image. `style` merges into the frame. |
+| `splashLayout(splash, platform)` | `SplashLayout`: `{ backgroundColor, image, size }`. `image` is a CSS `url()` and `size` is a CSS length for a square centered on the screen. |
+
+`<Splash />` is exported from `@akshatowo/radical/react`. `splashLayout` is also exported from `@akshatowo/radical/client`.
+
+| Platform | Default logo | Configured image |
+| --- | --- | --- |
+| iOS | `768 / 2732` of the screen's longer side | The screen's longer side, which matches aspect fill |
+| Android | `180px`, the logo inside the 288dp icon | `288px`, the system's icon box |
+
+## Effect API
+
+The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API guide](/docs/guides/effect-api) for runtime composition.
+
+| Client export | Arguments | Result |
+| --- | --- | --- |
+| `hideSplash` | Effect value with no arguments | Effect of void |
+| `splashLive(effect)` | An Effect that requires `SplashPaint` | The Effect with `SplashPaintLive` provided |
+
+`hideSplash` requires `Bridge | SplashPaint`. `SplashPaint.painted` completes once the page's current frame is on screen. `SplashPaintLive` waits for two animation frames.
+
+| Behavior | Result |
+| --- | --- |
+| Browser | Successful no-op, without waiting for a paint |
+| Shell | Waits for `SplashPaint.painted`, then asks the shell to hide the splash. Resolves after the shell removed it. |
+| Splash already hidden | Successful no-op |
+| Shell without the splash command | Successful no-op |
+
+| Error         | Meaning                                                 |
+| ------------- | ------------------------------------------------------- |
+| `BridgeError` | Transport or schema failure. Exported as `SplashError`. |
+
+- Native enablement needs no `internalPlugins` flag. Every shell registers the splash command.
+- `useHideSplash(true)` hides the splash once per mount and bridge. It ignores failures, because `splash.timeout` still ends the splash.
+
+## Shell behavior
+
+| Config | Splash hides when |
+| --- | --- |
+| `dismiss: "auto"` (default) | The first app document loads |
+| `dismiss: "manual"` | The page calls `hideSplash()`, `splash.timeout` passes, or a packaged offline or fallback page loads |
+
+## Platform support
+
+| Capability | Android | iOS | Browser |
+| --- | --- | --- | --- |
+| Splash | System splash screen, then an identical shell overlay kept over the page until hidden | Launch screen image, kept over the page until hidden | No splash; successful no-op |
+
+Source: [splash implementation](https://github.com/akshat-OwO/radical/tree/main/packages/radical/src/capabilities/splash).
