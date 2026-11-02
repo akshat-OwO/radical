@@ -48,5 +48,7 @@ it.effect(
 
       assert.include(ios, "width:calc(max(100vw, 100vh) * 768 / 2732)");
       assert.include(android, "width:180px");
+      assert.include(android, "clip-path:circle(96px)");
+      assert.include(ios, "clip-path:none");
     })
 );

@@ -1,8 +1,13 @@
 // @vitest-environment happy-dom
 import { assert, it } from "@effect/vitest";
-import { Effect, Fiber } from "effect";
+import { Deferred, Effect, Fiber } from "effect";
 import { vi } from "vite-plus/test";
 
+import {
+  hideSplash,
+  splashImageAttribute,
+  splashLive,
+} from "../../src/capabilities/splash/splash.ts";
 import { bridgeTestLayer } from "../../src/core/bridge/bridge.ts";
 import { useHideSplash } from "../../src/react/react.ts";
 import { mountHook } from "../fixtures/mounted-hook.ts";
@@ -106,4 +111,56 @@ it.effect("returns a stable hide function that resolves after the call", () =>
       ]);
     })
   )
+);
+
+it.effect(
+  "waits for splash images to decode before counting painted frames",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const frames = yield* manualFrames;
+        const decoded = yield* Deferred.make<boolean>();
+        const calls: unknown[] = [];
+        const image = document.createElement("img");
+        image.setAttribute(splashImageAttribute, "");
+
+        const decoding = Effect.runPromise(
+          Effect.asVoid(Deferred.await(decoded))
+        );
+
+        image.decode = async () => {
+          await decoding;
+        };
+
+        document.body.append(image);
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            image.remove();
+          })
+        );
+
+        const layer = bridgeTestLayer("android", (plugin, method) =>
+          Effect.sync(() => {
+            calls.push({ plugin, method });
+          })
+        );
+
+        const hide = yield* Effect.forkChild(
+          splashLive(hideSplash).pipe(Effect.provide(layer))
+        );
+
+        yield* frames.flush;
+        yield* frames.flush;
+        assert.deepStrictEqual(calls, []);
+
+        yield* Deferred.succeed(decoded, true);
+        yield* frames.flush;
+        assert.deepStrictEqual(calls, []);
+        yield* frames.flush;
+        yield* Fiber.join(hide);
+        assert.deepStrictEqual(calls, [
+          { plugin: "RadicalSplash", method: "hide" },
+        ]);
+      })
+    )
 );

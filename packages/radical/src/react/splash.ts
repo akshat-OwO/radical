@@ -3,6 +3,7 @@ import type { CSSProperties, ReactElement, ReactNode, Ref } from "react";
 
 import { splashLayout } from "../capabilities/splash/splash-layout.ts";
 import type { SplashAppearance } from "../capabilities/splash/splash-layout.ts";
+import { splashImageAttribute } from "../capabilities/splash/splash.ts";
 import { NativeContextContext } from "./use-bridge-effect.ts";
 
 export interface SplashProps {
@@ -18,9 +19,10 @@ export interface SplashProps {
 
 /**
  * Redraws the shell's splash over the page, pixel for pixel, so the page can
- * take over from it after `hideSplash()`. Renders nothing in a browser. The
- * platform comes from the provider's native context, so pass `nativeContext`
- * to `RadicalProvider` for the server render to include it.
+ * take over from it after `hideSplash()`, which waits for this image to
+ * decode. Renders nothing in a browser. The platform comes from the provider's
+ * native context, so pass `nativeContext` to `RadicalProvider` for the server
+ * render to include it.
  */
 export const Splash = ({
   splash,
@@ -49,19 +51,28 @@ export const Splash = ({
         ...style,
       },
     },
-    createElement("div", {
-      ref: markRef,
-      style: {
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        width: layout.size,
-        height: layout.size,
-        translate: "-50% -50%",
-        backgroundImage: layout.image,
-        backgroundSize: "100% 100%",
+    createElement(
+      "div",
+      {
+        ref: markRef,
+        style: {
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          width: layout.size,
+          height: layout.size,
+          translate: "-50% -50%",
+          clipPath: layout.clipPath,
+        },
       },
-    }),
+      createElement("img", {
+        [splashImageAttribute]: "",
+        src: layout.src,
+        alt: "",
+        draggable: false,
+        style: { display: "block", width: "100%", height: "100%" },
+      })
+    ),
     children
   );
 };

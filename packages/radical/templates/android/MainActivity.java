@@ -68,6 +68,8 @@ public class MainActivity extends BridgeActivity {
     private static final long SPLASH_TIMEOUT = __SPLASH_TIMEOUT__;
     // Android draws a splash icon without an icon background in a 288dp box.
     private static final int SPLASH_ICON_DP = 288;
+    // Content outside the icon's inner 192dp circle is masked.
+    private static final int SPLASH_ICON_MASK_DP = 192;
     // A copy of the system splash in the app's own first frame. The system splash
     // leaves at once, so its handover never shows the app, even for one frame.
     private View splashOverlay;
@@ -83,7 +85,17 @@ public class MainActivity extends BridgeActivity {
         overlay.setClickable(true);
         ImageView icon = new ImageView(this);
         icon.setImageResource(R.drawable.radical_splash_icon);
-        int size = Math.round(SPLASH_ICON_DP * getResources().getDisplayMetrics().density);
+        float density = getResources().getDisplayMetrics().density;
+        int size = Math.round(SPLASH_ICON_DP * density);
+        int mask = Math.round(SPLASH_ICON_MASK_DP * density);
+        icon.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                int inset = (view.getWidth() - mask) / 2;
+                outline.setOval(inset, inset, inset + mask, inset + mask);
+            }
+        });
+        icon.setClipToOutline(true);
         overlay.addView(icon, new android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER));
         ((ViewGroup) getWindow().getDecorView()).addView(overlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         splashOverlay = overlay;
@@ -386,7 +398,12 @@ public class MainActivity extends BridgeActivity {
                 rememberOfflineUrl(webView, url);
                 // Packaged fallback pages cannot run app code, so they always end the splash.
                 Uri page = Uri.parse(url);
-                if (!launchPage(page) && (!SPLASH_MANUAL || offlinePage(page))) hideSplash();
+                if (launchPage(page)) return;
+                if (!SPLASH_MANUAL || offlinePage(page)) hideSplash();
+                // A worker fallback keeps the app URL, so only its marker identifies it.
+                else webView.evaluateJavascript(__OFFLINE_FALLBACK_CHECK__, isFallback -> {
+                    if ("true".equals(isFallback)) hideSplash();
+                });
             }
 
             @Override

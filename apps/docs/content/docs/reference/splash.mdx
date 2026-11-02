@@ -14,7 +14,7 @@ description: "Hide the shell's splash from the page."
 | Export | Result |
 | --- | --- |
 | `<Splash splash markRef? style? children?>` | A fixed, full-screen frame that matches the shell's splash. Renders nothing in a browser. `markRef` receives the centered image. `style` merges into the frame. |
-| `splashLayout(splash, platform)` | `SplashLayout`: `{ backgroundColor, image, size }`. `image` is a CSS `url()` and `size` is a CSS length for a square centered on the screen. |
+| `splashLayout(splash, platform)` | `SplashLayout`: `{ backgroundColor, src, size, clipPath }`. `src` is the image URL, the default logo as a data URL when no image is configured. `size` is a CSS length for a square centered on the screen. `clipPath` is Android's 192dp icon mask, or `none` on iOS. |
 
 `<Splash />` is exported from `@akshatowo/radical/react`. `splashLayout` is also exported from `@akshatowo/radical/client`.
 
@@ -32,7 +32,7 @@ The contracts below use `@akshatowo/radical/effect/client`. See the [Effect API 
 | `hideSplash` | Effect value with no arguments | Effect of void |
 | `splashLive(effect)` | An Effect that requires `SplashPaint` | The Effect with `SplashPaintLive` provided |
 
-`hideSplash` requires `Bridge | SplashPaint`. `SplashPaint.painted` completes once the page's current frame is on screen. `SplashPaintLive` waits for two animation frames.
+`hideSplash` requires `Bridge | SplashPaint`. `SplashPaint.painted` completes once the page's current frame is on screen. `SplashPaintLive` waits until the images `<Splash />` draws have decoded, then for two animation frames.
 
 | Behavior | Result |
 | --- | --- |

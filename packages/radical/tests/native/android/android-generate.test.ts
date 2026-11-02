@@ -21,6 +21,7 @@ import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../../../src/core/context/native-context.ts";
+import { offlineFallbackCheckScript } from "../../../src/core/offline/offline-wire.ts";
 import type { PluginManifest } from "../../../src/core/plugins/plugins.ts";
 import { CliNative, cliNativeLayer, makeCli } from "../../../src/entry/cli.ts";
 import { CliVite } from "../../../src/entry/prepare-native.ts";
@@ -1643,6 +1644,8 @@ describe("Android splash dismissal", () => {
           source,
           "icon.setImageResource(R.drawable.radical_splash_icon);"
         );
+        assert.include(source, "SPLASH_ICON_MASK_DP = 192;");
+        assert.include(source, "icon.setClipToOutline(true);");
         assert.include(source, "registerPlugin(RadicalSplashPlugin.class);");
         assert.include(
           state.files.get(`${java}/RadicalSplashPlugin.java`) ?? "",
@@ -1675,6 +1678,11 @@ describe("Android splash dismissal", () => {
 
           assert.include(source, "SPLASH_MANUAL = true;");
           assert.include(source, `SPLASH_TIMEOUT = ${timeout};`);
+          // A worker fallback keeps the app URL; its marker still ends the splash.
+          assert.include(
+            source,
+            `else webView.evaluateJavascript(${JSON.stringify(offlineFallbackCheckScript)}, isFallback -> {`
+          );
         }).pipe(Effect.provide(state.layer));
       }
     );

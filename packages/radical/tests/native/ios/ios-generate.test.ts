@@ -914,7 +914,7 @@ describe("ios app identity", () => {
         assert.include(source, "startupSplash?.removeFromSuperview()");
         assert.include(
           source,
-          "onDocumentReady?(showingFallback || webView.url == errorPathURL)"
+          "onDocumentReady?(showingFallback || workerFallback || webView.url == errorPathURL)"
         );
         assert.strictEqual(state.assetCalls[0].backgroundColor, "#241044");
         const first = state.assetCalls[0].assets;
@@ -1495,6 +1495,14 @@ describe("iOS splash dismissal", () => {
           );
           assert.include(source, `if ${manual} && splashTimeout > 0 {`);
           assert.include(source, `if !${manual} || fallback {`);
+          assert.include(
+            source,
+            'workerFallback = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "x-radical-offline-fallback") == "1"'
+          );
+          assert.include(
+            source,
+            "onDocumentReady?(showingFallback || workerFallback || webView.url == errorPathURL)"
+          );
           assert.include(
             source,
             "bridge?.registerPluginInstance(RadicalSplashPlugin())"

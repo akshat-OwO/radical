@@ -1,6 +1,7 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/no-nesting -- Native worker boundary deliberately excludes the Effect runtime. */
 import {
   decodeWorkerMessage,
+  offlineFallbackMarker,
   offlineMessages,
   snapshotCacheName,
   snapshotKey,
@@ -93,11 +94,16 @@ export const createOfflineWorker = (
 
         const headers = new Headers(response.headers);
         headers.set("x-radical-offline-fallback", "1");
+        headers.delete("content-length");
 
-        return new Response(response.body, {
-          status: response.status,
-          headers,
-        });
+        // A trailing element parses into the body without changing the document mode.
+        return response.text().then(
+          (html) =>
+            new Response(`${html}${offlineFallbackMarker}`, {
+              status: response.status,
+              headers,
+            })
+        );
       }
     );
 

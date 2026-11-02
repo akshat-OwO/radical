@@ -204,6 +204,8 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
     private var launching = true
     private var attemptedSnapshot = false
     private var showingFallback = false
+    // The worker's fallback keeps the app URL; only its response header identifies it.
+    private var workerFallback = false
     private var activeNavigation: WKNavigation?
     private var recoveryCancellations: Set<WKNavigation> = []
     private let delegate: WKNavigationDelegate
@@ -282,7 +284,8 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         if response.isForMainFrame, let url = response.response.url {
             // Capacitor serves its configured error page from packaged local assets.
             guard allowed(url) || url == errorPathURL else { decisionHandler(.cancel); return }
-            if (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "x-radical-offline-fallback") == "1",
+            workerFallback = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "x-radical-offline-fallback") == "1"
+            if workerFallback,
                launching, !attemptedSnapshot,
                let value = UserDefaults.standard.string(forKey: savedURLKey),
                let saved = URL(string: value), allowed(saved), saved != url {
@@ -301,7 +304,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
         if let navigation = navigation { recoveryCancellations.remove(navigation) }
         completed(navigation)
         launching = false
-        onDocumentReady?(showingFallback || webView.url == errorPathURL)
+        onDocumentReady?(showingFallback || workerFallback || webView.url == errorPathURL)
         if !__BUNDLED__ && !showingFallback { webView.evaluateJavaScript(__SNAPSHOT_CHECK__, completionHandler: nil) }
         delegate.webView?(webView, didFinish: navigation)
     }

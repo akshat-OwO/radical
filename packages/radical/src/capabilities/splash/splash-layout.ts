@@ -21,6 +21,9 @@ export const SPLASH_ICON_LOGO_SIZE = 640;
 /** Android draws a splash icon without an icon background in a 288dp box. */
 export const ANDROID_SPLASH_ICON_DP = 288;
 
+/** Android masks that icon to its inner circle, 192dp across. */
+export const ANDROID_SPLASH_ICON_MASK_DP = 192;
+
 /** Kept equal to templates/radical-mark.svg, which native generation renders. */
 export const radicalMarkSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-label="Radical">
   <path d="M50.38 13.62A26 26 0 0 0 13.62 13.62" stroke="#ff5a1f" stroke-width="5" stroke-linecap="round" opacity=".4"/>
@@ -39,49 +42,51 @@ export interface SplashAppearance {
 /** The splash as CSS: one square image of `size`, centered on `backgroundColor`. */
 export interface SplashLayout {
   readonly backgroundColor: string;
-  /** A CSS `url()` value. */
-  readonly image: string;
+  /** The image URL: the configured image, or the default logo as a data URL. */
+  readonly src: string;
   /** A CSS length for the image's width and height. */
   readonly size: string;
+  /** A CSS `clip-path` for the image: Android's icon mask, or `none`. */
+  readonly clipPath: string;
 }
 
-const cssUrl = (url: string) => `url(${JSON.stringify(url)})`;
-
-const markUrl = cssUrl(
-  `data:image/svg+xml,${encodeURIComponent(radicalMarkSvg)}`
-);
+const markUrl = `data:image/svg+xml,${encodeURIComponent(radicalMarkSvg)}`;
 
 // iOS fills the screen with the square splash image, as UIKit's aspect fill does.
 const iosScreen = "max(100vw, 100vh)";
 
 /**
  * iOS draws the full-screen image with aspect fill. Android 12 and later draw
- * the background color with the icon centered at 288dp; CSS pixels equal dp.
+ * the background color with the icon centered at 288dp and masked to a 192dp
+ * circle; CSS pixels equal dp.
  */
 export const splashLayout = (
   splash: SplashAppearance,
   platform: "android" | "ios"
 ): SplashLayout => {
   const configured = splash.image !== undefined;
-  const image = configured ? cssUrl(splash.image) : markUrl;
+  const src = splash.image ?? markUrl;
 
   if (platform === "ios") {
     return {
       backgroundColor: splash.backgroundColor,
-      image,
+      src,
       size: configured
         ? iosScreen
         : `calc(${iosScreen} * ${SPLASH_SCREEN_LOGO_SIZE} / ${SPLASH_SCREEN_SIZE})`,
+      clipPath: "none",
     };
   }
 
   return {
     backgroundColor: splash.backgroundColor,
-    image,
+    src,
     size: `${
       configured
         ? ANDROID_SPLASH_ICON_DP
         : (ANDROID_SPLASH_ICON_DP * SPLASH_ICON_LOGO_SIZE) / SPLASH_ICON_SIZE
     }px`,
+    // The default logo fits inside the mask, so the circle can exceed its box.
+    clipPath: `circle(${ANDROID_SPLASH_ICON_MASK_DP / 2}px)`,
   };
 };

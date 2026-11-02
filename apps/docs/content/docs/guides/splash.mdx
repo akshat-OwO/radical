@@ -49,7 +49,7 @@ Outside React, call `hideSplash()` from `@akshatowo/radical/client`.
 
 ### Animate from the splash
 
-`hideSplash()` waits until the page has painted, then removes the splash instantly. To animate from the splash, render `<Splash />` from `@akshatowo/radical/react`. It draws the shell's splash over the page with the same image, color, size, and position, so removing the native splash shows no change:
+`hideSplash()` waits until the page has painted and the `<Splash />` image has decoded, then removes the splash instantly. To animate from the splash, render `<Splash />` from `@akshatowo/radical/react`. It draws the shell's splash over the page with the same image, color, size, and position, so removing the native splash shows no change:
 
 ```tsx
 import { config } from "virtual:radical/config";

@@ -35,9 +35,26 @@ const frame = Effect.callback<number>((resume) => {
   });
 });
 
-// The first callback runs before the next paint; the second runs after it.
+/** Marks the images `<Splash />` draws, so hiding waits until they decode. */
+export const splashImageAttribute = "data-radical-splash-image";
+
+// An image that never decodes is drawn as nothing; the frame wait still runs.
+const imagesDecoded = Effect.suspend(() =>
+  Effect.forEach(
+    document.querySelectorAll<HTMLImageElement>(`img[${splashImageAttribute}]`),
+    (image) => Effect.tryPromise(() => image.decode()).pipe(Effect.ignore),
+    { concurrency: "unbounded", discard: true }
+  )
+);
+
+// Decoding finishes first. Then the first frame callback runs before the next
+// paint, and the second runs after it.
 export const SplashPaintLive = Layer.succeed(SplashPaint, {
-  painted: frame.pipe(Effect.andThen(frame), Effect.asVoid),
+  painted: imagesDecoded.pipe(
+    Effect.andThen(frame),
+    Effect.andThen(frame),
+    Effect.asVoid
+  ),
 });
 
 /**

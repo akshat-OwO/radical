@@ -5,6 +5,7 @@ import { Effect, FileSystem } from "effect";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
 import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
+import { offlineFallbackCheckScript } from "../../core/offline/offline-wire.ts";
 import type { BuildPlan } from "../../vite/build-plan.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
@@ -113,6 +114,7 @@ export const generateAndroid = (
         offlineSnapshotCheckScript(config.appId)
       ),
       __OFFLINE_SAVED_URL_KEY__: JSON.stringify(savedOfflineURLKeys.android),
+      __OFFLINE_FALLBACK_CHECK__: JSON.stringify(offlineFallbackCheckScript),
       __BUNDLED__: String(native.bundled),
       __APP_ID__: native.identity.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),

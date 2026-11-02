@@ -24,9 +24,9 @@ it.effect(
       assert.strictEqual(ios.backgroundColor, "#ffffff");
       assert.strictEqual(ios.size, "calc(max(100vw, 100vh) * 768 / 2732)");
       assert.strictEqual(android.size, "180px");
-      assert.strictEqual(ios.image, android.image);
-      assert.include(
-        ios.image,
+      assert.strictEqual(ios.src, android.src);
+      assert.strictEqual(
+        ios.src,
         `data:image/svg+xml,${encodeURIComponent(mark)}`
       );
     })
@@ -43,13 +43,15 @@ it.effect(
 
       assert.deepStrictEqual(splashLayout(splash, "ios"), {
         backgroundColor: "#241044",
-        image: 'url("/assets/splash.png")',
+        src: "/assets/splash.png",
         size: "max(100vw, 100vh)",
+        clipPath: "none",
       });
       assert.deepStrictEqual(splashLayout(splash, "android"), {
         backgroundColor: "#241044",
-        image: 'url("/assets/splash.png")',
+        src: "/assets/splash.png",
         size: "288px",
+        clipPath: "circle(96px)",
       });
     })
 );
