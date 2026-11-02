@@ -114,9 +114,10 @@ function SectionLayout({ children }) {
 | `sections` | Ordered declarations with `badge`, initially `null` |
 | `active` | Active section or `null` |
 | `native` | `true` when the shell draws the section bar. `false` in browsers, web-bar mode, or without sections. Uses provider native context for SSR and hydration. |
-| `hidden` | `true` when no section is active |
+| `hidden` | `true` when no section is active or the page hid the controls with `setHidden` |
 | `select(id)` | Promise. Restores an inactive section's last URL, or its root if unvisited. Selecting the active section returns to its root. Replaces the history entry. |
 | `setBadge(id, value)` | Promise. Accepts a finite number, a string of 1 to 4 characters, or `null` to clear. Badges stay in memory. |
+| `setHidden(hidden)` | Promise. `true` hides the controls on every route and keeps `active`; `false` lifts that override, and hidden routes stay hidden. Native bars animate in and out. |
 
 Unknown ids, invalid badges, and actions without a provider fail with `InvalidSection`, exported from both React entry points. Without a provider, state is `{ sections: [], active: null, hidden: true, native: false }`.
 
@@ -156,7 +157,9 @@ The iOS page draws edge to edge under the status bar, tab bar, and sidebar. Nati
 - Items stay inside the system insets.
 - Android keeps a window-sized CSS viewport.
 - Safe-area insets include navigation controls and update with the keyboard.
-- Hidden routes remove navigation controls and their insets.
+- Hidden routes and `setHidden(true)` remove navigation controls and their insets.
+- Native bars animate when `setHidden` changes their visibility: Android slides the bottom bar or rail, and iOS uses UIKit's tab bar animation, a fade on iOS 26. Route changes show and hide them at once.
+- The splash covers the native bar on both platforms. To keep the bar out of a launch animation, call `setHidden(true)` before `hideSplash()` and `setHidden(false)` when the animation ends. See [Hide the splash](/docs/guides/splash).
 
 ## Effect API
 
@@ -165,9 +168,9 @@ The iOS page draws edge to edge under the status bar, tab bar, and sidebar. Nati
 | Export from `@akshatowo/radical/effect/client` | Contract |
 | --- | --- |
 | `makeSections(sections, initialLocation, navigate, initialHidden?, ownership?)` | Effect that creates an isolated controller. Locations are `{ href, pathname }`: full URL for memory, decoded pathname for ownership. |
-| Controller | `snapshot()`, `destination(id)`, `select(id)`, `setBadge(id, value)`, `update(location, hidden?)`, and `subscribe(listener)`. Subscription returns cleanup. |
+| Controller | `snapshot()`, `destination(id)`, `select(id)`, `setBadge(id, value)`, `setHidden(hidden)`, `update(location, hidden?)`, and `subscribe(listener)`. Subscription returns cleanup. |
 | `sectionOwnership(sections, caseSensitive = true, normalizePathname?)` | Compiles a matcher. Default normalization leaves paths unchanged. Original declarations remain navigation destinations. |
-| `Sections`, `sectionsLayer(controller)` | Service and layer for `selectSection(id)` and `setSectionBadge(id, value)` Effects. |
+| `Sections`, `sectionsLayer(controller)` | Service and layer for `selectSection(id)`, `setSectionBadge(id, value)`, and `setSectionsHidden(hidden)` Effects. |
 
 - `tanstackSections(router, sections)` from the Effect TanStack entry point returns `{ controller, mount }`. `mount` requires `Bridge` and returns cleanup.
 - The adapter applies the router's path normalization and case setting to ownership and transition checks.

@@ -1254,7 +1254,8 @@ describe("ios native navigation", () => {
           assert.include(source, "safeAreaLayoutGuide.layoutFrame");
           assert.include(source, "radicalSectionSelect");
           assert.include(source, "tab.badgeValue = nil");
-          assert.include(source, "setTabBarHidden(hidden, animated: false)");
+          assert.include(source, "setTabBarHidden(hidden, animated: slide)");
+          assert.include(source, "content.raiseSplash(over: view)");
           assert.notInclude(source, "__SECTIONS__");
           assert.include(
             state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`) ??

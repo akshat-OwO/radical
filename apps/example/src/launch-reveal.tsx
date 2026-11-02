@@ -1,4 +1,9 @@
-import { Splash, splashLayout, useHideSplash } from "@akshatowo/radical/react";
+import {
+  Splash,
+  splashLayout,
+  useHideSplash,
+  useSections,
+} from "@akshatowo/radical/react";
 import { useEffect, useRef, useState } from "react";
 import { config } from "virtual:radical/config";
 
@@ -7,13 +12,17 @@ const hole = `url("data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><path d="M50.38 13.62A26 26 0 0 0 13.62 13.62" stroke="#000" stroke-width="5" stroke-linecap="round"/><circle cx="50.38" cy="13.62" r="7" fill="#000"/><circle cx="32" cy="32" r="13" fill="#000"/></svg>'
 )}")`;
 
-/** Bounces the splash logo, then grows it into a window onto the app. */
+/**
+ * Bounces the splash logo, then grows it into a window onto the app. The section
+ * bar stays hidden until the reveal ends, then slides in.
+ */
 export const LaunchReveal = ({
   platform,
 }: {
   readonly platform: "android" | "ios" | "browser";
 }) => {
   const hide = useHideSplash();
+  const { setHidden } = useSections();
   const started = useRef(false);
   const mark = useRef<HTMLDivElement>(null);
   const portal = useRef<HTMLDivElement>(null);
@@ -30,6 +39,8 @@ export const LaunchReveal = ({
     started.current = true;
 
     const bounce = async () => {
+      // The bar sits above the page, so it would cover the reveal.
+      await setHidden(true);
       // <Splash> drew the same frame, so the native splash leaves no seam.
       await hide();
       await mark.current?.animate(
@@ -51,7 +62,13 @@ export const LaunchReveal = ({
         setPhase("done");
       }
     );
-  }, [hide, platform]);
+  }, [hide, platform, setHidden]);
+
+  useEffect(() => {
+    if (phase === "done" && platform !== "browser") {
+      void setHidden(false);
+    }
+  }, [phase, platform, setHidden]);
 
   useEffect(() => {
     if (phase !== "reveal") {

@@ -109,6 +109,7 @@ export interface SectionState extends Section {
 export interface SectionsSnapshot {
   readonly sections: readonly SectionState[];
   readonly active: SectionState | null;
+  /** No section is active, or the page hid the controls with `setHidden`. */
   readonly hidden: boolean;
 }
 
@@ -165,6 +166,8 @@ export const makeSections = (
     const memory = new Map<string, string>();
     let location = initialLocation;
     let hidden = initialHidden;
+    // The page's override. It hides controls without changing the active section.
+    let pageHidden = false;
 
     let entries: readonly SectionState[] = sections.map((section) => ({
       ...section,
@@ -175,7 +178,11 @@ export const makeSections = (
       const owner = hidden ? null : ownership(location.pathname);
       const active = entries.find((entry) => entry.id === owner?.id) ?? null;
 
-      return { sections: entries, active, hidden: active === null };
+      return {
+        sections: entries,
+        active,
+        hidden: active === null || pageHidden,
+      };
     };
 
     let snapshot = read();
@@ -243,6 +250,12 @@ export const makeSections = (
       destination,
       select: (id: string) =>
         destination(id).pipe(Effect.flatMap((to) => navigate(to))),
+      /** Hides or restores controls, such as during a launch animation. */
+      setHidden: (value: boolean) =>
+        Effect.sync(() => {
+          pageHidden = value;
+          publish();
+        }),
       setBadge: (id: string, value: SectionBadge) =>
         Effect.gen(function* () {
           if (!entries.some((entry) => entry.id === id)) {
@@ -289,6 +302,9 @@ export const sectionsLayer = (controller: SectionsController) =>
 
 export const selectSection = (id: string) =>
   Sections.pipe(Effect.flatMap((sections) => sections.select(id)));
+
+export const setSectionsHidden = (hidden: boolean) =>
+  Sections.pipe(Effect.flatMap((sections) => sections.setHidden(hidden)));
 
 export const setSectionBadge = (id: string, value: SectionBadge) =>
   Sections.pipe(Effect.flatMap((sections) => sections.setBadge(id, value)));

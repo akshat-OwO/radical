@@ -3,7 +3,7 @@ import { assert, it } from "@effect/vitest";
 import { Deferred, Effect } from "effect";
 import { createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
-import { hydrateRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 
 import { makeSections } from "../../src/capabilities/sections/sections.ts";
@@ -137,6 +137,85 @@ it.effect(
       })
     )
 );
+
+it.effect(
+  "hides controls through both hooks and keeps the active section",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const controller = yield* makeSections(
+          sections,
+          { href: "/home", pathname: "/home" },
+          () => Effect.void
+        );
+
+        const actions: HideActions = {};
+
+        const Probe = () => {
+          const plain = useSections();
+          const effect = useSectionsEffect();
+
+          useLayoutEffect(() => {
+            actions.plain = plain.setHidden;
+            actions.effect = effect.setHidden;
+          });
+
+          return createElement(
+            "pre",
+            null,
+            `${plain.active?.id}:${plain.hidden}:${effect.hidden}`
+          );
+        };
+
+        const container = document.createElement("div");
+
+        const root = flushSync(() => {
+          const created = createRoot(container);
+          created.render(
+            createElement(
+              SectionsProvider,
+              { controller },
+              createElement(Probe)
+            )
+          );
+
+          return created;
+        });
+
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            flushSync(() => {
+              root.unmount();
+            });
+          })
+        );
+
+        assert.strictEqual(container.textContent, "home:false:false");
+
+        const { plain, effect } = actions;
+
+        assert.isDefined(plain);
+        assert.isDefined(effect);
+
+        flushSync(() => {
+          void plain(true);
+        });
+
+        assert.strictEqual(container.textContent, "home:true:true");
+
+        flushSync(() => {
+          Effect.runSync(Effect.orDie(effect(false)));
+        });
+
+        assert.strictEqual(container.textContent, "home:false:false");
+      })
+    )
+);
+
+interface HideActions {
+  plain?: ReturnType<typeof useSections>["setHidden"];
+  effect?: ReturnType<typeof useSectionsEffect>["setHidden"];
+}
 
 const NativeProbe = ({ onCommit }: { onCommit: (value: string) => void }) => {
   const plain = useSections();

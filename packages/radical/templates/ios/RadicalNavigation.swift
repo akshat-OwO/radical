@@ -8,6 +8,7 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
     private let viewport = UIView()
     private let pageContent = UIView()
     private var navigationHidden = false
+    private var activeId: String?
     private var sidebarPlaced = false
 
     override func viewDidLoad() {
@@ -27,6 +28,7 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         pageContent.addSubview(content.view)
         content.navigationPageContent = pageContent
         content.didMove(toParent: self)
+        content.raiseSplash(over: view)
     }
 
     override func viewDidLayoutSubviews() {
@@ -70,6 +72,7 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
         content.view.frame = bounds.offsetBy(dx: -left, dy: 0)
         content.setNavigationSafeArea(required)
         placeViewport()
+        content.raiseSplash(over: view)
     }
 
     // Sit directly above the tab content container, so the page covers the empty
@@ -98,8 +101,12 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
     func update(_ state: [AnyHashable: Any]) {
         guard let hidden = state["hidden"] as? Bool,
               let entries = state["sections"] as? [[String: Any]] else { return }
-        if let active = state["active"] as? [String: Any], let id = active["id"] as? String,
-           let tab = tabs.first(where: { $0.identifier == id }), selectedTab !== tab {
+        let id = (state["active"] as? [String: Any])?["id"] as? String
+        // The page hid or restored the bar without changing section, so it slides.
+        // Route changes that hide the bar also change the active section and stay instant.
+        let slide = navigationHidden != hidden && id != nil && id == activeId
+        activeId = id
+        if let id, let tab = tabs.first(where: { $0.identifier == id }), selectedTab !== tab {
             // Programmatic selection never emits a selection intent.
             UIView.performWithoutAnimation { selectedTab = tab }
             updateImages()
@@ -114,7 +121,7 @@ final class RadicalTabController: UITabBarController, UITabBarControllerDelegate
             navigationHidden = hidden
             if hidden { sidebar.isHidden = true }
             mode = hidden ? .tabBar : .tabSidebar
-            setTabBarHidden(hidden, animated: false)
+            setTabBarHidden(hidden, animated: slide)
             if !hidden { sidebar.isHidden = false }
             view.setNeedsLayout()
         }

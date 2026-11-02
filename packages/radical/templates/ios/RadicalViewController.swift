@@ -75,6 +75,14 @@ final class RadicalViewController: CAPBridgeViewController {
             name: UIResponder.keyboardWillHideNotification, object: nil)
     }
 
+    // Section bars live in the tab controller's view, above this one. The splash
+    // covers them there, as the Android splash covers its bar.
+    func raiseSplash(over host: UIView) {
+        guard let splash = startupSplash, host.subviews.last !== splash else { return }
+        splash.frame = host.bounds
+        host.addSubview(splash)
+    }
+
     func hideSplash() {
         startupSplash?.removeFromSuperview()
         startupSplash = nil

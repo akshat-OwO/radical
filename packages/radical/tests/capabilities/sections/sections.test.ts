@@ -8,6 +8,7 @@ import {
   sectionsLayer,
   selectSection,
   setSectionBadge,
+  setSectionsHidden,
 } from "../../../src/capabilities/sections/sections.ts";
 import { resolveBuildPlan } from "../../../src/vite/build-plan.ts";
 import { validateConfig } from "../../../src/vite/config.ts";
@@ -129,6 +130,51 @@ it.effect("reports no active section on hidden or unowned routes", () =>
 
     assert.isFalse(controller.snapshot().hidden);
   })
+);
+
+it.effect(
+  "hides controls on page request without clearing the active section",
+  () =>
+    Effect.gen(function* () {
+      const controller = yield* makeSections(
+        sections,
+        { href: "/home", pathname: "/home" },
+        () => Effect.void
+      );
+
+      let published = 0;
+
+      controller.subscribe(() => {
+        published += 1;
+      });
+
+      const layer = sectionsLayer(controller);
+
+      yield* setSectionsHidden(true).pipe(Effect.provide(layer));
+      yield* controller.setHidden(true);
+
+      assert.strictEqual(published, 1);
+      assert.isTrue(controller.snapshot().hidden);
+      assert.strictEqual(controller.snapshot().active?.id, "home");
+
+      // The override outlives route changes until the page lifts it.
+      yield* controller.update({ href: "/inbox", pathname: "/inbox" });
+
+      assert.isTrue(controller.snapshot().hidden);
+      assert.strictEqual(controller.snapshot().active?.id, "inbox");
+
+      yield* controller.setHidden(false);
+
+      assert.isFalse(controller.snapshot().hidden);
+
+      // Lifting the override keeps a hidden route hidden.
+      yield* controller.update({ href: "/login", pathname: "/login" });
+      yield* controller.setHidden(true);
+      yield* controller.setHidden(false);
+
+      assert.isTrue(controller.snapshot().hidden);
+      assert.isNull(controller.snapshot().active);
+    })
 );
 
 it.effect(

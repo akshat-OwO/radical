@@ -115,7 +115,6 @@ const SectionLayout = ({ children }: { children: ReactNode }) => {
       router={router}
       sections={config.navigation?.sections ?? []}
     >
-      <SectionNavigation />
       {children}
     </TanStackSections>
   );
@@ -147,13 +146,16 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
       </head>
       <body>
         <RadicalProvider nativeContext={nativeContext}>
-          <AppUpdateProvider initialState={appUpdate}>
-            <AppUpdateBoundary>
-              <NotificationNavigation />
-              <SectionLayout>{children}</SectionLayout>
-            </AppUpdateBoundary>
-          </AppUpdateProvider>
-          <LaunchReveal platform={nativeContext.platform} />
+          <SectionLayout>
+            <AppUpdateProvider initialState={appUpdate}>
+              <AppUpdateBoundary>
+                <NotificationNavigation />
+                <SectionNavigation />
+                {children}
+              </AppUpdateBoundary>
+            </AppUpdateProvider>
+            <LaunchReveal platform={nativeContext.platform} />
+          </SectionLayout>
         </RadicalProvider>
         <Scripts />
       </body>

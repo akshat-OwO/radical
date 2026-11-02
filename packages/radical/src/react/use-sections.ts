@@ -62,6 +62,7 @@ export const useSectionsEffect = () => {
     native,
     select: controller?.select ?? unconfigured,
     setBadge: controller?.setBadge ?? unconfigured,
+    setHidden: controller?.setHidden ?? unconfigured,
   };
 };
 
@@ -69,6 +70,7 @@ export const useSections = () => {
   const {
     select: selectEffect,
     setBadge: setBadgeEffect,
+    setHidden: setHiddenEffect,
     ...state
   } = useSectionsEffect();
 
@@ -83,5 +85,10 @@ export const useSections = () => {
     [setBadgeEffect]
   );
 
-  return { ...state, select, setBadge };
+  const setHidden = useCallback(
+    (hidden: boolean) => Effect.runPromise(setHiddenEffect(hidden)),
+    [setHiddenEffect]
+  );
+
+  return { ...state, select, setBadge, setHidden };
 };

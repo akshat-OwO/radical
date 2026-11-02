@@ -69,6 +69,26 @@ Render `<Splash />` in the server render and keep it until your animation ends. 
 `<Splash />` reads the platform from `RadicalProvider`. Pass `nativeContext` to the provider so the server render includes the splash. In a browser it renders nothing.
 
 </Step>
+<Step>
+
+### Bring in the section bar
+
+The splash covers the native section bar. The bar draws above the page, so it would also cover your launch animation. Hide it before the splash goes, then let it slide in when the animation ends:
+
+```tsx
+const { setHidden } = useSections();
+
+useEffect(() => {
+  void setHidden(true)
+    .then(hide)
+    .then(runLaunchAnimation)
+    .finally(() => setHidden(false));
+}, [hide, setHidden]);
+```
+
+The component must render inside `TanStackSections`. Safe-area insets drop the bar while it is hidden.
+
+</Step>
 </Steps>
 
 <Callout type="warning">
