@@ -38,6 +38,8 @@ import android.webkit.WebView;
 import androidx.activity.BackEventCompat;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.graphics.Insets;
+import androidx.core.splashscreen.SplashScreen;
+import androidx.core.splashscreen.SplashScreenViewProvider;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -62,6 +64,51 @@ import org.json.JSONObject;
 /** Remote mode keeps Chromium's networking, streaming, cookies and origin. */
 public class MainActivity extends BridgeActivity {
     private android.content.pm.PackageInfo appInfo;
+    private static final boolean SPLASH_MANUAL = __SPLASH_MANUAL__;
+    private static final long SPLASH_TIMEOUT = __SPLASH_TIMEOUT__;
+    // Android draws a splash icon without an icon background in a 288dp box.
+    private static final int SPLASH_ICON_DP = 288;
+    // Content outside the icon's inner 192dp circle is masked.
+    private static final int SPLASH_ICON_MASK_DP = 192;
+    // A copy of the system splash in the app's own first frame. The system splash
+    // leaves at once, so its handover never shows the app, even for one frame.
+    private View splashOverlay;
+
+    @Override
+    public void onCreate(android.os.Bundle savedInstanceState) {
+        __APPEARANCE_SETUP__
+        SplashScreen.installSplashScreen(this).setOnExitAnimationListener(SplashScreenViewProvider::remove);
+        super.onCreate(savedInstanceState);
+        android.widget.FrameLayout overlay = new android.widget.FrameLayout(this);
+        overlay.setBackgroundColor(android.graphics.Color.parseColor(__SPLASH_BACKGROUND__));
+        // The splash blocks touches, as the system splash does.
+        overlay.setClickable(true);
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.drawable.radical_splash_icon);
+        float density = getResources().getDisplayMetrics().density;
+        int size = Math.round(SPLASH_ICON_DP * density);
+        int mask = Math.round(SPLASH_ICON_MASK_DP * density);
+        icon.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                int inset = (view.getWidth() - mask) / 2;
+                outline.setOval(inset, inset, inset + mask, inset + mask);
+            }
+        });
+        icon.setClipToOutline(true);
+        overlay.addView(icon, new android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER));
+        ((ViewGroup) getWindow().getDecorView()).addView(overlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        splashOverlay = overlay;
+        if (SPLASH_MANUAL && SPLASH_TIMEOUT > 0) {
+            new Handler(Looper.getMainLooper()).postDelayed(this::hideSplash, SPLASH_TIMEOUT);
+        }
+    }
+
+    void hideSplash() {
+        if (splashOverlay == null) return;
+        ((ViewGroup) getWindow().getDecorView()).removeView(splashOverlay);
+        splashOverlay = null;
+    }
     private static final boolean BUNDLED = __BUNDLED__;
     private static final String URL = __URL__;
     private static final String OFFLINE_LAUNCH = __OFFLINE_LAUNCH__;
@@ -282,6 +329,7 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+        registerPlugin(RadicalSplashPlugin.class);
         __NAVIGATION_REGISTRATION__
         __PLUGIN_REGISTRATION__
         super.load();
@@ -348,6 +396,14 @@ public class MainActivity extends BridgeActivity {
             public void onPageFinished(WebView webView, String url) {
                 super.onPageFinished(webView, url);
                 rememberOfflineUrl(webView, url);
+                // Packaged fallback pages cannot run app code, so they always end the splash.
+                Uri page = Uri.parse(url);
+                if (launchPage(page)) return;
+                if (!SPLASH_MANUAL || offlinePage(page)) hideSplash();
+                // A worker fallback keeps the app URL, so only its marker identifies it.
+                else webView.evaluateJavascript(__OFFLINE_FALLBACK_CHECK__, isFallback -> {
+                    if ("true".equals(isFallback)) hideSplash();
+                });
             }
 
             @Override

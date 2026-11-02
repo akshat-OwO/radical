@@ -1,0 +1,82 @@
+---
+title: "Hide the splash when your app is ready"
+description: "Keep the splash up through your own loading and launch animation."
+---
+
+By default, the shell hides the splash when the first document loads, before your app hydrates or fetches data. Use manual dismissal to keep it up until your app is ready, such as after a loader finishes or when a launch animation can take over.
+
+<Steps>
+<Step>
+
+## Choose manual dismissal
+
+Set `splash.dismiss` in your Radical config:
+
+```ts
+splash: { dismiss: "manual" },
+// With your own image:
+// splash: { image: "./assets/splash.png", backgroundColor: "#241044", dismiss: "manual" },
+```
+
+The shell hides the splash after 10 seconds if the page never asks. Set `splash.timeout` to change that time in milliseconds, or to `false` to disable it.
+
+</Step>
+<Step>
+
+### Hide the splash
+
+Call the hook in a component that renders once your app is ready:
+
+```tsx
+const ready = !isLoading;
+useHideSplash(ready); // @akshatowo/radical/react
+```
+
+To start an animation after the splash is gone, await the returned function instead:
+
+```tsx
+const hide = useHideSplash();
+
+useEffect(() => {
+  void hide().then(startLaunchAnimation);
+}, [hide]);
+```
+
+Outside React, call `hideSplash()` from `@akshatowo/radical/client`.
+
+</Step>
+<Step>
+
+### Animate from the splash
+
+`hideSplash()` waits until the page has painted and the `<Splash />` image has decoded, then removes the splash instantly. To animate from the splash, render `<Splash />` from `@akshatowo/radical/react`. It draws the shell's splash over the page with the same image, color, size, and position, so removing the native splash shows no change:
+
+```tsx
+import { config } from "virtual:radical/config";
+
+const mark = useRef<HTMLDivElement>(null);
+const hide = useHideSplash();
+
+useEffect(() => {
+  void hide().then(() => mark.current?.animate(bounce, 700));
+}, [hide]);
+
+return showSplash ? <Splash splash={config.splash} markRef={mark} /> : null;
+```
+
+Render `<Splash />` in the server render and keep it until your animation ends. `markRef` points at the centered image. To draw your own shapes at the same geometry, call `splashLayout(config.splash, platform)`.
+
+`<Splash />` reads the platform from `RadicalProvider`. Pass `nativeContext` to the provider so the server render includes the splash. In a browser it renders nothing.
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+
+Android 12 and later draw the splash as a solid color with a centered icon. A page splash with a gradient or full-screen image shows a visible change on Android.
+
+</Callout>
+
+The packaged offline and fallback pages hide the splash themselves.
+
+See [Splash API](/docs/reference/splash).

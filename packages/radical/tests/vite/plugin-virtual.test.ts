@@ -71,6 +71,8 @@ it.effect(
       assert.include(clientConfig, '"packageId":"dev.test.android"');
       assert.include(clientConfig, '"appStoreId":"123"');
       assert.notInclude(clientConfig, '"pluginOptions"');
+      assert.include(clientConfig, 'splash: { backgroundColor: "#ffffff" }');
+      assert.notInclude(clientConfig, "import splashImage");
 
       const metadata: unknown = JSON.parse(
         memory.files.get(metadataFile) ?? "null"
@@ -86,6 +88,10 @@ it.effect(
       assert.include(declarations, 'readonly "echo"');
       assert.include(declarations, "/app/plugins/echo.ts");
       assert.include(declarations, 'declare module "virtual:radical/config"');
+      assert.include(
+        declarations,
+        'readonly splash: import("@akshatowo/radical/react").SplashAppearance'
+      );
       yield* resolvePlugin(plugin);
       assert.strictEqual(writes.filter((name) => name === file).length, 1);
 
@@ -98,5 +104,59 @@ it.effect(
       yield* resolvePlugin(changed);
       assert.strictEqual(writes.filter((name) => name === file).length, 2);
       assert.notInclude(memory.files.get(file) ?? "", 'readonly "echo"');
+    })
+);
+
+it.effect(
+  "imports a configured splash image as a URL with its background color",
+  () =>
+    Effect.gen(function* () {
+      const memory = metadataMemory(
+        JSON.stringify({
+          config: { appId: "dev.test.app" },
+          url: "http://localhost:5173",
+        })
+      );
+
+      const services = Layer.merge(
+        memory.layer,
+        Layer.succeed(PluginModules, { load: () => Effect.succeed({}) })
+      );
+
+      const plugin = nativePlugins(
+        {
+          appId: "dev.test.app",
+          splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
+        },
+        fakeAdapter,
+        services
+      );
+
+      yield* resolvePlugin(plugin);
+      const { load } = plugin;
+      assert.isDefined(load);
+      const handler = hookHandler(load);
+
+      const clientConfig = yield* Effect.promise(
+        async () =>
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Minimal Vite hook fixture.
+          await handler.call(
+            // SAFETY: The loader reads no fields from its Vite context.
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Minimal Vite hook fixture.
+            {} as ThisParameterType<typeof handler>,
+            "\0virtual:radical/config",
+            {}
+          )
+      );
+
+      assert.isString(clientConfig);
+      assert.include(
+        clientConfig,
+        'import splashImage from "/app/assets/splash.png?url";'
+      );
+      assert.include(
+        clientConfig,
+        'splash: { backgroundColor: "#241044", image: splashImage }'
+      );
     })
 );

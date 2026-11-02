@@ -15,6 +15,7 @@ import {
   NATIVE_CONTEXT_COOKIE,
 } from "../../../src/core/context/native-context.ts";
 import { offlineMessages } from "../../../src/core/offline/offline-protocol.ts";
+import { offlineFallbackMarker } from "../../../src/core/offline/offline-wire.ts";
 import { createOfflineWorker } from "../../../src/core/offline/offline-worker.ts";
 import type {
   OfflineManifest,
@@ -266,7 +267,7 @@ describe("offline worker", () => {
             yield* responseText(
               yield* Effect.promise(() => worker.respond(navigation(path)))
             ),
-            eligible ? path : "offline fallback"
+            eligible ? path : `offline fallback${offlineFallbackMarker}`
           );
         }
       }).pipe(Effect.provide(memoryLayer))
@@ -348,7 +349,11 @@ describe("offline worker", () => {
         fallback.headers.get("x-radical-offline-fallback"),
         "1"
       );
-      assert.strictEqual(yield* responseText(fallback), "offline fallback");
+      assert.strictEqual(
+        yield* responseText(fallback),
+        `offline fallback${offlineFallbackMarker}`
+      );
+      assert.isNull(fallback.headers.get("content-length"));
     }).pipe(Effect.provide(memoryLayer))
   );
 
@@ -412,7 +417,7 @@ describe("offline worker", () => {
             yield* responseText(
               yield* Effect.promise(() => worker.respond(navigation(path)))
             ),
-            "offline fallback"
+            `offline fallback${offlineFallbackMarker}`
           );
         }
       }).pipe(Effect.provide(memoryLayer))

@@ -5,6 +5,7 @@ import { Effect, FileSystem } from "effect";
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
 import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
+import { offlineFallbackCheckScript } from "../../core/offline/offline-wire.ts";
 import type { BuildPlan } from "../../vite/build-plan.ts";
 import { resolvePackageRoot } from "../../vite/package-paths.ts";
 import { pluginRegistration } from "../../vite/plugins/plugin-plan.ts";
@@ -81,6 +82,14 @@ export const generateAndroid = (
       : [];
 
     const replacements = {
+      // AppCompat applies the pinned resources before BridgeActivity creates any views.
+      __APPEARANCE_SETUP__:
+        config.appearance === "light" || config.appearance === "dark"
+          ? `androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_${config.appearance === "dark" ? "YES" : "NO"});`
+          : "",
+      __SPLASH_MANUAL__: String(native.splash.dismiss === "manual"),
+      __SPLASH_BACKGROUND__: JSON.stringify(native.splash.backgroundColor),
+      __SPLASH_TIMEOUT__: `${native.splash.timeout === false ? 0 : native.splash.timeout}L`,
       __NAVIGATION_FIELD__: navigation ? "RadicalNavigation navigation;" : "",
       __NAVIGATION_REGISTRATION__: navigation
         ? "registerPlugin(RadicalNavigationPlugin.class);"
@@ -105,6 +114,7 @@ export const generateAndroid = (
         offlineSnapshotCheckScript(config.appId)
       ),
       __OFFLINE_SAVED_URL_KEY__: JSON.stringify(savedOfflineURLKeys.android),
+      __OFFLINE_FALLBACK_CHECK__: JSON.stringify(offlineFallbackCheckScript),
       __BUNDLED__: String(native.bundled),
       __APP_ID__: native.identity.appId,
       __SAFE_AREA_SCRIPT__: JSON.stringify(safeAreaUpdateScript),
@@ -131,22 +141,9 @@ export const generateAndroid = (
       replacements
     );
 
-    // AppCompat applies the pinned resources before BridgeActivity creates any views.
-    const shellActivity =
-      config.appearance === "light" || config.appearance === "dark"
-        ? yield* replaceAnchor(
-            "MainActivity.java",
-            activity,
-            "public class MainActivity extends BridgeActivity {",
-            `public class MainActivity extends BridgeActivity {
-    @Override
-    public void onCreate(android.os.Bundle savedInstanceState) {
-        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_${config.appearance === "dark" ? "YES" : "NO"});
-        super.onCreate(savedInstanceState);
-    }
-`
-          )
-        : activity;
+    const splashPlugin = yield* fs.readFileString(
+      path.join(packageRoot, "templates/android/RadicalSplashPlugin.java")
+    );
 
     return yield* generateNativeProject(root, "android", native, (staging) =>
       Effect.gen(function* () {
@@ -291,7 +288,7 @@ export const generateAndroid = (
               styles,
               yield* fs.readFileString(styles),
               '<item name="android:background">@drawable/splash</item>',
-              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${native.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>`
+              `<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">${native.splash.backgroundColor}</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/radical_splash_icon</item>\n        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>`
             )
           );
         }
@@ -324,14 +321,19 @@ export const generateAndroid = (
           `${gradle}\napply from: 'radical.gradle'\n`
         );
 
+        const java = path.join(
+          staging,
+          "android/app/src/main/java",
+          ...native.identity.appId.split(".")
+        );
+
         yield* fs.writeFileString(
-          path.join(
-            staging,
-            "android/app/src/main/java",
-            ...native.identity.appId.split("."),
-            "MainActivity.java"
-          ),
-          shellActivity
+          path.join(java, "MainActivity.java"),
+          activity
+        );
+        yield* fs.writeFileString(
+          path.join(java, "RadicalSplashPlugin.java"),
+          `package ${native.identity.appId};\n${splashPlugin}`
         );
         yield* applyBuildPlan(root, staging, "android", native.plan);
         yield* composePluginSources(

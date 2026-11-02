@@ -135,6 +135,21 @@ export type {
   CameraFacing,
 } from "../capabilities/video-stream/video-stream.ts";
 
+export { useHideSplash } from "./use-hide-splash.ts";
+
+export { Splash } from "./splash.ts";
+
+export type { SplashProps } from "./splash.ts";
+
+export { splashLayout } from "../capabilities/splash/splash-layout.ts";
+
+export type {
+  SplashAppearance,
+  SplashLayout,
+} from "../capabilities/splash/splash-layout.ts";
+
+export type { SplashError } from "../capabilities/splash/splash.ts";
+
 export { useHapticFeedback } from "./use-haptic-feedback.ts";
 
 export type { HapticFeedbackState } from "./use-haptic-feedback.ts";

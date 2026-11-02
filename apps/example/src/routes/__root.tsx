@@ -30,6 +30,8 @@ import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
 
+import { LaunchReveal } from "../launch-reveal.tsx";
+
 const readNativeContext = createServerFn({ method: "GET" }).handler(
   ({ context }) => ({
     nativeContext: context.nativeContext,
@@ -151,6 +153,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
               <SectionLayout>{children}</SectionLayout>
             </AppUpdateBoundary>
           </AppUpdateProvider>
+          <LaunchReveal platform={nativeContext.platform} />
         </RadicalProvider>
         <Scripts />
       </body>

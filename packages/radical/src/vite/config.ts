@@ -57,6 +57,36 @@ export const SplashColorSchema = Schema.String.check(
   Schema.isPattern(/^#[A-Fa-f0-9]{6}$/u)
 );
 
+/** Milliseconds a manually dismissed splash may stay up before the shell hides it. */
+export const DEFAULT_SPLASH_TIMEOUT = 10_000;
+
+export const SplashSchema = Schema.Struct({
+  image: Schema.optional(Schema.NonEmptyString),
+  backgroundColor: Schema.optional(SplashColorSchema),
+  dismiss: Schema.optional(Schema.Literals(["auto", "manual"])),
+  timeout: Schema.optional(
+    Schema.Union([
+      Schema.Literal(false),
+      Schema.Number.check(
+        Schema.isInt(),
+        Schema.isGreaterThan(0),
+        Schema.isLessThanOrEqualTo(600_000)
+      ),
+    ])
+  ),
+}).check(
+  Schema.makeFilter((splash) =>
+    (splash.image === undefined) === (splash.backgroundColor === undefined)
+      ? undefined
+      : "splash.image and splash.backgroundColor must be set together"
+  ),
+  Schema.makeFilter((splash) =>
+    splash.timeout === undefined || splash.dismiss === "manual"
+      ? undefined
+      : 'splash.timeout requires splash.dismiss: "manual"'
+  )
+);
+
 export const RadicalConfigSchema = Schema.Struct({
   version: Schema.optional(Schema.NonEmptyString),
   build: Schema.optional(
@@ -136,12 +166,7 @@ export const RadicalConfigSchema = Schema.Struct({
       }),
     ])
   ),
-  splash: Schema.optional(
-    Schema.Struct({
-      image: Schema.NonEmptyString,
-      backgroundColor: SplashColorSchema,
-    })
-  ),
+  splash: Schema.optional(SplashSchema),
 }).check(
   Schema.makeFilter(
     (config) =>

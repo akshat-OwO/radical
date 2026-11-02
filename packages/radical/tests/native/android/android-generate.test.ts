@@ -21,6 +21,7 @@ import {
   NATIVE_CONTEXT_COOKIE,
   ShellContextSchema,
 } from "../../../src/core/context/native-context.ts";
+import { offlineFallbackCheckScript } from "../../../src/core/offline/offline-wire.ts";
 import type { PluginManifest } from "../../../src/core/plugins/plugins.ts";
 import { CliNative, cliNativeLayer, makeCli } from "../../../src/entry/cli.ts";
 import { CliVite } from "../../../src/entry/prepare-native.ts";
@@ -44,6 +45,7 @@ import locationSource from "../../../templates/android/RadicalLocationPlugin.jav
 import navigationSource from "../../../templates/android/RadicalNavigation.java?raw";
 import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin.java?raw";
 import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
+import splashPlugin from "../../../templates/android/RadicalSplashPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../../../templates/offline.html?raw";
 import mark from "../../../templates/radical-mark.svg?raw";
@@ -64,6 +66,7 @@ const memory = (
 ) => {
   const files = new Map<string, string>([
     ["/package/templates/android/RadicalSettingsPlugin.java", settings],
+    ["/package/templates/android/RadicalSplashPlugin.java", splashPlugin],
     ["/package/templates/android/RadicalLocationPlugin.java", locationSource],
     ["/app/plugins/EchoPlugin.java", echoSource],
     ["/package/templates/android/RadicalTransitionsPlugin.java", transitions],
@@ -1504,10 +1507,6 @@ describe("Android shell appearance", () => {
           omitted.files.get(mainActivity) ?? "",
           "setDefaultNightMode"
         );
-        assert.notInclude(
-          omitted.files.get(mainActivity) ?? "",
-          "void onCreate("
-        );
       })
   );
 
@@ -1523,11 +1522,15 @@ describe("Android shell appearance", () => {
         return Effect.gen(function* () {
           yield* generate;
           const source = state.files.get(mainActivity) ?? "";
-          assert.include(
-            source,
-            `public void onCreate(android.os.Bundle savedInstanceState) {
-        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_${mode});
-        super.onCreate(savedInstanceState);`
+
+          const night = source.indexOf(
+            `androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_${mode});`
+          );
+
+          assert.isAbove(night, source.indexOf("public void onCreate("));
+          assert.isBelow(
+            night,
+            source.indexOf("super.onCreate(savedInstanceState);")
           );
           assert.notMatch(source, /__[A-Z_]+__/u);
           const res = `${destination}/android/app/src/main/res`;
@@ -1581,7 +1584,7 @@ it.effect("embeds the build plan commands in the document-start script", () => {
     assert.include(
       source,
       JSON.stringify(
-        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"]};'
+        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"],"RadicalSplash":["hide"]};'
       )
     );
     assert.notInclude(source, "__SHELL_COMMANDS_SCRIPT__");
@@ -1615,3 +1618,73 @@ it.effect(
     }).pipe(Effect.provide(state.layer));
   }
 );
+
+describe("Android splash dismissal", () => {
+  it.effect(
+    "hides an automatic splash when the page loads and registers the hide command",
+    () => {
+      const state = memory();
+
+      return Effect.gen(function* () {
+        yield* generate;
+        const source = state.files.get(mainActivity) ?? "";
+        const java = `${destination}/android/app/src/main/java/dev/radical/example`;
+
+        assert.include(source, "SPLASH_MANUAL = false;");
+        assert.include(source, "SPLASH_TIMEOUT = 0L;");
+        assert.include(
+          source,
+          "SplashScreen.installSplashScreen(this).setOnExitAnimationListener(SplashScreenViewProvider::remove);"
+        );
+        assert.include(
+          source,
+          'overlay.setBackgroundColor(android.graphics.Color.parseColor("#ffffff"));'
+        );
+        assert.include(
+          source,
+          "icon.setImageResource(R.drawable.radical_splash_icon);"
+        );
+        assert.include(source, "SPLASH_ICON_MASK_DP = 192;");
+        assert.include(source, "icon.setClipToOutline(true);");
+        assert.include(source, "registerPlugin(RadicalSplashPlugin.class);");
+        assert.include(
+          state.files.get(`${java}/RadicalSplashPlugin.java`) ?? "",
+          "package dev.radical.example;\nimport com.getcapacitor.Plugin;"
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/android/app/src/main/res/values/styles.xml`
+          ) ?? "",
+          '<item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>'
+        );
+        assert.notMatch(source, /__[A-Z_]+__/u);
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  for (const [splash, timeout] of [
+    [{ dismiss: "manual" }, "10000L"],
+    [{ dismiss: "manual", timeout: 2500 }, "2500L"],
+    [{ dismiss: "manual", timeout: false }, "0L"],
+  ] as const) {
+    it.effect(
+      `holds a manual splash with a ${timeout} timeout for ${JSON.stringify(splash)}`,
+      () => {
+        const state = memory(false, { ...defaultConfig, splash });
+
+        return Effect.gen(function* () {
+          yield* generate;
+          const source = state.files.get(mainActivity) ?? "";
+
+          assert.include(source, "SPLASH_MANUAL = true;");
+          assert.include(source, `SPLASH_TIMEOUT = ${timeout};`);
+          // A worker fallback keeps the app URL; its marker still ends the splash.
+          assert.include(
+            source,
+            `else webView.evaluateJavascript(${JSON.stringify(offlineFallbackCheckScript)}, isFallback -> {`
+          );
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
+});

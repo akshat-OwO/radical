@@ -22,6 +22,17 @@ export const decodeWorkerMessage = (
   offlineMessageLiterals.find((message) => message === input);
 
 export const snapshotSuffix = ":snapshots";
+
+/**
+ * Appended to the worker's fallback document. Android cannot read a document's
+ * response headers, so its shell finds the fallback by this element instead.
+ */
+export const offlineFallbackMarker = '<meta name="radical-offline-fallback">';
+
+/** True in a document the worker served as its offline fallback. */
+export const offlineFallbackCheckScript =
+  "document.querySelector('meta[name=\"radical-offline-fallback\"]') !== null";
+
 export const offlineAppCachePrefix = (appId: string) => `radical:${appId}:`;
 
 export const offlineCachePrefix = (appId: string, base: string) =>

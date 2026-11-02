@@ -83,6 +83,10 @@ import {
   NotificationScheduleResultSchema,
 } from "../capabilities/notifications/notifications.ts";
 import {
+  hideSplash as hideSplashEffect,
+  splashLive,
+} from "../capabilities/splash/splash.ts";
+import {
   localNativeContext as localContext,
   mountNativeContext as mountContext,
 } from "../core/bundled/bundled-request.ts";
@@ -205,6 +209,19 @@ export const openFile = (
   getEffectRuntime(runtime).runPromise(
     intentsLive(openFileEffect(file, options))
   );
+
+export type { SplashError } from "../capabilities/splash/splash.ts";
+
+export { splashLayout } from "../capabilities/splash/splash-layout.ts";
+
+export type {
+  SplashAppearance,
+  SplashLayout,
+} from "../capabilities/splash/splash-layout.ts";
+
+/** Resolves once the shell removed its splash. Extra calls resolve without effect. */
+export const hideSplash = (runtime: RadicalRuntime = defaultRuntime) =>
+  getEffectRuntime(runtime).runPromise(splashLive(hideSplashEffect));
 
 export type {
   HapticError,

@@ -32,6 +32,10 @@ _Avoid_: Advanced API, core API
 The names, platform identifiers, launcher icon, and splash screen that identify an app on a device.\
 _Avoid_: Branding config, app metadata
 
+**Splash screen**:\
+The native image and background color that the shell shows from launch until the app is ready to be seen.\
+_Avoid_: Launch screen, loading screen, loader
+
 **Shell**:\
 The native Android or iOS app that hosts the web app in a WebView.\
 _Avoid_: Wrapper, container, native app (when meaning the host)

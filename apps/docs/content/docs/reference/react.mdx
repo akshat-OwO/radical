@@ -39,6 +39,7 @@ description: "Public exports from @akshatowo/radical/react."
 | `useFilePicker()` | `pick(options?)`, `loading`, `value?: readonly PickedFile[]`, `error`. |
 | `useIntent()` | `openUrl(url)`, `openFile(file, options?)`, `loading`, `value?: true`, `error`. |
 | `useVideoStream(options)` | `start()`, `stop()`, `switchCamera()`, `setZoom(level)`, `setTorch(enabled)`, `running`, `loading`, `value?: VideoStreamInfo`, `error`. |
+| `useHideSplash(ready?)` | Returns a stable `hide(): Promise<void>`. With `ready`, hides the splash the first time `ready` is `true` and ignores failures. See [Splash API](/docs/reference/splash). |
 | `useHapticFeedback()` | `light()`, `medium()`, `heavy()`, `success()`, `warning()`, `error()`, `selection()`, `impact(style?)`, `loading`, `value?: true`, `failure`. |
 | `useNetworkStatus()` | Live `{ loading, value?: NetworkStatus, error }`. |
 | `useLocation()` | `getCurrent(options?)`, `loading`, `value?: LocationFix`, `error`. |

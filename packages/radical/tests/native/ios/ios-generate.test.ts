@@ -907,9 +907,15 @@ describe("ios app identity", () => {
         assert.include(storyboard, `image="${firstName}"`);
         assert.include(storyboard, `<image name="${firstName}"`);
         assert.include(source, "view.addSubview(splash)");
-        assert.include(source, "proxy.onDocumentReady = { [weak self] in");
-        assert.include(source, "self?.startupSplash?.removeFromSuperview()");
-        assert.include(source, "onDocumentReady?()");
+        assert.include(
+          source,
+          "proxy.onDocumentReady = { [weak self] fallback in"
+        );
+        assert.include(source, "startupSplash?.removeFromSuperview()");
+        assert.include(
+          source,
+          "onDocumentReady?(showingFallback || workerFallback || webView.url == errorPathURL)"
+        );
         assert.strictEqual(state.assetCalls[0].backgroundColor, "#241044");
         const first = state.assetCalls[0].assets;
         state.binaries.set("/app/icon.png", yield* image(1024, "#ff0000"));
@@ -1417,7 +1423,7 @@ it.effect("embeds the build plan commands in the document-start script", () => {
     assert.include(
       source,
       JSON.stringify(
-        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"]};'
+        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"],"RadicalSplash":["hide"]};'
       )
     );
     assert.notInclude(source, "__SHELL_COMMANDS_SCRIPT__");
@@ -1462,3 +1468,48 @@ it.effect(
     }).pipe(Effect.provide(state.layer));
   }
 );
+
+describe("iOS splash dismissal", () => {
+  for (const [splash, manual, timeout] of [
+    [undefined, "false", "0"],
+    [{ dismiss: "auto" }, "false", "0"],
+    [{ dismiss: "manual" }, "true", "10"],
+    [{ dismiss: "manual", timeout: 2500 }, "true", "2.5"],
+    [{ dismiss: "manual", timeout: false }, "true", "0"],
+  ] as const) {
+    it.effect(
+      `renders manual ${manual} and a ${timeout}s timeout for ${JSON.stringify(splash)}`,
+      () => {
+        const state = memory(
+          false,
+          splash ? { ...defaultConfig, splash } : defaultConfig
+        );
+
+        return Effect.gen(function* () {
+          yield* generate;
+          const source = state.files.get(appDelegate) ?? "";
+
+          assert.include(
+            source,
+            `let splashTimeout: TimeInterval = ${timeout}\n`
+          );
+          assert.include(source, `if ${manual} && splashTimeout > 0 {`);
+          assert.include(source, `if !${manual} || fallback {`);
+          assert.include(
+            source,
+            'workerFallback = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "x-radical-offline-fallback") == "1"'
+          );
+          assert.include(
+            source,
+            "onDocumentReady?(showingFallback || workerFallback || webView.url == errorPathURL)"
+          );
+          assert.include(
+            source,
+            "bridge?.registerPluginInstance(RadicalSplashPlugin())"
+          );
+          assert.notMatch(source, /__[A-Z_]+__/u);
+        }).pipe(Effect.provide(state.layer));
+      }
+    );
+  }
+});

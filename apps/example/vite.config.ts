@@ -55,7 +55,8 @@ const config = {
     appStoreId: "1234567890",
   },
   icon: { image: "./assets/icon.png", backgroundColor: "#6d28d9" },
-  splash: { image: "./assets/splash.png", backgroundColor: "#241044" },
+  // The default Radical logo stays up until the page's launch animation takes over.
+  splash: { dismiss: "manual" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
   internalPlugins: {
     googleSignIn: true,

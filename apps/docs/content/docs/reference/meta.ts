@@ -21,6 +21,7 @@ export default defineMeta({
     "safe-area",
     "window-layout",
     "sections",
+    "splash",
     "transitions",
     "video-stream",
   ],
