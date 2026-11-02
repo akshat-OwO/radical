@@ -29,6 +29,14 @@ final class RadicalNavigation {
     private final int[] origin = new int[2];
     private final Rect clip = new Rect();
     private boolean hidden;
+    // The page hid or restored the bar without changing section, so it slides.
+    private boolean slide;
+    private String activeId;
+    private boolean bottomShown;
+    // While a bar slides in or out, the page stays unclipped on that edge so no blank strip shows.
+    private boolean bottomSliding;
+    private boolean railSliding;
+    private boolean railShown;
     private int active;
     private int nightMode;
     private JSONObject state;
@@ -70,7 +78,10 @@ final class RadicalNavigation {
             __THEME_SETUP__
             overlay.addView(bar, new FrameLayout.LayoutParams(-2, -2));
         }
+        bottom.setVisibility(View.GONE);
         rail.setVisibility(View.GONE);
+        bottomShown = false;
+        railShown = false;
         if (state != null) apply(state);
     }
 
@@ -89,7 +100,12 @@ final class RadicalNavigation {
     private void apply(JSONObject state) {
         JSONObject selected = state.optJSONObject("active");
         JSONArray entries = state.optJSONArray("sections");
+        boolean wasHidden = hidden;
+        String previousId = activeId;
         hidden = state.optBoolean("hidden");
+        activeId = selected == null ? null : selected.optString("id");
+        // Route changes that hide the bar also change the active section and stay instant.
+        if (hidden != wasHidden && activeId != null && activeId.equals(previousId)) slide = true;
         int previous = active;
         for (int index = 0; index < IDS.length; index++) {
             if (selected != null && IDS[index].equals(selected.optString("id"))) active = index;
@@ -148,8 +164,8 @@ final class RadicalNavigation {
             }
         }
         boolean show = !hidden && w > 0 && h > 0;
-        bottom.setVisibility(show && compact ? View.VISIBLE : View.GONE);
-        rail.setVisibility(show && !compact ? View.VISIBLE : View.GONE);
+        boolean animate = slide;
+        slide = false;
         int barWidth = Math.min(Math.max(0, right - left), Math.round(80 * density));
         int barHeight = Math.min(Math.max(0, bottomEdge - top), Math.round(80 * density));
         // Paint through system bars while keeping all items inside the safe region.
@@ -159,16 +175,60 @@ final class RadicalNavigation {
         rail.setPadding(0, top, 0, railBottomPadding);
         place(bottom, left, bottomEdge - barHeight, Math.max(0, right - left), barHeight + bottomPadding);
         place(rail, left, 0, barWidth, Math.max(0, bottomEdge + railBottomPadding));
+        bottomShown = reveal(bottom, bottomShown, show && compact, animate);
+        railShown = reveal(rail, railShown, show && !compact, animate);
         int insetLeft = show && !compact ? left + barWidth : system.left;
         int insetBottom = show && compact ? h - bottomEdge + barHeight : keyboard ? 0 : system.bottom;
         // Keep CSS dimensions unchanged. Safe area places HTML inside this clipped rectangle.
         // Only the bottom bar covers the page; elsewhere it paints through the gesture inset.
-        int clipBottom = show && compact ? Math.max(0, h - insetBottom) : h;
-        if (clip.left != insetLeft || clip.right != w || clip.bottom != clipBottom) {
-            clip.set(insetLeft, 0, w, clipBottom);
+        int clipLeft = show && !compact && !railSliding ? insetLeft : system.left;
+        int clipBottom = show && compact && !bottomSliding ? Math.max(0, h - insetBottom) : h;
+        if (clip.left != clipLeft || clip.right != w || clip.bottom != clipBottom) {
+            clip.set(clipLeft, 0, w, clipBottom);
             webView.setClipBounds(clip);
         }
         return Insets.of(insetLeft, system.top, system.right, insetBottom);
+    }
+
+    // Slides the bottom bar down or the rail left, from wherever an earlier slide left it.
+    // Insets change at once, so the page lays out for the bar's final state.
+    private boolean reveal(View bar, boolean shown, boolean show, boolean animate) {
+        if (shown == show) return show;
+        bar.animate().cancel();
+        boolean vertical = bar == bottom;
+        setSliding(vertical, false);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) bar.getLayoutParams();
+        float distance = vertical ? params.height : -params.width;
+        if (!animate || distance == 0) {
+            bar.setTranslationX(0);
+            bar.setTranslationY(0);
+            bar.setVisibility(show ? View.VISIBLE : View.GONE);
+            return show;
+        }
+        if (show && bar.getVisibility() != View.VISIBLE) {
+            if (vertical) bar.setTranslationY(distance); else bar.setTranslationX(distance);
+            bar.setVisibility(View.VISIBLE);
+        }
+        android.view.ViewPropertyAnimator animator = bar.animate()
+            .setDuration(show ? 300 : 200)
+            .setInterpolator(show ? new android.view.animation.DecelerateInterpolator() : new android.view.animation.AccelerateInterpolator());
+        if (vertical) animator.translationY(show ? 0 : distance); else animator.translationX(show ? 0 : distance);
+        setSliding(vertical, true);
+        animator.withEndAction(() -> {
+            if (!show) {
+                bar.setVisibility(View.GONE);
+                bar.setTranslationX(0);
+                bar.setTranslationY(0);
+            }
+            setSliding(vertical, false);
+            activity.refreshWindowContext();
+        });
+        animator.start();
+        return show;
+    }
+
+    private void setSliding(boolean vertical, boolean value) {
+        if (vertical) bottomSliding = value; else railSliding = value;
     }
 
     private void place(View view, int x, int y, int width, int height) {

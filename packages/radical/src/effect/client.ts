@@ -221,6 +221,7 @@ export {
   sectionsLayer,
   selectSection,
   setSectionBadge,
+  setSectionsHidden,
   sectionOwnership,
   SectionSchema,
   SectionBadgeSchema,
