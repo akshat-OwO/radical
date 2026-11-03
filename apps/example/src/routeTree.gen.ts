@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as CameraRouteImport } from './routes/camera'
 import { Route as DataProtectionRouteImport } from './routes/data-protection'
+import { Route as DeepLinksRouteImport } from './routes/deep-links'
 import { Route as DetailsRouteImport } from './routes/details'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as GoogleSignInRouteImport } from './routes/google-sign-in'
@@ -43,6 +44,11 @@ const CameraRoute = CameraRouteImport.update({
 const DataProtectionRoute = DataProtectionRouteImport.update({
   id: '/data-protection',
   path: '/data-protection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeepLinksRoute = DeepLinksRouteImport.update({
+  id: '/deep-links',
+  path: '/deep-links',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DetailsRoute = DetailsRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
   '/data-protection': typeof DataProtectionRoute
+  '/deep-links': typeof DeepLinksRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
   '/google-sign-in': typeof GoogleSignInRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
   '/data-protection': typeof DataProtectionRoute
+  '/deep-links': typeof DeepLinksRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
   '/google-sign-in': typeof GoogleSignInRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/camera': typeof CameraRoute
   '/data-protection': typeof DataProtectionRoute
+  '/deep-links': typeof DeepLinksRoute
   '/details': typeof DetailsRoute
   '/files': typeof FilesRoute
   '/google-sign-in': typeof GoogleSignInRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/camera'
     | '/data-protection'
+    | '/deep-links'
     | '/details'
     | '/files'
     | '/google-sign-in'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/camera'
     | '/data-protection'
+    | '/deep-links'
     | '/details'
     | '/files'
     | '/google-sign-in'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/camera'
     | '/data-protection'
+    | '/deep-links'
     | '/details'
     | '/files'
     | '/google-sign-in'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CameraRoute: typeof CameraRoute
   DataProtectionRoute: typeof DataProtectionRoute
+  DeepLinksRoute: typeof DeepLinksRoute
   DetailsRoute: typeof DetailsRoute
   FilesRoute: typeof FilesRoute
   GoogleSignInRoute: typeof GoogleSignInRoute
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/data-protection'
       fullPath: '/data-protection'
       preLoaderRoute: typeof DataProtectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deep-links': {
+      id: '/deep-links'
+      path: '/deep-links'
+      fullPath: '/deep-links'
+      preLoaderRoute: typeof DeepLinksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/details': {
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CameraRoute: CameraRoute,
   DataProtectionRoute: DataProtectionRoute,
+  DeepLinksRoute: DeepLinksRoute,
   DetailsRoute: DetailsRoute,
   FilesRoute: FilesRoute,
   GoogleSignInRoute: GoogleSignInRoute,

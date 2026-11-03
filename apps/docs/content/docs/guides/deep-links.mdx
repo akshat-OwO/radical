@@ -1,0 +1,137 @@
+---
+title: "Deep links"
+description: "Open app routes from verified links and scheme links."
+---
+
+A deep link opens a route from outside the app.
+
+A verified link uses your HTTPS origin and proves the app's association with that domain.
+
+A scheme link uses an app-specific scheme, such as `myapp://about`. Other apps can register the same scheme.
+
+## Configure links
+
+Add `deepLinks` to the config passed to `radical(config)` in Vite config:
+
+```ts
+const config = {
+  appId: "com.example.app",
+  origin: "https://app.example.com",
+  deepLinks: {
+    ios: { teamId: process.env.APPLE_TEAM_ID! },
+    android: { fingerprints: [process.env.PLAY_SIGNING_SHA256!] },
+    scheme: "myapp",
+    exclude: ["/checkout/*"],
+  },
+};
+```
+
+Set those environment variables before generation.
+
+Omit `ios` or `android` to disable verified links on that platform.
+
+Omit `scheme` to disable scheme links.
+
+Without `deepLinks`, deep links are off.
+
+See the [config reference](/docs/reference/config#deep-link-fields) for every field.
+
+For Android releases, copy the SHA-256 certificate fingerprint from **Play Console > App integrity > App signing key certificate**. Use the Play App Signing key, not the upload key or your local keystore. Include each active signing key's fingerprint if you rotate keys.
+
+For iOS, find your ten-character Team ID under **Membership details** in your Apple Developer account. This is the team that signs the app, not its bundle ID.
+
+Regenerate the native shells after changing config.
+
+See [Run on a device](/docs/guides/run-on-a-device).
+
+## Serve association files
+
+The request middleware serves the association files only when it receives your config. In `src/start.ts`, import it from `virtual:radical/config` and pass it to `createRadicalRequestMiddleware()`:
+
+```ts
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
+import { createStart } from "@tanstack/react-start";
+import { config } from "virtual:radical/config";
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [...createRadicalRequestMiddleware({ config })],
+}));
+```
+
+If you already pass update options, keep them and include `config` in the same object. Without `config`, both endpoints return `404`.
+
+Deploy the app at the configured `origin`. The adapter serves generated JSON at:
+
+- `/.well-known/apple-app-site-association` for configured iOS verified links.
+- `/.well-known/assetlinks.json` for configured Android verified links.
+
+These endpoints run before route authentication and update gates, in remote and bundled mode.
+
+Keep them publicly reachable at the HTTPS origin.
+
+Bundled apps still need that server for domain verification.
+
+Only `origin` is associated; `allowlist` adds no verified-link domains.
+
+## Choose routes
+
+`https://app.example.com/about?source=email#details` opens `/about?source=email#details` as a verified link. Both `myapp://about?source=email#details` and `myapp:///about?source=email#details` open that route as scheme links. The query and hash stay intact.
+
+Radical excludes these paths by default:
+
+- `/.radical/*`
+- `/.well-known/*`
+- `/_serverFn` and `/_serverFn/*`
+- `/api` and `/api/*`
+
+Add path globs through `deepLinks.exclude`.
+
+A `*` matches zero or more characters, including `/`.
+
+Matching uses the path only.
+
+An excluded verified link stays in the browser.
+
+For an excluded scheme link, the shell opens the matching URL on `origin` in the browser.
+
+## Test links
+
+Follow [Test verified links](/docs/guides/run-on-a-device#test-verified-links) for development approval and iOS device settings. Test from outside the app with the app closed, then repeat with it open. Check the route, query, hash, and excluded browser handoff.
+
+The example's `/deep-links` page lists scheme links to About, Details with a query and hash, and the excluded `/online-route`.
+
+It uses `radical-example` as its scheme.
+
+Set `RADICAL_IOS_TEAM_ID` or `RADICAL_ANDROID_FINGERPRINT` and an HTTPS `RADICAL_ORIGIN` to enable verified links.
+
+With credentials unset, only scheme links are active.
+
+## Troubleshoot links
+
+### Generation returns InvalidConfig
+
+Verified links require an explicit HTTPS `origin` on the default port. Use `https://app.example.com`, without a path or trailing slash. HTTP and non-default ports fail validation.
+
+Scheme links alone do not require HTTPS.
+
+### Android opens the browser
+
+Inspect the installed package's verification state:
+
+```sh
+adb shell pm get-app-links com.example.app
+```
+
+Check the host, package ID, and signing fingerprint against `assetlinks.json`. For a Play install, compare the Play App Signing fingerprint. For a debug install, use the development approval procedure linked above.
+
+Android 14 and earlier ignore `uri-relative-filter-group` excludes. The OS may send an excluded verified link to the app. The shell still rejects that path and hands it to the browser.
+
+### iOS keeps an old association
+
+Production iOS installs fetch the association file through Apple's AASA CDN.
+
+Changes at your origin may remain cached. Check the deployed file and allow time for the CDN to refresh.
+
+Use the development mode described in the device guide to fetch directly from your origin.
+
+A scheme link can test route delivery without domain verification.

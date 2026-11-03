@@ -152,3 +152,44 @@ Verified on 2026-11-03 on Pixel_9, Android 16, API 36.
 The public origin does not serve this app's association file or debug fingerprint. This checks development approval and implicit intent delivery, not production domain ownership or example route rendering. Android 11 and the API 31 boundary are covered by in-memory command-runner tests. iOS development and production entitlements are covered by generation tests; iOS device verification was not repeated.
 
 Restored the temporary example configuration, closed the device, stopped the emulator and Gradle daemons, and released the device lock. No server was started.
+
+## Guide and example, issue 157
+
+Checked on 2026-11-03. The committed example enables `radical-example` scheme links and excludes `/online-route`. Verified-link credentials come from `RADICAL_ANDROID_FINGERPRINT` and `RADICAL_IOS_TEAM_ID`. Neither credential is committed.
+
+### Automated checks
+
+- `pnpm exec ultracite fix` and `pnpm exec ultracite check` passed.
+- `vp run ready` passed, including source checks, Effect type checks, 855 package tests, 14 markdown tests, and the docs build.
+- `pnpm run build` in `apps/docs` passed.
+- Rebuilt `packages/radical` with `pnpm run build` before invoking the CLI.
+
+Run `vp run ready` before the package rebuild and device commands. It deletes `packages/radical/dist` to check source imports, so running it alongside native generation can interrupt the bundled UI build.
+
+### Android
+
+Pixel_9, Android 16, API 36, bundled mode:
+
+- Set `RADICAL_ANDROID_FINGERPRINT` from the debug keystore's SHA-256 through the environment. Ran `RADICAL_MODE=bundled RADICAL_ORIGIN=https://example.com pnpm exec radical android --target emulator-5554` from `apps/example`. Generation, build, install, and launch passed. The Android platform command calls the run pipeline; there is no `radical run` subcommand.
+- `adb shell pm get-app-links dev.radical.example.android` reported `example.com: approved`. No manual approval command was used.
+- Opened each sample through the T3 device command, first with `--relaunch`, then with the app running. `radical-example://about` rendered About in both cases. `radical-example://details?source=deep-links#details` rendered Details in both cases. The cold request log contained `https://localhost/details?source=deep-links#details`.
+- Cold and warm `radical-example://online-route` opened Chrome. Both accessibility snapshots showed `example.com/online-route` in its address field.
+- Opened `https://example.com/about?approval=157#details` through the device command with the URL alone. This sends an implicit HTTPS VIEW intent without a package. Android selected the example app and rendered About.
+
+Development approval does not prove production domain ownership. The public example.com origin does not serve this app's association files or backend. Expected update-policy CORS errors did not prevent bundled routes from rendering. Remote example routing and offline snapshot restoration were not repeated.
+
+### iOS
+
+iPhone 17 Pro, iOS 26.5, bundled mode, with verified-link credentials unset:
+
+- Generated with `RADICAL_MODE=bundled RADICAL_ORIGIN=https://example.com pnpm exec radical ios --generate-only`.
+- Built with `xcodebuild -project .radical/ios/ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath /tmp/radical-157-ios CODE_SIGNING_ALLOWED=NO build`. Build passed. Installed the resulting `App.app` with `xcrun simctl install`.
+- Accepted the initial system scheme-open confirmation through the T3 device command. Repeated the sample sequence after allowing the splash to finish.
+- Cold and warm `radical-example://about` rendered About with its section selected. Cold and warm `radical-example://details?source=deep-links#details` rendered Details. These snapshots confirm route delivery, not the WebView's query and hash values.
+- Cold and warm `radical-example://online-route` handed `https://example.com/online-route` to Safari. SpringBoard logged both OpenURL handoffs from the example process.
+
+Verified links on iOS remain unverified. They require a real signing team ID and a reachable AASA file associated with that app. No synthetic activity was injected.
+
+### Cleanup
+
+Held the shared device lock throughout. Closed and shut down Android before booting iOS, then closed and shut down iOS. Ran `adb emu kill`, `xcrun simctl shutdown all`, and the generated Android project's `./gradlew --stop`. No server was started. Released the device lock after cleanup.
