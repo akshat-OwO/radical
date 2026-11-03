@@ -9,11 +9,24 @@ enum RadicalColdStart {
     }
     static func validate(_ link: URL) -> URL? {
         guard let origin = URL(string: __DEEP_LINK_ORIGIN__),
-              link.scheme == origin.scheme, link.host == origin.host,
-              (link.port ?? 443) == (origin.port ?? 443),
-              !([__DEEP_LINK_PATTERNS__] as [String]).contains(where: { URLComponents(url: link, resolvingAgainstBaseURL: false)!.percentEncodedPath.range(of: $0, options: .regularExpression) != nil })
-        else { return nil }
-        return link
+              var route = URLComponents(url: link, resolvingAgainstBaseURL: false) else { return nil }
+        let scheme = !__DEEP_LINK_SCHEME__.isEmpty && link.scheme?.lowercased() == __DEEP_LINK_SCHEME__.lowercased()
+        if scheme {
+            guard link.absoluteString.range(of: __SCHEME_LINK_PREFIX__, options: .regularExpression) != nil else { return nil }
+            let mapped = link.absoluteString.replacingOccurrences(of: __SCHEME_LINK_PREFIX__, with: "/", options: .regularExpression)
+            guard let mappedRoute = URLComponents(string: "https://radical.invalid" + mapped) else { return nil }
+            route = mappedRoute
+        } else if !__VERIFIED_LINKS__ || link.scheme != origin.scheme || link.host != origin.host || (link.port ?? 443) != (origin.port ?? 443) { return nil }
+        var target = URLComponents(url: origin, resolvingAgainstBaseURL: false)!
+        target.percentEncodedPath = route.percentEncodedPath
+        target.percentEncodedQuery = route.percentEncodedQuery
+        target.percentEncodedFragment = route.percentEncodedFragment
+        let excluded = ([__DEEP_LINK_PATTERNS__] as [String]).contains { route.percentEncodedPath.range(of: $0, options: .regularExpression) != nil }
+        if excluded {
+            if scheme, let url = target.url { UIApplication.shared.open(url) }
+            return nil
+        }
+        return target.url
     }
 }
 
@@ -28,6 +41,13 @@ final class RadicalViewController: CAPBridgeViewController {
         guard activity.activityType == NSUserActivityTypeBrowsingWeb,
               let url = activity.webpageURL.flatMap(RadicalColdStart.validate),
               let controller = active else { return false }
+        controller.pendingLink = url
+        controller.deliverLink()
+        return true
+    }
+    static func receive(_ link: URL) -> Bool {
+        guard let url = RadicalColdStart.validate(link) else { return false }
+        guard let controller = active else { RadicalColdStart.url = url; return true }
         controller.pendingLink = url
         controller.deliverLink()
         return true

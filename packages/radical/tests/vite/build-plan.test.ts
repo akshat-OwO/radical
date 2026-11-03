@@ -377,3 +377,38 @@ for (const location of invalidLocationOptions) {
       })
   );
 }
+
+it.effect("rejects scheme collisions with Google sign-in ignoring case", () =>
+  Effect.gen(function* () {
+    const error = yield* Effect.flip(
+      resolve({
+        appId: "dev.test.app",
+        deepLinks: { scheme: "COM.googleusercontent.apps.ios" },
+        internalPlugins: { googleSignIn: true },
+        pluginOptions: options,
+      })
+    );
+
+    assert.strictEqual(error._tag, "InvalidConfig");
+  })
+);
+
+it.effect("combines scheme registration with Google sign-in URL types", () =>
+  Effect.gen(function* () {
+    const plan = yield* resolve({
+      appId: "dev.test.app",
+      deepLinks: { scheme: "myapp" },
+      internalPlugins: { googleSignIn: true },
+      pluginOptions: options,
+    });
+
+    assert.include(
+      plan.ios.plist.CFBundleURLTypes ?? "",
+      "<string>myapp</string>"
+    );
+    assert.include(
+      plan.ios.plist.CFBundleURLTypes ?? "",
+      "<string>com.googleusercontent.apps.ios</string>"
+    );
+  })
+);

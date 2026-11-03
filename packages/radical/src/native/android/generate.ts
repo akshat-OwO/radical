@@ -3,6 +3,7 @@ import path from "node:path";
 import { Effect, FileSystem } from "effect";
 
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
+import { schemeLinkPrefix } from "../../core/deep-links/scheme-link.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
 import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
 import { offlineFallbackCheckScript } from "../../core/offline/offline-wire.ts";
@@ -82,8 +83,14 @@ export const generateAndroid = (
       : [];
 
     const replacements = {
+      __VERIFIED_LINKS__: String(native.plan.deepLinks.android),
+      __SCHEME_LINK_PREFIX__: JSON.stringify(schemeLinkPrefix),
+      __DEEP_LINK_SCHEME__: JSON.stringify(native.plan.deepLinks.scheme ?? ""),
       __DEEP_LINK_ORIGIN__: JSON.stringify(
-        native.plan.deepLinks.android ? config.origin : ""
+        native.plan.deepLinks.android ||
+          native.plan.deepLinks.scheme !== undefined
+          ? config.origin
+          : ""
       ),
       __DEEP_LINK_PATTERNS__: native.plan.deepLinks.filter.patterns
         .map((pattern) => JSON.stringify(pattern.source))
@@ -275,9 +282,14 @@ export const generateAndroid = (
 
         const withDeclarations = yield* replaceAnchor(
           "AndroidManifest.xml",
-          manifest,
+          native.plan.deepLinks.scheme === undefined
+            ? manifest
+            : manifest.replace(
+                "</activity>",
+                `<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="${native.plan.deepLinks.scheme}"/></intent-filter></activity>`
+              ),
           "</manifest>",
-          `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.android.declarations.join("")}</manifest>`
+          `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.deepLinks.scheme === undefined ? "" : '<queries><intent><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="https"/></intent></queries>'}${native.plan.android.declarations.join("")}</manifest>`
         );
 
         // Predictive back previews leaving the app when the page declines back.

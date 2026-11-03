@@ -273,6 +273,52 @@ const memory = (
 const generate = generateAndroid("/app", "/package");
 
 describe("Android shell generation", () => {
+  it.effect(
+    "registers scheme links and browser visibility with optional verified links",
+    () =>
+      Effect.gen(function* () {
+        for (const registration of ["none", "scheme", "verified"]) {
+          const scheme = registration === "none" ? undefined : "myapp";
+
+          let deepLinks: Schema.Json = {};
+
+          if (scheme !== undefined) {
+            deepLinks = { scheme };
+          }
+
+          if (registration === "verified") {
+            deepLinks = {
+              scheme: "myapp",
+              android: { fingerprints: [`${"AA:".repeat(31)}AA`] },
+            };
+          }
+
+          const state = memory(false, {
+            ...defaultConfig,
+            origin: "https://example.com",
+            deepLinks,
+          });
+
+          yield* generate.pipe(Effect.provide(state.layer));
+
+          const source =
+            state.files.get(
+              `${destination}/android/app/src/main/AndroidManifest.xml`
+            ) ?? "";
+
+          assert.equal(
+            source.includes('android:scheme="myapp"'),
+            scheme === "myapp"
+          );
+          assert.equal(
+            source.includes(
+              '<queries><intent><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="https"/></intent></queries>'
+            ),
+            scheme === "myapp"
+          );
+        }
+      })
+  );
   it.effect("generates verified links only for configured platforms", () =>
     Effect.gen(function* () {
       for (const configured of ["none", "android", "ios"]) {
@@ -326,10 +372,7 @@ describe("Android shell generation", () => {
           const generatedActivity = state.files.get(mainActivity) ?? "";
 
           assert.include(generatedActivity, "getIntent().getData()");
-          assert.include(
-            generatedActivity,
-            "Pattern.matches(pattern, link.getEncodedPath())"
-          );
+          assert.include(generatedActivity, "Pattern.matches(pattern, path)");
         }
       }
     })

@@ -153,7 +153,48 @@ export const resolveBuildPlan = flow(
         contributions.pushNotifications,
       ].filter((value): value is NativeContributions => value !== undefined);
 
+      const scheme = config.deepLinks?.scheme;
+
+      if (
+        scheme !== undefined &&
+        googleSignIn &&
+        scheme.toLowerCase() ===
+          googleSignIn.iosClientId
+            .split(".")
+            .toReversed()
+            .join(".")
+            .toLowerCase()
+      ) {
+        return yield* new InvalidConfig({
+          message:
+            "deepLinks.scheme collides with Google sign-in's registered scheme",
+        });
+      }
+
       const plistEntries = ordered.flatMap((value) => value.plist ?? []);
+
+      if (scheme !== undefined) {
+        const existing = plistEntries.findIndex(
+          (entry) => entry.key === "CFBundleURLTypes"
+        );
+
+        const entry = `<dict><key>CFBundleURLSchemes</key><array><string>${escapeXml(scheme)}</string></array></dict>`;
+
+        const previous = plistEntries[existing];
+
+        if (previous === undefined) {
+          plistEntries.push({
+            key: "CFBundleURLTypes",
+            value: `<array>${entry}</array>`,
+          });
+        } else {
+          plistEntries[existing] = {
+            ...previous,
+            value: previous.value.replace(/<\/array>$/u, `${entry}</array>`),
+          };
+        }
+      }
+
       const plist = yield* composePlist(plistEntries);
 
       const declarations = yield* composePlist(

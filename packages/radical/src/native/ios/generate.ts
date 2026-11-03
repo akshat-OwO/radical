@@ -3,6 +3,7 @@ import path from "node:path";
 import { Effect, FileSystem } from "effect";
 
 import { NATIVE_CONTEXT_COOKIE } from "../../core/context/native-context.ts";
+import { schemeLinkPrefix } from "../../core/deep-links/scheme-link.ts";
 import { offlineSnapshotCheckScript } from "../../core/offline/native-offline.ts";
 import { savedOfflineURLKeys } from "../../core/offline/offline-protocol.ts";
 import type { BuildPlan } from "../../vite/build-plan.ts";
@@ -112,8 +113,16 @@ export const generateIos = (
           native.splash.timeout === false ? 0 : native.splash.timeout / 1000
         ),
         __URL__: JSON.stringify(native.url),
+        __VERIFIED_LINKS__: String(native.plan.deepLinks.ios),
+        __SCHEME_LINK_PREFIX__: JSON.stringify(schemeLinkPrefix),
+        __DEEP_LINK_SCHEME__: JSON.stringify(
+          native.plan.deepLinks.scheme ?? ""
+        ),
         __DEEP_LINK_ORIGIN__: JSON.stringify(
-          native.plan.deepLinks.ios ? native.config.origin : ""
+          native.plan.deepLinks.ios ||
+            native.plan.deepLinks.scheme !== undefined
+            ? native.config.origin
+            : ""
         ),
         __DEEP_LINK_PATTERNS__: native.plan.deepLinks.filter.patterns
           .map((pattern) => JSON.stringify(pattern.source))
@@ -197,7 +206,7 @@ export const generateIos = (
         const delegate = path.join(app, "AppDelegate.swift");
         yield* fs.writeFileString(
           delegate,
-          `${yield* fs.readFileString(delegate)}\nextension AppDelegate {\n    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {\n        RadicalViewController.receive(userActivity)\n    }\n}\n${source}\n${navigationSource}`
+          `${yield* fs.readFileString(delegate)}\nextension AppDelegate {\n    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {\n        if RadicalViewController.receive(url) { return true }\n        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)\n    }\n    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {\n        RadicalViewController.receive(userActivity)\n    }\n}\n${source}\n${navigationSource}`
         );
         // Capacitor 8's scene lifecycle constructs its controller directly.
         const scene = path.join(app, "SceneDelegate.swift");
@@ -205,12 +214,17 @@ export const generateIos = (
           scene,
           yield* replaceAnchor(
             scene,
-            (yield* fs.readFileString(scene)).replace(
-              "SceneDelegateProxy.shared.scene(scene, continue: userActivity)",
-              "if !RadicalViewController.receive(userActivity) { SceneDelegateProxy.shared.scene(scene, continue: userActivity) }"
-            ),
+            (yield* fs.readFileString(scene))
+              .replace(
+                "SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)",
+                "if let link = URLContexts.first?.url, RadicalViewController.receive(link) { return }; SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)"
+              )
+              .replace(
+                "SceneDelegateProxy.shared.scene(scene, continue: userActivity)",
+                "if !RadicalViewController.receive(userActivity) { SceneDelegateProxy.shared.scene(scene, continue: userActivity) }"
+              ),
             "window?.rootViewController = CAPBridgeViewController()",
-            `RadicalColdStart.capture(connectionOptions.userActivities); window?.rootViewController = ${rootController}`
+            `RadicalColdStart.capture(connectionOptions.userActivities); if let link = connectionOptions.urlContexts.first?.url { _ = RadicalViewController.receive(link) }; window?.rootViewController = ${rootController}`
           )
         );
 

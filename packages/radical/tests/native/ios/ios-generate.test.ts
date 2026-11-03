@@ -245,6 +245,26 @@ const memory = (
 const generate = generateIos("/app", "/package");
 
 describe("iOS shell generation", () => {
+  it.effect("registers scheme links only when configured", () =>
+    Effect.gen(function* () {
+      for (const scheme of [undefined, "myapp"]) {
+        const state = memory(false, {
+          ...defaultConfig,
+          deepLinks: scheme === undefined ? {} : { scheme },
+        });
+
+        yield* generate.pipe(Effect.provide(state.layer));
+
+        const source =
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+
+        assert.equal(
+          source.includes("<string>myapp</string>"),
+          scheme === "myapp"
+        );
+      }
+    })
+  );
   it.effect("generates verified links only for configured platforms", () =>
     Effect.gen(function* () {
       for (const configured of ["none", "android", "ios"]) {
@@ -553,7 +573,7 @@ describe("iOS shell generation", () => {
         );
         assert.strictEqual(
           state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`),
-          "RadicalColdStart.capture(connectionOptions.userActivities); window?.rootViewController = RadicalViewController()"
+          "RadicalColdStart.capture(connectionOptions.userActivities); if let link = connectionOptions.urlContexts.first?.url { _ = RadicalViewController.receive(link) }; window?.rootViewController = RadicalViewController()"
         );
         assert.strictEqual(
           state.files.get(`${destination}/ios/App/App/Info.plist`),
