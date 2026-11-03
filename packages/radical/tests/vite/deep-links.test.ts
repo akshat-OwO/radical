@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Schema } from "effect";
 /* oxlint-disable vitest/no-standalone-expect -- Effect tests use it.effect. */
 import { expect } from "vite-plus/test";
 
@@ -10,8 +10,10 @@ import {
   resolveDeepLinks,
 } from "../../src/core/deep-links/deep-links.ts";
 import { resolveBuildPlan } from "../../src/vite/build-plan.ts";
-import { validateConfig } from "../../src/vite/config.ts";
+import { RadicalConfigSchema, validateConfig } from "../../src/vite/config.ts";
 import { PluginModules } from "../../src/vite/plugins/plugin-plan.ts";
+import { radical } from "../../src/vite/vite.ts";
+import { hookHandler } from "../fixtures/vite-hooks.ts";
 
 const modules = Layer.succeed(PluginModules, {
   load: () => Effect.sync(() => assert.fail("Unexpected manifest load")),
@@ -36,6 +38,88 @@ const attempt = <A>(run: () => Promise<A>) =>
   Effect.tryPromise({ try: run, catch: String });
 
 describe("deep links", () => {
+  it.effect(
+    "serves association identities through the generated virtual config",
+    () =>
+      Effect.gen(function* () {
+        const plugin = radical(config);
+        assert.isDefined(plugin.load);
+        const load = hookHandler(plugin.load);
+
+        const source = yield* Effect.promise(
+          async () =>
+            await load.call(
+              // SAFETY: The config loader does not use its Vite context.
+              // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Minimal Vite hook fixture.
+              {} as ThisParameterType<typeof load>,
+              "\0virtual:radical/config",
+              {}
+            )
+        );
+
+        assert.isString(source);
+
+        const generated = yield* attempt(async () =>
+          Schema.decodeUnknownSync(
+            Schema.Struct({
+              config: Schema.Struct({
+                appId: RadicalConfigSchema.fields.appId,
+                origin: RadicalConfigSchema.fields.origin,
+                android: RadicalConfigSchema.fields.android,
+                ios: RadicalConfigSchema.fields.ios,
+                deepLinks: RadicalConfigSchema.fields.deepLinks,
+              }),
+            })
+          )(
+            await import(
+              `data:text/javascript,${encodeURIComponent(Schema.decodeUnknownSync(Schema.String)(source))}`
+            )
+          )
+        );
+
+        const selected = generated.config;
+
+        const [, middleware] = createRadicalRequestMiddleware({
+          config: selected,
+        });
+
+        const { server } = middleware.options;
+
+        assert.isDefined(server);
+
+        for (const [file, identity] of [
+          ["apple-app-site-association", "AB12345678.dev.example.ios"],
+          ["assetlinks.json", "dev.example.android"],
+        ] as const) {
+          const request = new Request(`${config.origin}/.well-known/${file}`);
+
+          const result: unknown = yield* attempt(
+            async () =>
+              await server({
+                request,
+                pathname: new URL(request.url).pathname,
+                context: undefined,
+                handlerType: "router",
+                next: async () =>
+                  await Effect.runPromise(
+                    Effect.die("Association request reached router")
+                  ),
+              })
+          );
+
+          assert.instanceOf(result, Response);
+          assert.strictEqual(result.status, 200);
+          const body = yield* attempt(async () => await result.text());
+
+          assert.include(body, identity);
+
+          if (file === "assetlinks.json") {
+            assert.include(body, config.deepLinks.android.fingerprints[0]);
+          }
+        }
+      })
+  );
+
   it.effect(
     "validates credentials, schemes, path patterns and verified origins",
     () =>

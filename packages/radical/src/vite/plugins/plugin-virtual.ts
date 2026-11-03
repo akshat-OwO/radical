@@ -93,6 +93,7 @@ export const nativePlugins = (
 
   const browserConfig = JSON.stringify({
     appId: config.appId,
+    deepLinks: config.deepLinks,
     android: config.android,
     ios: config.ios,
     mode: config.mode ?? "remote",
@@ -170,7 +171,7 @@ export const nativePlugins = (
             recursive: true,
           });
           const file = path.join(resolved.root, ".radical/plugins.d.ts");
-          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string; readonly android?: import("@akshatowo/radical/vite").RadicalConfig["android"]; readonly ios?: import("@akshatowo/radical/vite").RadicalConfig["ios"]; readonly navigation?: import("@akshatowo/radical/vite").RadicalConfig["navigation"]; readonly splash: import("@akshatowo/radical/react").SplashAppearance }; }\n`;
+          const declarations = `${pluginTypeSource(resolved.root, plugins)}\ndeclare module "virtual:radical/config" { export const config: { readonly appId: string; readonly mode: "remote" | "bundled"; readonly origin?: string; readonly android?: import("@akshatowo/radical/vite").RadicalConfig["android"]; readonly ios?: import("@akshatowo/radical/vite").RadicalConfig["ios"]; readonly deepLinks?: import("@akshatowo/radical/vite").RadicalConfig["deepLinks"]; readonly navigation?: import("@akshatowo/radical/vite").RadicalConfig["navigation"]; readonly splash: import("@akshatowo/radical/react").SplashAppearance }; }\n`;
 
           // Preserve mtime to avoid restarting Vite's watcher on identical config.
           if (
