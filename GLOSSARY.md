@@ -164,6 +164,18 @@ _Avoid_: Tab, destination, root route
 Section and back controls drawn by the native shell.\
 _Avoid_: Native tabs, nav chrome, tab bar (when meaning the whole system)
 
+**Deep link**:\
+A URL, opened outside the app, that the shell shows as a route in the web app.\
+_Avoid_: Intent (outbound), app link, launch URL
+
+**Verified link**:\
+A deep link on the app's origin, which the origin proves belongs to the app.\
+_Avoid_: Universal Link, App Link
+
+**Scheme link**:\
+A deep link that uses the app's own URL scheme, which any app can claim.\
+_Avoid_: Custom URL scheme, URI scheme
+
 **Window layout**:\
 The app window's width class, fold posture, and hinge bounds.\
 _Avoid_: Device type, screen size, form factor
