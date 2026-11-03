@@ -1,6 +1,18 @@
 import Capacitor
 import WebKit
 
+enum RadicalColdStart {
+    static var url: URL?
+    static func capture(_ activities: Set<NSUserActivity>) {
+        url = activities.first { $0.activityType == NSUserActivityTypeBrowsingWeb }?.webpageURL
+        guard let link = url, let origin = URL(string: __DEEP_LINK_ORIGIN__),
+              link.scheme == origin.scheme, link.host == origin.host,
+              (link.port ?? 443) == (origin.port ?? 443),
+              !([__DEEP_LINK_PATTERNS__] as [String]).contains(where: { URLComponents(url: link, resolvingAgainstBaseURL: false)!.percentEncodedPath.range(of: $0, options: .regularExpression) != nil })
+        else { url = nil; return }
+    }
+}
+
 // Remote mode uses WebKit's networking and persistent cookie store.
 // Capacitor sets limitsNavigationsToAppBoundDomains before creating the WebView.
 final class RadicalViewController: CAPBridgeViewController {
@@ -200,7 +212,16 @@ final class RadicalViewController: CAPBridgeViewController {
         }
     }
 
-    private func startNavigation() { super.viewDidLoad() }
+    private func startNavigation() {
+        if let link = RadicalColdStart.url {
+            var target = URLComponents(url: URL(string: __URL__)!, resolvingAgainstBaseURL: false)!
+            let route = URLComponents(url: link, resolvingAgainstBaseURL: false)!
+            target.percentEncodedPath = route.percentEncodedPath
+            target.percentEncodedQuery = route.percentEncodedQuery
+            target.percentEncodedFragment = route.percentEncodedFragment
+            webView?.load(URLRequest(url: __BUNDLED__ ? target.url! : link))
+        } else { super.viewDidLoad() }
+    }
 
 }
 
@@ -279,7 +300,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
     // A failed server launch may have a worker fallback rather than a native error.
     // Both paths try the last confirmed snapshot once before showing the fallback.
     private func restoreSnapshot(_ webView: WKWebView, failed: URL) -> Bool {
-        guard !__BUNDLED__, launching, !attemptedSnapshot,
+        guard RadicalColdStart.url == nil, !__BUNDLED__, launching, !attemptedSnapshot,
               let value = UserDefaults.standard.string(forKey: savedURLKey),
               let url = URL(string: value), allowed(url), url != failed else { return false }
         attemptedSnapshot = true
@@ -293,7 +314,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
             // Capacitor serves its configured error page from packaged local assets.
             guard allowed(url) || url == errorPathURL else { decisionHandler(.cancel); return }
             workerFallback = (response.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "x-radical-offline-fallback") == "1"
-            if workerFallback,
+            if workerFallback, RadicalColdStart.url == nil,
                launching, !attemptedSnapshot,
                let value = UserDefaults.standard.string(forKey: savedURLKey),
                let saved = URL(string: value), allowed(saved), saved != url {
