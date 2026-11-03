@@ -18,7 +18,7 @@ export type { DeviceInfo } from "../capabilities/device-info/device-info.ts";
 
 export type { BridgeError } from "../core/bridge/bridge.ts";
 
-export { RadicalProvider } from "./use-bridge-effect.ts";
+export { RadicalProvider, useNativeContext } from "./use-bridge-effect.ts";
 
 export type DeviceInfoState = BridgeState<DeviceInfo, BridgeError>;
 

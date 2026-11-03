@@ -82,14 +82,14 @@ localNativeContext();
   <Outlet />
 </ClientOnly>;
 // Inside the root shell component:
-useEffect(() => {
-  if (config.mode === "bundled") {
-    mountNativeContext();
-  }
-}, []);
+<RadicalProvider nativeContext={nativeContext} mode="bundled">
+  {children}
+</RadicalProvider>;
+// Inside a descendant:
+const { platform } = useNativeContext();
 ```
 
-Keep `mountNativeContext()` in the root effect: the native-context handoff must run after mount. Keep startup loaders independent of unavailable APIs.
+The provider calls `mountNativeContext()` after commit. `useNativeContext()` returns loader context during hydration, then the live shell context, including on cold deep links to prerendered routes. No app state or mount effect is needed. Keep startup loaders independent of unavailable APIs.
 
 </Tab>
 <Tab title="Remote">

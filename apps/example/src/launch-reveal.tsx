@@ -2,6 +2,7 @@ import {
   Splash,
   splashLayout,
   useHideSplash,
+  useNativeContext,
   useSections,
 } from "@akshatowo/radical/react";
 import { useEffect, useRef, useState } from "react";
@@ -16,11 +17,8 @@ const hole = `url("data:image/svg+xml,${encodeURIComponent(
  * Bounces the splash logo, then grows it into a window onto the app. The section
  * bar stays hidden until the reveal ends, then slides in.
  */
-export const LaunchReveal = ({
-  platform,
-}: {
-  readonly platform: "android" | "ios" | "browser";
-}) => {
+export const LaunchReveal = () => {
+  const { platform } = useNativeContext();
   const hide = useHideSplash();
   const { setHidden } = useSections();
   const started = useRef(false);

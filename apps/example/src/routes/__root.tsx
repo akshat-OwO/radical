@@ -2,7 +2,6 @@ import {
   fetchAppUpdate,
   createRadicalFetch,
   localNativeContext,
-  mountNativeContext,
   safeAreaStyle,
 } from "@akshatowo/radical/client";
 import {
@@ -26,7 +25,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
 
@@ -126,20 +125,13 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
     appUpdate: { status: "unknown" as const, storeUrl: null },
   };
 
-  const [mountedContext, setMountedContext] =
-    useState<ReturnType<typeof localNativeContext>>();
-
-  const nativeContext = mountedContext ?? loadedContext;
+  const nativeContext = loadedContext;
 
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
     safeAreaStyle(nativeContext, config.mode);
 
   useEffect(() => {
     if (config.mode === "bundled") {
-      mountNativeContext();
-      // The mount handoff synchronizes React with the injected native context.
-      // oxlint-disable-next-line react/set-state-in-effect
-      setMountedContext(localNativeContext());
       void fetchAppUpdate(createRadicalFetch(config)).catch(() => {
         // Startup failure leaves the update status unknown; later API responses still enforce it.
       });
@@ -153,7 +145,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
         <style>{`body { margin: 0; background: #dae9f5; } main { display: flex; flex-direction: column; align-items: stretch; min-height: 100dvh; box-sizing: border-box; padding: calc(var(--radical-safe-area-top) + 16px) calc(var(--radical-safe-area-right) + 16px) calc(var(--radical-safe-area-bottom) + 72px) calc(var(--radical-safe-area-left) + 16px); } @media (min-width: 600px) { main { padding-left: calc(var(--radical-safe-area-left) + 120px); } } pre { white-space: pre-wrap; overflow-wrap: anywhere; }`}</style>
       </head>
       <body>
-        <RadicalProvider nativeContext={nativeContext}>
+        <RadicalProvider nativeContext={nativeContext} mode={config.mode}>
           <SectionLayout>
             <AppUpdateProvider initialState={appUpdate}>
               <AppUpdateBoundary>
@@ -162,7 +154,7 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
                 {children}
               </AppUpdateBoundary>
             </AppUpdateProvider>
-            <LaunchReveal platform={nativeContext.platform} />
+            <LaunchReveal />
           </SectionLayout>
         </RadicalProvider>
         <Scripts />

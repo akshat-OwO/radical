@@ -29,6 +29,7 @@ export {
   useNotificationPermission,
   useDataProtection,
   useDeviceInfo,
+  useNativeContext,
   useSafeArea,
   useWindowLayout,
 } from "../react/react.ts";
@@ -83,6 +84,7 @@ export { useRadicalRuntime } from "../react/use-bridge-effect.ts";
 export const RadicalProvider = (props: {
   readonly children?: ReactNode;
   readonly nativeContext?: NativeContext;
+  readonly mode?: "remote" | "bundled";
   readonly runtime?: RadicalRuntime;
 }): ReactElement => createElement(EffectProvider, props);
 
