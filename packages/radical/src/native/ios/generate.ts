@@ -112,6 +112,12 @@ export const generateIos = (
           native.splash.timeout === false ? 0 : native.splash.timeout / 1000
         ),
         __URL__: JSON.stringify(native.url),
+        __DEEP_LINK_ORIGIN__: JSON.stringify(
+          native.plan.deepLinks.ios ? native.config.origin : ""
+        ),
+        __DEEP_LINK_PATTERNS__: native.plan.deepLinks.filter.patterns
+          .map((pattern) => JSON.stringify(pattern.source))
+          .join(", "),
         __SNAPSHOT_CHECK__: JSON.stringify(
           `(() => { const radicalOffline = window.webkit.messageHandlers.radicalOffline; return (${offlineSnapshotCheckScript(native.config.appId)})(location.href); })()`
         ),
@@ -200,8 +206,8 @@ export const generateIos = (
           yield* replaceAnchor(
             scene,
             yield* fs.readFileString(scene),
-            "CAPBridgeViewController()",
-            rootController
+            "window?.rootViewController = CAPBridgeViewController()",
+            `RadicalColdStart.capture(connectionOptions.userActivities); window?.rootViewController = ${rootController}`
           )
         );
 

@@ -216,7 +216,7 @@ const memory = (
 
           files.set(
             `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
-            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Radical"></application></manifest>'
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Radical"><activity></activity></application></manifest>'
           );
           files.set(
             `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
@@ -273,6 +273,68 @@ const memory = (
 const generate = generateAndroid("/app", "/package");
 
 describe("Android shell generation", () => {
+  it.effect("generates verified links only for configured platforms", () =>
+    Effect.gen(function* () {
+      for (const configured of ["none", "android", "ios"]) {
+        const enabled = configured === "android";
+
+        const state = memory(false, {
+          ...defaultConfig,
+          origin: "https://example.com",
+          deepLinks:
+            configured === "none"
+              ? {}
+              : {
+                  [configured]:
+                    configured === "ios"
+                      ? { teamId: "ABCDEFGHIJ" }
+                      : { fingerprints: [`${"AA:".repeat(31)}AA`] },
+                  exclude: ["/private/*"],
+                },
+        });
+
+        yield* generate.pipe(Effect.provide(state.layer));
+
+        const source =
+          state.files.get(
+            `${destination}/android/app/src/main/AndroidManifest.xml`
+          ) ?? "";
+
+        assert.equal(source.includes('android:autoVerify="true"'), enabled);
+
+        if (enabled) {
+          assert.include(source, "example.com");
+          assert.include(source, 'android:pathPattern="/private/.*"');
+          assert.include(
+            source,
+            String.raw`android:pathPattern="/\\.radical/.*"`
+          );
+          // Android XML consumes one backslash before the simple-glob matcher.
+
+          const dotted = source
+            .split('android:pathPattern="')[1]
+            ?.split('"')[0]
+            ?.replaceAll("\\\\", "\\");
+
+          assert.isDefined(dotted);
+
+          const matcher = new RegExp(`^${dotted}$`, "u");
+
+          assert.isTrue(matcher.test("/.radical/about"));
+          assert.isFalse(matcher.test("/xradical/about"));
+
+          const generatedActivity = state.files.get(mainActivity) ?? "";
+
+          assert.include(generatedActivity, "getIntent().getData()");
+          assert.include(
+            generatedActivity,
+            "Pattern.matches(pattern, link.getEncodedPath())"
+          );
+        }
+      }
+    })
+  );
+
   for (const mode of ["remote", "bundled"] as const) {
     for (const generateOnly of [false, true]) {
       it.effect(
@@ -1022,7 +1084,7 @@ describe("bundled android shell", () => {
           "@capacitor/device"
         );
         assert.include(source, "BUNDLED = true");
-        assert.include(source, "BUNDLED ? URL :");
+        assert.include(source, "BUNDLED ? launchUrl() :");
         assert.include(source, "BUNDLED ? super.shouldInterceptRequest");
       }).pipe(
         Effect.provide(

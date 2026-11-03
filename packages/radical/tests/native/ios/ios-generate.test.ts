@@ -176,7 +176,7 @@ const memory = (
           const app = `${command.options.cwd}/ios/App/App`;
           files.set(
             `${command.options.cwd}/ios/App/App.xcodeproj/project.pbxproj`,
-            "IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;"
+            "CODE_SIGN_STYLE = Automatic;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;"
           );
           files.set(
             `${command.options.cwd}/ios/App/CapApp-SPM/Package.swift`,
@@ -245,6 +245,52 @@ const memory = (
 const generate = generateIos("/app", "/package");
 
 describe("iOS shell generation", () => {
+  it.effect("generates verified links only for configured platforms", () =>
+    Effect.gen(function* () {
+      for (const configured of ["none", "android", "ios"]) {
+        const enabled = configured === "ios";
+
+        const state = memory(false, {
+          ...defaultConfig,
+          origin: "https://example.com",
+          deepLinks:
+            configured === "none"
+              ? {}
+              : {
+                  [configured]:
+                    configured === "ios"
+                      ? { teamId: "ABCDEFGHIJ" }
+                      : { fingerprints: [`${"AA:".repeat(31)}AA`] },
+                  exclude: ["/private/*"],
+                },
+        });
+
+        yield* generate.pipe(Effect.provide(state.layer));
+
+        const source =
+          state.files.get(`${destination}/ios/App/App/App.entitlements`) ?? "";
+
+        assert.equal(
+          source.includes("com.apple.developer.associated-domains"),
+          enabled
+        );
+
+        if (enabled) {
+          assert.include(
+            source,
+            "<array><string>applinks:example.com</string></array>"
+          );
+
+          const generatedActivity = state.files.get(appDelegate) ?? "";
+
+          assert.include(generatedActivity, "NSUserActivityTypeBrowsingWeb");
+
+          assert.include(generatedActivity, "RadicalColdStart.url == nil");
+        }
+      }
+    })
+  );
+
   it.effect(
     "generates topic-record cleanup even when notifications are disabled",
     () => {
@@ -496,10 +542,7 @@ describe("iOS shell generation", () => {
           ".sameSitePolicy: HTTPCookieStringPolicy.sameSiteLax"
         );
         assert.include(source, "if secure");
-        assert.include(
-          source,
-          "private func startNavigation() { super.viewDidLoad() }"
-        );
+        assert.include(source, "else { super.viewDidLoad() }");
         assert.notInclude(source, "__COOKIE_VALUE__");
         assert.include(source, '["http://192.168.1.2:3000"]');
         assert.include(
@@ -510,7 +553,7 @@ describe("iOS shell generation", () => {
         );
         assert.strictEqual(
           state.files.get(`${destination}/ios/App/App/SceneDelegate.swift`),
-          "window?.rootViewController = RadicalViewController()"
+          "RadicalColdStart.capture(connectionOptions.userActivities); window?.rootViewController = RadicalViewController()"
         );
         assert.strictEqual(
           state.files.get(`${destination}/ios/App/App/Info.plist`),
@@ -1272,7 +1315,7 @@ describe("ios native navigation", () => {
             state.files.get(
               `${destination}/ios/App/App.xcodeproj/project.pbxproj`
             ),
-            "IPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;"
+            "CODE_SIGN_STYLE = Automatic;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;"
           );
           assert.strictEqual(
             state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),

@@ -82,6 +82,12 @@ export const generateAndroid = (
       : [];
 
     const replacements = {
+      __DEEP_LINK_ORIGIN__: JSON.stringify(
+        native.plan.deepLinks.android ? config.origin : ""
+      ),
+      __DEEP_LINK_PATTERNS__: native.plan.deepLinks.filter.patterns
+        .map((pattern) => JSON.stringify(pattern.source))
+        .join(", "),
       // AppCompat applies the pinned resources before BridgeActivity creates any views.
       __APPEARANCE_SETUP__:
         config.appearance === "light" || config.appearance === "dark"
@@ -256,7 +262,16 @@ export const generateAndroid = (
           "android/app/src/main/AndroidManifest.xml"
         );
 
-        const manifest = yield* fs.readFileString(manifestPath);
+        const originalManifest = yield* fs.readFileString(manifestPath);
+
+        const manifest = native.plan.deepLinks.android
+          ? yield* replaceAnchor(
+              manifestPath,
+              originalManifest,
+              "</activity>",
+              `<intent-filter android:autoVerify="true"><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="https" android:host="${new URL(config.origin ?? "https://radical.invalid").hostname}"/>${native.plan.deepLinks.excludes.map((glob) => `<uri-relative-filter-group android:allow="false"><data android:pathPattern="${glob.replaceAll("\\", "\\\\\\\\").replaceAll(".", "\\\\.").replaceAll("*", ".*").replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"/></uri-relative-filter-group>`).join("")}<uri-relative-filter-group android:allow="true"><data android:pathPrefix="/"/></uri-relative-filter-group></intent-filter></activity>`
+            )
+          : originalManifest;
 
         const withDeclarations = yield* replaceAnchor(
           "AndroidManifest.xml",

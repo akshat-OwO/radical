@@ -164,10 +164,18 @@ export const resolveBuildPlan = flow(
         plistEntries.filter((entry) => entry.stage === "postprocess")
       );
 
-      const entitlements = yield* composeSettings(
-        "iOS entitlement",
-        ordered.map((value) => value.entitlements ?? {})
-      );
+      const deepLinks = resolveDeepLinks(config);
+
+      const entitlements = yield* composeSettings("iOS entitlement", [
+        ...ordered.map((value) => value.entitlements ?? {}),
+        ...(deepLinks.ios
+          ? [
+              {
+                "com.apple.developer.associated-domains": `<array><string>applinks:${new URL(config.origin ?? "https://radical.invalid").hostname}</string></array>`,
+              },
+            ]
+          : []),
+      ]);
 
       const appDelegateHooks = [
         ...new Set(ordered.flatMap((value) => value.appDelegateHooks ?? [])),
@@ -226,7 +234,7 @@ export const resolveBuildPlan = flow(
       return {
         config,
         navigation: config.navigation,
-        deepLinks: resolveDeepLinks(config),
+        deepLinks,
         capabilities,
         plugins,
         options: { location, camera, videoStream, googleSignIn },

@@ -136,6 +136,18 @@ public class MainActivity extends BridgeActivity {
     }
 
     private String launchUrl() {
+        Uri link = getIntent().getData();
+        Uri origin = Uri.parse(__DEEP_LINK_ORIGIN__);
+        if (link != null && "https".equals(link.getScheme()) && link.getHost() != null
+                && link.getHost().equalsIgnoreCase(origin.getHost()) && (link.getPort() == -1 || link.getPort() == 443)
+                && !link.getEncodedAuthority().contains("@")) {
+            boolean excluded = false;
+            for (String pattern : new String[] { __DEEP_LINK_PATTERNS__ }) {
+                if (java.util.regex.Pattern.matches(pattern, link.getEncodedPath())) excluded = true;
+            }
+            if (!excluded) return (BUNDLED ? Uri.parse(URL) : origin).buildUpon().encodedPath(link.getEncodedPath()).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString();
+        }
+        if (BUNDLED) return URL;
         ConnectivityManager manager = getSystemService(ConnectivityManager.class);
         NetworkCapabilities network = manager.getNetworkCapabilities(manager.getActiveNetwork());
         return network != null && network.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ? URL : savedOfflineUrl();
@@ -298,7 +310,7 @@ public class MainActivity extends BridgeActivity {
                 view.getSettings().setBlockNetworkLoads(false);
                 // Establish the origin and finish registration lookup before the
                 // renderer navigates to the app, including on a cold offline start.
-                view.loadUrl(BUNDLED ? URL : Uri.parse(LAUNCH_URL).buildUpon().appendQueryParameter("url", launchUrl()).build().toString());
+                view.loadUrl(BUNDLED ? launchUrl() : Uri.parse(LAUNCH_URL).buildUpon().appendQueryParameter("url", launchUrl()).build().toString());
             } else {
                 view.evaluateJavascript(script, null);
             }
