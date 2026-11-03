@@ -100,6 +100,8 @@ Tested head `8b9f3d8` on Pixel_9_API_30 (Android 11) with a temporary debug-keys
 
 Restored the example configuration, uninstalled the app, stopped the emulator and Gradle daemon, and released the device lock.
 
+Repeated with the app as the origin's verified handler: `pm set-app-link dev.radical.example.android always`, the Android 11 equivalent of a verified domain. `cmd package resolve-activity` for `https://example.com/private/test` now returned MainActivity alone, and an implicit HTTPS VIEW intent for that URL opened the app directly. The excluded `myscheme://private/test?x=1#excluded` still started `com.android.chrome` explicitly. Chrome resumed at `example.com/private/test?x=1#excluded`, with no chooser and no app re-entry.
+
 ### Android splash follow-up, 2026-11-03
 
 Reproduced with the installed bundled scheme-link build on Pixel_9. Cold `myscheme://about?cold=155#details`, plain `myscheme://about`, and `myscheme://details` loaded their routes without a `RadicalSplash.hide` call. Query and fragment handling were not the trigger. About rendered beneath the native overlay, which eventually disappeared at the native timeout. The HTTPS intent cannot resolve without Android fingerprints and was not used.
