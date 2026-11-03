@@ -71,6 +71,7 @@ const Home = () => {
       <h1>Radical example</h1>
       <a href="/offline-route">Offline route</a>{" "}
       <a href="/online-route">Network required</a>
+      <Link to="/deep-links">Deep links</Link>
       <Link to="/details">Slide to details</Link>{" "}
       <Link to="/about">Fade to about</Link>
       <Link to="/location">Location</Link>

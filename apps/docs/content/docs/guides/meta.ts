@@ -5,6 +5,7 @@ export default defineMeta({
     "bundled-mode",
     "offline-routes",
     "run-on-a-device",
+    "deep-links",
     "app-assets",
     "splash",
     "release-versions",

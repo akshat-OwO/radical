@@ -7,9 +7,23 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
+const deepLinks = {
+  scheme: "radical-example",
+  exclude: ["/online-route"],
+  ios:
+    process.env.RADICAL_IOS_TEAM_ID === undefined
+      ? undefined
+      : { teamId: process.env.RADICAL_IOS_TEAM_ID },
+  android:
+    process.env.RADICAL_ANDROID_FINGERPRINT === undefined
+      ? undefined
+      : { fingerprints: [process.env.RADICAL_ANDROID_FINGERPRINT] },
+};
+
 const config = {
   version: "1.2.3",
   build: 127,
+  deepLinks,
   navigation: {
     android: {
       labels: "labeled",
