@@ -2,6 +2,8 @@ import { Context, Effect, Layer, Queue, Schema, flow } from "effect";
 
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { Bridge } from "../../core/bridge/bridge.ts";
+import { DeepLinkPathFilter } from "../../core/deep-links/deep-links.ts";
+import { openRoute } from "../../core/deep-links/open-route.ts";
 import { Unavailable } from "../../core/errors.ts";
 import {
   isSnapshotCache,
@@ -21,15 +23,37 @@ export class NotificationSnapshots extends Context.Service<
   }
 >()("radical/NotificationSnapshots") {}
 
-const snapshotStorage: NotificationSnapshots["Service"] = {
+export interface SnapshotStorage {
+  readonly origin: string;
+  readonly caches: {
+    readonly keys: () => Promise<readonly string[]>;
+    readonly open: (name: string) => Promise<{
+      readonly match: (
+        key: string,
+        options: CacheQueryOptions
+      ) => Promise<Response | undefined>;
+    }>;
+  };
+}
+
+export const snapshotStorageWithNavigation = (
+  navigate: (route: string) => Effect.Effect<void, Unavailable>,
+  storage?: SnapshotStorage
+): NotificationSnapshots["Service"] => ({
   restore: (route, appId) =>
     Effect.gen(function* () {
-      if (!("caches" in globalThis)) {
+      const browser =
+        storage ??
+        ("caches" in globalThis
+          ? { caches, origin: location.origin }
+          : undefined);
+
+      if (!browser) {
         return false;
       }
 
       const found = yield* Effect.tryPromise({
-        try: () => caches.keys(),
+        try: () => browser.caches.keys(),
         catch: (cause) => new Unavailable({ reason: String(cause) }),
       }).pipe(
         Effect.flatMap((names) =>
@@ -37,13 +61,13 @@ const snapshotStorage: NotificationSnapshots["Service"] = {
             names.filter((name) => isSnapshotCache(name, appId)),
             (name) =>
               Effect.tryPromise({
-                try: () => caches.open(name),
+                try: () => browser.caches.open(name),
                 catch: (cause) => new Unavailable({ reason: String(cause) }),
               }).pipe(
                 Effect.flatMap((cache) =>
                   Effect.tryPromise({
                     try: () =>
-                      cache.match(snapshotKey(route, location.origin), {
+                      cache.match(snapshotKey(route, browser.origin), {
                         ignoreVary: true,
                       }),
                     catch: (cause) =>
@@ -57,12 +81,18 @@ const snapshotStorage: NotificationSnapshots["Service"] = {
       );
 
       if (found) {
-        window.location.assign(route);
+        yield* navigate(route);
       }
 
       return found;
     }),
-};
+});
+
+const snapshotStorage = snapshotStorageWithNavigation((route) =>
+  Effect.sync(() => {
+    window.location.assign(route);
+  })
+);
 
 /** Select snapshots using the platform network capability before reading storage. */
 export const notificationSnapshotsLayer = (
@@ -132,6 +162,13 @@ export const watchNotificationNavigation = (options: {
     const bridge = yield* Bridge;
     const adapter = yield* RadicalAdapter;
     const navigation = yield* adapter.navigation;
+
+    const filter = new DeepLinkPathFilter(
+      typeof window === "undefined"
+        ? []
+        : (window.__radicalDeepLinks?.excludes ?? [])
+    );
+
     const snapshots = yield* NotificationSnapshots;
     const queue = yield* Queue.unbounded<unknown>();
 
@@ -172,12 +209,12 @@ export const watchNotificationNavigation = (options: {
         Effect.flatMap(notificationRoute),
         Effect.flatMap((route) =>
           route._tag === "Some"
-            ? snapshots.restore(route.value, options.appId).pipe(
-                Effect.orElseSucceed(() => false),
-                Effect.flatMap((restored) =>
-                  restored ? Effect.void : navigation.navigate(route.value)
-                )
-              )
+            ? openRoute(route.value, {
+                ...options,
+                allows: (path) => filter.allows(path),
+                restore: snapshots.restore,
+                navigation,
+              })
             : Effect.void
         ),
         Effect.tapError((error) =>

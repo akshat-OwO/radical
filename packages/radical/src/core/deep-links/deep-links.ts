@@ -12,11 +12,11 @@ const builtInExcludes = [
   "/api/*",
 ];
 
-class DeepLinkPathFilter {
+export class DeepLinkPathFilter {
   readonly patterns: readonly RegExp[];
 
   constructor(excludes: readonly string[]) {
-    this.patterns = excludes.map(
+    this.patterns = [...new Set([...builtInExcludes, ...excludes])].map(
       (pattern) =>
         new RegExp(
           `^${pattern

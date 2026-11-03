@@ -5,11 +5,15 @@ enum RadicalColdStart {
     static var url: URL?
     static func capture(_ activities: Set<NSUserActivity>) {
         url = activities.first { $0.activityType == NSUserActivityTypeBrowsingWeb }?.webpageURL
-        guard let link = url, let origin = URL(string: __DEEP_LINK_ORIGIN__),
+        url = url.flatMap(validate)
+    }
+    static func validate(_ link: URL) -> URL? {
+        guard let origin = URL(string: __DEEP_LINK_ORIGIN__),
               link.scheme == origin.scheme, link.host == origin.host,
               (link.port ?? 443) == (origin.port ?? 443),
               !([__DEEP_LINK_PATTERNS__] as [String]).contains(where: { URLComponents(url: link, resolvingAgainstBaseURL: false)!.percentEncodedPath.range(of: $0, options: .regularExpression) != nil })
-        else { url = nil; return }
+        else { return nil }
+        return link
     }
 }
 
@@ -17,6 +21,31 @@ enum RadicalColdStart {
 // Capacitor sets limitsNavigationsToAppBoundDomains before creating the WebView.
 final class RadicalViewController: CAPBridgeViewController {
     __NAVIGATION_HOST__
+    static weak var active: RadicalViewController?
+    private var linkListenerReady = false
+    private var pendingLink: URL?
+    static func receive(_ activity: NSUserActivity) -> Bool {
+        guard activity.activityType == NSUserActivityTypeBrowsingWeb,
+              let url = activity.webpageURL.flatMap(RadicalColdStart.validate),
+              let controller = active else { return false }
+        controller.pendingLink = url
+        controller.deliverLink()
+        return true
+    }
+    func resetLinkReadiness() { linkListenerReady = false }
+    func linksReady() { linkListenerReady = true; deliverLink() }
+    private func deliverLink() {
+        guard linkListenerReady, let link = pendingLink else { return }
+        pendingLink = nil
+        var target = URLComponents(url: URL(string: __URL__)!, resolvingAgainstBaseURL: false)!
+        let route = URLComponents(url: link, resolvingAgainstBaseURL: false)!
+        target.percentEncodedPath = route.percentEncodedPath
+        target.percentEncodedQuery = route.percentEncodedQuery
+        target.percentEncodedFragment = route.percentEncodedFragment
+        let value = (__BUNDLED__ ? target.url! : link).absoluteString
+        let json = String(data: try! JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed]), encoding: .utf8)!
+        webView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('radicalDeepLink',{detail:" + json + "}));", completionHandler: nil)
+    }
     private var navigationProxy: RadicalNavigationDelegate?
     private var startupSplash: UIImageView?
 
@@ -42,6 +71,7 @@ final class RadicalViewController: CAPBridgeViewController {
     }
 
     override func capacitorDidLoad() {
+        Self.active = self
         bridge?.registerPluginInstance(RadicalSplashPlugin())
         __PLUGIN_REGISTRATION__
         __NAVIGATION_REGISTRATION__
@@ -283,6 +313,7 @@ final class RadicalNavigationDelegate: NSObject, WKNavigationDelegate, WKScriptM
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        RadicalViewController.active?.resetLinkReadiness()
         activeNavigation = navigation
         delegate.webView?(webView, didStartProvisionalNavigation: navigation)
     }
@@ -392,8 +423,16 @@ public class RadicalSplashPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "RadicalSplashPlugin"
     public let jsName = "RadicalSplash"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "linksReady", returnType: CAPPluginReturnPromise)
     ]
+
+    @objc func linksReady(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            RadicalViewController.active?.linksReady()
+            call.resolve()
+        }
+    }
 
     // Hiding twice, or after the timeout, resolves without effect.
     @objc func hide(_ call: CAPPluginCall) {

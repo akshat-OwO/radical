@@ -34,7 +34,7 @@ The web app sees an ordinary navigation. Route guards handle authentication; rad
 
 - Scheme links only. Rejected as the default: any app can claim a scheme, and the link does not work on the web.
 - Associating the allowlist or extra domains. Deferred: paths on other domains need a rewrite rule, and no use case requires one yet.
-- Reloading the WebView for warm links. Rejected: it discards page state, transitions, and section memory.
+- Reloading the WebView for warm links. Rejected: it discards page state, transitions, and section memory. The one exception is an offline warm link with a saved snapshot: the service worker serves snapshots only to document navigations, and a client-side transition would run loaders that need the network. That case loads the snapshot as a document, as notification taps do (ADR 0010), and loses in-memory state.
 - Serving debug fingerprints in dev builds. Rejected: Android verifies against the production origin, so the production file would trust debug keys.
 - Queuing every pending link. Rejected: replaying stale links makes the app jump between screens.
 
@@ -42,4 +42,5 @@ The web app sees an ordinary navigation. Route guards handle authentication; rad
 
 - Android fingerprints must include the Play App Signing key, which cannot be read from the local keystore.
 - iOS associated domains count toward the hostnames of app-bound domains (ADR 0002), but `origin` is already listed.
+- An offline warm link with a snapshot reloads the document, so in-memory page state and section memory reset. Online links and offline links without a snapshot keep them.
 - An unknown path renders the app's 404. A cold offline start with no snapshot shows the offline fallback, whose retry link targets the deep-link URL.

@@ -15,9 +15,36 @@ import { transitionStrategy } from "../../capabilities/transitions/transition-st
 import type { RadicalNavigation } from "../../core/adapter/adapter.ts";
 import { NavigationFailed } from "../../core/adapter/errors.ts";
 import { BridgeLive } from "../../core/bridge/bridge.ts";
+import { installWarmLinks } from "../../core/deep-links/warm-links.ts";
 import { internalNavigationOptions } from "./tanstack-internal-navigation.ts";
 import { installNativeTransitions } from "./tanstack-native-transitions.ts";
 import { crossesSections } from "./tanstack-section-ownership.ts";
+
+export const tanstackNavigation = (
+  router: Pick<AnyRouter, "navigate" | "subscribe" | "options">
+): RadicalNavigation => ({
+  navigate: (to, options) =>
+    Effect.tryPromise({
+      try: () =>
+        router.navigate({
+          ...internalNavigationOptions(router, to),
+          ...options,
+        }),
+      catch: (cause) => new NavigationFailed({ cause }),
+    }),
+  onBeforeNavigate: (listener) =>
+    Effect.sync(() =>
+      router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
+        Effect.runFork(listener(fromLocation?.href ?? "", toLocation.href));
+      })
+    ),
+  onAfterNavigate: (listener) =>
+    Effect.sync(() =>
+      router.subscribe("onResolved", ({ toLocation }) => {
+        listener(toLocation.href);
+      })
+    ),
+});
 
 export interface BrowserTransitionOptions {
   readonly timeoutMs?: number;
@@ -44,16 +71,26 @@ export const browserTransitions = (
     };
   }
 
+  const stopLinks = installWarmLinks(tanstackNavigation(router));
+
   const strategy = Effect.runSync(
     transitionStrategy.pipe(Effect.provide(Layer.merge(browser, BridgeLive)))
   );
 
   if (strategy === "native") {
-    return installNativeTransitions(
+    const transitions = installNativeTransitions(
       router,
       options,
       NativeTransitionsLive.pipe(Layer.provide(BridgeLive))
     );
+
+    return {
+      ...transitions,
+      dispose: () => {
+        stopLinks();
+        transitions.dispose();
+      },
+    };
   }
 
   if (strategy === "plain") {
@@ -62,7 +99,7 @@ export const browserTransitions = (
         /* No transition was installed. */
       },
       dispose: () => {
-        /* No subscriptions were installed. */
+        stopLinks();
       },
     };
   }
@@ -130,6 +167,7 @@ export const browserTransitions = (
   return {
     cancel,
     dispose: () => {
+      stopLinks();
       Effect.runFork(stop);
       cancel();
       removeHistory();
@@ -138,29 +176,3 @@ export const browserTransitions = (
     },
   };
 };
-
-export const tanstackNavigation = (
-  router: Pick<AnyRouter, "navigate" | "subscribe" | "options">
-): RadicalNavigation => ({
-  navigate: (to, options) =>
-    Effect.tryPromise({
-      try: () =>
-        router.navigate({
-          ...internalNavigationOptions(router, to),
-          ...options,
-        }),
-      catch: (cause) => new NavigationFailed({ cause }),
-    }),
-  onBeforeNavigate: (listener) =>
-    Effect.sync(() =>
-      router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-        Effect.runFork(listener(fromLocation?.href ?? "", toLocation.href));
-      })
-    ),
-  onAfterNavigate: (listener) =>
-    Effect.sync(() =>
-      router.subscribe("onResolved", ({ toLocation }) => {
-        listener(toLocation.href);
-      })
-    ),
-});

@@ -127,7 +127,7 @@ export const generateAndroid = (
       __WINDOW_LAYOUT_SCRIPT__: JSON.stringify(windowLayoutUpdateScript),
       __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "android"),
       __SHELL_COMMANDS_SCRIPT__: JSON.stringify(
-        shellCommandsScript(native.plan, "android")
+        `${shellCommandsScript(native.plan, "android")}window.__radicalDeepLinks=${JSON.stringify({ appId: config.appId, excludes: native.plan.deepLinks.excludes })};`
       ),
       __URL__: JSON.stringify(url),
       __COOKIES__: native.cookies

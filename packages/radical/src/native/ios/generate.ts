@@ -104,7 +104,7 @@ export const generateIos = (
         __BUNDLED__: String(native.bundled),
         __PLUGIN_REGISTRATION__: pluginRegistration(native.plugins, "ios"),
         __SHELL_COMMANDS_SCRIPT__: JSON.stringify(
-          shellCommandsScript(native.plan, "ios")
+          `${shellCommandsScript(native.plan, "ios")}window.__radicalDeepLinks=${JSON.stringify({ appId: native.config.appId, excludes: native.plan.deepLinks.excludes })};`
         ),
         __SPLASH_NAME__: JSON.stringify(iosSplashResourceName(native.assets)),
         __SPLASH_MANUAL__: String(native.splash.dismiss === "manual"),
@@ -197,7 +197,7 @@ export const generateIos = (
         const delegate = path.join(app, "AppDelegate.swift");
         yield* fs.writeFileString(
           delegate,
-          `${yield* fs.readFileString(delegate)}\n${source}\n${navigationSource}`
+          `${yield* fs.readFileString(delegate)}\nextension AppDelegate {\n    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {\n        RadicalViewController.receive(userActivity)\n    }\n}\n${source}\n${navigationSource}`
         );
         // Capacitor 8's scene lifecycle constructs its controller directly.
         const scene = path.join(app, "SceneDelegate.swift");
@@ -205,7 +205,10 @@ export const generateIos = (
           scene,
           yield* replaceAnchor(
             scene,
-            yield* fs.readFileString(scene),
+            (yield* fs.readFileString(scene)).replace(
+              "SceneDelegateProxy.shared.scene(scene, continue: userActivity)",
+              "if !RadicalViewController.receive(userActivity) { SceneDelegateProxy.shared.scene(scene, continue: userActivity) }"
+            ),
             "window?.rootViewController = CAPBridgeViewController()",
             `RadicalColdStart.capture(connectionOptions.userActivities); window?.rootViewController = ${rootController}`
           )

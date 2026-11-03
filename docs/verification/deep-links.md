@@ -53,3 +53,23 @@ Device check to run on Pixel_9 with a remote origin serving the example routes:
 5. Repeat in bundled mode and confirm those route components under the local origin.
 
 This regression device check has not been run for the review fixes.
+
+## Warm delivery, issue 154
+
+Pixel_9, Android 16.0, bundled example with temporary verified origin `https://example.com`:
+
+- Generated with `RADICAL_MODE=bundled RADICAL_ORIGIN=https://example.com pnpm exec radical android --generate-only` and built with `./gradlew assembleDebug`. Build passed. Installed and approved `example.com` with `adb shell pm set-app-links --package dev.radical.example.android 2 example.com`.
+- Opened the example, then delivered `https://example.com/about?warm=154#details` through the T3 device command. About rendered and its native section became selected. The WebView URL was `https://localhost/about?warm=154#details`.
+- Used About's Badge Home button, then delivered `https://example.com/details?warm=154`. Details rendered in Home, and the Home badge retained its value of 3. Capacitor logs showed Network, setBack, and section update calls, with no transition cover/reveal call for this cross-section navigation.
+- Read the WebView through its debugging socket. `performance.timeOrigin` remained `1793713365111.4` on About, Details, and Home after Back. This confirms the warm navigation did not reload the document.
+- System Back from Details returned to `/`, the Home root, rather than About. The badge remained 3. This follows ADR 0016's within-section root rule.
+
+The device check covers bundled routing, section state, and Back. Remote routing against the example backend, exact-URL offline restoration, and two native intents before readiness were not exercised on-device. Unit tests cover shared route validation, network-aware snapshot selection, and the readiness handshake against an in-memory shell retaining the latest pending URL. Existing notification-navigation tests remain unchanged.
+
+iPhone 17 Pro, iOS 26.5:
+
+- Generated the remote shell for `https://example.com` and built with `xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath /tmp/radical-154-ios CODE_SIGNING_ALLOWED=NO build`. Build passed.
+- Installed and opened the shell. It displayed Example Domain.
+- Tried the HTTPS warm link through the T3 device command. The system opened an external browser surface. This unsigned simulator app has no public association with the temporary domain, so local Universal Link delivery could not be verified. No synthetic NSUserActivity was injected.
+
+Closed and shut down each device before opening the next, stopped the Gradle daemon, removed the debugging port forward, restored the example configuration, and released the device lock. No development server was started.

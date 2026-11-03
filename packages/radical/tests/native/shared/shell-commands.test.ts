@@ -35,16 +35,16 @@ it.effect(
       assert.deepStrictEqual(shellCommands(plan, "android"), {
         AndroidOnly: ["echo"],
         Device: ["getInfo"],
-        RadicalSplash: ["hide"],
+        RadicalSplash: ["hide", "linksReady"],
       });
       assert.deepStrictEqual(shellCommands(plan, "ios"), {
         IosOnly: ["echo"],
         Device: ["getInfo"],
-        RadicalSplash: ["hide"],
+        RadicalSplash: ["hide", "linksReady"],
       });
       assert.strictEqual(
         shellCommandsScript(plan, "ios"),
-        'window.__radicalShellCommands={"IosOnly":["echo"],"Device":["getInfo"],"RadicalSplash":["hide"]};'
+        'window.__radicalShellCommands={"IosOnly":["echo"],"Device":["getInfo"],"RadicalSplash":["hide","linksReady"]};'
       );
     })
 );
@@ -62,10 +62,10 @@ it.effect(
       };
 
       assert.deepStrictEqual(shellCommands(plan, "android"), {
-        RadicalSplash: ["hide"],
+        RadicalSplash: ["hide", "linksReady"],
       });
       assert.deepStrictEqual(shellCommands(plan, "ios"), {
-        RadicalSplash: ["hide"],
+        RadicalSplash: ["hide", "linksReady"],
         RadicalNavigation: ["update"],
       });
     })
