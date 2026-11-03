@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { assert, describe, it } from "@effect/vitest";
 import {
+  Console,
   ConfigProvider,
   Effect,
   Fiber,
@@ -23,6 +24,9 @@ const project = "/app/.radical/android";
 
 const memory = (
   options: {
+    verifiedLinkHost?: string;
+    sdk?: string;
+    approvalFailure?: boolean;
     config?: Record<string, string>;
     avdNames?: Record<string, string>;
     devices?: string;
@@ -62,11 +66,21 @@ const memory = (
   );
 
   const fs = FileSystem.layerNoop({
-    readFileString: () => Effect.succeed('{"appId":"dev.radical.example"}'),
+    readFileString: () =>
+      Effect.succeed(
+        JSON.stringify({
+          appId: "dev.radical.example",
+          verifiedLinkHost: options.verifiedLinkHost,
+        })
+      ),
   });
 
   const outputFor = (args: readonly string[]) => {
     let output = "";
+
+    if (args.includes("ro.build.version.sdk")) {
+      return options.sdk ?? "36\n";
+    }
 
     if (args.includes("devices")) {
       output =
@@ -123,8 +137,10 @@ const memory = (
               ? Effect.never
               : Effect.succeed(
                   ChildProcessSpawner.ExitCode(
-                    options.buildFailure === true &&
-                      command.args.includes("assembleDebug")
+                    (options.buildFailure === true &&
+                      command.args.includes("assembleDebug")) ||
+                      (options.approvalFailure === true &&
+                        command.args.includes("pm"))
                       ? 1
                       : 0
                   )
@@ -423,3 +439,96 @@ describe("Android runner", () => {
     }
   );
 });
+
+for (const sdk of ["30", "31", "36"]) {
+  it.effect(`approves verified links after install on SDK ${sdk}`, () => {
+    const state = memory({ sdk, verifiedLinkHost: "example.com" });
+
+    return Effect.gen(function* () {
+      yield* runAndroid(project, "target");
+
+      const approval = [
+        "adb",
+        "-s",
+        "target",
+        "shell",
+        "pm",
+        ...(Number(sdk) >= 31
+          ? [
+              "set-app-links",
+              "--package",
+              "dev.radical.example",
+              "2",
+              "example.com",
+            ]
+          : ["set-app-link", "dev.radical.example", "always"]),
+      ];
+
+      assert.deepStrictEqual(
+        state.commands.find((command) => command.includes("pm")),
+        approval
+      );
+      assert.isBelow(
+        state.commands.findIndex((command) => command.includes("install")),
+        state.commands.findIndex((command) => command.includes("pm"))
+      );
+    }).pipe(Effect.provide(state.layer));
+  });
+}
+
+it.effect("warns on approval failure and still launches", () => {
+  const state = memory({
+    verifiedLinkHost: "example.com",
+    approvalFailure: true,
+  });
+
+  const warnings: unknown[][] = [];
+
+  return Effect.gen(function* () {
+    yield* runAndroid(project, "target");
+    assert.lengthOf(warnings, 1);
+    assert.include(String(warnings[0]), "Could not approve verified links");
+    assert.isTrue(state.commands.some((command) => command.includes("start")));
+  }).pipe(
+    Effect.provide(state.layer),
+    Effect.provideService(Console.Console, {
+      assert: () => {},
+      clear: () => {},
+      count: () => {},
+      countReset: () => {},
+      debug: () => {},
+      dir: () => {},
+      dirxml: () => {},
+      error: () => {},
+      group: () => {},
+      groupCollapsed: () => {},
+      groupEnd: () => {},
+      info: () => {},
+      log: () => {},
+      table: () => {},
+      time: () => {},
+      timeEnd: () => {},
+      timeLog: () => {},
+      trace: () => {},
+      warn: (...args: unknown[]) => {
+        warnings.push(args);
+      },
+    })
+  );
+});
+
+it.effect(
+  "skips SDK lookup and approval without Android verified links",
+  () => {
+    const state = memory();
+
+    return Effect.gen(function* () {
+      yield* runAndroid(project, "target");
+      assert.notInclude(state.commands.flat(), "ro.build.version.sdk");
+      assert.notInclude(state.commands.flat(), "pm");
+      assert.isTrue(
+        state.commands.some((command) => command.includes("start"))
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);

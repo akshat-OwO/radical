@@ -139,3 +139,16 @@ The Java helper depends on Android PackageManager, Intent, and Uri. This reposit
 5. Disable all browsers and repeat. Confirm the app stays open without a crash.
 
 iOS keeps UIApplication.open for the mapped HTTPS URL. Apple's [Universal Links documentation](https://developer.apple.com/documentation/xcode/supporting-universal-links-in-your-app) specifies that opening a link to the app's own website from that app does not route back to itself. The default universalLinksOnly option is false. No iOS handoff change is needed. The earlier simulator check did not have domain associations; repeat the excluded-link check with a signed, associated app to verify that configuration on a device.
+
+## Development approval, issue 156
+
+Verified on 2026-11-03 on Pixel_9, Android 16, API 36.
+
+- Rebuilt the CLI with `pnpm run build` in `packages/radical`.
+- Temporarily configured `deepLinks.android.fingerprints` with the local debug-keystore SHA-256 and ran `RADICAL_ORIGIN=https://example.com pnpm exec radical android --target emulator-5554` in `apps/example`. This is the CLI command that calls `runAndroid`; there is no `radical run` subcommand. Generation, Gradle build, installation, and launch succeeded.
+- `adb shell pm get-app-links dev.radical.example.android` reported `example.com: approved` after the run. No manual approval command was used for this check.
+- Opened `https://example.com/about?approval=156` through the device command with the URL alone, without specifying a package. ActivityTaskManager logged ACTION_VIEW resolving to `dev.radical.example.android/.MainActivity`. The app remained visible with remote example.com content and its native section bar.
+
+The public origin does not serve this app's association file or debug fingerprint. This checks development approval and implicit intent delivery, not production domain ownership or example route rendering. Android 11 and the API 31 boundary are covered by in-memory command-runner tests. iOS development and production entitlements are covered by generation tests; iOS device verification was not repeated.
+
+Restored the temporary example configuration, closed the device, stopped the emulator and Gradle daemons, and released the device lock. No server was started.

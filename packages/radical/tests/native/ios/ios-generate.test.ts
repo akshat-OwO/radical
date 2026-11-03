@@ -298,7 +298,7 @@ describe("iOS shell generation", () => {
         if (enabled) {
           assert.include(
             source,
-            "<array><string>applinks:example.com</string></array>"
+            "<array><string>applinks:example.com?mode=developer</string></array>"
           );
 
           const generatedActivity = state.files.get(appDelegate) ?? "";
@@ -1577,3 +1577,29 @@ describe("iOS splash dismissal", () => {
     );
   }
 });
+
+for (const environment of ["development", "production"] as const) {
+  it.effect(
+    `generates the associated domain for ${environment} signing`,
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        origin: "https://example.com",
+        deepLinks: { ios: { teamId: "ABCDEFGHIJ" } },
+        notifications: { ios: { environment } },
+      });
+
+      return Effect.gen(function* () {
+        yield* generate;
+
+        const source =
+          state.files.get(`${destination}/ios/App/App/App.entitlements`) ?? "";
+
+        assert.include(
+          source,
+          `<string>applinks:example.com${environment === "development" ? "?mode=developer" : ""}</string>`
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+}
