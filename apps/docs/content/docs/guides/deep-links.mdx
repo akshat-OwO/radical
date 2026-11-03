@@ -46,6 +46,20 @@ See [Run on a device](/docs/guides/run-on-a-device).
 
 ## Serve association files
 
+The request middleware serves the association files only when it receives your config. In `src/start.ts`, import it from `virtual:radical/config` and pass it to `createRadicalRequestMiddleware()`:
+
+```ts
+import { createRadicalRequestMiddleware } from "@akshatowo/radical/tanstack-start-server";
+import { createStart } from "@tanstack/react-start";
+import { config } from "virtual:radical/config";
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [...createRadicalRequestMiddleware({ config })],
+}));
+```
+
+If you already pass update options, keep them and include `config` in the same object. Without `config`, both endpoints return `404`.
+
 Deploy the app at the configured `origin`. The adapter serves generated JSON at:
 
 - `/.well-known/apple-app-site-association` for configured iOS verified links.
