@@ -23,6 +23,7 @@ export {
   useNotificationPermission,
   useDataProtection,
   useDeviceInfo,
+  useNativeContext,
   useSafeArea,
   useWindowLayout,
 } from "../react/react.ts";

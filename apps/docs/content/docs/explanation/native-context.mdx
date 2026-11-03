@@ -30,6 +30,12 @@ The installed binary supplies optional `appVersion` and `appBuild` values. They 
 
 Bundled rendering starts with CSS `env()` values and stable browser context. TanStack's SSR-disabled shell skips its loader; absent loader data also produces browser styles. `mountNativeContext` hands live CSS values to the shell after mount, without changing React's initial style props.
 
+Pass the loader context to `RadicalProvider` with `mode="bundled"`. `useNativeContext()`, exported from both React APIs, returns that context during SSR and initial hydration. After commit, the provider calls `mountNativeContext()` and publishes the validated shell context.
+
+This also works on prerendered non-root routes whose loader data contains browser context. Read platform-dependent UI from the hook instead of loader data. In remote mode, the provider keeps the supplied server context.
+
+Keep document style props based on the loader context. The mount handoff updates live CSS variables without changing the initial React style props.
+
 Insets describe system UI boundaries, not keyboard height. The framework still owns rendering and route data.
 
 <Callout type="warning" title="Presentation data is untrusted">

@@ -11,6 +11,7 @@ import type {
 import type {
   RadicalProvider,
   useRadicalRuntime,
+  useNativeContext,
 } from "../../src/plain/react.ts";
 import type { RadicalRuntime } from "../../src/plain/runtime.ts";
 import type { getNativeContext } from "../../src/plain/server.ts";
@@ -54,4 +55,8 @@ export type CookieValue = Assert<
 
 export type TransitionHasNoLayer = Assert<
   Parameters<typeof browserTransitions>["length"] extends 1 | 2 ? true : false
+>;
+
+export type LiveContextValue = Assert<
+  ReturnType<typeof useNativeContext> extends NativeContext ? true : false
 >;

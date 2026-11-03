@@ -15,6 +15,7 @@ import type { LocationWatchPool } from "../capabilities/location/location-pool.t
 import { zeroSafeArea } from "../capabilities/safe-area/safe-area-style.ts";
 import { BridgeLive } from "../core/bridge/bridge.ts";
 import type { Bridge } from "../core/bridge/bridge.ts";
+import { mountNativeContext } from "../core/bundled/bundled-request.ts";
 import { defaultWindowLayout } from "../core/context/native-context.ts";
 import type { NativeContext } from "../core/context/native-context.ts";
 import {
@@ -103,18 +104,57 @@ const runtimeOwner = (
   };
 };
 
+/** Cache the live snapshot once React subscribes after commit. */
+const nativeContextOwner = (initial: NativeContext, bundled: boolean) => {
+  let snapshot = initial;
+
+  return {
+    serverSnapshot: () => initial,
+    snapshot: () => snapshot,
+    subscribe: (listener: () => void) => {
+      if (bundled) {
+        snapshot = Effect.runSync(mountNativeContext());
+        listener();
+      }
+
+      return () => {
+        // The context is a mount snapshot with no ongoing subscription.
+      };
+    },
+  };
+};
+
+export const useNativeContext = (): NativeContext =>
+  useContext(NativeContextContext);
+
 /** Effect API provider accepts an injectable bridge layer. */
 export const RadicalProvider = ({
   layer = BridgeLive,
+  mode = "remote",
   children,
   nativeContext,
   runtime: supplied,
 }: {
+  readonly mode?: "remote" | "bundled";
   readonly layer?: Layer.Layer<Bridge>;
   readonly runtime?: RadicalRuntime;
   readonly children?: ReactNode;
   readonly nativeContext?: NativeContext;
 }): ReactElement => {
+  const inheritedContext = useNativeContext();
+
+  const contextOwner = useMemo(
+    () =>
+      nativeContextOwner(nativeContext ?? inheritedContext, mode === "bundled"),
+    [nativeContext, inheritedContext, mode]
+  );
+
+  const context = useSyncExternalStore(
+    contextOwner.subscribe,
+    contextOwner.snapshot,
+    contextOwner.serverSnapshot
+  );
+
   const owner = useMemo(() => runtimeOwner(layer, supplied), [layer, supplied]);
 
   const runtime = useSyncExternalStore(
@@ -133,13 +173,7 @@ export const RadicalProvider = ({
     createElement(
       BridgeContext.Provider,
       { value: bridge },
-      nativeContext
-        ? createElement(
-            NativeContextContext.Provider,
-            { value: nativeContext },
-            children
-          )
-        : children
+      createElement(NativeContextContext.Provider, { value: context }, children)
     )
   );
 };
