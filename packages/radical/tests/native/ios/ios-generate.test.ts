@@ -1467,8 +1467,8 @@ it.effect("embeds the build plan commands in the document-start script", () => {
     assert.include(
       source,
       JSON.stringify(
-        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"],"RadicalSplash":["hide"]};'
-      )
+        'window.__radicalShellCommands={"Device":["getInfo"],"RadicalSettings":["openAppSettings"],"RadicalTransitions":["cover","exit","remove","reveal","setBack","settle"],"RadicalSplash":["hide","linksReady"]};'
+      ).slice(0, -1)
     );
     assert.notInclude(source, "__SHELL_COMMANDS_SCRIPT__");
   }).pipe(Effect.provide(state.layer));

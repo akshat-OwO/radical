@@ -79,6 +79,7 @@ public class MainActivity extends BridgeActivity {
         __APPEARANCE_SETUP__
         SplashScreen.installSplashScreen(this).setOnExitAnimationListener(SplashScreenViewProvider::remove);
         super.onCreate(savedInstanceState);
+        acceptingWarmLinks = true;
         android.widget.FrameLayout overlay = new android.widget.FrameLayout(this);
         overlay.setBackgroundColor(android.graphics.Color.parseColor(__SPLASH_BACKGROUND__));
         // The splash blocks touches, as the system splash does.
@@ -135,8 +136,29 @@ public class MainActivity extends BridgeActivity {
         return allowed(Uri.parse(saved)) && !offlinePage(Uri.parse(saved)) && !launchPage(Uri.parse(saved)) ? saved : URL;
     }
 
-    private String launchUrl() {
-        Uri link = getIntent().getData();
+    private boolean acceptingWarmLinks;
+    private boolean linkListenerReady;
+    private String pendingLink;
+
+    @Override public void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        if (!acceptingWarmLinks) return;
+        String link = canonicalLink(intent.getData());
+        if (link == null) return;
+        pendingLink = link;
+        deliverLink();
+    }
+
+    void linksReady() { linkListenerReady = true; deliverLink(); }
+
+    private void deliverLink() {
+        if (!linkListenerReady || pendingLink == null) return;
+        String link = pendingLink;
+        pendingLink = null;
+        bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('radicalDeepLink',{detail:" + JSONObject.quote(link) + "}));", null);
+    }
+
+    private String canonicalLink(Uri link) {
         Uri origin = Uri.parse(__DEEP_LINK_ORIGIN__);
         if (link != null && "https".equals(link.getScheme()) && link.getHost() != null
                 && link.getHost().equalsIgnoreCase(origin.getHost()) && (link.getPort() == -1 || link.getPort() == 443)
@@ -147,6 +169,12 @@ public class MainActivity extends BridgeActivity {
             }
             if (!excluded) return (BUNDLED ? Uri.parse(URL) : origin).buildUpon().encodedPath(link.getEncodedPath()).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString();
         }
+        return null;
+    }
+
+    private String launchUrl() {
+        String link = canonicalLink(getIntent().getData());
+        if (link != null) return link;
         if (BUNDLED) return URL;
         ConnectivityManager manager = getSystemService(ConnectivityManager.class);
         NetworkCapabilities network = manager.getNetworkCapabilities(manager.getActiveNetwork());
@@ -438,6 +466,7 @@ public class MainActivity extends BridgeActivity {
 
             @Override
             public void onPageStarted(WebView webView, String url, Bitmap favicon) {
+                linkListenerReady = false;
                 // WebView skips shouldOverrideUrlLoading for non-GET navigations, and
                 // shouldInterceptRequest sees only the first URL. A POST redirected by
                 // 307 or 308 to another origin first surfaces here, after commit; the

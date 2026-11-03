@@ -2,6 +2,8 @@ import { Context, Effect, Layer, Queue, Schema, flow } from "effect";
 
 import { RadicalAdapter } from "../../core/adapter/adapter.ts";
 import { Bridge } from "../../core/bridge/bridge.ts";
+import { DeepLinkPathFilter } from "../../core/deep-links/deep-links.ts";
+import { openRoute } from "../../core/deep-links/open-route.ts";
 import { Unavailable } from "../../core/errors.ts";
 import {
   isSnapshotCache,
@@ -21,7 +23,9 @@ export class NotificationSnapshots extends Context.Service<
   }
 >()("radical/NotificationSnapshots") {}
 
-const snapshotStorage: NotificationSnapshots["Service"] = {
+export const snapshotStorageWithNavigation = (
+  navigate: (route: string) => Effect.Effect<void, Unavailable>
+): NotificationSnapshots["Service"] => ({
   restore: (route, appId) =>
     Effect.gen(function* () {
       if (!("caches" in globalThis)) {
@@ -57,12 +61,18 @@ const snapshotStorage: NotificationSnapshots["Service"] = {
       );
 
       if (found) {
-        window.location.assign(route);
+        yield* navigate(route);
       }
 
       return found;
     }),
-};
+});
+
+const snapshotStorage = snapshotStorageWithNavigation((route) =>
+  Effect.sync(() => {
+    window.location.assign(route);
+  })
+);
 
 /** Select snapshots using the platform network capability before reading storage. */
 export const notificationSnapshotsLayer = (
@@ -132,6 +142,13 @@ export const watchNotificationNavigation = (options: {
     const bridge = yield* Bridge;
     const adapter = yield* RadicalAdapter;
     const navigation = yield* adapter.navigation;
+
+    const filter = new DeepLinkPathFilter(
+      typeof window === "undefined"
+        ? []
+        : (window.__radicalDeepLinks?.excludes ?? [])
+    );
+
     const snapshots = yield* NotificationSnapshots;
     const queue = yield* Queue.unbounded<unknown>();
 
@@ -172,12 +189,12 @@ export const watchNotificationNavigation = (options: {
         Effect.flatMap(notificationRoute),
         Effect.flatMap((route) =>
           route._tag === "Some"
-            ? snapshots.restore(route.value, options.appId).pipe(
-                Effect.orElseSucceed(() => false),
-                Effect.flatMap((restored) =>
-                  restored ? Effect.void : navigation.navigate(route.value)
-                )
-              )
+            ? openRoute(route.value, {
+                ...options,
+                allows: (path) => filter.allows(path),
+                restore: snapshots.restore,
+                navigation,
+              })
             : Effect.void
         ),
         Effect.tapError((error) =>
