@@ -73,3 +73,32 @@ iPhone 17 Pro, iOS 26.5:
 - Tried the HTTPS warm link through the T3 device command. The system opened an external browser surface. This unsigned simulator app has no public association with the temporary domain, so local Universal Link delivery could not be verified. No synthetic NSUserActivity was injected.
 
 Closed and shut down each device before opening the next, stopped the Gradle daemon, removed the debugging port forward, restored the example configuration, and released the device lock. No development server was started.
+
+## Scheme links, issue 155
+
+Verified on 2026-11-03 with a temporary example configuration: `deepLinks: { scheme: "myscheme", exclude: ["/private/*"] }`, `RADICAL_MODE=bundled`, and `RADICAL_ORIGIN=https://example.com`. Restored the example configuration after generation.
+
+### Android
+
+Pixel_9, Android 16.0:
+
+- Generated with `pnpm exec radical android --generate-only` and built with `./gradlew assembleDebug`. Build passed.
+- Installed the APK with `adb install -r`. Opened scheme links through the T3 device command, which delivers Android VIEW intents.
+- Cold-opened `myscheme://about?cold=155#details`. Capacitor logged a local request for `https://localhost/about?cold=155#details`. The example's manual splash stayed visible on this route.
+- Cold-opened `myscheme:///?cold=155#home`. Home rendered, and Capacitor logged `https://localhost/?cold=155#home`.
+- Warm-opened the path-only Home link and `myscheme://about?warm=155#details`. Home and About rendered, with the matching native section selected.
+- Opened `myscheme://private/test?x=1#excluded`. Chrome received an ACTION_VIEW intent for `https://example.com/private/test?x=1#excluded`. After Chrome's first-run prompts, its address field showed the complete mapped URL.
+
+### iOS
+
+iPhone 17 Pro, iOS 26.5:
+
+- Generated with `pnpm exec radical ios --generate-only`.
+- Built with `xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath /tmp/radical-155-ios CODE_SIGNING_ALLOWED=NO build`. Build passed.
+- Installed with `xcrun simctl install`. Opened links through the T3 device command. Accepted the system's initial scheme-open confirmation.
+- Cold-opened `myscheme:///?cold=155#home`, then warm-opened `myscheme://about?warm=155#details`. About rendered and its native section became selected.
+- Opened both `myscheme:///private/test?x=1#excluded` and `myscheme://private/test?x=1#excluded`. SpringBoard logged the app handing `https://example.com/private/test?x=1#excluded` to Safari. Bringing Safari forward and focusing its address field confirmed that complete URL.
+
+These checks exercise bundled routing and browser handoff without domain association files. Remote-mode routing and offline snapshot restoration were not repeated for this issue. Unit tests cover empty routes, host-only and path-only routes, queries, fragments, percent-encoding, platform registration, and Google sign-in scheme collisions.
+
+Closed and shut down Android before starting iOS under the shared device lock. Stopped the Gradle daemons, closed and shut down iOS, and released the lock. No development server was started.

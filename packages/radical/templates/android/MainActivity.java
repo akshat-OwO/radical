@@ -160,14 +160,21 @@ public class MainActivity extends BridgeActivity {
 
     private String canonicalLink(Uri link) {
         Uri origin = Uri.parse(__DEEP_LINK_ORIGIN__);
-        if (link != null && "https".equals(link.getScheme()) && link.getHost() != null
+        boolean scheme = link != null && !__DEEP_LINK_SCHEME__.isEmpty() && __DEEP_LINK_SCHEME__.equalsIgnoreCase(link.getScheme());
+        if (link != null && (scheme || (__VERIFIED_LINKS__ && "https".equals(link.getScheme()) && link.getHost() != null
                 && link.getHost().equalsIgnoreCase(origin.getHost()) && (link.getPort() == -1 || link.getPort() == 443)
-                && !link.getEncodedAuthority().contains("@")) {
+                && !link.getEncodedAuthority().contains("@")))) {
+            if (scheme && !java.util.regex.Pattern.compile(__SCHEME_LINK_PREFIX__).matcher(link.toString()).find()) return null;
+            if (scheme) link = Uri.parse("https://radical.invalid" + link.toString().replaceFirst(__SCHEME_LINK_PREFIX__, "/"));
+            String path = link.getEncodedPath();
             boolean excluded = false;
             for (String pattern : new String[] { __DEEP_LINK_PATTERNS__ }) {
-                if (java.util.regex.Pattern.matches(pattern, link.getEncodedPath())) excluded = true;
+                if (java.util.regex.Pattern.matches(pattern, path)) excluded = true;
             }
-            if (!excluded) return (BUNDLED ? Uri.parse(URL) : origin).buildUpon().encodedPath(link.getEncodedPath()).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString();
+            if (excluded && scheme) {
+                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, origin.buildUpon().encodedPath(path).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build()));
+            }
+            if (!excluded) return (BUNDLED ? Uri.parse(URL) : origin).buildUpon().encodedPath(path).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString();
         }
         return null;
     }
