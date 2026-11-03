@@ -89,6 +89,14 @@ Pixel_9, Android 16.0:
 - Warm-opened the path-only Home link and `myscheme://about?warm=155#details`. Home and About rendered, with the matching native section selected.
 - Opened `myscheme://private/test?x=1#excluded`. Chrome received an ACTION_VIEW intent for `https://example.com/private/test?x=1#excluded`. After Chrome's first-run prompts, its address field showed the complete mapped URL.
 
+### Android splash follow-up, 2026-11-03
+
+Follow-up testing at `ab6453f` was blocked before the app launched. Pixel_9 was opened under the shared device lock. The T3 device command to cold-open `https://example.com/about?cold=155#details` failed with `adb exited with code 1`. Retrying with `--debug` failed again. Android reported `Activity not started, unable to resolve Intent` for the HTTPS VIEW intent targeting `dev.radical.example.android`.
+
+`adb shell pm list packages` listed both `dev.radical.example` and `dev.radical.example.android`. Their presence does not establish that the installed build has the required verified-link configuration. No replacement APK was generated or installed in this attempt. The device-tool failure policy required stopping after the retry.
+
+This attempt does not reproduce or disprove the splash failure. Cold HTTPS About, plain cold launch after navigating to About, and the scheme-link comparison remain unverified. No hideSplash call or return was captured, and no root cause was established. The original observations above remain unchanged. No application code changed. Closed the device, shut down the emulator, and released the lock; no server or Gradle daemon was started.
+
 ### iOS
 
 iPhone 17 Pro, iOS 26.5:
