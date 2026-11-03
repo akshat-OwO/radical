@@ -89,6 +89,17 @@ Pixel_9, Android 16.0:
 - Warm-opened the path-only Home link and `myscheme://about?warm=155#details`. Home and About rendered, with the matching native section selected.
 - Opened `myscheme://private/test?x=1#excluded`. Chrome received an ACTION_VIEW intent for `https://example.com/private/test?x=1#excluded`. After Chrome's first-run prompts, its address field showed the complete mapped URL.
 
+### Android 11 combined-filter attempt, 2026-11-03
+
+Tested head `a227f37a00751e4bc6a0469f0325dbff7ca41187` on Pixel_9_API_30 with a temporary debug-keystore SHA-256 fingerprint, `myscheme`, `/private/*`, bundled mode, and origin `https://example.com`.
+
+- Generated with `pnpm exec radical android --generate-only`, built with `./gradlew assembleDebug`, and installed with `adb install -r`. All passed.
+- Confirmed the generated manifest contains the HTTPS autoVerify filter for `example.com`, the scheme filter, the excluded path, and the HTTPS BROWSABLE visibility query.
+- `adb shell cmd package query-activities --brief -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d 'https://example.com/about?regression=155'` returned both MainActivity and Chrome. `resolve-activity` for the same origin returned Android's ResolverActivity. This confirms the API 30 filter overlap without claiming domain ownership.
+- Device-command URL launches and snapshots stalled with `Error (COMMAND_FAILED): Daemon request timed out`. Retried the excluded scheme launch with `--debug` as advised; the retry also failed. Chrome remained on its start page, so its resumed activity does not prove a handoff. The excluded URL, absence of a chooser, and absence of app re-entry remain unverified. This is an infrastructure failure, not evidence of a native handoff regression.
+
+Restored the example configuration, closed the device, stopped the emulator and Gradle daemon, and released the device lock. No development server was started. The combined-filter browser handoff still needs a successful device run.
+
 ### Android splash follow-up, 2026-11-03
 
 Reproduced with the installed bundled scheme-link build on Pixel_9. Cold `myscheme://about?cold=155#details`, plain `myscheme://about`, and `myscheme://details` loaded their routes without a `RadicalSplash.hide` call. Query and fragment handling were not the trigger. About rendered beneath the native overlay, which eventually disappeared at the native timeout. The HTTPS intent cannot resolve without Android fingerprints and was not used.
