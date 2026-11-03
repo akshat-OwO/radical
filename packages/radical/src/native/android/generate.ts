@@ -289,7 +289,7 @@ export const generateAndroid = (
                 `<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="${native.plan.deepLinks.scheme}"/></intent-filter></activity>`
               ),
           "</manifest>",
-          `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.android.declarations.join("")}</manifest>`
+          `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />${native.plan.deepLinks.scheme === undefined ? "" : '<queries><intent><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="https"/></intent></queries>'}${native.plan.android.declarations.join("")}</manifest>`
         );
 
         // Predictive back previews leaving the app when the page declines back.

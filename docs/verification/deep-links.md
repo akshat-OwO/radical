@@ -112,3 +112,17 @@ iPhone 17 Pro, iOS 26.5:
 These checks exercise bundled routing and browser handoff without domain association files. Remote-mode routing and offline snapshot restoration were not repeated for this issue. Unit tests cover empty routes, host-only and path-only routes, queries, fragments, percent-encoding, platform registration, and Google sign-in scheme collisions.
 
 Closed and shut down Android before starting iOS under the shared device lock. Stopped the Gradle daemons, closed and shut down iOS, and released the lock. No development server was started.
+
+## Browser-only excluded scheme handoff
+
+The Android handoff now discovers browsers with a generic HTTPS BROWSABLE intent. It honors the resolved default only when that package appears in the browser results and is not this app. Otherwise, a chooser contains explicit browser activities. No available browser leaves the app open and logs a warning rather than attempting an unrestricted intent. Generation tests cover the visibility query with scheme links alone and with verified links enabled.
+
+The Java helper depends on Android PackageManager, Intent, and Uri. This repository has no Android JVM test runner or framework test layer, so its resolution behavior requires a device check. The following check remains unperformed for this fix:
+
+1. On Android 14 or earlier, configure both a scheme and verified App Links, with an excluded route such as /private/* and a verified origin.
+2. Confirm an included HTTPS route opens the app. Cold-open and warm-open myscheme://private/test?x=1#excluded with the configured scheme.
+3. Confirm the default browser receives the mapped HTTPS URL with its path, query, and fragment intact, even though the app owns the origin.
+4. Clear the default browser and install two browsers. Repeat and confirm the chooser offers browsers only. Each choice must open the complete URL.
+5. Disable all browsers and repeat. Confirm the app stays open without a crash.
+
+iOS keeps UIApplication.open for the mapped HTTPS URL. Apple's [Universal Links documentation](https://developer.apple.com/documentation/xcode/supporting-universal-links-in-your-app) specifies that opening a link to the app's own website from that app does not route back to itself. The default universalLinksOnly option is false. No iOS handoff change is needed. The earlier simulator check did not have domain associations; repeat the excluded-link check with a signed, associated app to verify that configuration on a device.

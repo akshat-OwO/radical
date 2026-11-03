@@ -172,11 +172,41 @@ public class MainActivity extends BridgeActivity {
                 if (java.util.regex.Pattern.matches(pattern, path)) excluded = true;
             }
             if (excluded && scheme) {
-                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, origin.buildUpon().encodedPath(path).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build()));
+                openInBrowser(origin.buildUpon().encodedPath(path).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build());
             }
             if (!excluded) return (BUNDLED ? Uri.parse(URL) : origin).buildUpon().encodedPath(path).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString();
         }
         return null;
+    }
+
+    private void openInBrowser(Uri url) {
+        // Resolve a generic URL so verified handlers for this origin cannot win.
+        android.content.Intent probe = new android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse("https://"))
+                .addCategory(android.content.Intent.CATEGORY_BROWSABLE);
+        android.content.pm.PackageManager manager = getPackageManager();
+        android.content.pm.ResolveInfo preferred = manager.resolveActivity(probe, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+        java.util.ArrayList<android.content.Intent> browsers = new java.util.ArrayList<>();
+        Set<String> packages = new HashSet<>();
+        for (android.content.pm.ResolveInfo browser : manager.queryIntentActivities(probe, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)) {
+            String name = browser.activityInfo.packageName;
+            if (getPackageName().equals(name) || !packages.add(name)) continue;
+            android.content.Intent target = new android.content.Intent(android.content.Intent.ACTION_VIEW, url)
+                    .addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+                    .setPackage(name);
+            if (preferred != null && name.equals(preferred.activityInfo.packageName)) {
+                startActivity(target);
+                return;
+            }
+            // Explicit components keep the chooser restricted to these browsers.
+            browsers.add(target.setClassName(name, browser.activityInfo.name));
+        }
+        if (browsers.isEmpty()) {
+            Log.w("RadicalDeepLinks", "No browser available for excluded link");
+            return;
+        }
+        android.content.Intent chooser = android.content.Intent.createChooser(browsers.remove(0), null);
+        chooser.putExtra(android.content.Intent.EXTRA_INITIAL_INTENTS, browsers.toArray(new android.content.Intent[0]));
+        startActivity(chooser);
     }
 
     private String launchUrl() {
