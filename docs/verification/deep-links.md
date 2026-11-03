@@ -84,18 +84,20 @@ Pixel_9, Android 16.0:
 
 - Generated with `pnpm exec radical android --generate-only` and built with `./gradlew assembleDebug`. Build passed.
 - Installed the APK with `adb install -r`. Opened scheme links through the T3 device command, which delivers Android VIEW intents.
-- Cold-opened `myscheme://about?cold=155#details`. Capacitor logged a local request for `https://localhost/about?cold=155#details`. The example's manual splash stayed visible on this route.
+- Cold-opened `myscheme://about?cold=155#details`. Capacitor logged a local request for `https://localhost/about?cold=155#details`. The example's manual splash initially stayed visible on this route; the example context handoff fix below resolves it.
 - Cold-opened `myscheme:///?cold=155#home`. Home rendered, and Capacitor logged `https://localhost/?cold=155#home`.
 - Warm-opened the path-only Home link and `myscheme://about?warm=155#details`. Home and About rendered, with the matching native section selected.
 - Opened `myscheme://private/test?x=1#excluded`. Chrome received an ACTION_VIEW intent for `https://example.com/private/test?x=1#excluded`. After Chrome's first-run prompts, its address field showed the complete mapped URL.
 
 ### Android splash follow-up, 2026-11-03
 
-Follow-up testing at `ab6453f` was blocked before the app launched. Pixel_9 was opened under the shared device lock. The T3 device command to cold-open `https://example.com/about?cold=155#details` failed with `adb exited with code 1`. Retrying with `--debug` failed again. Android reported `Activity not started, unable to resolve Intent` for the HTTPS VIEW intent targeting `dev.radical.example.android`.
+Reproduced with the installed bundled scheme-link build on Pixel_9. Cold `myscheme://about?cold=155#details`, plain `myscheme://about`, and `myscheme://details` loaded their routes without a `RadicalSplash.hide` call. Query and fragment handling were not the trigger. About rendered beneath the native overlay, which eventually disappeared at the native timeout. The HTTPS intent cannot resolve without Android fingerprints and was not used.
 
-`adb shell pm list packages` listed both `dev.radical.example` and `dev.radical.example.android`. Their presence does not establish that the installed build has the required verified-link configuration. No replacement APK was generated or installed in this attempt. The device-tool failure policy required stopping after the retry.
+Root cause was in the example. Bundled hydration starts with a browser context, and the root loader could retain that context on a cold non-root route. `LaunchReveal` therefore skipped its effect and initialized its phase to done. The root now passes the injected context after the mount handoff, and the reveal keeps its splash phase until the native platform arrives. Android's bundled start URL correctly preserves the route, query, and fragment; no native template change was needed.
 
-This attempt does not reproduce or disprove the splash failure. Cold HTTPS About, plain cold launch after navigating to About, and the scheme-link comparison remain unverified. No hideSplash call or return was captured, and no root cause was established. The original observations above remain unchanged. No application code changed. Closed the device, shut down the emulator, and released the lock; no server or Gradle daemon was started.
+Regenerated the bundled scheme build, ran `./gradlew assembleDebug`, and installed with `adb install -r`. Cold About with query and fragment logged `hidden: true` at 20:01:05.173, `RadicalSplash.hide` at 20:01:05.548, then `hidden: false` at 20:01:08.086. This confirms both awaited calls completed and the reveal finished. The device screenshot and accessibility tree showed About with its section selected and no splash. Plain About and Details also reached the hide call. Expected update-policy CORS errors from the temporary public origin did not prevent routing or the reveal.
+
+Restored the example configuration after generation. Closed Pixel_9, stopped the emulator and Gradle daemon, removed the debugging port forward, and released the shared device lock. No server was started.
 
 ### iOS
 

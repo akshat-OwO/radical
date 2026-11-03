@@ -26,7 +26,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { config } from "virtual:radical/config";
 
@@ -121,10 +121,15 @@ const SectionLayout = ({ children }: { children: ReactNode }) => {
 };
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
-  const { nativeContext, appUpdate } = Route.useLoaderData() ?? {
+  const { nativeContext: loadedContext, appUpdate } = Route.useLoaderData() ?? {
     nativeContext: localNativeContext(),
     appUpdate: { status: "unknown" as const, storeUrl: null },
   };
+
+  const [mountedContext, setMountedContext] =
+    useState<ReturnType<typeof localNativeContext>>();
+
+  const nativeContext = mountedContext ?? loadedContext;
 
   const rootStyle: CSSProperties & ReturnType<typeof safeAreaStyle> =
     safeAreaStyle(nativeContext, config.mode);
@@ -132,6 +137,9 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (config.mode === "bundled") {
       mountNativeContext();
+      // The mount handoff synchronizes React with the injected native context.
+      // oxlint-disable-next-line react/set-state-in-effect
+      setMountedContext(localNativeContext());
       void fetchAppUpdate(createRadicalFetch(config)).catch(() => {
         // Startup failure leaves the update status unknown; later API responses still enforce it.
       });

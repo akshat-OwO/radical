@@ -27,9 +27,7 @@ export const LaunchReveal = ({
   const mark = useRef<HTMLDivElement>(null);
   const portal = useRef<HTMLDivElement>(null);
 
-  const [phase, setPhase] = useState<"splash" | "reveal" | "done">(
-    platform === "browser" ? "done" : "splash"
-  );
+  const [phase, setPhase] = useState<"splash" | "reveal" | "done">("splash");
 
   useEffect(() => {
     if (platform === "browser" || started.current) {
