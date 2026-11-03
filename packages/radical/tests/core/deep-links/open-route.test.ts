@@ -9,7 +9,14 @@ import {
 import { bridgeTestLayer, Bridge } from "../../../src/core/bridge/bridge.ts";
 import { DeepLinkPathFilter } from "../../../src/core/deep-links/deep-links.ts";
 import { openRoute } from "../../../src/core/deep-links/open-route.ts";
-import { watchWarmLinks } from "../../../src/core/deep-links/warm-links.ts";
+import {
+  warmLinkSnapshotsLayer,
+  watchWarmLinks,
+} from "../../../src/core/deep-links/warm-links.ts";
+import {
+  offlineAppCachePrefix,
+  snapshotCacheName,
+} from "../../../src/core/offline/offline-protocol.ts";
 
 for (const scenario of [
   {
@@ -169,5 +176,75 @@ it.effect(
       yield* Fiber.interrupt(fiber);
       assert.deepStrictEqual(routes, ["/second?x=1#hash"]);
       assert.isTrue(removed);
+    })
+);
+
+it.effect(
+  "offline exact snapshot uses document navigation instead of the adapter",
+  () =>
+    Effect.gen(function* () {
+      const route = "/page?item=1#saved";
+      const documents: string[] = [];
+      const adapterRoutes: string[] = [];
+      const html = new Response("<html>Saved page</html>");
+      const cache = new Map([["https://app.test/page?item=1", html]]);
+
+      const layer = warmLinkSnapshotsLayer(
+        (url) =>
+          Effect.sync(() => {
+            documents.push(url);
+          }),
+        {
+          origin: "https://app.test",
+          caches: {
+            keys: async () =>
+              await Effect.runPromise(
+                Effect.succeed([
+                  snapshotCacheName(offlineAppCachePrefix("test.app"), "v1"),
+                ])
+              ),
+            open: async () =>
+              await Effect.runPromise(
+                Effect.succeed({
+                  match: async (key: string) =>
+                    await Effect.runPromise(Effect.succeed(cache.get(key))),
+                })
+              ),
+          },
+        }
+      ).pipe(
+        Layer.provide(
+          Layer.merge(
+            bridgeTestLayer("browser", () =>
+              Effect.die("Unexpected bridge call")
+            ),
+            Layer.succeed(BrowserNetwork, {
+              current: Effect.succeed({
+                connected: false,
+                connectionType: "none" as const,
+              }),
+              listen: () => Effect.die("Unexpected subscription"),
+            })
+          )
+        )
+      );
+
+      yield* Effect.gen(function* () {
+        const snapshots = yield* NotificationSnapshots;
+        yield* openRoute(route, {
+          appId: "test.app",
+          restore: snapshots.restore,
+          navigation: {
+            navigate: (url) =>
+              Effect.sync(() => {
+                adapterRoutes.push(url);
+              }),
+            onBeforeNavigate: () => Effect.succeed(() => {}),
+            onAfterNavigate: () => Effect.succeed(() => {}),
+          },
+        });
+      }).pipe(Effect.provide(layer));
+      assert.deepStrictEqual(documents, [route]);
+      assert.deepStrictEqual(adapterRoutes, []);
     })
 );

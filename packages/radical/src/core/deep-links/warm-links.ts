@@ -6,6 +6,7 @@ import {
   notificationSnapshotsLayer,
   snapshotStorageWithNavigation,
 } from "../../capabilities/notifications/notification-navigation.ts";
+import type { SnapshotStorage } from "../../capabilities/notifications/notification-navigation.ts";
 import type { RadicalNavigation } from "../adapter/adapter.ts";
 import { Bridge, BridgeLive } from "../bridge/bridge.ts";
 import { Unavailable } from "../errors.ts";
@@ -72,6 +73,20 @@ export const watchWarmLinks = (
   });
 };
 
+/** Use document navigation so the worker can serve saved HTML. */
+export const warmLinkSnapshotsLayer = (
+  documentNavigate: (route: string) => Effect.Effect<void, Unavailable> = (
+    route
+  ) =>
+    Effect.sync(() => {
+      window.location.assign(route);
+    }),
+  storage?: SnapshotStorage
+) =>
+  notificationSnapshotsLayer(
+    snapshotStorageWithNavigation(documentNavigate, storage)
+  );
+
 /** Installed with the router's native navigation lifetime. */
 export const installWarmLinks = (navigation: RadicalNavigation) => {
   const config =
@@ -90,17 +105,9 @@ export const installWarmLinks = (navigation: RadicalNavigation) => {
       Effect.provide(
         Layer.merge(
           BridgeLive,
-          notificationSnapshotsLayer(
-            snapshotStorageWithNavigation((route) =>
-              navigation
-                .navigate(route)
-                .pipe(
-                  Effect.mapError(
-                    (error) => new Unavailable({ reason: String(error) })
-                  )
-                )
-            )
-          ).pipe(Layer.provide(Layer.merge(BridgeLive, BrowserNetworkLive)))
+          warmLinkSnapshotsLayer().pipe(
+            Layer.provide(Layer.merge(BridgeLive, BrowserNetworkLive))
+          )
         )
       )
     )

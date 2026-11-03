@@ -23,17 +23,37 @@ export class NotificationSnapshots extends Context.Service<
   }
 >()("radical/NotificationSnapshots") {}
 
+export interface SnapshotStorage {
+  readonly origin: string;
+  readonly caches: {
+    readonly keys: () => Promise<readonly string[]>;
+    readonly open: (name: string) => Promise<{
+      readonly match: (
+        key: string,
+        options: CacheQueryOptions
+      ) => Promise<Response | undefined>;
+    }>;
+  };
+}
+
 export const snapshotStorageWithNavigation = (
-  navigate: (route: string) => Effect.Effect<void, Unavailable>
+  navigate: (route: string) => Effect.Effect<void, Unavailable>,
+  storage?: SnapshotStorage
 ): NotificationSnapshots["Service"] => ({
   restore: (route, appId) =>
     Effect.gen(function* () {
-      if (!("caches" in globalThis)) {
+      const browser =
+        storage ??
+        ("caches" in globalThis
+          ? { caches, origin: location.origin }
+          : undefined);
+
+      if (!browser) {
         return false;
       }
 
       const found = yield* Effect.tryPromise({
-        try: () => caches.keys(),
+        try: () => browser.caches.keys(),
         catch: (cause) => new Unavailable({ reason: String(cause) }),
       }).pipe(
         Effect.flatMap((names) =>
@@ -41,13 +61,13 @@ export const snapshotStorageWithNavigation = (
             names.filter((name) => isSnapshotCache(name, appId)),
             (name) =>
               Effect.tryPromise({
-                try: () => caches.open(name),
+                try: () => browser.caches.open(name),
                 catch: (cause) => new Unavailable({ reason: String(cause) }),
               }).pipe(
                 Effect.flatMap((cache) =>
                   Effect.tryPromise({
                     try: () =>
-                      cache.match(snapshotKey(route, location.origin), {
+                      cache.match(snapshotKey(route, browser.origin), {
                         ignoreVary: true,
                       }),
                     catch: (cause) =>
