@@ -305,6 +305,23 @@ describe("Android shell generation", () => {
         if (enabled) {
           assert.include(source, "example.com");
           assert.include(source, 'android:pathPattern="/private/.*"');
+          assert.include(
+            source,
+            String.raw`android:pathPattern="/\\.radical/.*"`
+          );
+          // Android XML consumes one backslash before the simple-glob matcher.
+
+          const dotted = source
+            .split('android:pathPattern="')[1]
+            ?.split('"')[0]
+            ?.replaceAll("\\\\", "\\");
+
+          assert.isDefined(dotted);
+
+          const matcher = new RegExp(`^${dotted}$`, "u");
+
+          assert.isTrue(matcher.test("/.radical/about"));
+          assert.isFalse(matcher.test("/xradical/about"));
 
           const generatedActivity = state.files.get(mainActivity) ?? "";
 

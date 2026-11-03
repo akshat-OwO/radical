@@ -145,7 +145,7 @@ public class MainActivity extends BridgeActivity {
             for (String pattern : new String[] { __DEEP_LINK_PATTERNS__ }) {
                 if (java.util.regex.Pattern.matches(pattern, link.getEncodedPath())) excluded = true;
             }
-            if (!excluded) return BUNDLED ? Uri.parse(URL).buildUpon().encodedPath(link.getEncodedPath()).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString() : link.toString();
+            if (!excluded) return (BUNDLED ? Uri.parse(URL) : origin).buildUpon().encodedPath(link.getEncodedPath()).encodedQuery(link.getEncodedQuery()).encodedFragment(link.getEncodedFragment()).build().toString();
         }
         if (BUNDLED) return URL;
         ConnectivityManager manager = getSystemService(ConnectivityManager.class);

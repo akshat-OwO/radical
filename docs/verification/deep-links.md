@@ -39,3 +39,17 @@ iOS verified-link routing, bundled link routing, and offline link behavior remai
 ## Cleanup
 
 Ran one device at a time under the shared device lock. Closed and shut down both devices, restored Android connectivity, stopped the Gradle daemons started for these builds, restored apps/example configuration, and released the lock. No development server or Metro process was started.
+
+## Default-port regression check
+
+The Android template has no JVM unit-test runner or Android Uri test layer in this repository. Accepted links now rebuild their authority from the configured origin in remote mode, using the same encoded route setters as bundled mode.
+
+Device check to run on Pixel_9 with a remote origin serving the example routes:
+
+1. Generate and install the remote app with origin `https://example.com`.
+2. Cold-launch `https://example.com:443/about?x=1#details` through the T3 device command with `--relaunch`.
+3. Inspect the WebView URL. It must be `https://example.com/about?x=1#details`, and the About route must render instead of the configured start page.
+4. Repeat with `https://EXAMPLE.COM:443/a%2Fb?x=%2F#encoded%20fragment`. Confirm the canonical authority and unchanged encoded route components.
+5. Repeat in bundled mode and confirm those route components under the local origin.
+
+This regression device check has not been run for the review fixes.
