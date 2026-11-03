@@ -89,16 +89,16 @@ Pixel_9, Android 16.0:
 - Warm-opened the path-only Home link and `myscheme://about?warm=155#details`. Home and About rendered, with the matching native section selected.
 - Opened `myscheme://private/test?x=1#excluded`. Chrome received an ACTION_VIEW intent for `https://example.com/private/test?x=1#excluded`. After Chrome's first-run prompts, its address field showed the complete mapped URL.
 
-### Android 11 combined-filter attempt, 2026-11-03
+### Android 11 combined-filter check, 2026-11-03
 
-Tested head `a227f37a00751e4bc6a0469f0325dbff7ca41187` on Pixel_9_API_30 with a temporary debug-keystore SHA-256 fingerprint, `myscheme`, `/private/*`, bundled mode, and origin `https://example.com`.
+Tested head `8b9f3d8` on Pixel_9_API_30 (Android 11) with a temporary debug-keystore SHA-256 fingerprint, `myscheme`, `/private/*`, bundled mode, and origin `https://example.com`. Driven with adb, because the device tool timed out on this image.
 
-- Generated with `pnpm exec radical android --generate-only`, built with `./gradlew assembleDebug`, and installed with `adb install -r`. All passed.
-- Confirmed the generated manifest contains the HTTPS autoVerify filter for `example.com`, the scheme filter, the excluded path, and the HTTPS BROWSABLE visibility query.
-- `adb shell cmd package query-activities --brief -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d 'https://example.com/about?regression=155'` returned both MainActivity and Chrome. `resolve-activity` for the same origin returned Android's ResolverActivity. This confirms the API 30 filter overlap without claiming domain ownership.
-- Device-command URL launches and snapshots stalled with `Error (COMMAND_FAILED): Daemon request timed out`. Retried the excluded scheme launch with `--debug` as advised; the retry also failed. Chrome remained on its start page, so its resumed activity does not prove a handoff. The excluded URL, absence of a chooser, and absence of app re-entry remain unverified. This is an infrastructure failure, not evidence of a native handoff regression.
+- The generated manifest contains the HTTPS autoVerify filter for `example.com`, the scheme filter, the `uri-relative-filter-group` exclusions, and the HTTPS BROWSABLE `<queries>` entry.
+- Control: `cmd package query-activities` for `https://example.com/private/test` returned both MainActivity and Chrome. Android 11 ignores `uri-relative-filter-group`, so excluded paths still match the app's filter.
+- `am start -a android.intent.action.VIEW -d 'myscheme://private/test?x=1#excluded'` produced a second `START u0` with `pkg=com.android.chrome` and `dat=https://example.com/...`. `mResumedActivity` was `ChromeTabbedActivity`, and the screenshot showed `example.com/private/test?x=1#excluded` in the address bar. No chooser appeared, and the app did not re-enter.
+- The image's WebView 91 lacks document-start scripts, so the shell normally refuses to start. Only for this check, the generated project's `MainActivity` skipped that guard to reach the handoff. The generated project was not committed.
 
-Restored the example configuration, closed the device, stopped the emulator and Gradle daemon, and released the device lock. No development server was started. The combined-filter browser handoff still needs a successful device run.
+Restored the example configuration, uninstalled the app, stopped the emulator and Gradle daemon, and released the device lock.
 
 ### Android splash follow-up, 2026-11-03
 
