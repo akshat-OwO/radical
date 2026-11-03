@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { Effect, FileSystem, Schema } from "effect";
+import { Console, Effect, FileSystem, Schema } from "effect";
 
 import { execute } from "../shared/shell.ts";
 import { resolveAndroidTarget } from "./android-target.ts";
@@ -14,12 +14,17 @@ export const runAndroid = (project: string, target: string) =>
     const fs = yield* FileSystem.FileSystem;
     const { adb, serial } = yield* resolveAndroidTarget(project, target);
 
-    const { appId } = yield* fs
+    const { appId, verifiedLinkHost } = yield* fs
       .readFileString(path.join(project, "capacitor.config.json"))
       .pipe(
         Effect.flatMap(
           Schema.decodeEffect(
-            Schema.fromJsonString(Schema.Struct({ appId: Schema.String }))
+            Schema.fromJsonString(
+              Schema.Struct({
+                appId: Schema.String,
+                verifiedLinkHost: Schema.optional(Schema.String),
+              })
+            )
           )
         )
       );
@@ -48,6 +53,41 @@ export const runAndroid = (project: string, target: string) =>
       ],
       project
     );
+
+    if (verifiedLinkHost !== undefined) {
+      yield* Effect.gen(function* () {
+        const sdk = yield* execute(
+          adb,
+          ["-s", serial, "shell", "getprop", "ro.build.version.sdk"],
+          project,
+          { capture: true }
+        );
+
+        const version = yield* Schema.decodeUnknownEffect(
+          Schema.NumberFromString
+        )(sdk.trim());
+
+        yield* execute(
+          adb,
+          [
+            "-s",
+            serial,
+            "shell",
+            "pm",
+            ...(version >= 31
+              ? ["set-app-links", "--package", appId, "2", verifiedLinkHost]
+              : ["set-app-link", appId, "always"]),
+          ],
+          project
+        );
+      }).pipe(
+        Effect.catch((error) =>
+          Console.warn(
+            `Could not approve verified links for ${verifiedLinkHost}: ${error.message}`
+          )
+        )
+      );
+    }
 
     return yield* execute(
       adb,

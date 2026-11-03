@@ -322,6 +322,10 @@ export const generateNativeProject = <E, R>(
             JSON.stringify({
               appId: native.identity.appId,
               appName: native.identity.name,
+              verifiedLinkHost:
+                platform === "android" && native.plan.deepLinks.android
+                  ? new URL(config.origin ?? url).hostname
+                  : undefined,
               webDir: "www",
               ...platformConfig,
               experimental: {

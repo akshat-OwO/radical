@@ -212,7 +212,7 @@ export const resolveBuildPlan = flow(
         ...(deepLinks.ios
           ? [
               {
-                "com.apple.developer.associated-domains": `<array><string>applinks:${new URL(config.origin ?? "https://radical.invalid").hostname}</string></array>`,
+                "com.apple.developer.associated-domains": `<array><string>applinks:${new URL(config.origin ?? "https://radical.invalid").hostname}${config.notifications?.ios?.environment === "production" ? "" : "?mode=developer"}</string></array>`,
               },
             ]
           : []),

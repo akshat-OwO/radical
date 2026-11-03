@@ -124,3 +124,15 @@ Remote offline support requires HTTPS; plain HTTP LAN origins cannot register wo
 </Callout>
 
 See [target defaults](/docs/reference/cli).
+
+## Test verified links
+
+When `deepLinks.android.fingerprints` is configured, the Android launch command approves the origin's host after installing the debug APK. Android 12 and later use per-host approval; older versions approve the package. Approval failures print a warning and the app still launches.
+
+Production association files do not need debug fingerprints.
+
+On iOS, associated domains use `applinks:<host>?mode=developer` by default. This fetches the association file directly from the origin instead of Apple's CDN. Enable Associated Domains Development on the test device.
+
+Set `notifications.ios.environment: "production"` for release signing to keep plain `applinks:<host>`; this reuses the signing environment used by push notifications, even if push is disabled.
+
+The origin must be reachable from the device for iOS domain verification and remote content. If it is unreachable, configure `deepLinks.scheme` and test scheme links instead, such as `myapp://about`. Scheme links bypass domain verification; remote content still needs a reachable origin.

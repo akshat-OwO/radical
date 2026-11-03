@@ -348,6 +348,17 @@ describe("Android shell generation", () => {
 
         assert.equal(source.includes('android:autoVerify="true"'), enabled);
 
+        const capacitorConfig = yield* Schema.decodeEffect(
+          Schema.fromJsonString(
+            Schema.Struct({ verifiedLinkHost: Schema.optional(Schema.String) })
+          )
+        )(state.files.get(`${destination}/capacitor.config.json`) ?? "{}");
+
+        assert.equal(
+          capacitorConfig.verifiedLinkHost,
+          enabled ? "example.com" : undefined
+        );
+
         if (enabled) {
           assert.include(source, "example.com");
           assert.include(source, 'android:pathPattern="/private/.*"');
