@@ -9,6 +9,7 @@ import {
 import { locationContributions } from "../capabilities/location/location-build.ts";
 import { pushNotificationContributions } from "../capabilities/notifications/notification-build.ts";
 import { videoStreamContributions } from "../capabilities/video-stream/video-stream-build.ts";
+import { resolveDeepLinks } from "../core/deep-links/deep-links.ts";
 import { resolveInternalCapabilities } from "../core/plugins/internal-plugin-registry.ts";
 import {
   locationPlugin,
@@ -225,6 +226,7 @@ export const resolveBuildPlan = flow(
       return {
         config,
         navigation: config.navigation,
+        deepLinks: resolveDeepLinks(config),
         capabilities,
         plugins,
         options: { location, camera, videoStream, googleSignIn },

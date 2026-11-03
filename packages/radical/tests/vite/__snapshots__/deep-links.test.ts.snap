@@ -1,0 +1,110 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`deep links > resolves the build plan and filters paths independently of query and fragment > android association 1`] = `
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+    ],
+    "relation_extensions": {
+      "delegate_permission/common.handle_all_urls": {
+        "dynamic_app_link_components": [
+          {
+            "/": "/.radical/*",
+            "exclude": true,
+          },
+          {
+            "/": "/.well-known/*",
+            "exclude": true,
+          },
+          {
+            "/": "/_serverFn",
+            "exclude": true,
+          },
+          {
+            "/": "/_serverFn/*",
+            "exclude": true,
+          },
+          {
+            "/": "/api",
+            "exclude": true,
+          },
+          {
+            "/": "/api/*",
+            "exclude": true,
+          },
+          {
+            "/": "/private/*",
+            "exclude": true,
+          },
+          {
+            "/": "/literal.json",
+            "exclude": true,
+          },
+          {
+            "/": "/*",
+          },
+        ],
+      },
+    },
+    "target": {
+      "namespace": "android_app",
+      "package_name": "dev.example.android",
+      "sha256_cert_fingerprints": [
+        "AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB",
+      ],
+    },
+  },
+]
+`;
+
+exports[`deep links > resolves the build plan and filters paths independently of query and fragment > apple association 1`] = `
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "AB12345678.dev.example.ios",
+        ],
+        "components": [
+          {
+            "/": "/.radical/*",
+            "exclude": true,
+          },
+          {
+            "/": "/.well-known/*",
+            "exclude": true,
+          },
+          {
+            "/": "/_serverFn",
+            "exclude": true,
+          },
+          {
+            "/": "/_serverFn/*",
+            "exclude": true,
+          },
+          {
+            "/": "/api",
+            "exclude": true,
+          },
+          {
+            "/": "/api/*",
+            "exclude": true,
+          },
+          {
+            "/": "/private/*",
+            "exclude": true,
+          },
+          {
+            "/": "/literal.json",
+            "exclude": true,
+          },
+          {
+            "/": "/*",
+          },
+        ],
+      },
+    ],
+  },
+}
+`;

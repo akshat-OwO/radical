@@ -2,6 +2,10 @@ import { Effect } from "effect";
 
 import type { AdapterOutputs } from "../adapter/adapter.ts";
 import { getNativeContext } from "../context/request-context.ts";
+import {
+  associationResponse,
+  resolveDeepLinks,
+} from "../deep-links/deep-links.ts";
 import { APP_UPDATE_HEADER } from "../update/app-update.ts";
 import { appUpdateResponse } from "../update/update-server.ts";
 import type { AppUpdateOptions } from "../update/update-server.ts";
@@ -16,11 +20,21 @@ export const withBundledRequests = (
   outputs: Pick<AdapterOutputs, "exposedHeaders"> = {},
   updates?: AppUpdateOptions
 ) => {
+  const deepLinks = resolveDeepLinks(
+    updates?.config ?? { appId: "dev.radical.app" }
+  );
+
   const exposedHeaders = outputs.exposedHeaders?.join(", ");
 
   return (request: Request): Promise<Response> =>
     Effect.runPromise(
       Effect.gen(function* () {
+        const association = yield* associationResponse(request, deepLinks);
+
+        if (association !== undefined) {
+          return association;
+        }
+
         const allowed = isBundledOrigin(request);
 
         if (allowed && request.method === "OPTIONS") {

@@ -15,6 +15,10 @@ Radical accepts a config object passed to `radical(config)` in Vite config. Ther
 | `appearance` | `"system"`, `"light"`, or `"dark"` | Defaults to `"system"`, which follows the device. `"light"` and `"dark"` pin the whole native shell. |
 | `mode` | `"remote"` or `"bundled"` | Omitted means remote behavior. |
 | `origin` | HTTP origin | Required in bundled mode. An exact `http:` or `https:` origin without path, trailing slash, query, or wildcard. In remote mode, overrides the recorded dev URL. |
+| `deepLinks.ios.teamId` | `string` | Ten uppercase letters or digits. Enables iOS verified links. Requires an HTTPS `origin` on the default port. |
+| `deepLinks.android.fingerprints` | Nonempty array of strings | SHA-256 fingerprints, each 32 colon-separated hexadecimal byte pairs. Enables Android verified links with the same origin requirement. |
+| `deepLinks.scheme` | `string` | Optional scheme beginning with a letter, followed by letters, digits, `+`, `.`, or `-`. No default. |
+| `deepLinks.exclude` | Array of path globs | Patterns begin with `/`; `*` matches zero or more characters. Query and fragment do not participate. Adds to built-in internal, well-known, server-function, and API exclusions. |
 | `allowlist` | Array of HTTP origins | Additional remote-mode document origins. Ports are significant. Bundled mode permits only its local document origin. |
 | `devHost` | `string` | Letters, digits, dots, and hyphens. Defaults to the first external IPv4 address, then `127.0.0.1`. Controls the recorded URL, not Vite's bind address. |
 | `name` | Nonempty string | Shared native display name. |
