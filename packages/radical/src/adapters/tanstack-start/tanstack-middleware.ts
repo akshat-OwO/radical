@@ -4,6 +4,10 @@ import { Effect } from "effect";
 import { isBundledOrigin } from "../../core/bundled/bundled-server.ts";
 import type { NativeContext } from "../../core/context/native-context.ts";
 import {
+  associationResponse,
+  resolveDeepLinks,
+} from "../../core/deep-links/deep-links.ts";
+import {
   resolveAppUpdate,
   unknownAppUpdate,
 } from "../../core/update/app-update.ts";
@@ -18,12 +22,17 @@ import { getNativeContext } from "../../entry/server.ts";
 export const createRadicalMiddleware = (
   get?: (request: Request) => Effect.Effect<NativeContext>,
   updates?: AppUpdateOptions
-) =>
-  createMiddleware().server(({ request, next }) =>
+) => {
+  const deepLinks = resolveDeepLinks(
+    updates?.config ?? { appId: "dev.radical.app" }
+  );
+
+  return createMiddleware().server(({ request, next }) =>
     // Keep Start's continuation outside the Effect runner so redirects retain identity.
     // oxlint-disable-next-line promise/prefer-await-to-then -- Promise boundary without async library code.
     Effect.runPromise(
       Effect.gen(function* () {
+        const association = yield* associationResponse(request, deepLinks);
         const nativeContext = yield* (get ?? getNativeContext)(request);
 
         const appUpdate =
@@ -36,14 +45,15 @@ export const createRadicalMiddleware = (
               );
 
         const response =
-          updates === undefined
+          association ??
+          (updates === undefined
             ? undefined
             : yield* appUpdateResponse(
                 request,
                 updates,
                 isBundledOrigin(request),
                 nativeContext
-              );
+              ));
 
         return { nativeContext, appUpdate, response };
       })
@@ -68,6 +78,7 @@ export const createRadicalMiddleware = (
         };
       })
   );
+};
 
 export const radicalMiddleware = createRadicalMiddleware();
 

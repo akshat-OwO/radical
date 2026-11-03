@@ -87,6 +87,10 @@ it.effect(
       const declarations = memory.files.get(file) ?? "";
       assert.include(declarations, 'readonly "echo"');
       assert.include(declarations, "/app/plugins/echo.ts");
+      assert.include(
+        declarations,
+        'readonly deepLinks?: import("@akshatowo/radical/vite").RadicalConfig["deepLinks"]'
+      );
       assert.include(declarations, 'declare module "virtual:radical/config"');
       assert.include(
         declarations,

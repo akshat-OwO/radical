@@ -87,7 +87,31 @@ export const SplashSchema = Schema.Struct({
   )
 );
 
+export const DeepLinksSchema = Schema.Struct({
+  ios: Schema.optional(
+    Schema.Struct({
+      teamId: Schema.String.check(Schema.isPattern(/^[A-Z0-9]{10}$/u)),
+    })
+  ),
+  android: Schema.optional(
+    Schema.Struct({
+      fingerprints: Schema.Array(
+        Schema.String.check(
+          Schema.isPattern(/^(?:[A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$/u)
+        )
+      ).check(Schema.isMinLength(1)),
+    })
+  ),
+  scheme: Schema.optional(
+    Schema.String.check(Schema.isPattern(/^[A-Za-z][A-Za-z0-9+.-]*$/u))
+  ),
+  exclude: Schema.optional(
+    Schema.Array(Schema.String.check(Schema.isPattern(/^\/[^?#]*$/u)))
+  ),
+});
+
 export const RadicalConfigSchema = Schema.Struct({
+  deepLinks: Schema.optional(DeepLinksSchema),
   version: Schema.optional(Schema.NonEmptyString),
   build: Schema.optional(
     Schema.Number.check(
@@ -168,6 +192,21 @@ export const RadicalConfigSchema = Schema.Struct({
   ),
   splash: Schema.optional(SplashSchema),
 }).check(
+  Schema.makeFilter((config) => {
+    if (
+      config.deepLinks?.ios === undefined &&
+      config.deepLinks?.android === undefined
+    ) {
+      return true;
+    }
+
+    return (
+      (config.origin !== undefined &&
+        new URL(config.origin).protocol === "https:" &&
+        new URL(config.origin).port === "") ||
+      "Verified deep links require an https origin on the default port"
+    );
+  }),
   Schema.makeFilter(
     (config) =>
       config.mode !== "bundled" ||
