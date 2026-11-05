@@ -808,6 +808,85 @@ describe("native plugin source composition", () => {
       })
   );
 
+  for (const modifiers of [
+    "public",
+    "public synchronized",
+    "synchronized public",
+    "public final",
+    "final public synchronized",
+    "public static",
+    "public strictfp",
+    "public native",
+    "abstract public",
+  ]) {
+    it.effect(`composes Java commands with ${modifiers} modifiers`, () =>
+      Effect.gen(function* () {
+        const state = memory();
+        const body = /native|abstract/u.test(modifiers) ? ";" : " {}";
+        const source = `@PluginMethod ${modifiers} void echo(PluginCall call)${body}`;
+
+        state.files.set("/app/plugins/Echo.java", source);
+        yield* compose("android").pipe(Effect.provide(state.layer));
+        assert.include(
+          state.files.get(
+            "/out/android/app/src/main/java/dev/test/app/Echo.java"
+          ) ?? "",
+          source
+        );
+      })
+    );
+  }
+
+  it.effect("rejects undeclared Java commands with modifiers", () =>
+    Effect.gen(function* () {
+      const state = memory();
+      state.files.set(
+        "/app/plugins/Echo.java",
+        "@PluginMethod public synchronized void echo(PluginCall call) {} @PluginMethod final public void hidden(PluginCall call) {}"
+      );
+
+      const error = yield* compose("android").pipe(
+        Effect.provide(state.layer),
+        Effect.flip
+      );
+
+      assert.strictEqual(error._tag, "InvalidPlugin");
+      assert.include(
+        error.message,
+        "android command hidden is not declared in the manifest"
+      );
+    })
+  );
+
+  for (const declaration of [
+    "",
+    "public void echo(PluginCall call) {}",
+    "@PluginMethod private synchronized void echo(PluginCall call) {}",
+    "@PluginMethod protected void echo(PluginCall call) {}",
+    "@PluginMethod synchronized void echo(PluginCall call) {}",
+    "@PluginMethod public invalid void echo(PluginCall call) {}",
+    "@PluginMethod public synchronized String echo(PluginCall call) {}",
+    "@PluginMethod public synchronized void other(PluginCall call) {}",
+  ]) {
+    it.effect(`rejects missing or invalid Java command: ${declaration}`, () =>
+      Effect.gen(function* () {
+        const state = memory();
+        state.files.set("/app/plugins/Echo.java", declaration);
+
+        const error = yield* compose("android").pipe(
+          Effect.provide(state.layer),
+          Effect.flip
+        );
+
+        assert.strictEqual(error._tag, "InvalidPlugin");
+        assert.include(
+          error.message,
+          "android native source does not expose command echo"
+        );
+      })
+    );
+  }
+
   it.effect(
     "copies Java sources with the app package and shared Gradle versions",
     () => {
