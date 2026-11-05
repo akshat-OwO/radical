@@ -15,6 +15,7 @@ import {
 } from "../../vite/config.ts";
 import { InvalidPlugin } from "../../vite/plugins/plugin-plan.ts";
 import type { EnabledPlugin } from "../../vite/plugins/plugin-plan.ts";
+import { preflightAndroid, verifyAndroidSync } from "../android/toolchain.ts";
 import {
   AssetGenerator,
   prepareNativeAssets,
@@ -229,6 +230,10 @@ export const generateNativeProject = <E, R>(
     const { cli, packages } = yield* capacitor(platform, native.plugins, root);
     const { config, url } = native;
 
+    if (platform === "android") {
+      yield* preflightAndroid(cli);
+    }
+
     return yield* replaceProject(
       path.join(root, `.radical/${platform}`),
       (staging) =>
@@ -351,6 +356,10 @@ export const generateNativeProject = <E, R>(
           );
           yield* execute(process.execPath, [cli, "add", platform], staging);
           yield* customize(staging);
+
+          if (platform === "android") {
+            yield* verifyAndroidSync(staging);
+          }
 
           if (native.assets.length > 0) {
             const generator = yield* AssetGenerator;
