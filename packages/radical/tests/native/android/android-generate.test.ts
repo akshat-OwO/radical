@@ -113,9 +113,18 @@ const memory = (
   const commands: string[][] = [];
   const binaries = new Map<string, Uint8Array>();
   const assetCalls: AssetGeneration[] = [];
-  const control = { failAssets: false, existingDaemonJvm: false };
+
+  const control = {
+    failAssets: false,
+    existingDaemonJvm: false,
+    failPreflight: false,
+    failSync: false,
+    skipSync: false,
+    wrapperVersion: "8.14.3",
+  };
 
   const fs = FileSystem.layerNoop({
+    exists: (name) => Effect.succeed(files.has(name)),
     readFile: (name) =>
       Effect.suspend(() => {
         const bytes =
@@ -174,6 +183,7 @@ const memory = (
           }
         }
       }),
+    makeTempDirectoryScoped: () => Effect.succeed("/probe"),
     makeDirectory: () => Effect.void,
     symlink: (from, to) =>
       Effect.sync(() => {
@@ -205,7 +215,63 @@ const memory = (
         assert.strictEqual(command._tag, "StandardCommand");
 
         if (command._tag === "StandardCommand") {
+          if (command.command === "tar") {
+            assert.match(
+              command.args[1],
+              /\/@capacitor\/cli\/assets\/android-template\.tar\.gz$/u
+            );
+            assert.deepStrictEqual(command.args, [
+              "-xzf",
+              command.args[1],
+              "-C",
+              "/probe",
+              "gradlew",
+              "gradle/wrapper/gradle-wrapper.jar",
+              "gradle/wrapper/gradle-wrapper.properties",
+            ]);
+            files.set(
+              "/probe/gradle/wrapper/gradle-wrapper.properties",
+              `distributionUrl=https\\://services.gradle.org/distributions/gradle-${control.wrapperVersion}-all.zip`
+            );
+
+            return ChildProcessSpawner.ExitCode(0);
+          }
+
+          if (command.command === "./gradlew") {
+            if (command.options.cwd === "/probe") {
+              assert.strictEqual(
+                files.get("/probe/settings.gradle"),
+                'rootProject.name = "probe"\n'
+              );
+            }
+
+            assert.deepStrictEqual(command.args, [
+              "help",
+              "--no-daemon",
+              "--console=plain",
+            ]);
+            assert.isFalse(
+              command.options.cwd !== "/probe" && control.skipSync
+            );
+
+            return ChildProcessSpawner.ExitCode(
+              command.command === "./gradlew" &&
+                (command.options.cwd === "/probe"
+                  ? control.failPreflight
+                  : control.failSync)
+                ? 1
+                : 0
+            );
+          }
+
           commands.push([...command.args]);
+
+          if (!control.skipSync) {
+            files.set(
+              `${command.options.cwd}/android/local.properties`,
+              "sdk.dir=/sdk"
+            );
+          }
 
           if (control.existingDaemonJvm) {
             files.set(
@@ -273,6 +339,89 @@ const memory = (
 const generate = generateAndroid("/app", "/package");
 
 describe("Android shell generation", () => {
+  it.effect(
+    "rejects a failing Gradle runtime before Capacitor or project replacement",
+    () => {
+      const state = memory();
+      state.control.failPreflight = true;
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.strictEqual(error._tag, "AndroidToolchainError");
+        assert.lengthOf(state.commands, 0);
+        assert.strictEqual(
+          state.files.get(`${destination}/previous.txt`),
+          "usable shell"
+        );
+        assert.isFalse(
+          [...state.files.keys()].some((name) =>
+            name.startsWith(`${destination}.next/`)
+          )
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "propagates sync failure after Capacitor succeeds and removes staging",
+    () => {
+      const state = memory();
+      state.control.failSync = true;
+      state.files.set(`${destination}/previous.txt`, "usable shell");
+
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.strictEqual(error._tag, "AndroidToolchainError");
+        assert.lengthOf(state.commands, 1);
+        assert.strictEqual(
+          state.files.get(`${destination}/previous.txt`),
+          "usable shell"
+        );
+        assert.isFalse(
+          [...state.files.keys()].some((name) =>
+            name.startsWith(`${destination}.next/`)
+          )
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "links compatibility guidance to the installed wrapper version",
+    () => {
+      const state = memory();
+      state.control.failPreflight = true;
+      state.control.wrapperVersion = "9.1.0";
+
+      return Effect.gen(function* () {
+        const error = yield* Effect.flip(generate);
+        assert.include(
+          error.message,
+          "https://docs.gradle.org/9.1.0/userguide/compatibility.html"
+        );
+        assert.notInclude(error.message, "/current/");
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
+  it.effect(
+    "generates without project sync when Capacitor skips SDK setup",
+    () => {
+      const state = memory();
+      state.control.skipSync = true;
+      state.control.failSync = true;
+
+      return Effect.gen(function* () {
+        yield* generate;
+        assert.strictEqual(
+          state.files.get(`${destination}/android/generated.txt`),
+          "Capacitor 8"
+        );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+
   it.effect(
     "registers scheme links and browser visibility with optional verified links",
     () =>
