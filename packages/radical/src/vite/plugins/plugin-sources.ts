@@ -112,7 +112,7 @@ export const composePluginSources = (
           const pattern =
             platform === "ios"
               ? /CAPPluginMethod\s*\(\s*name:\s*"(?<command>[A-Za-z][A-Za-z0-9_]*)"/gu
-              : /@PluginMethod(?:\s*\([^)]*\))?\s+(?:public\s+void\s+|(?:public\s+)?fun\s+)(?<command>[A-Za-z][A-Za-z0-9_]*)\s*\(/gu;
+              : /@PluginMethod(?:\s*\([^)]*\))?\s+(?:(?:(?:abstract|static|final|synchronized|native|strictfp)\s+)*public\s+(?:(?:abstract|static|final|synchronized|native|strictfp)\s+)*void\s+|(?:public\s+)?fun\s+)(?<command>[A-Za-z][A-Za-z0-9_]*)\s*\(/gu;
 
           const exposed = new Set(
             [...contents.matchAll(pattern)].map(
