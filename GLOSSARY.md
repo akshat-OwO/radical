@@ -96,6 +96,10 @@ _Avoid_: Accuracy (the error radius of one fix), fine/coarse
 The device-wide switch that allows any app to read location, separate from each app's permission.\
 _Avoid_: GPS setting, location toggle
 
+**Tracking session**:\
+An explicitly user-started period of location collection that can continue while the app is in the background.\
+_Avoid_: Background watch, passive tracking
+
 **Google sign-in**:\
 A request for Google to identify a user and issue an identity token to the app.\
 _Avoid_: Google session, Google authorization
