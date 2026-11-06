@@ -126,6 +126,10 @@ _Avoid_: Device context, client hints
 
 ### Loading and offline
 
+**App storage**:\
+Data owned by an installed app, independently of the web origin it loads or its loading mode.\
+_Avoid_: Web storage (when meaning app storage), offline pack
+
 **Remote mode**:\
 The shell loads the web app from a live server origin, with server rendering.\
 _Avoid_: Server URL mode, online mode
