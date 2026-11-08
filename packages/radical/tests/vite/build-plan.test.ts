@@ -412,3 +412,20 @@ it.effect("combines scheme registration with Google sign-in URL types", () =>
     );
   })
 );
+
+it.effect("unions plist array contributions without duplicate values", () =>
+  Effect.gen(function* () {
+    const plist = yield* composePlist(
+      ["location", "remote-notification", "location"].map((value) => ({
+        key: "UIBackgroundModes",
+        value,
+        composition: "union" as const,
+      }))
+    );
+
+    assert.strictEqual(
+      plist.UIBackgroundModes,
+      "<array><string>location</string><string>remote-notification</string></array>"
+    );
+  })
+);

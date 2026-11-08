@@ -1208,6 +1208,24 @@ const interruptionModel = () => {
           update({ permission: { state: "denied", precision: "unknown" } });
         }
       }),
+    iosEnvironment: (enabled: boolean, allowed: boolean) =>
+      Effect.gen(function* () {
+        granted = allowed;
+
+        if (!["running", "suspended"].includes(value.status.state)) {
+          return;
+        }
+
+        if (enabled) {
+          if (allowed) {
+            update({ status: { state: "running" } });
+          } else {
+            yield* stop("permissionRevoked");
+          }
+        } else {
+          update({ status: { state: "suspended", reason: "servicesOff" } });
+        }
+      }),
     services: (enabled: boolean) => {
       if (["running", "suspended"].includes(value.status.state)) {
         update({
@@ -1573,3 +1591,60 @@ for (const granted of [true, false]) {
       })
   );
 }
+
+it.effect(
+  "iOS lifecycle model defers masked denial until services return",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      const original = model.read();
+      yield* model.iosEnvironment(false, false);
+      assert.deepStrictEqual(model.read().status, {
+        state: "suspended",
+        reason: "servicesOff",
+      });
+      assert.strictEqual(model.counts.removals, 0);
+      yield* model.iosEnvironment(true, true);
+      assert.deepStrictEqual(model.read().status, { state: "running" });
+      assert.strictEqual(model.read().id, original.id);
+      assert.deepStrictEqual(model.read().options, original.options);
+      yield* model.iosEnvironment(false, false);
+      yield* model.iosEnvironment(true, false);
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.strictEqual(model.counts.removals, 1);
+      yield* model.iosEnvironment(true, true);
+      assert.strictEqual(model.read().status.state, "stopped");
+      assert.strictEqual(model.counts.registrations, 1);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model retries hydration after a failed commit without publishing",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.loseProcess();
+      model.failCommit(true);
+      const count = model.published.length;
+      const failed = yield* model.get.pipe(Effect.result);
+      assert.strictEqual(failed._tag, "Failure");
+      assert.strictEqual(model.published.length, count);
+      assert.strictEqual(model.metadata()?.terminalState, null);
+      model.failCommit(false);
+      const recovered = yield* model.get;
+      assert.deepStrictEqual(recovered.status, {
+        state: "interrupted",
+        reason: "termination",
+      });
+      assert.strictEqual(recovered.latest, null);
+      assert.strictEqual(model.published.length, count + 1);
+      assert.strictEqual(model.counts.registrations, 1);
+      assert.strictEqual(model.counts.callbacks, 0);
+      assert.isAbove(recovered.revision, session.revision);
+    })
+);

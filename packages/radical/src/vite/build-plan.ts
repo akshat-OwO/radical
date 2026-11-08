@@ -16,6 +16,7 @@ import {
   cameraPlugin,
   googleSignInPlugin,
   videoStreamPlugin,
+  trackingSessionPlugin,
 } from "../core/plugins/internal-plugins.ts";
 import { InvalidConfig, validateConfig } from "./config.ts";
 import { escapeXml } from "./native-contributions.ts";
@@ -38,11 +39,33 @@ const optionsFor = <S extends Schema.Top>(
       entry.manifest.id === manifest.id
   )?.options;
 
+const locationBuildContribution = (
+  location: Parameters<typeof locationContributions>[0] | undefined,
+  tracking: string | undefined
+): NativeContributions =>
+  location === undefined
+    ? {}
+    : locationContributions({
+        ...location,
+        usageDescription:
+          tracking === undefined
+            ? location.usageDescription
+            : `${location.usageDescription} ${tracking}`,
+      });
+
 const trackingContributions = (
   capabilities: readonly string[]
 ): NativeContributions =>
   capabilities.includes("trackingSession")
     ? {
+        plist: [
+          {
+            key: "UIBackgroundModes",
+            value: "location",
+            composition: "union",
+            stage: "postprocess",
+          },
+        ],
         android: [
           '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
           '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />',
@@ -64,7 +87,12 @@ export const composePlist = (entries: readonly PlistContribution[]) =>
     const resolved: Record<string, string> = {};
 
     for (const [key, values] of keys) {
-      if (values.every((value) => value.composition === "unique-purpose")) {
+      if (values.every((value) => value.composition === "union")) {
+        resolved[key] =
+          `<array>${[...new Set(values.map((value) => value.value))].map((value) => `<string>${escapeXml(value)}</string>`).join("")}</array>`;
+      } else if (
+        values.every((value) => value.composition === "unique-purpose")
+      ) {
         const purposes = values
           .toSorted((a, b) => (a.order ?? 0) - (b.order ?? 0))
           .map((value) => value.value);
@@ -130,6 +158,7 @@ export const resolveBuildPlan = flow(
       const plugins = yield* resolvePlugins(config);
       const capabilities = resolveInternalCapabilities(config.internalPlugins);
       const location = optionsFor(plugins, locationPlugin);
+      const tracking = optionsFor(plugins, trackingSessionPlugin);
       const camera = optionsFor(plugins, cameraPlugin);
       const videoStream = optionsFor(plugins, videoStreamPlugin);
       const googleSignIn = optionsFor(plugins, googleSignInPlugin);
@@ -143,9 +172,10 @@ export const resolveBuildPlan = flow(
         contributions.googleSignIn = googleSignInContributions(googleSignIn);
       }
 
-      if (location !== undefined) {
-        contributions.location = locationContributions(location);
-      }
+      contributions.location = locationBuildContribution(
+        location,
+        tracking?.usageDescription
+      );
 
       if (camera !== undefined) {
         contributions.camera = cameraContributions(camera);
@@ -155,9 +185,11 @@ export const resolveBuildPlan = flow(
         contributions.videoStream = videoStreamContributions(videoStream);
       }
 
-      if (capabilities.includes("pushNotifications")) {
-        contributions.pushNotifications = pushNotificationContributions(config);
-      }
+      contributions.pushNotifications = capabilities.includes(
+        "pushNotifications"
+      )
+        ? pushNotificationContributions(config)
+        : {};
 
       {
         contributions.trackingSession = trackingContributions(capabilities);

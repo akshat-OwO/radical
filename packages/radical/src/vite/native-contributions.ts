@@ -1,8 +1,8 @@
 export interface PlistContribution {
   readonly key: string;
-  /** XML value, except for unique-purpose entries which carry unescaped text. */
+  /** XML value, except unique-purpose and union entries, which carry unescaped text. */
   readonly value: string;
-  readonly composition?: "unique-purpose";
+  readonly composition?: "unique-purpose" | "union";
   readonly order?: number;
   readonly stage?: "postprocess";
 }
