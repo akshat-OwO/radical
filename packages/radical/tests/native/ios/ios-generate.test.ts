@@ -33,7 +33,9 @@ import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
 import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?raw";
 import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw";
+import notificationSource from "../../../templates/ios/RadicalNotificationTopicsPlugin.swift?raw";
 import settings from "../../../templates/ios/RadicalSettingsPlugin.swift?raw";
+import trackingSource from "../../../templates/ios/RadicalTrackingSessionPlugin.swift?raw";
 import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../../../templates/ios/RadicalViewController.swift?raw";
 import offlinePage from "../../../templates/offline.html?raw";
@@ -55,8 +57,16 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    [
+      "/package/templates/ios/RadicalNotificationTopicsPlugin.swift",
+      notificationSource,
+    ],
     ["/package/templates/ios/RadicalSettingsPlugin.swift", settings],
     ["/package/templates/ios/RadicalLocationPlugin.swift", locationSource],
+    [
+      "/package/templates/ios/RadicalTrackingSessionPlugin.swift",
+      trackingSource,
+    ],
     ["/app/plugins/EchoPlugin.swift", echoSource],
     ["/package/templates/ios/RadicalTransitionsPlugin.swift", transitions],
     [
@@ -83,6 +93,10 @@ const memory = (
     "@capacitor/device": "8.0.3",
     "@capacitor/geolocation": "8.2.4",
     "@capacitor/camera": "8.2.6",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capawesome/capacitor-badge": "8.0.4",
+    "@capacitor-firebase/messaging": "8.5.2",
   })) {
     files.set(
       require.resolve(`${name}/package.json`),
@@ -180,11 +194,11 @@ const memory = (
           );
           files.set(
             `${command.options.cwd}/ios/App/CapApp-SPM/Package.swift`,
-            "platforms: [.iOS(.v15)]"
+            'platforms: [.iOS(.v15)]\n    dependencies: [\n.product(name: "Cordova", package: "capacitor-swift-pm")'
           );
           files.set(
             `${app}/AppDelegate.swift`,
-            "import UIKit\n// Capacitor app"
+            "import UIKit\n// Capacitor app\n    var window: UIWindow?"
           );
           files.set(
             `${app}/SceneDelegate.swift`,
@@ -325,6 +339,7 @@ describe("iOS shell generation", () => {
 
       return Effect.gen(function* () {
         yield* generate;
+
         const source = state.files.get(appDelegate) ?? "";
 
         assert.include(
@@ -346,6 +361,7 @@ describe("iOS shell generation", () => {
 
       return Effect.gen(function* () {
         yield* generate;
+
         const source = state.files.get(appDelegate) ?? "";
         assert.include(source, "class RadicalDataProtectionPlugin");
         assert.notInclude(source, "__OFFLINE_SAVED_URL_KEY__");
@@ -439,6 +455,7 @@ describe("iOS shell generation", () => {
 
       return Effect.gen(function* () {
         yield* generate;
+
         const source = state.files.get(appDelegate) ?? "";
         assert.notInclude(source, "contentInsetAdjustmentBehavior");
         assert.include(
@@ -518,6 +535,7 @@ describe("iOS shell generation", () => {
             ?.endsWith("node_modules/@capacitor/device")
         );
         assert.deepStrictEqual(state.commands[0].slice(-2), ["add", "ios"]);
+
         const source = state.files.get(appDelegate) ?? "";
 
         const value = yield* Schema.decodeUnknownEffect(
@@ -630,6 +648,7 @@ describe("iOS shell generation", () => {
 
       return Effect.gen(function* () {
         yield* generate;
+
         const source = state.files.get(appDelegate) ?? "";
         assert.include(source, '["https://app.test", "https://app.test:8443"]');
 
@@ -729,6 +748,7 @@ describe("iOS shell generation", () => {
 
       return Effect.gen(function* () {
         yield* generate;
+
         const source = state.files.get(appDelegate) ?? "";
         assert.include(
           source,
@@ -964,6 +984,7 @@ describe("ios app identity", () => {
           storyboard,
           'secondItem="launch-view" secondAttribute="top"'
         );
+
         const source = state.files.get(appDelegate) ?? "";
         const firstName = iosSplashResourceName(state.assetCalls[0].assets);
         assert.include(source, `let splashName = "${firstName}"`);
@@ -1110,6 +1131,7 @@ describe("bundled ios shell", () => {
 
         assert.isUndefined(config.server.url);
         assert.deepStrictEqual(config.server.allowNavigation, []);
+
         const source = state.files.get(appDelegate) ?? "";
         assert.include(source, "capacitor://localhost");
         assert.notInclude(source, '"https://external.example"');
@@ -1296,6 +1318,7 @@ describe("ios native navigation", () => {
 
         return Effect.gen(function* () {
           yield* generate;
+
           const source = state.files.get(appDelegate) ?? "";
 
           assert.include(
@@ -1339,7 +1362,7 @@ describe("ios native navigation", () => {
           );
           assert.strictEqual(
             state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),
-            'platforms: [.iOS("18.0")]'
+            'platforms: [.iOS("18.0")]\n    dependencies: [\n.product(name: "Cordova", package: "capacitor-swift-pm")'
           );
         }).pipe(Effect.provide(state.layer));
       }
@@ -1356,6 +1379,7 @@ describe("ios native navigation", () => {
 
       return Effect.gen(function* () {
         yield* generate;
+
         const source = state.files.get(appDelegate) ?? "";
         assert.notInclude(source, "RadicalTabController");
         assert.notInclude(source, "RadicalNavigationPlugin");
@@ -1398,7 +1422,7 @@ describe("ios native navigation", () => {
         );
         assert.strictEqual(
           state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),
-          "platforms: [.iOS(.v15)]"
+          'platforms: [.iOS(.v15)]\n    dependencies: [\n.product(name: "Cordova", package: "capacitor-swift-pm")'
         );
       }).pipe(Effect.provide(state.layer));
     }
@@ -1551,6 +1575,7 @@ describe("iOS splash dismissal", () => {
 
         return Effect.gen(function* () {
           yield* generate;
+
           const source = state.files.get(appDelegate) ?? "";
 
           assert.include(
@@ -1599,6 +1624,65 @@ for (const environment of ["development", "production"] as const) {
           source,
           `<string>applinks:example.com${environment === "development" ? "?mode=developer" : ""}</string>`
         );
+      }).pipe(Effect.provide(state.layer));
+    }
+  );
+}
+
+for (const push of [false, true]) {
+  it.effect(
+    `generates tracking usage strings and unique background modes with push ${push}`,
+    () => {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { trackingSession: true, pushNotifications: push },
+        pluginOptions: {
+          Location: { usageDescription: "Find me" },
+          TrackingSession: { usageDescription: "Track & follow" },
+        },
+      });
+
+      return Effect.gen(function* () {
+        yield* generateIos("/app", "/package");
+
+        const plist =
+          state.files.get(`${destination}/ios/App/App/Info.plist`) ?? "";
+
+        assert.include(
+          plist,
+          "<key>UIBackgroundModes</key><array><string>location</string>"
+        );
+        assert.strictEqual(
+          plist.match(/<key>UIBackgroundModes<\/key>/gu)?.length,
+          1
+        );
+        assert.strictEqual(
+          plist.match(/<string>location<\/string>/gu)?.length,
+          1
+        );
+        assert.strictEqual(
+          plist.includes("<string>remote-notification</string>"),
+          push
+        );
+
+        for (const key of [
+          "NSLocationWhenInUseUsageDescription",
+          "NSLocationAlwaysAndWhenInUseUsageDescription",
+        ]) {
+          assert.include(
+            plist,
+            `<key>${key}</key><string>Find me Track &amp; follow</string>`
+          );
+        }
+
+        const source = state.files.get(appDelegate) ?? "";
+        assert.include(
+          source,
+          "registerPluginInstance(RadicalTrackingSessionPlugin())"
+        );
+        assert.include(source, "manager.startUpdatingLocation()");
+        assert.notInclude(source, "requestAlwaysAuthorization");
+        assert.notInclude(source, "startMonitoringSignificantLocationChanges");
       }).pipe(Effect.provide(state.layer));
     }
   );

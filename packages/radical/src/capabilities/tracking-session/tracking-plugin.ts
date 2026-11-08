@@ -42,6 +42,16 @@ export const trackingSessionPlugin = definePlugin({
       errors: { TrackingSessionNotFound, Unavailable },
     },
   },
+  ios: {
+    className: "RadicalTrackingSessionPlugin",
+    dependencies: [],
+    sources: [
+      {
+        file: "RadicalTrackingSessionPlugin.swift",
+        source: "templates/ios/RadicalTrackingSessionPlugin.swift",
+      },
+    ],
+  },
   android: {
     className: "RadicalTrackingSessionPlugin",
     sources: ["RadicalTrackingSessionPlugin", "RadicalTrackingService"].map(

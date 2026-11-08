@@ -42,7 +42,7 @@ const Tracking = () => {
     <main>
       <h1>Tracking session</h1>
       <Link to="/">Home</Link>
-      <p>Android only. Leaving this screen does not stop tracking.</p>
+      <p>Android and iOS shells. Leaving this screen does not stop tracking.</p>
       <LocationPermissionAction />
       <label>
         Preset

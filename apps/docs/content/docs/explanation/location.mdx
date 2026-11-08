@@ -83,6 +83,6 @@ Foreground location watches belong to a visible page. A tracking session belongs
 
 Native code owns the current snapshot across WebView reloads. Tracking stores session metadata, not location history, and requires explicit restart after termination.
 
-Tracking is Android-only for now; iOS support is planned.
+Tracking runs on Android and iOS. Both platforms use foreground location permission only: Android runs a foreground service, and iOS keeps location updates running in the background with the location indicator visible.
 
 Browser visibility rules cannot support this lifecycle, so tracking returns `Unavailable` there. Foreground location keeps its browser fallback. See [Track a user-started session](/docs/guides/tracking-session).

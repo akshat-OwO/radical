@@ -1082,23 +1082,29 @@ for (const snapshot of [
 const interruptionModel = () => {
   type Metadata = Pick<TrackingSession, "id" | "options" | "startedAt"> & {
     terminalState: TrackingSession["status"] | null;
+    pendingAuthorization: boolean;
   };
 
   let persisted: Metadata | null = null;
   let value: TrackingSession = { ...session };
   let failCommit = false;
   let granted = true;
+  let authorization: boolean | "restricted" | "notDetermined" = true;
+  let checking: number | null = null;
+  const commands: ("get" | "stop")[] = [];
+  const settled: string[] = [];
+  let timeoutFiber: Fiber.Fiber<void> | undefined;
+  let servicesEnabled = true;
+  let generation = 0;
+  let temporary: Metadata | null = null;
+  let pendingFix: TrackingSession["latest"] = null;
   let needsHydration = false;
   const counts = { registrations: 0, removals: 0, callbacks: 0 };
   const published: TrackingSession[] = [];
 
-  const commit = (candidate: TrackingSession) =>
+  const commit = (candidate: TrackingSession, pendingAuthorization = false) =>
     Effect.gen(function* () {
-      if (failCommit) {
-        return yield* new Unavailable({ reason: "Metadata commit failed" });
-      }
-
-      persisted = {
+      temporary = {
         id: candidate.id,
         options: candidate.options,
         startedAt: candidate.startedAt,
@@ -1107,7 +1113,19 @@ const interruptionModel = () => {
         )
           ? candidate.status
           : null,
+        pendingAuthorization,
       };
+
+      if (failCommit) {
+        temporary = null;
+
+        return yield* new Unavailable({
+          reason: "Backup exclusion failed after temp write",
+        });
+      }
+
+      persisted = temporary;
+      temporary = null;
 
       return true;
     });
@@ -1137,8 +1155,8 @@ const interruptionModel = () => {
         ...persisted,
         latest: null,
         status:
-          persisted.terminalState ??
-          (granted
+          (persisted.pendingAuthorization ? null : persisted.terminalState) ??
+          (granted || authorization === "notDetermined" || !servicesEnabled
             ? { state: "interrupted", reason: "termination" }
             : { state: "stopped", reason: "permissionRevoked" }),
         permission: granted
@@ -1146,8 +1164,11 @@ const interruptionModel = () => {
           : { state: "denied", precision: "unknown" },
       };
 
-      if (persisted.terminalState === null) {
-        yield* commit(candidate);
+      if (persisted.terminalState === null || persisted.pendingAuthorization) {
+        yield* commit(
+          candidate,
+          !servicesEnabled || authorization === "notDetermined"
+        );
       }
 
       update(candidate);
@@ -1157,11 +1178,86 @@ const interruptionModel = () => {
     return value;
   });
 
+  const environment = (
+    enabled: boolean,
+    allowed: boolean | "restricted" | "notDetermined"
+  ) =>
+    Effect.gen(function* () {
+      authorization = allowed;
+      granted = allowed === true;
+      servicesEnabled = enabled;
+
+      if (
+        persisted?.pendingAuthorization === true &&
+        enabled &&
+        allowed !== "notDetermined"
+      ) {
+        const candidate: TrackingSession = {
+          ...value,
+          status:
+            allowed === true
+              ? { state: "interrupted", reason: "termination" }
+              : { state: "stopped", reason: "permissionRevoked" },
+        };
+
+        yield* commit(candidate);
+        update(candidate);
+      }
+
+      if (!["running", "suspended"].includes(value.status.state)) {
+        return;
+      }
+
+      if (enabled) {
+        if (allowed === true) {
+          update({ status: { state: "running" } });
+        } else if (allowed !== "notDetermined") {
+          yield* stop("permissionRevoked");
+        }
+      } else {
+        update({ status: { state: "suspended", reason: "servicesOff" } });
+      }
+    });
+
   return {
     counts,
     published,
     read: () => value,
     metadata: () => persisted,
+    temporary: () => temporary,
+    settled,
+    checking: () => checking,
+    enqueue: (command: "get" | "stop") => {
+      commands.push(command);
+      checking ??= generation;
+    },
+    requestRefresh: () => {
+      generation += 1;
+      checking ??= generation;
+
+      return checking;
+    },
+    completeRefresh: (sample: number, enabled: boolean, allowed: boolean) =>
+      Effect.gen(function* () {
+        if (sample !== generation) {
+          checking = generation;
+
+          return false;
+        }
+
+        checking = null;
+        yield* environment(enabled, allowed);
+
+        for (const command of commands.splice(0)) {
+          if (command === "stop") {
+            yield* stop("user");
+          }
+
+          settled.push(command);
+        }
+
+        return true;
+      }),
     failCommit: (fail: boolean) => {
       failCommit = fail;
     },
@@ -1208,6 +1304,7 @@ const interruptionModel = () => {
           update({ permission: { state: "denied", precision: "unknown" } });
         }
       }),
+    iosEnvironment: environment,
     services: (enabled: boolean) => {
       if (["running", "suspended"].includes(value.status.state)) {
         update({
@@ -1217,6 +1314,42 @@ const interruptionModel = () => {
         });
       }
     },
+    bufferFix: Effect.gen(function* () {
+      pendingFix = {
+        latitude: 1,
+        longitude: 2,
+        accuracy: 3,
+        timestamp: 4,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      };
+
+      if (value.lastError !== null) {
+        update({ lastError: null });
+      }
+
+      if (timeoutFiber !== undefined) {
+        yield* Fiber.interrupt(timeoutFiber);
+      }
+
+      timeoutFiber = yield* Effect.sleep("60 seconds").pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            update({ lastError: new LocationTimeout({}) });
+          })
+        ),
+        Effect.forkChild
+      );
+    }),
+    flushFix: () => {
+      if (pendingFix !== null) {
+        update({ latest: pendingFix });
+        pendingFix = null;
+      }
+    },
+    pending: () => pendingFix,
     timeout: Effect.sleep("60 seconds").pipe(
       Effect.andThen(
         Effect.sync(() => {
@@ -1573,3 +1706,262 @@ for (const granted of [true, false]) {
       })
   );
 }
+
+it.effect(
+  "iOS lifecycle model defers masked denial until services return",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      const original = model.read();
+      yield* model.iosEnvironment(false, false);
+      assert.deepStrictEqual(model.read().status, {
+        state: "suspended",
+        reason: "servicesOff",
+      });
+      assert.strictEqual(model.counts.removals, 0);
+      yield* model.iosEnvironment(true, true);
+      assert.deepStrictEqual(model.read().status, { state: "running" });
+      assert.strictEqual(model.read().id, original.id);
+      assert.deepStrictEqual(model.read().options, original.options);
+      yield* model.iosEnvironment(false, false);
+      yield* model.iosEnvironment(true, false);
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.strictEqual(model.counts.removals, 1);
+      yield* model.iosEnvironment(true, true);
+      assert.strictEqual(model.read().status.state, "stopped");
+      assert.strictEqual(model.counts.registrations, 1);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model retries hydration after a failed commit without publishing",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.loseProcess();
+      model.failCommit(true);
+      const count = model.published.length;
+      const failed = yield* model.get.pipe(Effect.result);
+      assert.strictEqual(failed._tag, "Failure");
+      assert.strictEqual(model.published.length, count);
+      assert.strictEqual(model.metadata()?.terminalState, null);
+      model.failCommit(false);
+      const recovered = yield* model.get;
+      assert.deepStrictEqual(recovered.status, {
+        state: "interrupted",
+        reason: "termination",
+      });
+      assert.strictEqual(recovered.latest, null);
+      assert.strictEqual(model.published.length, count + 1);
+      assert.strictEqual(model.counts.registrations, 1);
+      assert.strictEqual(model.counts.callbacks, 0);
+      assert.isAbove(recovered.revision, session.revision);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model rejects a services sample invalidated by an authorization callback",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      const sample = model.requestRefresh();
+      const notificationSettings = yield* Deferred.make<undefined>();
+
+      const completed = yield* Deferred.await(notificationSettings).pipe(
+        Effect.andThen(model.completeRefresh(sample, true, false)),
+        Effect.forkChild
+      );
+
+      model.requestRefresh();
+      yield* Deferred.succeed(notificationSettings, undefined);
+      assert.isFalse(yield* Fiber.join(completed));
+      assert.strictEqual(model.read().status.state, "running");
+      yield* model.completeRefresh(model.checking() ?? -1, false, false);
+      assert.strictEqual(model.read().status.state, "suspended");
+      yield* model.completeRefresh(model.requestRefresh(), true, true);
+      assert.strictEqual(model.read().status.state, "running");
+    })
+);
+
+it.effect(
+  "iOS lifecycle model leaves metadata unchanged after temp backup exclusion fails",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      const before = model.metadata();
+      model.failCommit(true);
+      yield* model.stop.pipe(Effect.flip);
+      assert.strictEqual(model.metadata(), before);
+      assert.strictEqual(model.temporary(), null);
+      assert.strictEqual(model.read().status.state, "running");
+    })
+);
+
+for (const allowed of [false, true]) {
+  it.effect(
+    `iOS lifecycle model resolves authorization ${allowed} after two masked process losses`,
+    () =>
+      Effect.gen(function* () {
+        const model = interruptionModel();
+        yield* model.start;
+        yield* model.iosEnvironment(false, false);
+        yield* model.freshProcess();
+        assert.isTrue(model.metadata()?.pendingAuthorization);
+        yield* model.freshProcess();
+        assert.isTrue(model.metadata()?.pendingAuthorization);
+        assert.strictEqual(model.read().status.state, "interrupted");
+        const { revision } = model.read();
+        const publications = model.published.length;
+        yield* model.iosEnvironment(true, allowed);
+        assert.deepStrictEqual(
+          model.read().status,
+          allowed
+            ? { state: "interrupted", reason: "termination" }
+            : { state: "stopped", reason: "permissionRevoked" }
+        );
+        assert.strictEqual(model.published.length, publications + 1);
+        assert.isFalse(model.metadata()?.pendingAuthorization);
+        assert.isAbove(model.read().revision, revision);
+      })
+  );
+}
+
+it.effect(
+  "iOS lifecycle model reports acquisition timeout while a throttled fix waits",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const model = interruptionModel();
+        yield* model.start;
+        model.fix();
+
+        const publication = yield* Effect.sleep("300 seconds").pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              model.flushFix();
+            })
+          ),
+          Effect.forkScoped
+        );
+
+        yield* TestClock.adjust("1 second");
+        const before = model.published.length;
+        yield* model.bufferFix;
+        assert.strictEqual(model.published.length, before);
+        yield* TestClock.adjust("60 seconds");
+
+        assert.isNotNull(model.pending());
+        assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+        yield* TestClock.adjust("239 seconds");
+        yield* Fiber.join(publication);
+        assert.strictEqual(model.pending(), null);
+        assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+        model.fix();
+        assert.strictEqual(model.read().lastError, null);
+      })
+    )
+);
+
+it.effect(
+  "iOS lifecycle model settles queued stop once despite streaming gets",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.enqueue("get");
+      const sample = model.checking() ?? -1;
+      model.enqueue("stop");
+      const settings = yield* Deferred.make<undefined>();
+
+      const completion = yield* Deferred.await(settings).pipe(
+        Effect.andThen(model.completeRefresh(sample, true, true)),
+        Effect.forkChild
+      );
+
+      for (let index = 0; index < 100; index += 1) {
+        model.enqueue("get");
+      }
+
+      yield* Deferred.succeed(settings, undefined);
+      assert.isTrue(yield* Fiber.join(completion));
+      assert.strictEqual(
+        model.settled.filter((command) => command === "stop").length,
+        1
+      );
+      assert.strictEqual(model.counts.removals, 1);
+      assert.strictEqual(model.counts.callbacks, 0);
+      assert.strictEqual(model.checking(), null);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model keeps undetermined authorization unresolved and restriction terminal",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      yield* model.iosEnvironment(false, false);
+      yield* model.freshProcess();
+      yield* model.iosEnvironment(true, "notDetermined");
+      assert.isTrue(model.metadata()?.pendingAuthorization);
+      yield* model.iosEnvironment(true, "restricted");
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.isFalse(model.metadata()?.pendingAuthorization);
+      yield* model.iosEnvironment(true, true);
+      assert.strictEqual(model.read().status.state, "stopped");
+      const active = interruptionModel();
+      yield* active.start;
+      yield* active.iosEnvironment(true, "restricted");
+      yield* active.iosEnvironment(true, true);
+      assert.strictEqual(active.read().status.state, "stopped");
+      assert.strictEqual(active.counts.removals, 1);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model publishes error clear immediately and rearms timeout on buffered receipt",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.fix();
+
+      const publication = yield* Effect.sleep("300 seconds").pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            model.flushFix();
+          })
+        ),
+        Effect.forkChild
+      );
+
+      yield* model.bufferFix;
+      yield* TestClock.adjust("60 seconds");
+      assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+      const before = model.read();
+      yield* model.bufferFix;
+      assert.strictEqual(model.read().revision, before.revision + 1);
+      assert.strictEqual(model.read().lastError, null);
+      assert.strictEqual(model.read().latest, before.latest);
+      yield* TestClock.adjust("59 seconds");
+      assert.strictEqual(model.read().lastError, null);
+      yield* TestClock.adjust("1 second");
+      assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+      yield* TestClock.adjust("179 seconds");
+      assert.isNotNull(model.pending());
+      yield* TestClock.adjust("1 second");
+      yield* Fiber.join(publication);
+      assert.strictEqual(model.pending(), null);
+      assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+    })
+);

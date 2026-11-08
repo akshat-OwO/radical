@@ -71,7 +71,8 @@ export const pushNotificationContributions = (
     plist: [
       {
         key: "UIBackgroundModes",
-        value: "<array><string>remote-notification</string></array>",
+        value: "remote-notification",
+        composition: "union",
         stage: "postprocess",
       },
     ],

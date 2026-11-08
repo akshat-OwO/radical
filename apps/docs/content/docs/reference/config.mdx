@@ -159,3 +159,5 @@ Invalid images produce `InvalidAsset`; asset-writing failures produce `AssetGene
 Source: [config schema](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/vite/config.ts), [internal registry](https://github.com/akshat-OwO/radical/blob/main/packages/radical/src/core/plugins/internal-plugin-registry.ts).
 
 Tracking sessions use `internalPlugins.trackingSession` (default `false`), which also enables `location`. `pluginOptions.TrackingSession` requires `usageDescription` and accepts `notificationTitle` (default `"Location tracking"`), `notificationBody` (default `"Tracking your location"`), and `stopActionLabel` (default `"Stop"`). The implied location capability still requires `pluginOptions.Location`.
+
+On iOS, both location usage strings combine the Location and TrackingSession usage descriptions. Tracking adds the `location` background mode, which merges with modes from other capabilities. The notification text options apply to Android.

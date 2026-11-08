@@ -61,7 +61,7 @@ The Effect API exports `fetchAppUpdate` and `radicalFetch(config, input, init?, 
 
 ## Tracking sessions
 
-Tracking is Android-only for now. iOS support is planned. Browsers and shells without tracking commands fail with `Unavailable`. Imports are safe in a browser.
+Tracking runs in Android and iOS shells. Browsers and shells without tracking commands fail with `Unavailable`. Imports are safe in a browser.
 
 | Plain call | Result |
 | --- | --- |
@@ -74,7 +74,7 @@ The Effect API exports matching Effects and a `watchTrackingSession` Stream. `in
 
 Presets are requests, not guarantees:
 
-| Preset | Android | Planned iOS |
+| Preset | Android | iOS |
 | --- | --- | --- |
 | `balanced` | Balanced power, 30 s, 50 m | Hundred-metre accuracy, `.other`, 50 m filter |
 | `fitness` | High accuracy, 5 s, 5 m | Best accuracy, `.fitness`, 5 m filter |
@@ -88,7 +88,7 @@ Snapshots report `running`, `suspended: servicesOff`, `stopped: user | permissio
 
 `lastError` is a nullable `TrackingAcquisitionError`, including `LocationTimeout`. A timeout does not end tracking or fail the stream. It covers waiting for a fix after start or after services return.
 
-`notifications.state` reports `granted` or `denied`. Denial does not prevent tracking, but hides the Android notification and its Stop action.
+`notifications.state` reports `granted` or `denied`. Denial does not prevent tracking. On Android, it hides the notification and its Stop action. iOS has no tracking notification.
 
 The native owner stores only session metadata, in private no-backup storage. A fresh process reports an unfinished session as `interrupted` with `latest: null`. Watches retrieve the snapshot on subscription and on return to the foreground, and discard older revisions.
 
