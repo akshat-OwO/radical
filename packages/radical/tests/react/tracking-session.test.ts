@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 import { assert, it } from "@effect/vitest";
 import { Deferred, Effect, Layer, Fiber, Stream } from "effect";
+import { TestClock } from "effect/testing";
 import { createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
+import { LocationTimeout } from "../../src/capabilities/location/location-schema.ts";
 import type { TrackingSession } from "../../src/capabilities/tracking-session/tracking-schema.ts";
 import {
   startTrackingSession,
@@ -26,6 +28,7 @@ const session: TrackingSession = {
   status: { state: "running" },
   latest: null,
   permission: { state: "granted", precision: "approximate" },
+  notifications: { state: "granted" },
   lastError: null,
 };
 
@@ -62,6 +65,7 @@ const fixture = (
 
   const calls: string[] = [];
   let removed = 0;
+  let foreground: ((value: { active: boolean }) => void) | undefined;
 
   const layer = Layer.succeed(Bridge, {
     runtime: Effect.succeed("android" as const),
@@ -69,8 +73,16 @@ const fixture = (
       Effect.succeed(() => {
         /* No shell events in this fixture. */
       }),
-    listen: (_plugin, _event, receive) =>
+    listen: (_plugin, event, receive) =>
       Effect.sync(() => {
+        if (event === "appStateChange") {
+          foreground = receive;
+
+          return Effect.sync(() => {
+            foreground = undefined;
+          });
+        }
+
         listener = receive;
 
         return Effect.sync(() => {
@@ -177,6 +189,10 @@ const fixture = (
 
   return {
     layer,
+    foreground: () => foreground?.({ active: true }),
+    reconcile: (value: TrackingSession) => {
+      current = value;
+    },
     calls,
     reading,
     starting,
@@ -982,3 +998,295 @@ for (const outcome of ["failure", "cancellation", "exception"] as const) {
       })
   );
 }
+
+it.effect(
+  "Effect watch re-retrieves on foreground and drops stale reconciliation",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const native = fixture();
+        const ready = yield* Deferred.make<undefined>();
+        const resumed = yield* Deferred.make<undefined>();
+        const values: number[] = [];
+        yield* watchTrackingSession.pipe(
+          Stream.runForEach((value) =>
+            Effect.gen(function* () {
+              if (value !== null) {
+                values.push(value.revision);
+              }
+
+              if (value?.revision === 2) {
+                yield* Deferred.succeed(ready, undefined);
+              }
+
+              if (value?.revision === 4) {
+                yield* Deferred.succeed(resumed, undefined);
+              }
+            })
+          ),
+          Effect.provide(native.layer),
+          Effect.forkScoped
+        );
+        yield* Deferred.await(ready);
+        native.reconcile({
+          ...session,
+          revision: 4,
+          status: { state: "suspended", reason: "servicesOff" },
+        });
+        native.foreground();
+        yield* Deferred.await(resumed);
+        native.emit({ ...session, revision: 3 });
+        assert.deepStrictEqual(values, [2, 4]);
+        assert.strictEqual(
+          native.calls.filter((call) => call === "getTrackingSession").length,
+          2
+        );
+      })
+    )
+);
+
+for (const snapshot of [
+  { ...session, status: { state: "interrupted", reason: "termination" } },
+  {
+    ...session,
+    status: { state: "stopped", reason: "permissionRevoked" },
+    permission: { state: "denied", precision: "unknown" },
+  },
+  { ...session, status: { state: "suspended", reason: "servicesOff" } },
+  { ...session, notifications: { state: "denied" } },
+] as const) {
+  it.effect(
+    `retrieves native ${snapshot.status.state} snapshot with notifications ${snapshot.notifications.state}`,
+    () =>
+      Effect.gen(function* () {
+        const native = fixture(snapshot);
+
+        const value = yield* getTrackingSession.pipe(
+          Effect.provide(native.layer)
+        );
+
+        assert.deepStrictEqual(value, snapshot);
+      })
+  );
+}
+
+// This model exercises snapshot consumers, not Android execution.
+const interruptionModel = () => {
+  let value: TrackingSession = { ...session };
+
+  const update = (patch: Partial<TrackingSession>) => {
+    value = { ...value, ...patch, revision: value.revision + 1 };
+  };
+
+  return {
+    read: () => value,
+    freshProcess: () => {
+      update({
+        status: { state: "interrupted", reason: "termination" },
+        latest: null,
+      });
+    },
+    permission: (granted: boolean) => {
+      if (!granted && ["running", "suspended"].includes(value.status.state)) {
+        update({
+          status: { state: "stopped", reason: "permissionRevoked" },
+          permission: { state: "denied", precision: "unknown" },
+        });
+      }
+    },
+    services: (enabled: boolean) => {
+      if (["running", "suspended"].includes(value.status.state)) {
+        update({
+          status: enabled
+            ? { state: "running" }
+            : { state: "suspended", reason: "servicesOff" },
+        });
+      }
+    },
+    timeout: Effect.sleep("60 seconds").pipe(
+      Effect.andThen(
+        Effect.sync(() => {
+          update({ lastError: new LocationTimeout({}) });
+        })
+      )
+    ),
+    fix: () => {
+      update({ lastError: null });
+    },
+  };
+};
+
+it.effect(
+  "lifecycle model reports termination on a fresh process without restarting",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+
+      model.freshProcess();
+
+      const value = yield* getTrackingSession.pipe(
+        Effect.provide(fixture(model.read()).layer)
+      );
+
+      assert.deepStrictEqual(value?.status, {
+        state: "interrupted",
+        reason: "termination",
+      });
+      assert.strictEqual(value?.latest, null);
+      assert.strictEqual(value?.id, session.id);
+      assert.deepStrictEqual(value?.options, session.options);
+    })
+);
+
+it.effect(
+  "lifecycle model ends on revocation and does not restart after a grant",
+  () =>
+    Effect.sync(() => {
+      const model = interruptionModel();
+
+      model.permission(false);
+      model.permission(true);
+      model.services(true);
+
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.strictEqual(model.read().revision, session.revision + 1);
+    })
+);
+
+it.effect(
+  "lifecycle model suspends and recovers with the same id and options",
+  () =>
+    Effect.sync(() => {
+      const model = interruptionModel();
+
+      model.services(false);
+
+      assert.deepStrictEqual(model.read().status, {
+        state: "suspended",
+        reason: "servicesOff",
+      });
+
+      model.services(true);
+
+      assert.deepStrictEqual(model.read().status, { state: "running" });
+      assert.strictEqual(model.read().id, session.id);
+      assert.deepStrictEqual(model.read().options, session.options);
+      assert.strictEqual(model.read().revision, session.revision + 2);
+    })
+);
+
+it.effect(
+  "lifecycle model reports timeout and recovers without ending the session",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const model = interruptionModel();
+        const fiber = yield* model.timeout.pipe(Effect.forkScoped);
+
+        yield* TestClock.adjust("60 seconds");
+        yield* Fiber.join(fiber);
+
+        const value = yield* getTrackingSession.pipe(
+          Effect.provide(fixture(model.read()).layer)
+        );
+
+        assert.strictEqual(value?.lastError?._tag, "LocationTimeout");
+        assert.strictEqual(value?.status.state, "running");
+
+        model.fix();
+
+        assert.strictEqual(model.read().lastError, null);
+        assert.strictEqual(model.read().id, session.id);
+        assert.strictEqual(model.read().status.state, "running");
+      })
+    )
+);
+
+it.effect("hook rehydrates after remount and reconciles on foreground", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const native = fixture();
+      const mounted = yield* Deferred.make<undefined>();
+      const resumed = yield* Deferred.make<undefined>();
+      const remounted = yield* Deferred.make<undefined>();
+      let generation = 0;
+
+      interface Observed {
+        latest: TrackingSession | null;
+      }
+
+      const observed: Observed = { latest: null };
+
+      const Probe = () => {
+        const state = useTrackingSession();
+        useLayoutEffect(() => {
+          observed.latest = state.value;
+
+          if (state.value?.revision === 2) {
+            Effect.runSync(Deferred.succeed(mounted, undefined));
+          }
+
+          if (state.value?.revision === 3) {
+            Effect.runSync(Deferred.succeed(resumed, undefined));
+          }
+
+          if (generation === 1 && state.value?.revision === 4) {
+            Effect.runSync(Deferred.succeed(remounted, undefined));
+          }
+        }, [state]);
+
+        return null;
+      };
+
+      const root = createRoot(document.createElement("div"));
+
+      const render = () => {
+        flushSync(() => {
+          root.render(
+            createElement(
+              RadicalProvider,
+              { layer: native.layer },
+              createElement(Probe, { key: generation })
+            )
+          );
+        });
+      };
+
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => {
+          flushSync(() => {
+            root.unmount();
+          });
+        })
+      );
+
+      render();
+      yield* Deferred.await(mounted);
+      yield* Effect.yieldNow;
+      native.reconcile({
+        ...session,
+        revision: 3,
+        notifications: { state: "denied" },
+      });
+      native.foreground();
+      yield* Deferred.await(resumed);
+      yield* Effect.yieldNow;
+      assert.strictEqual(observed.latest?.notifications.state, "denied");
+      native.reconcile({
+        ...session,
+        revision: 4,
+        status: { state: "interrupted", reason: "termination" },
+      });
+      generation = 1;
+      render();
+      yield* Deferred.await(remounted);
+      yield* Effect.yieldNow;
+      assert.strictEqual(observed.latest?.status.state, "interrupted");
+      assert.isFalse(native.calls.includes("startTrackingSession"));
+      assert.isFalse(native.calls.includes("stopTrackingSession"));
+    })
+  )
+);

@@ -85,3 +85,9 @@ Apps can replace the boundary and screen with UI driven by the hook.
 `AppUpdateScreen` accepts optional `store`. It shows the required-update message and opens the store through `useIntent().openUrl`. It must be under `RadicalProvider`.
 
 Missing iOS store identity produces instructions without a store button. These exports are also available from `@akshatowo/radical/effect/react`.
+
+## Tracking sessions
+
+`useTrackingSession()` returns `value`, `loading`, `error`, `refresh()`, `start(options)`, and `stop(id)`. It retrieves the native snapshot after mounting or a WebView reload and again on foreground return.
+
+Unmounting releases observation without stopping acquisition. See the [client reference](/docs/reference/client#tracking-sessions) for statuses, acquisition errors, and notification permission reporting.

@@ -54,6 +54,9 @@ export const TrackingSessionSchema = Schema.Struct({
   status: TrackingStatusSchema,
   latest: Schema.NullOr(LocationFixSchema),
   permission: LocationPermissionSchema,
+  notifications: Schema.Struct({
+    state: Schema.Literals(["granted", "denied"]),
+  }),
   lastError: Schema.NullOr(TrackingAcquisitionErrorSchema),
 });
 

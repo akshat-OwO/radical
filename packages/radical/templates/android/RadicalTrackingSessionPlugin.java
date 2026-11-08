@@ -19,14 +19,24 @@ public class RadicalTrackingSessionPlugin extends Plugin {
         }
     };
     @Override public void load() {
+        getActivity().runOnUiThread(() -> RadicalTrackingService.hydrate(getContext()));
         visible = getActivity().getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED);
         RadicalTrackingService.observers.add(observer);
     }
-    @Override protected void handleOnStart() { visible = true; }
+    @Override protected void handleOnStart() {
+        visible = true;
+        getActivity().runOnUiThread(() -> {
+            RadicalTrackingService.hydrate(getContext());
+            if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
+            notifyListeners("appStateChange", new JSObject().put("active", true));
+        });
+    }
     @Override protected void handleOnStop() { visible = false; }
     @Override protected void handleOnDestroy() { RadicalTrackingService.observers.remove(observer); }
     @PluginMethod public void getTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            RadicalTrackingService.hydrate(getContext());
+            if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
             JSObject result = new JSObject();
             JSObject session = RadicalTrackingService.pendingStart == null ? RadicalTrackingService.snapshot : RadicalTrackingService.previous;
             result.put("session", session == null ? org.json.JSONObject.NULL : session);
@@ -35,6 +45,7 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     }
     @PluginMethod public void startTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            RadicalTrackingService.hydrate(getContext());
             RadicalTrackingService.retryCleanup(getContext());
             JSObject current = RadicalTrackingService.snapshot;
             if (RadicalTrackingService.active()) {

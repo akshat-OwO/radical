@@ -81,7 +81,7 @@ export const watchTrackingSession = Stream.unwrap(
     const bridge = yield* Bridge;
 
     return Stream.callback<
-      Effect.Effect<TrackingSession | null, BridgeDecodeError>,
+      Effect.Effect<TrackingSession | null, TrackingError>,
       TrackingError,
       Bridge
     >((queue) =>
@@ -118,6 +118,29 @@ export const watchTrackingSession = Stream.unwrap(
                     )
                   )
                 );
+              }
+            )
+          ),
+          (release) => release
+        ).pipe(Effect.asVoid);
+        yield* Effect.acquireRelease(
+          available(
+            bridge.listen(
+              trackingSessionPlugin.bridge,
+              "appStateChange",
+              (event) => {
+                if (
+                  Schema.is(Schema.Struct({ active: Schema.Literal(true) }))(
+                    event
+                  )
+                ) {
+                  Queue.offerUnsafe(
+                    queue,
+                    getTrackingSession.pipe(
+                      Effect.provideService(Bridge, bridge)
+                    )
+                  );
+                }
               }
             )
           ),
