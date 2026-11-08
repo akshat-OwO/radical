@@ -1088,6 +1088,7 @@ const interruptionModel = () => {
   let value: TrackingSession = { ...session };
   let failCommit = false;
   let granted = true;
+  let needsHydration = false;
   const counts = { registrations: 0, removals: 0, callbacks: 0 };
   const published: TrackingSession[] = [];
 
@@ -1129,6 +1130,30 @@ const interruptionModel = () => {
       counts.callbacks = 0;
     });
 
+  const get = Effect.gen(function* () {
+    if (needsHydration && persisted !== null) {
+      const candidate: TrackingSession = {
+        ...session,
+        ...persisted,
+        latest: null,
+        status:
+          persisted.terminalState ??
+          (granted
+            ? { state: "interrupted", reason: "termination" }
+            : { state: "stopped", reason: "permissionRevoked" }),
+        permission: granted
+          ? session.permission
+          : { state: "denied", precision: "unknown" },
+      };
+
+      yield* commit(candidate);
+      update(candidate);
+      needsHydration = false;
+    }
+
+    return value;
+  });
+
   return {
     counts,
     published,
@@ -1155,31 +1180,17 @@ const interruptionModel = () => {
     }),
     stop: stop("user"),
     reload: () => value,
+    get,
+    loseProcess: () => {
+      counts.callbacks = 0;
+      needsHydration = true;
+    },
     freshProcess: () =>
       Effect.gen(function* () {
-        // Process death discards memory and acquisition, not durable metadata.
         counts.callbacks = 0;
-        const record = persisted;
+        needsHydration = true;
 
-        if (record === null) {
-          return;
-        }
-
-        value = {
-          ...session,
-          ...record,
-          latest: null,
-          status:
-            record.terminalState ??
-            (granted
-              ? { state: "interrupted", reason: "termination" }
-              : { state: "stopped", reason: "permissionRevoked" }),
-          permission: granted
-            ? session.permission
-            : { state: "denied", precision: "unknown" },
-        };
-        yield* commit(value);
-        update({});
+        return yield* get;
       }),
     permission: (allowed: boolean, running = true) =>
       Effect.gen(function* () {
@@ -1491,3 +1502,49 @@ it.effect("hook rehydrates after remount and reconciles on foreground", () =>
     })
   )
 );
+
+for (const granted of [true, false]) {
+  it.effect(
+    `lifecycle model retries failed hydration commit with permission ${granted}`,
+    () =>
+      Effect.gen(function* () {
+        const model = interruptionModel();
+        yield* model.start;
+        model.fix();
+        yield* model.permission(granted, false);
+        model.loseProcess();
+        const before = model.read();
+        const publications = model.published.length;
+        const metadata = model.metadata();
+        model.failCommit(true);
+        const failure = yield* model.get.pipe(Effect.flip);
+        assert.strictEqual(failure._tag, "Unavailable");
+        assert.strictEqual(model.read(), before);
+        assert.strictEqual(model.published.length, publications);
+        assert.deepStrictEqual(model.metadata(), metadata);
+        model.failCommit(false);
+        const reconstructed = yield* model.get;
+        assert.isDefined(reconstructed);
+
+        const value = yield* getTrackingSession.pipe(
+          Effect.provide(fixture(reconstructed).layer)
+        );
+
+        assert.isNotNull(value);
+        assert.deepStrictEqual(
+          value?.status,
+          granted
+            ? { state: "interrupted", reason: "termination" }
+            : { state: "stopped", reason: "permissionRevoked" }
+        );
+        assert.strictEqual(value?.latest, null);
+        assert.isAbove(value?.revision ?? 0, before.revision);
+        assert.strictEqual(model.published.length, publications + 1);
+        assert.deepStrictEqual(model.counts, {
+          registrations: 1,
+          removals: 0,
+          callbacks: 0,
+        });
+      })
+  );
+}

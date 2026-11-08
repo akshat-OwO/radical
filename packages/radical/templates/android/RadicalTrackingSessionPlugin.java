@@ -26,7 +26,7 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     @Override protected void handleOnStart() {
         visible = true;
         getActivity().runOnUiThread(() -> {
-            RadicalTrackingService.hydrate(getContext());
+            if (!RadicalTrackingService.hydrate(getContext())) return;
             if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
             notifyListeners("appStateChange", new JSObject().put("active", true));
         });
@@ -38,7 +38,9 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     @Override protected void handleOnDestroy() { RadicalTrackingService.observers.remove(observer); }
     @PluginMethod public void getTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
-            RadicalTrackingService.hydrate(getContext());
+            if (!RadicalTrackingService.hydrate(getContext())) {
+                call.reject("Cannot hydrate tracking metadata; retry when storage is available", "Unavailable"); return;
+            }
             if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
             JSObject result = new JSObject();
             JSObject session = RadicalTrackingService.pendingStart == null ? RadicalTrackingService.snapshot : RadicalTrackingService.previous;
@@ -48,7 +50,9 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     }
     @PluginMethod public void startTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
-            RadicalTrackingService.hydrate(getContext());
+            if (!RadicalTrackingService.hydrate(getContext())) {
+                call.reject("Cannot hydrate tracking metadata; retry when storage is available", "Unavailable"); return;
+            }
             RadicalTrackingService.retryCleanup(getContext());
             JSObject current = RadicalTrackingService.snapshot;
             if (RadicalTrackingService.active()) {
@@ -84,6 +88,9 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     }
     @PluginMethod public void stopTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            if (!RadicalTrackingService.hydrate(getContext())) {
+                call.reject("Cannot hydrate tracking metadata; retry when storage is available", "Unavailable"); return;
+            }
             JSObject current = RadicalTrackingService.snapshot;
             String id = call.getString("id", "");
             if (current == null || !id.equals(current.getString("id"))) {
