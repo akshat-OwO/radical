@@ -1,0 +1,7 @@
+agent-device hardware-button sleep
+Error (UNSUPPORTED_OPERATION): hardware-button is not supported on this device
+Hint: No Apple leaf carries this system button.
+
+agent-device capabilities
+iPhone 17 Pro (ios simulator target=mobile model="iPhone 17 Pro" os=26.5) booted=true supports 45 commands:
+action-button alert app-switcher apps appstate audio back boot click clipboard close diff fill find focus fold gesture get home install install-from-source is keyboard logs longpress network open orientation perf prepare press push react-native record reinstall screenshot scroll settings shutdown snapshot swipe trigger-app-event type uninstall wait
