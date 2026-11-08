@@ -1,0 +1,6 @@
+{
+  "UIBackgroundModes": ["location", "remote-notification"],
+  "NSLocationWhenInUseUsageDescription": "Show your location on the example map. Track your location during a session you start.",
+  "NSLocationAlwaysAndWhenInUseUsageDescription": "Show your location on the example map. Track your location during a session you start.",
+  "NSLocationDefaultAccuracyReduced": true
+}
