@@ -88,6 +88,10 @@ Missing iOS store identity produces instructions without a store button. These e
 
 ## Tracking sessions
 
-`useTrackingSession()` returns `value`, `loading`, `error`, `refresh()`, `start(options)`, and `stop(id)`. It retrieves the native snapshot after mounting or a WebView reload and again on foreground return.
+`useTrackingSession()` returns `{ value, loading, error, refresh, start, stop }`. `value` starts as `null`, `loading` as `true`, and `error` as `undefined`, including during server rendering. Bridge access starts after mount.
 
-Unmounting releases observation without stopping acquisition. See the [client reference](/docs/reference/client#tracking-sessions) for statuses, acquisition errors, and notification permission reporting.
+`start(options)` starts an explicit session; `stop(id)` stops it; `refresh()` retrieves the current snapshot. The hook retrieves the native snapshot after mounting or a WebView reload, and again on return to the foreground.
+
+Mounting observes without starting. Unmounting only unsubscribes and never stops collection. In browsers, observation and all three actions report `Unavailable` in `error`.
+
+See [Track a user-started session](/docs/guides/tracking-session), and the [client reference](/docs/reference/client#tracking-sessions) for statuses, acquisition errors, and notification permission reporting.

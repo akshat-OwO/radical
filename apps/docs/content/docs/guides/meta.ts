@@ -18,6 +18,7 @@ export default defineMeta({
     "video-stream",
     "files",
     "location",
+    "tracking-session",
     "haptics",
     "network",
     "google-sign-in",

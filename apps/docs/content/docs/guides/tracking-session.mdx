@@ -1,0 +1,100 @@
+---
+title: "Track a user-started session"
+description: "Start and observe location collection that continues in the background."
+---
+
+Tracking is Android-only for now. iOS support is planned, with no release date set. In browsers and older shells, every tracking call fails with typed `Unavailable`. Use [foreground location](/docs/guides/location) in browsers.
+
+## Enable tracking
+
+Set the following options, then regenerate your native projects. Tracking enables `location` too. Install the location dependency described in the [location setup](/docs/guides/location#enable-location).
+
+```ts title="vite.config.ts"
+const config = {
+  internalPlugins: { trackingSession: true },
+  pluginOptions: {
+    Location: { usageDescription: "Show your location on the map." },
+    TrackingSession: {
+      usageDescription: "Track your location during a trip you start.",
+      notificationTitle: "Trip in progress",
+      notificationBody: "Location collection continues until you stop it.",
+      stopActionLabel: "Stop trip",
+    },
+  },
+} satisfies RadicalConfig;
+```
+
+## Connect explicit actions
+
+Request approximate location permission before starting. Tracking never prompts for permission itself. Precise permission is optional.
+
+```tsx
+import {
+  useLocationPermission,
+  useTrackingSession,
+} from "@akshatowo/radical/react";
+
+function Trip() {
+  const permission = useLocationPermission();
+  const { value, loading, error, refresh, start, stop } = useTrackingSession();
+  return (
+    <section>
+      <p>
+        Location permission:{" "}
+        {permission.value?.state ?? permission.error?._tag ?? "Checking..."}
+      </p>
+      <button onClick={() => permission.request()}>
+        Request approximate location
+      </button>
+      <button
+        disabled={permission.value?.state !== "granted"}
+        onClick={() => start({ preset: "fitness" })}
+      >
+        Start trip
+      </button>
+      <button disabled={!value} onClick={() => value && stop(value.id)}>
+        Stop trip
+      </button>
+      <button onClick={() => refresh()}>Refresh</button>
+      <pre>{JSON.stringify({ value, loading, error }, null, 2)}</pre>
+    </section>
+  );
+}
+```
+
+Mounting retrieves and observes the current session. It never starts tracking.
+
+Unmounting unsubscribes and never stops collection. Start from a user action while the app is visible. One session can be active per installed app.
+
+Read `value.latest` for the latest location fix, `value.permission.precision` for the actual precision, and `value.lastError` for acquisition failures. Approximate permission is enough. Request precise location separately through the [location permission API](/docs/guides/location).
+
+See the [client API](/docs/reference/client#tracking-sessions) for calls without React and the preset values.
+
+## Handle session changes
+
+A session reports these states:
+
+| State | Reason | Action |
+| --- | --- | --- |
+| `running` | None | Show the latest location fix. |
+| `suspended` | `servicesOff` | Ask the user to enable location services. Acquisition can resume within the same session. |
+| `stopped` | `user` or `permissionRevoked` | Require an explicit start for another session. A later permission grant does not restart it. |
+| `interrupted` | `termination` | Require an explicit start after the app returns. The latest location fix is `null`. |
+
+Nothing restarts automatically after a stop or interruption. A stopped or interrupted session stays readable until the next start replaces it.
+
+Stopping the current id is idempotent. Stopping a stale id fails with `TrackingSessionNotFound`.
+
+Starting with location services off fails with `LocationServicesOff`. An acquisition timeout appears in `lastError` without ending the session. Session metadata survives termination; tracking does not store a location history.
+
+## Account for platform limits
+
+On Android 13 and later, tracking can run when notification permission is denied. The notification and its Stop action are then hidden. Read `value.notifications.state` to detect this.
+
+Recommend granting notification permission so users can reach Stop outside your app. Keep a Stop button in your app too.
+
+Android uses a location foreground service started while the activity is visible. It does not request background location permission.
+
+Google Play requires foreground-service location review and a Play Console declaration. Check the store requirements before release.
+
+Presets and overrides request acquisition behavior. They never guarantee a delivery interval. The planned iOS implementation uses `interval` only to throttle delivery to the page; Core Location has no requested update interval.

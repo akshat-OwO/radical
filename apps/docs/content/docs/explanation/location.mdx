@@ -76,3 +76,13 @@ Requests ask for approximate location unless you pass a purpose key. Google Play
 [Show the user's location](/docs/guides/location) contains the procedure. [Location API](/docs/reference/location) lists the contracts.
 
 The [maps tutorial](/docs/tutorials/maps-app) uses both the hooks and the replacement.
+
+## User-started tracking
+
+Foreground location watches belong to a visible page. A tracking session belongs to the installed app, so leaving a screen does not end collection.
+
+Native code owns the current snapshot across WebView reloads. Tracking stores session metadata, not location history, and requires explicit restart after termination.
+
+Tracking is Android-only for now; iOS support is planned.
+
+Browser visibility rules cannot support this lifecycle, so tracking returns `Unavailable` there. Foreground location keeps its browser fallback. See [Track a user-started session](/docs/guides/tracking-session).
