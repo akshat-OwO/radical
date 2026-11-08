@@ -1690,19 +1690,22 @@ for (const push of [false, true]) {
 
 it.effect("types every bridged plugin's methods as CAPPluginMethod", () =>
   Effect.sync(() => {
-    const templates = {
-      dataProtection,
-      locationSource,
-      navigationSource,
-      notificationSource,
-      settings,
-      trackingSource,
-      transitions,
-      activity,
-    };
+    const templates = import.meta.glob<string>(
+      "../../../templates/ios/*.swift",
+      {
+        eager: true,
+        import: "default",
+        query: "?raw",
+      }
+    );
 
-    for (const [name, source] of Object.entries(templates)) {
-      assert.include(source, "CAPBridgedPlugin", name);
+    const bridged = Object.entries(templates).filter(([, source]) =>
+      source.includes("CAPBridgedPlugin")
+    );
+
+    assert.isAtLeast(bridged.length, 8);
+
+    for (const [name, source] of bridged) {
       assert.match(
         source,
         /public let pluginMethods: \[CAPPluginMethod\] = \[/u,
