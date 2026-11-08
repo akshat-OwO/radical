@@ -28,6 +28,9 @@ public class RadicalTrackingService extends Service {
     static boolean active() {
         return stopping || pendingStart != null || snapshot != null && "running".equals(snapshot.getJSObject("status").getString("state"));
     }
+    static void retryCleanup(Context context) {
+        if (stopping && owner != null && !owner.removing && owner.teardownComplete == null) finishStop(context);
+    }
     static void publish() {
         snapshot.put("revision", ++revision);
         for (Runnable observer : observers) observer.run();
@@ -146,6 +149,9 @@ public class RadicalTrackingService extends Service {
                 }
             }).addOnFailureListener(error -> {
                 if (snapshot != null && sessionId.equals(snapshot.getString("id")) && pendingStart != null) failStart(this, error);
+            }).addOnCanceledListener(() -> {
+                if (snapshot != null && sessionId.equals(snapshot.getString("id")) && pendingStart != null)
+                    failStart(this, new IllegalStateException("Location callback registration canceled"));
             });
         } catch (RuntimeException error) {
             failStart(this, error);

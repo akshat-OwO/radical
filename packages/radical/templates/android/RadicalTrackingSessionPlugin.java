@@ -35,6 +35,7 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     }
     @PluginMethod public void startTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            RadicalTrackingService.retryCleanup(getContext());
             JSObject current = RadicalTrackingService.snapshot;
             if (RadicalTrackingService.active()) {
                 call.reject("Session already active", "TrackingSessionAlreadyActive", new JSObject().put("id", current == null ? "" : current.getString("id"))); return;

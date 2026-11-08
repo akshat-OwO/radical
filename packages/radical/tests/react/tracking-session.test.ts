@@ -617,7 +617,7 @@ for (const reason of [
   "synchronous removal exception",
 ]) {
   it.effect(
-    `maps ${reason}, retains ownership and settles concurrent stops once`,
+    `decodes bridge error "${reason}" and retains ownership until retry`,
     () =>
       Effect.scoped(
         Effect.gen(function* () {
@@ -685,5 +685,297 @@ for (const reason of [
           }).pipe(Effect.provide(native.layer));
         })
       )
+  );
+}
+
+// Task cancellation is a native completion outcome, not fiber interruption.
+type NativeOutcome = "success" | "failure" | "cancellation" | "exception";
+
+const lifecycleOwner = (
+  registration: Effect.Effect<NativeOutcome>,
+  removal: Effect.Effect<NativeOutcome>
+) => {
+  const counts = {
+    registrations: 0,
+    removals: 0,
+    callbacks: 0,
+    starts: 0,
+    stops: 0,
+  };
+
+  let current: TrackingSession | null = null;
+
+  let pending: Effect.Effect<unknown, BridgeCallFailed> | undefined;
+
+  let cleanup = false;
+
+  let nextId = 0;
+
+  const starting = Deferred.makeUnsafe<undefined>();
+
+  const stopping = Deferred.makeUnsafe<undefined>();
+
+  const error = (method: string, reason: NativeOutcome) =>
+    new BridgeCallFailed({
+      plugin: "RadicalTrackingSession",
+      method,
+      cause: { code: "Unavailable", data: { reason } },
+    });
+
+  const invoke = (method: string, outcome: NativeOutcome) =>
+    Effect.try({
+      try: () => {
+        if (outcome === "exception") {
+          throw new Error("Synchronous native invocation failed");
+        }
+
+        return {
+          canceled: outcome === "cancellation",
+          successful: outcome === "success",
+        };
+      },
+      catch: () => error(method, "exception"),
+    }).pipe(
+      Effect.flatMap((task) => {
+        if (task.canceled) {
+          return Effect.fail(error(method, "cancellation"));
+        }
+
+        return task.successful
+          ? Effect.void
+          : Effect.fail(error(method, "failure"));
+      })
+    );
+
+  const remove = Effect.gen(function* () {
+    counts.removals += 1;
+
+    const outcome = yield* removal;
+
+    yield* invoke("stopTrackingSession", outcome);
+
+    counts.callbacks = 0;
+
+    cleanup = false;
+  });
+
+  const layer = Layer.succeed(Bridge, {
+    runtime: Effect.succeed("android" as const),
+    observe: () => Effect.succeed(() => {}),
+    call: (_plugin, method) =>
+      Effect.suspend<unknown, BridgeCallFailed, never>(() => {
+        if (method === "getTrackingSession") {
+          return Effect.succeed({ session: current });
+        }
+
+        if (method === "startTrackingSession") {
+          return Effect.gen(function* () {
+            if (cleanup) {
+              yield* remove;
+            }
+
+            const previous = current;
+
+            current = { ...session, id: String((nextId += 1)) };
+
+            counts.registrations += 1;
+
+            counts.callbacks += 1;
+
+            pending = yield* Effect.cached(
+              Effect.gen(function* () {
+                const outcome = yield* registration;
+
+                yield* invoke(method, outcome).pipe(
+                  Effect.catch((error_) =>
+                    Effect.gen(function* () {
+                      current = previous;
+
+                      cleanup = true;
+
+                      yield* Effect.ignore(remove);
+
+                      return yield* Effect.fail(error_);
+                    })
+                  )
+                );
+
+                return current;
+              })
+            );
+
+            yield* Deferred.succeed(starting, undefined);
+
+            return yield* pending.pipe(
+              Effect.onExit(() =>
+                Effect.sync(() => {
+                  counts.starts += 1;
+                })
+              )
+            );
+          });
+        }
+
+        return Effect.gen(function* () {
+          yield* Deferred.succeed(stopping, undefined);
+
+          if (pending) {
+            yield* Effect.ignore(pending);
+          }
+
+          if (cleanup || counts.callbacks > 0) {
+            yield* remove;
+          }
+
+          if (current === null) {
+            return yield* Effect.fail(
+              new BridgeCallFailed({
+                plugin: "RadicalTrackingSession",
+                method,
+                cause: { code: "TrackingSessionNotFound", data: { id: "1" } },
+              })
+            );
+          }
+
+          return current;
+        }).pipe(
+          Effect.onExit(() =>
+            Effect.sync(() => {
+              counts.stops += 1;
+            })
+          )
+        );
+      }),
+  });
+
+  return { layer, counts, starting, stopping };
+};
+
+for (const outcome of ["failure", "cancellation", "exception"] as const) {
+  it.effect(
+    `recovers from registration ${outcome} and failed rollback removal`,
+    () =>
+      Effect.gen(function* () {
+        let registrations = 0;
+
+        let removals = 0;
+
+        const native = lifecycleOwner(
+          Effect.sync(() => ((registrations += 1) === 1 ? outcome : "success")),
+          Effect.sync(() => ((removals += 1) === 1 ? "failure" : "success"))
+        );
+
+        yield* Effect.gen(function* () {
+          const failed = yield* startTrackingSession({
+            preset: "balanced",
+          }).pipe(Effect.flip);
+
+          assert.strictEqual(failed._tag, "Unavailable");
+
+          assert.strictEqual(native.counts.callbacks, 1);
+
+          assert.strictEqual(yield* getTrackingSession, null);
+
+          const recovered = yield* startTrackingSession({ preset: "balanced" });
+
+          assert.strictEqual(recovered.id, "2");
+
+          assert.deepStrictEqual(native.counts, {
+            registrations: 2,
+            removals: 2,
+            callbacks: 1,
+            starts: 2,
+            stops: 0,
+          });
+
+          yield* stopTrackingSession(recovered.id);
+
+          assert.strictEqual(native.counts.callbacks, 0);
+        }).pipe(Effect.provide(native.layer));
+      })
+  );
+}
+
+it.effect(
+  "canceled registration settles start and pending stop once and removes callback",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const task = yield* Deferred.make<NativeOutcome>();
+
+        const native = lifecycleOwner(
+          Deferred.await(task),
+          Effect.succeed("success")
+        );
+
+        yield* Effect.gen(function* () {
+          const start = yield* startTrackingSession({
+            preset: "balanced",
+          }).pipe(Effect.flip, Effect.forkScoped);
+
+          yield* Deferred.await(native.starting);
+
+          const stop = yield* stopTrackingSession("1").pipe(
+            Effect.flip,
+            Effect.forkScoped
+          );
+
+          yield* Deferred.await(native.stopping);
+
+          yield* Deferred.succeed(task, "cancellation");
+
+          assert.strictEqual((yield* Fiber.join(start))._tag, "Unavailable");
+
+          assert.strictEqual(
+            (yield* Fiber.join(stop))._tag,
+            "TrackingSessionNotFound"
+          );
+
+          assert.deepStrictEqual(native.counts, {
+            registrations: 1,
+            removals: 1,
+            callbacks: 0,
+            starts: 1,
+            stops: 1,
+          });
+        }).pipe(Effect.provide(native.layer));
+      })
+    )
+);
+
+for (const outcome of ["failure", "cancellation", "exception"] as const) {
+  it.effect(
+    `retains callback after removal ${outcome} and retries cleanup`,
+    () =>
+      Effect.gen(function* () {
+        let removals = 0;
+
+        const native = lifecycleOwner(
+          Effect.succeed("success"),
+          Effect.sync(() => ((removals += 1) === 1 ? outcome : "success"))
+        );
+
+        yield* Effect.gen(function* () {
+          const started = yield* startTrackingSession({ preset: "balanced" });
+
+          const failed = yield* stopTrackingSession(started.id).pipe(
+            Effect.flip
+          );
+
+          assert.strictEqual(failed._tag, "Unavailable");
+
+          assert.strictEqual(native.counts.callbacks, 1);
+
+          yield* stopTrackingSession(started.id);
+
+          assert.deepStrictEqual(native.counts, {
+            registrations: 1,
+            removals: 2,
+            callbacks: 0,
+            starts: 1,
+            stops: 2,
+          });
+        }).pipe(Effect.provide(native.layer));
+      })
   );
 }
