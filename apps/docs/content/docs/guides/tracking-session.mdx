@@ -89,7 +89,7 @@ Starting with location services off fails with `LocationServicesOff`. An acquisi
 
 ## Account for platform limits
 
-On Android 13 and later, tracking can run when notification permission is denied. The notification and its Stop action are then hidden.
+On Android 13 and later, tracking can run when notification permission is denied. The notification and its Stop action are then hidden. Read `value.notifications.state` to detect this.
 
 Recommend granting notification permission so users can reach Stop outside your app. Keep a Stop button in your app too.
 

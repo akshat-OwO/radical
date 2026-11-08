@@ -82,6 +82,14 @@ Presets are requests, not guarantees:
 
 On iOS, `interval` only throttles delivery. No platform guarantees delivery intervals.
 
-Typed failures include `Unavailable`, `PermissionDenied`, `LocationServicesOff`, `InvalidTrackingOptions`, `TrackingStartRequiresForeground`, `TrackingSessionAlreadyActive` with the existing `id`, and `TrackingSessionNotFound` with the stale `id`. Bridge failures retain their typed bridge error. Acquisition timeouts set `lastError` without failing the stream.
+Typed failures include `Unavailable`, `PermissionDenied`, `LocationServicesOff`, `InvalidTrackingOptions`, `TrackingStartRequiresForeground`, `TrackingSessionAlreadyActive` with the existing `id`, and `TrackingSessionNotFound` with the stale `id`. Bridge failures retain their typed bridge error.
+
+Snapshots report `running`, `suspended: servicesOff`, `stopped: user | permissionRevoked`, or `interrupted: termination`. When services return, the same session resumes.
+
+`lastError` is a nullable `TrackingAcquisitionError`, including `LocationTimeout`. A timeout does not end tracking or fail the stream. It covers waiting for a fix after start or after services return.
+
+`notifications.state` reports `granted` or `denied`. Denial does not prevent tracking, but hides the Android notification and its Stop action.
+
+The native owner stores only session metadata, in private no-backup storage. A fresh process reports an unfinished session as `interrupted` with `latest: null`. Watches retrieve the snapshot on subscription and on return to the foreground, and discard older revisions.
 
 See [Track a user-started session](/docs/guides/tracking-session) for lifecycle states, restart rules, and platform limits.

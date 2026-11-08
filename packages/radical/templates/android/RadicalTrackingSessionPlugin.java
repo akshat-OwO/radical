@@ -19,14 +19,29 @@ public class RadicalTrackingSessionPlugin extends Plugin {
         }
     };
     @Override public void load() {
+        getActivity().runOnUiThread(() -> RadicalTrackingService.hydrate(getContext()));
         visible = getActivity().getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED);
         RadicalTrackingService.observers.add(observer);
     }
-    @Override protected void handleOnStart() { visible = true; }
+    @Override protected void handleOnStart() {
+        visible = true;
+        getActivity().runOnUiThread(() -> {
+            if (!RadicalTrackingService.hydrate(getContext())) return;
+            if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
+            notifyListeners("appStateChange", new JSObject().put("active", true));
+        });
+    }
+    @Override protected void handleOnResume() {
+        if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
+    }
     @Override protected void handleOnStop() { visible = false; }
     @Override protected void handleOnDestroy() { RadicalTrackingService.observers.remove(observer); }
     @PluginMethod public void getTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            if (!RadicalTrackingService.hydrate(getContext())) {
+                call.reject("Cannot hydrate tracking metadata; retry when storage is available", "Unavailable"); return;
+            }
+            if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
             JSObject result = new JSObject();
             JSObject session = RadicalTrackingService.pendingStart == null ? RadicalTrackingService.snapshot : RadicalTrackingService.previous;
             result.put("session", session == null ? org.json.JSONObject.NULL : session);
@@ -35,6 +50,9 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     }
     @PluginMethod public void startTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            if (!RadicalTrackingService.hydrate(getContext())) {
+                call.reject("Cannot hydrate tracking metadata; retry when storage is available", "Unavailable"); return;
+            }
             RadicalTrackingService.retryCleanup(getContext());
             JSObject current = RadicalTrackingService.snapshot;
             if (RadicalTrackingService.active()) {
@@ -43,7 +61,7 @@ public class RadicalTrackingSessionPlugin extends Plugin {
             if (!visible) { call.reject("Activity must be visible", "TrackingStartRequiresForeground"); return; }
             LocationManager manager = (LocationManager)getContext().getSystemService(android.content.Context.LOCATION_SERVICE);
             if (!androidx.core.location.LocationManagerCompat.isLocationEnabled(manager)) { call.reject("Location services off", "LocationServicesOff"); return; }
-            if (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (!RadicalTrackingService.hasLocationPermission(getContext())) {
                 call.reject("Location permission required", "PermissionDenied"); return;
             }
             String preset = call.getString("preset", "");
@@ -70,6 +88,9 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     }
     @PluginMethod public void stopTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            if (!RadicalTrackingService.hydrate(getContext())) {
+                call.reject("Cannot hydrate tracking metadata; retry when storage is available", "Unavailable"); return;
+            }
             JSObject current = RadicalTrackingService.snapshot;
             String id = call.getString("id", "");
             if (current == null || !id.equals(current.getString("id"))) {

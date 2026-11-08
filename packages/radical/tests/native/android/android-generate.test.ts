@@ -1399,6 +1399,12 @@ it.effect(
       assert.include(manifest, "android.permission.ACCESS_FINE_LOCATION");
       assert.notInclude(manifest, "ACCESS_BACKGROUND_LOCATION");
 
+      // Metadata uses no-backup storage, so no manifest backup exception is needed.
+      assert.include(trackingServiceSource, "context.getNoBackupFilesDir()");
+      assert.include(trackingServiceSource, "output.getFD().sync()");
+      assert.include(trackingServiceSource, "!temporary.renameTo(file)");
+      assert.notInclude(trackingServiceSource, "OnPermissionsChangedListener");
+
       const source =
         state.files.get(
           `${destination}/android/app/src/main/java/dev/radical/example/RadicalLocationPlugin.java`
@@ -2000,6 +2006,12 @@ it.effect(
       );
 
       assert.notInclude(manifest, "ACCESS_BACKGROUND_LOCATION");
+
+      // Metadata uses no-backup storage, so no manifest backup exception is needed.
+      assert.include(trackingServiceSource, "context.getNoBackupFilesDir()");
+      assert.include(trackingServiceSource, "output.getFD().sync()");
+      assert.include(trackingServiceSource, "!temporary.renameTo(file)");
+      assert.notInclude(trackingServiceSource, "OnPermissionsChangedListener");
 
       assert.match(
         manifest,
