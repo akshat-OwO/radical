@@ -1401,7 +1401,9 @@ it.effect(
 
       // Metadata uses no-backup storage, so no manifest backup exception is needed.
       assert.include(trackingServiceSource, "context.getNoBackupFilesDir()");
-      assert.include(trackingServiceSource, "new AtomicFile(");
+      assert.include(trackingServiceSource, "output.getFD().sync()");
+      assert.include(trackingServiceSource, "!temporary.renameTo(file)");
+      assert.notInclude(trackingServiceSource, "OnPermissionsChangedListener");
 
       const source =
         state.files.get(
@@ -2007,7 +2009,9 @@ it.effect(
 
       // Metadata uses no-backup storage, so no manifest backup exception is needed.
       assert.include(trackingServiceSource, "context.getNoBackupFilesDir()");
-      assert.include(trackingServiceSource, "new AtomicFile(");
+      assert.include(trackingServiceSource, "output.getFD().sync()");
+      assert.include(trackingServiceSource, "!temporary.renameTo(file)");
+      assert.notInclude(trackingServiceSource, "OnPermissionsChangedListener");
 
       assert.match(
         manifest,

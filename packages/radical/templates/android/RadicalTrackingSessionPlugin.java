@@ -31,6 +31,9 @@ public class RadicalTrackingSessionPlugin extends Plugin {
             notifyListeners("appStateChange", new JSObject().put("active", true));
         });
     }
+    @Override protected void handleOnResume() {
+        if (RadicalTrackingService.owner != null) RadicalTrackingService.owner.reconcile();
+    }
     @Override protected void handleOnStop() { visible = false; }
     @Override protected void handleOnDestroy() { RadicalTrackingService.observers.remove(observer); }
     @PluginMethod public void getTrackingSession(PluginCall call) {
@@ -54,7 +57,7 @@ public class RadicalTrackingSessionPlugin extends Plugin {
             if (!visible) { call.reject("Activity must be visible", "TrackingStartRequiresForeground"); return; }
             LocationManager manager = (LocationManager)getContext().getSystemService(android.content.Context.LOCATION_SERVICE);
             if (!androidx.core.location.LocationManagerCompat.isLocationEnabled(manager)) { call.reject("Location services off", "LocationServicesOff"); return; }
-            if (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (!RadicalTrackingService.hasLocationPermission(getContext())) {
                 call.reject("Location permission required", "PermissionDenied"); return;
             }
             String preset = call.getString("preset", "");

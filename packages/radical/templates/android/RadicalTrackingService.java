@@ -3,7 +3,7 @@ import android.content.*;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
-import android.util.AtomicFile;
+import androidx.core.content.ContextCompat;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import android.os.*;
@@ -36,53 +36,63 @@ public class RadicalTrackingService extends Service {
     private final BroadcastReceiver providers = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) { reconcile(); }
     };
-    private final PackageManager.OnPermissionsChangedListener permissions =
-        uid -> { if (uid == android.os.Process.myUid()) handler.post(this::reconcile); };
     private FusedLocationProviderClient fused;
     private LocationCallback callback;
     private Runnable teardownComplete;
     private boolean removing;
     private boolean destroyed;
     private static final String CHANNEL = "radical_tracking";
-    private static AtomicFile metadata(Context context) {
-        return new AtomicFile(new File(context.getNoBackupFilesDir(), "radical-tracking.json"));
+    private static File metadata(Context context) {
+        return new File(context.getNoBackupFilesDir(), "radical-tracking.json");
     }
     static void persist(Context context) throws IOException {
-        AtomicFile file = metadata(context);
-        FileOutputStream output = null;
+        File file = metadata(context);
+        File temporary = File.createTempFile("radical-tracking-", ".tmp", context.getNoBackupFilesDir());
         try {
-            output = file.startWrite();
-            if (snapshot != null) {
-                JSObject record = new JSObject();
-                record.put("id", snapshot.getString("id"));
-                record.put("options", snapshot.getJSObject("options"));
-                record.put("startedAt", snapshot.optLong("startedAt"));
-                String state = snapshot.getJSObject("status").getString("state");
-                record.put("terminalState", "stopped".equals(state) || "interrupted".equals(state)
-                    ? snapshot.getJSObject("status") : org.json.JSONObject.NULL);
-                output.write(record.toString().getBytes(StandardCharsets.UTF_8));
+            try (FileOutputStream output = new FileOutputStream(temporary)) {
+                if (snapshot != null) {
+                    JSObject record = new JSObject();
+                    record.put("id", snapshot.getString("id"));
+                    record.put("options", snapshot.getJSObject("options"));
+                    record.put("startedAt", snapshot.optLong("startedAt"));
+                    String state = snapshot.getJSObject("status").getString("state");
+                    record.put("terminalState", "stopped".equals(state) || "interrupted".equals(state)
+                        ? snapshot.getJSObject("status") : org.json.JSONObject.NULL);
+                    output.write(record.toString().getBytes(StandardCharsets.UTF_8));
+                }
+                output.getFD().sync();
             }
-            file.finishWrite(output);
-        } catch (IOException | RuntimeException error) {
-            if (output != null) file.failWrite(output);
-            throw error;
+            if (!temporary.renameTo(file)) throw new IOException("Cannot commit tracking metadata");
+        } finally {
+            if (temporary.exists() && !temporary.delete()) android.util.Log.e("RadicalTracking", "Cannot delete temporary metadata");
         }
     }
     static void hydrate(Context context) {
         if (hydrated) return;
         hydrated = true;
         try {
-            JSObject record = new JSObject(new String(metadata(context).readFully(), StandardCharsets.UTF_8));
+            byte[] bytes;
+            try (FileInputStream input = new FileInputStream(metadata(context));
+                 ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                byte[] chunk = new byte[4096];
+                int count;
+                while ((count = input.read(chunk)) != -1) buffer.write(chunk, 0, count);
+                bytes = buffer.toByteArray();
+            }
+            JSObject record = new JSObject(new String(bytes, StandardCharsets.UTF_8));
             snapshot = new JSObject();
             snapshot.put("id", record.getString("id"));
             snapshot.put("options", record.getJSObject("options"));
             snapshot.put("startedAt", record.optLong("startedAt"));
             JSObject terminal = record.getJSObject("terminalState");
             snapshot.put("status", terminal == null
-                ? new JSObject().put("state", "interrupted").put("reason", "termination") : terminal);
+                ? hasLocationPermission(context)
+                    ? new JSObject().put("state", "interrupted").put("reason", "termination")
+                    : new JSObject().put("state", "stopped").put("reason", "permissionRevoked") : terminal);
             snapshot.put("latest", org.json.JSONObject.NULL);
             snapshot.put("lastError", org.json.JSONObject.NULL);
             refreshPermissions(context);
+            if (terminal == null) persist(context);
             publish();
         } catch (FileNotFoundException ignored) {
             // No session has been acknowledged in this installation.
@@ -90,12 +100,16 @@ public class RadicalTrackingService extends Service {
             android.util.Log.e("RadicalTracking", "Cannot read tracking metadata", error);
         }
     }
+    static boolean hasLocationPermission(Context context) {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
     static void refreshPermissions(Context context) {
-        boolean granted = context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        boolean granted = hasLocationPermission(context);
         snapshot.put("permission", new JSObject().put("state", granted ? "granted" : "denied").put("precision",
-            !granted ? "unknown" : context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ? "precise" : "approximate"));
+            !granted ? "unknown" : ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ? "precise" : "approximate"));
         snapshot.put("notifications", new JSObject().put("state",
-            Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED ? "granted" : "denied"));
+            Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED ? "granted" : "denied"));
     }
     private void armTimeout() {
         handler.removeCallbacks(timeout);
@@ -127,7 +141,6 @@ public class RadicalTrackingService extends Service {
         super.onCreate();
         androidx.core.content.ContextCompat.registerReceiver(this, providers,
             new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
-        getPackageManager().addOnPermissionsChangeListener(permissions);
     }
     static boolean active() {
         return stopping || pendingStart != null || snapshot != null && ("running".equals(snapshot.getJSObject("status").getString("state")) || "suspended".equals(snapshot.getJSObject("status").getString("state")));
@@ -156,6 +169,7 @@ public class RadicalTrackingService extends Service {
         PluginCall call = pendingStart;
         pendingStart = null;
         previous = null;
+        publish();
         if (call != null) call.resolve(snapshot);
         if (stopRequested || !pendingStops.isEmpty()) stopCurrent(owner);
         else { owner.armTimeout(); owner.reconcile(); }
@@ -265,7 +279,6 @@ public class RadicalTrackingService extends Service {
             };
             fused.requestLocationUpdates(request, callback, Looper.getMainLooper()).addOnSuccessListener(ignored -> {
                 if (snapshot != null && sessionId.equals(snapshot.getString("id")) && pendingStart != null) {
-                    publish();
                     settleStart();
                 }
             }).addOnFailureListener(error -> {
@@ -312,13 +325,13 @@ public class RadicalTrackingService extends Service {
                     String.valueOf(task.getException()));
             });
         } catch (RuntimeException error) {
+            if (error instanceof SecurityException) reconcile();
             failTeardown(error.toString());
         }
     }
     @Override public void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         unregisterReceiver(providers);
-        getPackageManager().removeOnPermissionsChangeListener(permissions);
         destroyed = true;
         if (!stopping && pendingStart == null && active()) {
             snapshot.put("status", new JSObject().put("state", "interrupted").put("reason", "termination"));
