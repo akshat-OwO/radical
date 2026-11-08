@@ -1146,7 +1146,10 @@ const interruptionModel = () => {
           : { state: "denied", precision: "unknown" },
       };
 
-      yield* commit(candidate);
+      if (persisted.terminalState === null) {
+        yield* commit(candidate);
+      }
+
       update(candidate);
       needsHydration = false;
     }
@@ -1342,6 +1345,28 @@ it.effect(
       assert.strictEqual(value?.id, session.id);
       assert.deepStrictEqual(value?.options, session.options);
     })
+);
+
+it.effect("lifecycle model hydrates finished metadata without committing", () =>
+  Effect.gen(function* () {
+    const model = interruptionModel();
+    yield* model.start;
+    yield* model.stop;
+    const metadata = model.metadata();
+    model.failCommit(true);
+    yield* model.freshProcess();
+    assert.deepStrictEqual(model.read().status, {
+      state: "stopped",
+      reason: "user",
+    });
+    assert.strictEqual(model.read().latest, null);
+    assert.deepStrictEqual(model.metadata(), metadata);
+    assert.deepStrictEqual(model.counts, {
+      registrations: 1,
+      removals: 1,
+      callbacks: 0,
+    });
+  })
 );
 
 it.effect(
