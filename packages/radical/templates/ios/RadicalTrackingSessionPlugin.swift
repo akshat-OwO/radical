@@ -307,7 +307,7 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
 public class RadicalTrackingSessionPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "RadicalTrackingSessionPlugin"
     public let jsName = "RadicalTrackingSession"
-    public let pluginMethods = [
+    public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "startTrackingSession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTrackingSession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stopTrackingSession", returnType: CAPPluginReturnPromise)

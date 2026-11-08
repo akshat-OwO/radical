@@ -1687,3 +1687,28 @@ for (const push of [false, true]) {
     }
   );
 }
+
+it.effect("types every bridged plugin's methods as CAPPluginMethod", () =>
+  Effect.sync(() => {
+    const templates = {
+      dataProtection,
+      locationSource,
+      navigationSource,
+      notificationSource,
+      settings,
+      trackingSource,
+      transitions,
+      activity,
+    };
+
+    for (const [name, source] of Object.entries(templates)) {
+      assert.include(source, "CAPBridgedPlugin", name);
+      assert.match(
+        source,
+        /public let pluginMethods: \[CAPPluginMethod\] = \[/u,
+        name
+      );
+      assert.notMatch(source, /public let pluginMethods = \[/u, name);
+    }
+  })
+);
