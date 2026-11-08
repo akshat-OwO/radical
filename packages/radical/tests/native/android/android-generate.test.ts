@@ -46,6 +46,8 @@ import navigationSource from "../../../templates/android/RadicalNavigation.java?
 import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin.java?raw";
 import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
 import splashPlugin from "../../../templates/android/RadicalSplashPlugin.java?raw";
+import trackingServiceSource from "../../../templates/android/RadicalTrackingService.java?raw";
+import trackingSource from "../../../templates/android/RadicalTrackingSessionPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
 import fallback from "../../../templates/offline.html?raw";
 import mark from "../../../templates/radical-mark.svg?raw";
@@ -68,6 +70,14 @@ const memory = (
     ["/package/templates/android/RadicalSettingsPlugin.java", settings],
     ["/package/templates/android/RadicalSplashPlugin.java", splashPlugin],
     ["/package/templates/android/RadicalLocationPlugin.java", locationSource],
+    [
+      "/package/templates/android/RadicalTrackingSessionPlugin.java",
+      trackingSource,
+    ],
+    [
+      "/package/templates/android/RadicalTrackingService.java",
+      trackingServiceSource,
+    ],
     ["/app/plugins/EchoPlugin.java", echoSource],
     ["/package/templates/android/RadicalTransitionsPlugin.java", transitions],
     [
@@ -1961,3 +1971,40 @@ describe("Android splash dismissal", () => {
     );
   }
 });
+
+it.effect(
+  "generates tracking permissions and service inside application",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { trackingSession: true },
+      pluginOptions: {
+        TrackingSession: { usageDescription: "Track journeys" },
+        Location: { usageDescription: "Show location" },
+      },
+    });
+
+    return Effect.gen(function* () {
+      yield* generate;
+
+      const manifest =
+        state.files.get(
+          `${destination}/android/app/src/main/AndroidManifest.xml`
+        ) ?? "";
+
+      assert.include(manifest, "android.permission.FOREGROUND_SERVICE");
+
+      assert.include(
+        manifest,
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      );
+
+      assert.notInclude(manifest, "ACCESS_BACKGROUND_LOCATION");
+
+      assert.match(
+        manifest,
+        /<application[\s\S]*<service android:name=".RadicalTrackingService"[^>]*android:foregroundServiceType="location"[^>]*\/>[\s\S]*<\/application>/u
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);

@@ -253,3 +253,5 @@ export const settingsPlugin = definePlugin({
     dependencies: {},
   },
 });
+
+export { trackingSessionPlugin } from "../../capabilities/tracking-session/tracking-plugin.ts";

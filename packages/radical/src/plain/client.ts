@@ -86,6 +86,17 @@ import {
   hideSplash as hideSplashEffect,
   splashLive,
 } from "../capabilities/splash/splash.ts";
+import type {
+  TrackingOptions,
+  TrackingSession,
+} from "../capabilities/tracking-session/tracking-schema.ts";
+import type { TrackingError } from "../capabilities/tracking-session/tracking-session.ts";
+import {
+  startTrackingSession as startTrackingEffect,
+  getTrackingSession as getTrackingEffect,
+  stopTrackingSession as stopTrackingEffect,
+  watchTrackingSession as watchTrackingEffect,
+} from "../capabilities/tracking-session/tracking-session.ts";
 import {
   localNativeContext as localContext,
   mountNativeContext as mountContext,
@@ -484,3 +495,60 @@ export type {
 
 export const fetchAppUpdate = (request: typeof fetch, store?: AppUpdateStore) =>
   Effect.runPromise(fetchUpdateEffect(request, store));
+
+export const startTrackingSession = (
+  options: TrackingOptions,
+  runtime: RadicalRuntime = defaultRuntime
+) => getEffectRuntime(runtime).runPromise(startTrackingEffect(options));
+
+export const getTrackingSession = (runtime: RadicalRuntime = defaultRuntime) =>
+  getEffectRuntime(runtime).runPromise(getTrackingEffect);
+
+export const stopTrackingSession = (
+  id: string,
+  runtime: RadicalRuntime = defaultRuntime
+) => getEffectRuntime(runtime).runPromise(stopTrackingEffect(id));
+
+export const watchTrackingSession = (
+  receive: (session: TrackingSession | null) => void,
+  onError: (error: TrackingError) => void,
+  runtime: RadicalRuntime = defaultRuntime
+): (() => void) => {
+  const fiber = getEffectRuntime(runtime).runFork(
+    watchTrackingEffect.pipe(
+      Stream.runForEach((value) =>
+        Effect.sync(() => {
+          receive(value);
+        })
+      ),
+      Effect.catch((error) =>
+        Effect.sync(() => {
+          onError(error);
+        })
+      )
+    )
+  );
+
+  return () => {
+    Effect.runFork(Fiber.interrupt(fiber));
+  };
+};
+
+export {
+  TrackingOptionsSchema,
+  TrackingStatusSchema,
+  TrackingAcquisitionErrorSchema,
+  TrackingSessionSchema,
+  TrackingSessionAlreadyActive,
+  TrackingSessionNotFound,
+  TrackingStartRequiresForeground,
+  InvalidTrackingOptions,
+  TrackingConfigSchema,
+} from "../capabilities/tracking-session/tracking-schema.ts";
+
+export type {
+  TrackingOptions,
+  TrackingStatus,
+  TrackingAcquisitionError,
+  TrackingSession,
+} from "../capabilities/tracking-session/tracking-schema.ts";

@@ -297,7 +297,12 @@ export const generateAndroid = (
           manifestPath,
           yield* replaceAnchor(
             "AndroidManifest.xml",
-            withDeclarations,
+            yield* replaceAnchor(
+              "AndroidManifest.xml",
+              withDeclarations,
+              "</application>",
+              `${native.plan.android.application.join("")}</application>`
+            ),
             "<application",
             '<application android:enableOnBackInvokedCallback="true"'
           )

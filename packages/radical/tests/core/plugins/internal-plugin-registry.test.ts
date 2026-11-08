@@ -69,6 +69,7 @@ const legacyDefaults = {
   notifications: false,
   pushNotifications: false,
   videoStream: false,
+  trackingSession: false,
   location: false,
   camera: false,
   filePicker: false,
@@ -122,7 +123,12 @@ describe("internal plugin registry", () => {
     "matches the previous ordered plugin set for all 8192 explicit boolean combinations",
     () =>
       Effect.sync(() => {
-        assert.deepStrictEqual(Record.keys(internalPluginRegistry), [...flags]);
+        assert.deepStrictEqual(
+          Record.keys(internalPluginRegistry).filter(
+            (flag) => flag !== "trackingSession"
+          ),
+          [...flags]
+        );
 
         for (let index = 0; index < 2 ** flags.length; index += 1) {
           const config = combination(index);
@@ -218,3 +224,20 @@ describe("internal plugin registry", () => {
       })
   );
 });
+
+it.effect(
+  "tracking sessions imply location even when explicitly disabled",
+  () =>
+    Effect.sync(() => {
+      const ids = resolveInternalPlugins({
+        trackingSession: true,
+        location: false,
+      }).map((entry) => entry.manifest.id);
+
+      assert.include(ids, "trackingSession");
+
+      assert.include(ids, "location");
+
+      assert.include(ids, "locationPrecision");
+    })
+);

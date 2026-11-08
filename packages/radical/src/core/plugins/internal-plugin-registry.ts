@@ -89,6 +89,17 @@ export const internalPluginRegistry = defineRegistry({
     implies: [],
     sourceRoot: ".",
   },
+  trackingSession: {
+    default: false,
+    plugins: [
+      {
+        manifest: manifests.trackingSessionPlugin,
+        selector: "trackingSessionPlugin",
+      },
+    ],
+    implies: ["location"],
+    sourceRoot: ".",
+  },
   location: {
     default: false,
     plugins: [
