@@ -22,6 +22,8 @@ public class RadicalTrackingService extends Service {
     private FusedLocationProviderClient fused;
     private LocationCallback callback;
     private Runnable teardownComplete;
+    private boolean removing;
+    private boolean destroyed;
     private static final String CHANNEL = "radical_tracking";
     static boolean active() {
         return stopping || pendingStart != null || snapshot != null && "running".equals(snapshot.getJSObject("status").getString("state"));
@@ -75,22 +77,18 @@ public class RadicalTrackingService extends Service {
         stopRequested = false;
         if (owner != null) {
             RadicalTrackingService service = owner;
-            service.stopForeground(STOP_FOREGROUND_REMOVE);
             service.teardownComplete = complete;
-            if (service.callback != null) {
-                LocationCallback removed = service.callback;
-                service.callback = null;
-                service.fused.removeLocationUpdates(removed).addOnCompleteListener(task -> service.stopSelf());
-                return;
-            }
-            service.stopSelf();
+            service.releaseCallback();
             return;
         } else context.stopService(new Intent(context, RadicalTrackingService.class));
         complete.run();
     }
     static void stopCurrent(Context context) {
         if (pendingStart != null) { stopRequested = true; return; }
-        if (stopping) return;
+        if (stopping) {
+            if (owner != null && !owner.removing && owner.teardownComplete == null) finishStop(context);
+            return;
+        }
         if (active()) {
             snapshot.put("status", new JSObject().put("state", "stopped").put("reason", "user"));
             publish();
@@ -154,18 +152,47 @@ public class RadicalTrackingService extends Service {
         }
         return START_NOT_STICKY;
     }
-    @Override public void onDestroy() {
-        if (fused != null && callback != null) fused.removeLocationUpdates(callback);
-        stopForeground(STOP_FOREGROUND_REMOVE);
-        if (owner == this) {
-            owner = null;
-            if (pendingStart != null) failStart(this, new IllegalStateException("Tracking service destroyed during startup"));
+    private void failTeardown(String reason) {
+        removing = false;
+        teardownComplete = null;
+        // Keep ownership and the replacement-start barrier until a retry succeeds.
+        for (PluginCall call : pendingStops) {
+            call.reject("Tracking teardown failed", "Unavailable", new JSObject().put("reason", reason));
         }
+        pendingStops.clear();
+    }
+    private void released() {
+        callback = null;
+        removing = false;
+        stopForeground(STOP_FOREGROUND_REMOVE);
+        if (!destroyed) { stopSelf(); return; }
+        if (owner == this) owner = null;
         if (teardownComplete != null) {
             Runnable complete = teardownComplete;
             teardownComplete = null;
             complete.run();
         }
+    }
+    private void releaseCallback() {
+        if (removing) return;
+        if (callback == null) { released(); return; }
+        removing = true;
+        try {
+            fused.removeLocationUpdates(callback).addOnCompleteListener(task -> {
+                if (task.isSuccessful()) released();
+                else failTeardown(task.isCanceled() ? "Location callback removal canceled" :
+                    String.valueOf(task.getException()));
+            });
+        } catch (RuntimeException error) {
+            failTeardown(error.toString());
+        }
+    }
+    @Override public void onDestroy() {
+        destroyed = true;
+        stopping = true;
+        if (pendingStart != null) failStart(this, new IllegalStateException("Tracking service destroyed during startup"));
+        else if (teardownComplete == null) finishStop(this);
+        else releaseCallback();
         super.onDestroy();
     }
 }

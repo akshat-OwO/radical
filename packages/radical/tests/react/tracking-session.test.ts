@@ -32,9 +32,13 @@ const session: TrackingSession = {
 const fixture = (
   initial: TrackingSession | null = session,
   read?: Effect.Effect<{ session: TrackingSession | null }>,
-  startup: Effect.Effect<void> = Effect.void
+  startup: Effect.Effect<void> = Effect.void,
+  teardown: Effect.Effect<void, string> = Effect.void,
+  destruction: Effect.Effect<void> = Effect.void
 ) => {
   let current = initial;
+  let owned = initial?.status.state === "running";
+  let stopOperation: Effect.Effect<unknown, BridgeCallFailed> | undefined;
   let revision = initial?.revision ?? 0;
 
   let listener:
@@ -46,6 +50,9 @@ const fixture = (
     | undefined;
 
   const stopping = Deferred.makeUnsafe<boolean>();
+  const removing = Deferred.makeUnsafe<boolean>();
+  const destroying = Deferred.makeUnsafe<boolean>();
+  const joinedStops = Deferred.makeUnsafe<boolean>();
 
   const starting = Deferred.makeUnsafe<boolean>();
 
@@ -91,10 +98,11 @@ const fixture = (
           );
 
         if (method === "startTrackingSession") {
-          if (current?.status.state === "running") {
+          if (owned && current !== null) {
             return fail("TrackingSessionAlreadyActive", current.id);
           }
 
+          owned = true;
           current = {
             ...session,
             id: String((revision += 1)),
@@ -113,21 +121,57 @@ const fixture = (
 
         Effect.runSync(Deferred.succeed(stopping, true));
 
-        return startup.pipe(
-          Effect.andThen(
-            Effect.sync(() => {
-              if (current?.status.state === "running") {
-                current = {
-                  ...current,
-                  revision: (revision += 1),
-                  status: { state: "stopped", reason: "user" },
-                };
-              }
+        stopOperation ??= Effect.runSync(
+          Effect.cached(
+            startup.pipe(
+              Effect.andThen(
+                Effect.sync(() => {
+                  if (current?.status.state === "running") {
+                    current = {
+                      ...current,
+                      revision: (revision += 1),
+                      status: { state: "stopped", reason: "user" },
+                    };
+                  }
+                })
+              ),
+              Effect.andThen(Deferred.succeed(removing, true)),
+              Effect.andThen(teardown),
+              Effect.mapError(
+                (reason) =>
+                  new BridgeCallFailed({
+                    plugin,
+                    method,
+                    cause: { code: "Unavailable", data: { reason } },
+                  })
+              ),
+              Effect.andThen(Deferred.succeed(destroying, true)),
+              Effect.andThen(destruction),
+              Effect.andThen(
+                Effect.sync(() => {
+                  owned = false;
 
-              return current;
-            })
+                  return current;
+                })
+              ),
+              Effect.onExit(() =>
+                Effect.sync(() => {
+                  stopOperation = undefined;
+                })
+              )
+            )
           )
         );
+
+        const operation = stopOperation;
+
+        if (
+          calls.filter((call) => call === "stopTrackingSession").length === 2
+        ) {
+          Effect.runSync(Deferred.succeed(joinedStops, true));
+        }
+
+        return operation;
       }),
   });
 
@@ -137,6 +181,9 @@ const fixture = (
     reading,
     starting,
     stopping,
+    removing,
+    destroying,
+    joinedStops,
     released,
     emit: (value: TrackingSession) => {
       listener?.({
@@ -481,16 +528,21 @@ it.effect("watch preserves a genuine null retrieved from native", () =>
 );
 
 it.effect(
-  "retains pending ownership across delayed start, stop and restart",
+  "rejects replacement during registration and teardown until release",
   () =>
     Effect.scoped(
       Effect.gen(function* () {
         const delivered = yield* Deferred.make<boolean>();
 
+        const teardown = yield* Deferred.make<undefined>();
+        const destruction = yield* Deferred.make<undefined>();
+
         const native = fixture(
           null,
           undefined,
-          Deferred.await(delivered).pipe(Effect.asVoid)
+          Deferred.await(delivered).pipe(Effect.asVoid),
+          Deferred.await(teardown),
+          Deferred.await(destruction)
         );
 
         yield* Effect.gen(function* () {
@@ -518,6 +570,31 @@ it.effect(
 
           const started = yield* Fiber.join(first);
 
+          yield* Deferred.await(native.removing);
+
+          const duringRemoval = yield* startTrackingSession({
+            preset: "balanced",
+          }).pipe(Effect.flip);
+
+          assert.strictEqual(
+            duringRemoval._tag,
+            "TrackingSessionAlreadyActive"
+          );
+          yield* Deferred.succeed(teardown, undefined);
+
+          yield* Deferred.await(native.destroying);
+
+          const duringDestruction = yield* startTrackingSession({
+            preset: "balanced",
+          }).pipe(Effect.flip);
+
+          assert.strictEqual(
+            duringDestruction._tag,
+            "TrackingSessionAlreadyActive"
+          );
+
+          yield* Deferred.succeed(destruction, undefined);
+
           const stopped = yield* Fiber.join(stop);
 
           assert.strictEqual(started.id, "1");
@@ -533,3 +610,80 @@ it.effect(
       })
     )
 );
+
+for (const reason of [
+  "removal failed",
+  "removal canceled",
+  "synchronous removal exception",
+]) {
+  it.effect(
+    `maps ${reason}, retains ownership and settles concurrent stops once`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const teardown = yield* Deferred.make<undefined, string>();
+
+          let attempts = 0;
+
+          const native = fixture(
+            session,
+            undefined,
+            Effect.void,
+            Effect.suspend(() => {
+              attempts += 1;
+
+              return attempts === 1 ? Deferred.await(teardown) : Effect.void;
+            })
+          );
+
+          let settlements = 0;
+          yield* Effect.gen(function* () {
+            const stop = stopTrackingSession(session.id).pipe(
+              Effect.flip,
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  settlements += 1;
+                })
+              )
+            );
+
+            const first = yield* stop.pipe(Effect.forkScoped);
+            yield* Deferred.await(native.removing);
+            const second = yield* stop.pipe(Effect.forkScoped);
+            yield* Deferred.await(native.joinedStops);
+            yield* Deferred.fail(teardown, reason);
+
+            for (const fiber of [first, second]) {
+              const error = yield* Fiber.join(fiber);
+              assert.strictEqual(error._tag, "Unavailable");
+
+              if (error._tag === "Unavailable") {
+                assert.strictEqual(error.reason, reason);
+              }
+            }
+
+            assert.strictEqual(settlements, 2);
+
+            const blocked = yield* startTrackingSession({
+              preset: "balanced",
+            }).pipe(Effect.flip);
+
+            assert.strictEqual(blocked._tag, "TrackingSessionAlreadyActive");
+            const retried = yield* stopTrackingSession(session.id);
+
+            assert.strictEqual(retried.status.state, "stopped");
+
+            const replacement = yield* startTrackingSession({
+              preset: "balanced",
+            });
+
+            assert.notStrictEqual(replacement.id, session.id);
+
+            assert.strictEqual(attempts, 2);
+
+            assert.strictEqual(settlements, 2);
+          }).pipe(Effect.provide(native.layer));
+        })
+      )
+  );
+}
