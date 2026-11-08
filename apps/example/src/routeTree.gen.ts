@@ -23,6 +23,7 @@ import { Route as NetworkRouteImport } from './routes/network'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OfflineRouteRouteImport } from './routes/offline-route'
 import { Route as OnlineRouteRouteImport } from './routes/online-route'
+import { Route as TrackingRouteImport } from './routes/tracking'
 import { Route as UpdateRouteImport } from './routes/update'
 import { Route as VideoRouteImport } from './routes/video'
 
@@ -96,6 +97,11 @@ const OnlineRouteRoute = OnlineRouteRouteImport.update({
   path: '/online-route',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrackingRoute = TrackingRouteImport.update({
+  id: '/tracking',
+  path: '/tracking',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpdateRoute = UpdateRouteImport.update({
   id: '/update',
   path: '/update',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/tracking': typeof TrackingRoute
   '/update': typeof UpdateRoute
   '/video': typeof VideoRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/tracking': typeof TrackingRoute
   '/update': typeof UpdateRoute
   '/video': typeof VideoRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/offline-route': typeof OfflineRouteRoute
   '/online-route': typeof OnlineRouteRoute
+  '/tracking': typeof TrackingRoute
   '/update': typeof UpdateRoute
   '/video': typeof VideoRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/offline-route'
     | '/online-route'
+    | '/tracking'
     | '/update'
     | '/video'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/offline-route'
     | '/online-route'
+    | '/tracking'
     | '/update'
     | '/video'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/offline-route'
     | '/online-route'
+    | '/tracking'
     | '/update'
     | '/video'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   OfflineRouteRoute: typeof OfflineRouteRoute
   OnlineRouteRoute: typeof OnlineRouteRoute
+  TrackingRoute: typeof TrackingRoute
   UpdateRoute: typeof UpdateRoute
   VideoRoute: typeof VideoRoute
 }
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tracking': {
+      id: '/tracking'
+      path: '/tracking'
+      fullPath: '/tracking'
+      preLoaderRoute: typeof TrackingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/update': {
       id: '/update'
       path: '/update'
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   OfflineRouteRoute: OfflineRouteRoute,
   OnlineRouteRoute: OnlineRouteRoute,
+  TrackingRoute: TrackingRoute,
   UpdateRoute: UpdateRoute,
   VideoRoute: VideoRoute,
 }

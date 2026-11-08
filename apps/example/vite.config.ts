@@ -78,6 +78,7 @@ const config = {
     notifications: true,
     pushNotifications: true,
     location: true,
+    trackingSession: true,
     camera: true,
     videoStream: true,
     filePicker: true,
@@ -86,6 +87,12 @@ const config = {
     dataProtection: true,
   },
   pluginOptions: {
+    TrackingSession: {
+      usageDescription: "Track your location during a session you start.",
+      notificationTitle: "Example tracking session",
+      notificationBody: "Location collection continues until you stop it.",
+      stopActionLabel: "Stop tracking",
+    },
     Location: {
       usageDescription: "Show your location on the example map.",
       precisePurposes: {
