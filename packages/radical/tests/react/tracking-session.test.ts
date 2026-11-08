@@ -688,6 +688,9 @@ for (const reason of [
   );
 }
 
+// An in-memory model of the native owner's lifecycle contract. These tests
+// check how the client handles each native outcome; they do not run the Java
+// owner, whose behavior is verified on devices (#176).
 // Task cancellation is a native completion outcome, not fiber interruption.
 type NativeOutcome = "success" | "failure" | "cancellation" | "exception";
 
@@ -853,7 +856,7 @@ const lifecycleOwner = (
 
 for (const outcome of ["failure", "cancellation", "exception"] as const) {
   it.effect(
-    `recovers from registration ${outcome} and failed rollback removal`,
+    `lifecycle model recovers from registration ${outcome} and failed rollback removal`,
     () =>
       Effect.gen(function* () {
         let registrations = 0;
@@ -897,7 +900,7 @@ for (const outcome of ["failure", "cancellation", "exception"] as const) {
 }
 
 it.effect(
-  "canceled registration settles start and pending stop once and removes callback",
+  "lifecycle model settles start and pending stop once after canceled registration",
   () =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -945,7 +948,7 @@ it.effect(
 
 for (const outcome of ["failure", "cancellation", "exception"] as const) {
   it.effect(
-    `retains callback after removal ${outcome} and retries cleanup`,
+    `lifecycle model retains callback after removal ${outcome} and retries cleanup`,
     () =>
       Effect.gen(function* () {
         let removals = 0;
