@@ -96,7 +96,7 @@ adb -s emulator-5554 shell pm revoke dev.radical.example.android android.permiss
 adb -s emulator-5554 shell pm revoke dev.radical.example.android android.permission.ACCESS_COARSE_LOCATION
 ```
 
-`pidof` returned no process after revocation. Relaunched through agent-device. Snapshot `11-revoked` reported `stopped: permissionRevoked`, denied permission, and `latest: null`. Granted coarse permission again and tapped Refresh. Snapshot `12-regranted` stayed stopped with the same id and revision. A later explicit Start created a new session with approximate permission.
+`pidof` returned no process after revocation. Relaunched through agent-device. Snapshot `11-revoked` reported `stopped: permissionRevoked`, denied permission, and `latest: null`. Granted coarse permission again and tapped Refresh. Snapshot `12-regranted` is the same terminal record as `11-revoked`: same id, revision 1, and still `permission.state: denied`, because a stopped session's permission is not refreshed. It shows that the grant and Refresh did not restart tracking; it is not evidence that the grant was in effect. The grant appears in `13-approximate`, where a later explicit Start created a new session with approximate permission.
 
 ![Permission revocation recovered after process death](tracking-android/revoked.png)
 
@@ -129,9 +129,9 @@ Revoked `POST_NOTIFICATIONS`, relaunched, and explicitly started a Navigation se
 
 ## 9. Active-session and foreground guards: pass
 
-Called the native start method through diagnostic CDP because the example disables its Start button during an active session. Snapshot `14-second-start` returned `TrackingSessionAlreadyActive` with the existing id.
+Called the native start method through diagnostic CDP because the example disables its Start button during an active session. Snapshot `14-second-start` returned `TrackingSessionAlreadyActive` with the existing id `e313fe55-40cc-4198-866b-364ab63fa77e`. That probe is not in the logcat excerpt. The excerpt's `TrackingSessionAlreadyActive` line at 22:01:14 is an earlier rejection of the same kind, during the first session `c139482e-33f5-4849-8c92-c95e2c1861a2` from `01-start-denied`.
 
-Stopped tracking, opened Android Settings, and confirmed Settings in the accessibility snapshot before invoking start again through the background WebView. Snapshot `15-background-start` returned `TrackingStartRequiresForeground`, message `Activity must be visible`. Both rejections appear in the selected logcat evidence. An earlier probe immediately after Home raced the activity transition and started before the app had stopped. It was stopped explicitly, and the settled Settings probe verified the background guard.
+Stopped tracking, opened Android Settings, and confirmed Settings in the accessibility snapshot before invoking start again through the background WebView. Snapshot `15-background-start` returned `TrackingStartRequiresForeground`, message `Activity must be visible`. The background-start rejection appears in the selected logcat evidence. An earlier probe immediately after Home raced the activity transition and started before the app had stopped. It was stopped explicitly, and the settled Settings probe verified the background guard.
 
 ## Validation and cleanup
 
