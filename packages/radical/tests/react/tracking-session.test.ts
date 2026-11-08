@@ -1089,6 +1089,11 @@ const interruptionModel = () => {
   let value: TrackingSession = { ...session };
   let failCommit = false;
   let granted = true;
+  let authorization: boolean | "restricted" | "notDetermined" = true;
+  let checking: number | null = null;
+  const commands: ("get" | "stop")[] = [];
+  const settled: string[] = [];
+  let timeoutFiber: Fiber.Fiber<void> | undefined;
   let servicesEnabled = true;
   let generation = 0;
   let temporary: Metadata | null = null;
@@ -1151,7 +1156,7 @@ const interruptionModel = () => {
         latest: null,
         status:
           (persisted.pendingAuthorization ? null : persisted.terminalState) ??
-          (granted || !servicesEnabled
+          (granted || authorization === "notDetermined" || !servicesEnabled
             ? { state: "interrupted", reason: "termination" }
             : { state: "stopped", reason: "permissionRevoked" }),
         permission: granted
@@ -1160,7 +1165,10 @@ const interruptionModel = () => {
       };
 
       if (persisted.terminalState === null || persisted.pendingAuthorization) {
-        yield* commit(candidate, !servicesEnabled);
+        yield* commit(
+          candidate,
+          !servicesEnabled || authorization === "notDetermined"
+        );
       }
 
       update(candidate);
@@ -1170,17 +1178,26 @@ const interruptionModel = () => {
     return value;
   });
 
-  const environment = (enabled: boolean, allowed: boolean) =>
+  const environment = (
+    enabled: boolean,
+    allowed: boolean | "restricted" | "notDetermined"
+  ) =>
     Effect.gen(function* () {
-      granted = allowed;
+      authorization = allowed;
+      granted = allowed === true;
       servicesEnabled = enabled;
 
-      if (persisted?.pendingAuthorization === true && enabled) {
+      if (
+        persisted?.pendingAuthorization === true &&
+        enabled &&
+        allowed !== "notDetermined"
+      ) {
         const candidate: TrackingSession = {
           ...value,
-          status: allowed
-            ? { state: "interrupted", reason: "termination" }
-            : { state: "stopped", reason: "permissionRevoked" },
+          status:
+            allowed === true
+              ? { state: "interrupted", reason: "termination" }
+              : { state: "stopped", reason: "permissionRevoked" },
         };
 
         yield* commit(candidate);
@@ -1192,9 +1209,9 @@ const interruptionModel = () => {
       }
 
       if (enabled) {
-        if (allowed) {
+        if (allowed === true) {
           update({ status: { state: "running" } });
-        } else {
+        } else if (allowed !== "notDetermined") {
           yield* stop("permissionRevoked");
         }
       } else {
@@ -1208,14 +1225,36 @@ const interruptionModel = () => {
     read: () => value,
     metadata: () => persisted,
     temporary: () => temporary,
-    requestRefresh: () => (generation += 1),
+    settled,
+    checking: () => checking,
+    enqueue: (command: "get" | "stop") => {
+      commands.push(command);
+      checking ??= generation;
+    },
+    requestRefresh: () => {
+      generation += 1;
+      checking ??= generation;
+
+      return checking;
+    },
     completeRefresh: (sample: number, enabled: boolean, allowed: boolean) =>
       Effect.gen(function* () {
         if (sample !== generation) {
+          checking = generation;
+
           return false;
         }
 
+        checking = null;
         yield* environment(enabled, allowed);
+
+        for (const command of commands.splice(0)) {
+          if (command === "stop") {
+            yield* stop("user");
+          }
+
+          settled.push(command);
+        }
 
         return true;
       }),
@@ -1275,7 +1314,7 @@ const interruptionModel = () => {
         });
       }
     },
-    bufferFix: () => {
+    bufferFix: Effect.gen(function* () {
       pendingFix = {
         latitude: 1,
         longitude: 2,
@@ -1286,8 +1325,24 @@ const interruptionModel = () => {
         heading: null,
         speed: null,
       };
-      update({ lastError: null });
-    },
+
+      if (value.lastError !== null) {
+        update({ lastError: null });
+      }
+
+      if (timeoutFiber !== undefined) {
+        yield* Fiber.interrupt(timeoutFiber);
+      }
+
+      timeoutFiber = yield* Effect.sleep("60 seconds").pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            update({ lastError: new LocationTimeout({}) });
+          })
+        ),
+        Effect.forkChild
+      );
+    }),
     flushFix: () => {
       if (pendingFix !== null) {
         update({ latest: pendingFix });
@@ -1723,11 +1778,11 @@ it.effect(
         Effect.forkChild
       );
 
-      const retry = model.requestRefresh();
+      model.requestRefresh();
       yield* Deferred.succeed(notificationSettings, undefined);
       assert.isFalse(yield* Fiber.join(completed));
       assert.strictEqual(model.read().status.state, "running");
-      yield* model.completeRefresh(retry, false, false);
+      yield* model.completeRefresh(model.checking() ?? -1, false, false);
       assert.strictEqual(model.read().status.state, "suspended");
       yield* model.completeRefresh(model.requestRefresh(), true, true);
       assert.strictEqual(model.read().status.state, "running");
@@ -1763,6 +1818,7 @@ for (const allowed of [false, true]) {
         assert.isTrue(model.metadata()?.pendingAuthorization);
         assert.strictEqual(model.read().status.state, "interrupted");
         const { revision } = model.read();
+        const publications = model.published.length;
         yield* model.iosEnvironment(true, allowed);
         assert.deepStrictEqual(
           model.read().status,
@@ -1770,6 +1826,7 @@ for (const allowed of [false, true]) {
             ? { state: "interrupted", reason: "termination" }
             : { state: "stopped", reason: "permissionRevoked" }
         );
+        assert.strictEqual(model.published.length, publications + 1);
         assert.isFalse(model.metadata()?.pendingAuthorization);
         assert.isAbove(model.read().revision, revision);
       })
@@ -1784,12 +1841,6 @@ it.effect(
         const model = interruptionModel();
         yield* model.start;
         model.fix();
-        const received = yield* Deferred.make<undefined>();
-
-        const acquisition = yield* Deferred.await(received).pipe(
-          Effect.andThen(model.timeout),
-          Effect.forkScoped
-        );
 
         const publication = yield* Effect.sleep("300 seconds").pipe(
           Effect.andThen(
@@ -1801,10 +1852,11 @@ it.effect(
         );
 
         yield* TestClock.adjust("1 second");
-        model.bufferFix();
-        yield* Deferred.succeed(received, undefined);
+        const before = model.published.length;
+        yield* model.bufferFix;
+        assert.strictEqual(model.published.length, before);
         yield* TestClock.adjust("60 seconds");
-        yield* Fiber.join(acquisition);
+
         assert.isNotNull(model.pending());
         assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
         yield* TestClock.adjust("239 seconds");
@@ -1815,4 +1867,101 @@ it.effect(
         assert.strictEqual(model.read().lastError, null);
       })
     )
+);
+
+it.effect(
+  "iOS lifecycle model settles queued stop once despite streaming gets",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.enqueue("get");
+      const sample = model.checking() ?? -1;
+      model.enqueue("stop");
+      const settings = yield* Deferred.make<undefined>();
+
+      const completion = yield* Deferred.await(settings).pipe(
+        Effect.andThen(model.completeRefresh(sample, true, true)),
+        Effect.forkChild
+      );
+
+      for (let index = 0; index < 100; index += 1) {
+        model.enqueue("get");
+      }
+
+      yield* Deferred.succeed(settings, undefined);
+      assert.isTrue(yield* Fiber.join(completion));
+      assert.strictEqual(
+        model.settled.filter((command) => command === "stop").length,
+        1
+      );
+      assert.strictEqual(model.counts.removals, 1);
+      assert.strictEqual(model.counts.callbacks, 0);
+      assert.strictEqual(model.checking(), null);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model keeps undetermined authorization unresolved and restriction terminal",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      yield* model.iosEnvironment(false, false);
+      yield* model.freshProcess();
+      yield* model.iosEnvironment(true, "notDetermined");
+      assert.isTrue(model.metadata()?.pendingAuthorization);
+      yield* model.iosEnvironment(true, "restricted");
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.isFalse(model.metadata()?.pendingAuthorization);
+      yield* model.iosEnvironment(true, true);
+      assert.strictEqual(model.read().status.state, "stopped");
+      const active = interruptionModel();
+      yield* active.start;
+      yield* active.iosEnvironment(true, "restricted");
+      yield* active.iosEnvironment(true, true);
+      assert.strictEqual(active.read().status.state, "stopped");
+      assert.strictEqual(active.counts.removals, 1);
+    })
+);
+
+it.effect(
+  "iOS lifecycle model publishes error clear immediately and rearms timeout on buffered receipt",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.fix();
+
+      const publication = yield* Effect.sleep("300 seconds").pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            model.flushFix();
+          })
+        ),
+        Effect.forkChild
+      );
+
+      yield* model.bufferFix;
+      yield* TestClock.adjust("60 seconds");
+      assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+      const before = model.read();
+      yield* model.bufferFix;
+      assert.strictEqual(model.read().revision, before.revision + 1);
+      assert.strictEqual(model.read().lastError, null);
+      assert.strictEqual(model.read().latest, before.latest);
+      yield* TestClock.adjust("59 seconds");
+      assert.strictEqual(model.read().lastError, null);
+      yield* TestClock.adjust("1 second");
+      assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+      yield* TestClock.adjust("179 seconds");
+      assert.isNotNull(model.pending());
+      yield* TestClock.adjust("1 second");
+      yield* Fiber.join(publication);
+      assert.strictEqual(model.pending(), null);
+      assert.strictEqual(model.read().lastError?._tag, "LocationTimeout");
+    })
 );

@@ -37,11 +37,17 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
         let state = (session?["status"] as? [String: String])?["state"]
         return state == "running" || state == "suspended"
     }
-    private var granted: Bool {
-        manager.authorizationStatus == .authorizedAlways || manager.authorizationStatus == .authorizedWhenInUse
+    private enum Authorization { case granted, lost, unresolved }
+    private var authorization: Authorization {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse: return .granted
+        case .denied, .restricted: return .lost
+        default: return .unresolved
+        }
     }
+    private var granted: Bool { authorization == .granted }
     private func permission() -> [String: String] {
-        let state = granted ? "granted" : manager.authorizationStatus == .notDetermined ? "prompt" : "denied"
+        let state = granted ? "granted" : authorization == .unresolved ? "prompt" : "denied"
         return ["state": state, "precision": granted ? manager.accuracyAuthorization == .fullAccuracy ? "precise" : "approximate" : "unknown"]
     }
     private func metadataURL() throws -> URL {
@@ -81,6 +87,12 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
     private func hydrate() throws {
         if hydrated { return }
         let url = try metadataURL()
+        let directory = url.deletingLastPathComponent()
+        for temporary in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+            if temporary.pathExtension == "tmp", UUID(uuidString: temporary.deletingPathExtension().lastPathComponent) != nil {
+                try FileManager.default.removeItem(at: temporary)
+            }
+        }
         if !FileManager.default.fileExists(atPath: url.path) { hydrated = true; return }
         guard let record = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any],
               let id = record["id"] as? String, let options = record["options"] as? [String: Any],
@@ -88,8 +100,8 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
         let terminal = record["terminalState"] as? [String: String]
         // Services off masks app authorization. Resolve revocation only when services return.
         let pending = terminal == nil || record["pendingAuthorization"] as? Bool == true
-        let unresolved = pending && (!services || manager.authorizationStatus == .notDetermined)
-        let status = !pending ? terminal! : (services && manager.authorizationStatus == .denied
+        let unresolved = pending && (!services || authorization == .unresolved)
+        let status = !pending ? terminal! : (services && authorization == .lost
             ? ["state": "stopped", "reason": "permissionRevoked"]
             : ["state": "interrupted", "reason": "termination"])
         let candidate: [String: Any] = ["id": id, "options": options, "startedAt": started, "status": status,
@@ -109,10 +121,13 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
     }
     func enqueue(_ call: CAPPluginCall, _ method: String) {
         commands.append((call, method))
-        refresh()
+        sampleEnvironment()
     }
     func refresh() {
         generation += 1
+        sampleEnvironment()
+    }
+    private func sampleEnvironment() {
         guard !checking else { return }
         let sampleGeneration = generation
         checking = true
@@ -123,10 +138,9 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
                 let allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral
                 DispatchQueue.main.async {
                     self.checking = false
-                    guard sampleGeneration == self.generation else { self.refresh(); return }
+                    guard sampleGeneration == self.generation else { self.sampleEnvironment(); return }
                     self.services = enabled
                     self.notifications = allowed ? "granted" : "denied"
-                    self.checking = false
                     let calls = self.commands
                     self.commands.removeAll()
                     do {
@@ -208,17 +222,18 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
     private func reconcile() throws {
         guard session != nil else { return }
         let previous = NSDictionary(dictionary: session!)
+        var resolvedRecovery = false
         session?["permission"] = permission()
         session?["notifications"] = ["state": notifications]
-        if unresolvedRecovery && services && manager.authorizationStatus != .notDetermined {
+        if unresolvedRecovery && services && authorization != .unresolved {
             var candidate = session!
-            if manager.authorizationStatus == .denied {
+            if authorization == .lost {
                 candidate["status"] = ["state": "stopped", "reason": "permissionRevoked"]
             }
             try persist(candidate)
             session = candidate
             unresolvedRecovery = false
-            publish()
+            resolvedRecovery = true
         }
         if active {
             if !services {
@@ -229,16 +244,16 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
                 publication = nil
                 if let fix = pendingFix { session?["latest"] = fix }
                 pendingFix = nil
-            } else if manager.authorizationStatus == .denied {
+            } else if authorization == .lost {
                 try terminate("permissionRevoked")
                 return
-            } else {
+            } else if authorization == .granted {
                 let suspended = (session?["status"] as? [String: String])?["state"] == "suspended"
                 session?["status"] = ["state": "running"]
                 if suspended { session?["lastError"] = NSNull(); armTimeout() }
             }
         }
-        if !previous.isEqual(to: session!) { publish() }
+        if resolvedRecovery || !previous.isEqual(to: session!) { publish() }
     }
     private func armTimeout() {
         timeout?.cancel()
@@ -265,7 +280,10 @@ private final class RadicalTrackingOwner: NSObject, CLLocationManagerDelegate {
             "altitude": fix.verticalAccuracy >= 0 ? fix.altitude : NSNull(),
             "altitudeAccuracy": fix.verticalAccuracy >= 0 ? fix.verticalAccuracy : NSNull(),
             "heading": fix.course >= 0 ? fix.course : NSNull(), "speed": fix.speed >= 0 ? fix.speed : NSNull()]
-        session?["lastError"] = NSNull()
+        if let error = session?["lastError"], !(error is NSNull) {
+            session?["lastError"] = NSNull()
+            publish()
+        }
         armTimeout()
         guard publication == nil else { return }
         let options = session?["options"] as? [String: Any]
