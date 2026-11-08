@@ -1,0 +1,8 @@
+Xcode 27.2 build 27B52, iPhoneSimulator 27.2 SDK
+Generated with RADICAL_ORIGIN=http://localhost:4174 and trackingSession: true
+xcodebuild -project apps/example/.radical/ios/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination id=F69D9CE5-20E1-4388-9EBA-27B1782EEF75 -derivedDataPath apps/example/.radical/ios/build build
+
+** BUILD SUCCEEDED **
+
+xcrun simctl install F69D9CE5-20E1-4388-9EBA-27B1782EEF75 apps/example/.radical/ios/build/Build/Products/Debug-iphonesimulator/App.app
+Exit status: 0

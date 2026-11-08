@@ -1687,3 +1687,31 @@ for (const push of [false, true]) {
     }
   );
 }
+
+it.effect("types every bridged plugin's methods as CAPPluginMethod", () =>
+  Effect.sync(() => {
+    const templates = import.meta.glob<string>(
+      "../../../templates/ios/*.swift",
+      {
+        eager: true,
+        import: "default",
+        query: "?raw",
+      }
+    );
+
+    const bridged = Object.entries(templates).filter(([, source]) =>
+      source.includes("CAPBridgedPlugin")
+    );
+
+    assert.isAtLeast(bridged.length, 8);
+
+    for (const [name, source] of bridged) {
+      assert.match(
+        source,
+        /public let pluginMethods: \[CAPPluginMethod\] = \[/u,
+        name
+      );
+      assert.notMatch(source, /public let pluginMethods = \[/u, name);
+    }
+  })
+);
