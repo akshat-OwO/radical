@@ -3,7 +3,7 @@ title: "Track a user-started session"
 description: "Start and observe location collection that continues in the background."
 ---
 
-Tracking is Android-only for now. iOS support is coming in #174, with no release date set. In browsers and older shells, every tracking call fails with typed `Unavailable`. Use [foreground location](/docs/guides/location) in browsers.
+Tracking is Android-only for now. iOS support is planned, with no release date set. In browsers and older shells, every tracking call fails with typed `Unavailable`. Use [foreground location](/docs/guides/location) in browsers.
 
 ## Enable tracking
 
@@ -26,14 +26,32 @@ const config = {
 
 ## Connect explicit actions
 
+Request approximate location permission before starting. Tracking never prompts for permission itself. Precise permission is optional.
+
 ```tsx
-import { useTrackingSession } from "@akshatowo/radical/react";
+import {
+  useLocationPermission,
+  useTrackingSession,
+} from "@akshatowo/radical/react";
 
 function Trip() {
+  const permission = useLocationPermission();
   const { value, loading, error, refresh, start, stop } = useTrackingSession();
   return (
     <section>
-      <button onClick={() => start({ preset: "fitness" })}>Start trip</button>
+      <p>
+        Location permission:{" "}
+        {permission.value?.state ?? permission.error?._tag ?? "Checking..."}
+      </p>
+      <button onClick={() => permission.request()}>
+        Request approximate location
+      </button>
+      <button
+        disabled={permission.value?.state !== "granted"}
+        onClick={() => start({ preset: "fitness" })}
+      >
+        Start trip
+      </button>
       <button disabled={!value} onClick={() => value && stop(value.id)}>
         Stop trip
       </button>

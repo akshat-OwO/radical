@@ -49,7 +49,10 @@ for (const platform of ["browser", "android"] as const) {
               },
             }),
             undefined,
-            () => ({ RadicalLocation: ["getCurrentPosition"] })
+            () =>
+              platform === "browser"
+                ? undefined
+                : { RadicalLocation: ["getCurrentPosition"] }
           );
 
           const error: unknown = yield* action.pipe(
@@ -131,3 +134,64 @@ for (const action of ["start", "stop", "refresh"] as const) {
     })
   );
 }
+
+it.effect(
+  "browser hook observation leaves native listeners untouched without an inventory",
+  () =>
+    Effect.gen(function* () {
+      const received = yield* Deferred.make<unknown>();
+      let callbacks = 0;
+
+      const layer = bridgeLayer(
+        () => ({
+          getPlatform: () => "browser",
+          nativePromise: async () =>
+            await Effect.runPromise(Effect.succeed({})),
+          nativeCallback: () => {
+            callbacks += 1;
+
+            return "callback";
+          },
+        }),
+        undefined,
+        () => {}
+      );
+
+      const Screen = () => {
+        const { error } = useTrackingSession();
+        useLayoutEffect(() => {
+          if (error !== undefined) {
+            Effect.runSync(Deferred.succeed(received, error));
+          }
+        }, [error]);
+
+        return null;
+      };
+
+      const root = createRoot(document.createElement("div"));
+      yield* Effect.acquireUseRelease(
+        Effect.sync(() => {
+          flushSync(() => {
+            root.render(
+              createElement(RadicalProvider, { layer }, createElement(Screen))
+            );
+          });
+        }),
+        () =>
+          Deferred.await(received).pipe(
+            Effect.andThen((error) =>
+              Effect.sync(() => {
+                assert.instanceOf(error, Unavailable);
+              })
+            )
+          ),
+        () =>
+          Effect.sync(() => {
+            flushSync(() => {
+              root.unmount();
+            });
+          })
+      );
+      assert.strictEqual(callbacks, 0);
+    })
+);

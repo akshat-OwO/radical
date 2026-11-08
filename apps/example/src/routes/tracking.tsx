@@ -1,6 +1,29 @@
-import { useTrackingSession } from "@akshatowo/radical/react";
+import {
+  useLocationPermission,
+  useTrackingSession,
+} from "@akshatowo/radical/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+
+const LocationPermissionAction = () => {
+  const permission = useLocationPermission();
+
+  return (
+    <>
+      <p>
+        Location permission: {permission.value?.state ?? "Check permission"}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          permission.request();
+        }}
+      >
+        Request approximate location
+      </button>
+    </>
+  );
+};
 
 const Tracking = () => {
   const tracking = useTrackingSession();
@@ -20,6 +43,7 @@ const Tracking = () => {
       <h1>Tracking session</h1>
       <Link to="/">Home</Link>
       <p>Android only. Leaving this screen does not stop tracking.</p>
+      <LocationPermissionAction />
       <label>
         Preset
         <select
