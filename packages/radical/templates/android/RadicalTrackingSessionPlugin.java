@@ -28,7 +28,8 @@ public class RadicalTrackingSessionPlugin extends Plugin {
     @PluginMethod public void getTrackingSession(PluginCall call) {
         getActivity().runOnUiThread(() -> {
             JSObject result = new JSObject();
-            result.put("session", RadicalTrackingService.snapshot == null ? org.json.JSONObject.NULL : RadicalTrackingService.snapshot);
+            JSObject session = RadicalTrackingService.pendingStart == null ? RadicalTrackingService.snapshot : RadicalTrackingService.previous;
+            result.put("session", session == null ? org.json.JSONObject.NULL : session);
             call.resolve(result);
         });
     }
@@ -36,7 +37,7 @@ public class RadicalTrackingSessionPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             JSObject current = RadicalTrackingService.snapshot;
             if (RadicalTrackingService.active()) {
-                call.reject("Session already active", "TrackingSessionAlreadyActive", new JSObject().put("id", current.getString("id"))); return;
+                call.reject("Session already active", "TrackingSessionAlreadyActive", new JSObject().put("id", current == null ? "" : current.getString("id"))); return;
             }
             if (!visible) { call.reject("Activity must be visible", "TrackingStartRequiresForeground"); return; }
             LocationManager manager = (LocationManager)getContext().getSystemService(android.content.Context.LOCATION_SERVICE);
@@ -54,11 +55,16 @@ public class RadicalTrackingSessionPlugin extends Plugin {
             }
             RadicalTrackingService.begin(call.getData(), getContext());
             Intent intent = new Intent(getContext(), RadicalTrackingService.class);
+            intent.putExtra("sessionId", RadicalTrackingService.snapshot.getString("id"));
             intent.putExtra("title", getConfig().getString("notificationTitle", "Location tracking"));
             intent.putExtra("body", getConfig().getString("notificationBody", "Tracking your location"));
             intent.putExtra("stop", getConfig().getString("stopActionLabel", "Stop"));
             RadicalTrackingService.pendingStart = call;
-            androidx.core.content.ContextCompat.startForegroundService(getContext(), intent);
+            try {
+                androidx.core.content.ContextCompat.startForegroundService(getContext(), intent);
+            } catch (RuntimeException error) {
+                RadicalTrackingService.failStart(getContext(), error);
+            }
         });
     }
     @PluginMethod public void stopTrackingSession(PluginCall call) {
@@ -68,8 +74,8 @@ public class RadicalTrackingSessionPlugin extends Plugin {
             if (current == null || !id.equals(current.getString("id"))) {
                 call.reject("Session not found", "TrackingSessionNotFound", new JSObject().put("id", id)); return;
             }
+            RadicalTrackingService.pendingStops.add(call);
             RadicalTrackingService.stopCurrent(getContext());
-            call.resolve(RadicalTrackingService.snapshot);
         });
     }
 }

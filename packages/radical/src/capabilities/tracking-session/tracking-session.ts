@@ -135,6 +135,7 @@ export const watchTrackingSession = Stream.unwrap(
         (current, incoming) =>
           incoming === null ? current : newerTrackingSnapshot(current, incoming)
       ),
+      Stream.drop(1),
       Stream.changes
     );
   })

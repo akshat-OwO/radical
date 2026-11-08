@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { assert, it } from "@effect/vitest";
-import { Deferred, Effect, Layer } from "effect";
+import { Deferred, Effect, Layer, Fiber, Stream } from "effect";
 import { createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -9,9 +9,12 @@ import type { TrackingSession } from "../../src/capabilities/tracking-session/tr
 import {
   startTrackingSession,
   stopTrackingSession,
-  newerTrackingSnapshot,
+  getTrackingSession,
+  watchTrackingSession,
 } from "../../src/capabilities/tracking-session/tracking-session.ts";
 import { Bridge, BridgeCallFailed } from "../../src/core/bridge/bridge.ts";
+import { watchTrackingSession as watchPlain } from "../../src/plain/client.ts";
+import { createEffectRuntime } from "../../src/plain/runtime.ts";
 import { RadicalProvider } from "../../src/react/react.ts";
 import { useTrackingSession } from "../../src/react/use-tracking-session.ts";
 
@@ -26,7 +29,30 @@ const session: TrackingSession = {
   lastError: null,
 };
 
-const fixture = () => {
+const fixture = (
+  initial: TrackingSession | null = session,
+  read?: Effect.Effect<{ session: TrackingSession | null }>,
+  startup: Effect.Effect<void> = Effect.void
+) => {
+  let current = initial;
+  let revision = initial?.revision ?? 0;
+
+  let listener:
+    | ((value: {
+        sessionId: string;
+        revision: number;
+        session: TrackingSession;
+      }) => void)
+    | undefined;
+
+  const stopping = Deferred.makeUnsafe<boolean>();
+
+  const starting = Deferred.makeUnsafe<boolean>();
+
+  const reading = Deferred.makeUnsafe<boolean>();
+
+  const released = Deferred.makeUnsafe<boolean>();
+
   const calls: string[] = [];
   let removed = 0;
 
@@ -36,40 +62,91 @@ const fixture = () => {
       Effect.succeed(() => {
         /* No shell events in this fixture. */
       }),
-    listen: () =>
-      Effect.succeed(
-        Effect.sync(() => {
+    listen: (_plugin, _event, receive) =>
+      Effect.sync(() => {
+        listener = receive;
+
+        return Effect.sync(() => {
           removed += 1;
-        })
-      ),
-    call: (plugin, method, options) => {
-      calls.push(method);
+          Effect.runSync(Deferred.succeed(released, true));
+        });
+      }),
+    call: (plugin, method, options) =>
+      Effect.suspend<unknown, BridgeCallFailed, never>(() => {
+        calls.push(method);
 
-      if (method === "getTrackingSession") {
-        return Effect.succeed({ session });
-      }
+        if (method === "getTrackingSession") {
+          Effect.runSync(Deferred.succeed(reading, true));
 
-      const code =
-        method === "startTrackingSession"
-          ? "TrackingSessionAlreadyActive"
-          : "TrackingSessionNotFound";
+          return read ?? Effect.succeed({ session: current });
+        }
 
-      return Effect.fail(
-        new BridgeCallFailed({
-          plugin,
-          method,
-          cause: {
-            code,
-            data: {
-              id: method === "startTrackingSession" ? session.id : options.id,
-            },
-          },
-        })
-      );
-    },
+        const fail = (code: string, id: string) =>
+          Effect.fail(
+            new BridgeCallFailed({
+              plugin,
+              method,
+              cause: { code, data: { id } },
+            })
+          );
+
+        if (method === "startTrackingSession") {
+          if (current?.status.state === "running") {
+            return fail("TrackingSessionAlreadyActive", current.id);
+          }
+
+          current = {
+            ...session,
+            id: String((revision += 1)),
+            revision,
+            options: { preset: "balanced" },
+          };
+
+          Effect.runSync(Deferred.succeed(starting, true));
+
+          return startup.pipe(Effect.as(current));
+        }
+
+        if (current === null || options.id !== current.id) {
+          return fail("TrackingSessionNotFound", String(options.id));
+        }
+
+        Effect.runSync(Deferred.succeed(stopping, true));
+
+        return startup.pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              if (current?.status.state === "running") {
+                current = {
+                  ...current,
+                  revision: (revision += 1),
+                  status: { state: "stopped", reason: "user" },
+                };
+              }
+
+              return current;
+            })
+          )
+        );
+      }),
   });
 
-  return { layer, calls, removed: () => removed };
+  return {
+    layer,
+    calls,
+    reading,
+    starting,
+    stopping,
+    released,
+    emit: (value: TrackingSession) => {
+      listener?.({
+        sessionId: value.id,
+        revision: value.revision,
+        session: value,
+      });
+    },
+    removed: () => removed,
+  };
 };
 
 it.effect("rejects invalid options before calling native", () =>
@@ -127,65 +204,332 @@ it.effect("rejects stopping a stale id", () =>
   })
 );
 
-it.effect(
-  "drops older snapshots including delayed previous-session events",
-  () =>
-    Effect.sync(() => {
-      assert.strictEqual(
-        newerTrackingSnapshot(session, { ...session, revision: 1 }),
-        session
+it.effect("owns successful starts, idempotent stops and replacement", () =>
+  Effect.gen(function* () {
+    const native = fixture(null);
+
+    yield* Effect.gen(function* () {
+      const first = yield* startTrackingSession({ preset: "balanced" });
+
+      const active = yield* startTrackingSession({ preset: "balanced" }).pipe(
+        Effect.flip
       );
-      const next = { ...session, id: "two", revision: 3 };
 
-      assert.strictEqual(newerTrackingSnapshot(next, session), next);
+      assert.strictEqual(active._tag, "TrackingSessionAlreadyActive");
 
-      assert.strictEqual(newerTrackingSnapshot(session, next), next);
-    })
+      if (active._tag === "TrackingSessionAlreadyActive") {
+        assert.strictEqual(active.id, first.id);
+      }
+
+      const stopped = yield* stopTrackingSession(first.id);
+
+      assert.strictEqual(stopped.status.state, "stopped");
+
+      assert.deepStrictEqual(yield* stopTrackingSession(first.id), stopped);
+
+      assert.deepStrictEqual(yield* getTrackingSession, stopped);
+
+      const next = yield* startTrackingSession({ preset: "balanced" });
+
+      assert.notStrictEqual(next.id, first.id);
+
+      assert.deepStrictEqual(yield* getTrackingSession, next);
+
+      const stale = yield* stopTrackingSession(first.id).pipe(Effect.flip);
+
+      assert.strictEqual(stale._tag, "TrackingSessionNotFound");
+    }).pipe(Effect.provide(native.layer));
+  })
 );
 
-it.effect("mount retrieves and observes and unmount only unsubscribes", () =>
+it.effect("stream drops reordered events and a delayed initial read", () =>
   Effect.scoped(
     Effect.gen(function* () {
-      const native = fixture();
-      const ready = yield* Deferred.make<boolean>();
+      const initial = yield* Deferred.make<{
+        session: TrackingSession | null;
+      }>();
 
-      const Probe = () => {
-        const state = useTrackingSession();
-        useLayoutEffect(() => {
-          if (!state.loading) {
-            Effect.runSync(Deferred.succeed(ready, true));
+      const native = fixture(session, Deferred.await(initial));
+
+      const values: (TrackingSession | null)[] = [];
+
+      const received = yield* Deferred.make<boolean>();
+
+      const fiber = yield* watchTrackingSession.pipe(
+        Stream.runForEach((value) =>
+          Effect.sync(() => {
+            values.push(value);
+
+            if (value?.revision === 4) {
+              Effect.runSync(Deferred.succeed(received, true));
+            }
+          })
+        ),
+        Effect.provide(native.layer),
+        Effect.forkScoped
+      );
+
+      yield* Deferred.await(native.reading);
+
+      assert.deepStrictEqual(values, []);
+
+      native.emit({ ...session, revision: 3 });
+
+      native.emit(session);
+
+      yield* Deferred.succeed(initial, { session });
+
+      native.emit({ ...session, id: "two", revision: 4 });
+
+      yield* Deferred.await(received);
+
+      yield* Fiber.interrupt(fiber);
+
+      assert.deepStrictEqual(
+        values.map((value) => value?.revision),
+        [3, 4]
+      );
+
+      yield* Deferred.await(native.released);
+    })
+  )
+);
+
+for (const first of ["retrieval", "event"] as const) {
+  it.effect(
+    `hook waits for ${first}, drops older revisions and only unsubscribes`,
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const initial = yield* Deferred.make<{
+            session: TrackingSession | null;
+          }>();
+
+          const native = fixture(session, Deferred.await(initial));
+          let latest: ReturnType<typeof useTrackingSession> | undefined;
+
+          const ready = yield* Deferred.make<boolean>();
+
+          const updated = yield* Deferred.make<boolean>();
+
+          const revisions: number[] = [];
+
+          const Probe = () => {
+            const state = useTrackingSession();
+            useLayoutEffect(() => {
+              latest = state;
+
+              if (state.value !== null) {
+                revisions.push(state.value.revision);
+              }
+
+              if (state.value?.revision === 4) {
+                Effect.runSync(Deferred.succeed(updated, true));
+              }
+
+              if (!state.loading && state.value?.id === session.id) {
+                Effect.runSync(Deferred.succeed(ready, true));
+              }
+            }, [state]);
+
+            return null;
+          };
+
+          const root = createRoot(document.createElement("div"));
+
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => {
+              flushSync(() => {
+                root.unmount();
+              });
+            })
+          );
+          flushSync(() => {
+            root.render(
+              createElement(
+                RadicalProvider,
+                { layer: native.layer },
+                createElement(Probe)
+              )
+            );
+          });
+
+          yield* Deferred.await(native.reading);
+
+          assert.strictEqual(latest?.loading, true);
+
+          if (first === "event") {
+            native.emit({ ...session, revision: 3 });
+
+            yield* Deferred.await(ready);
+
+            yield* Deferred.succeed(initial, { session });
+          } else {
+            yield* Deferred.succeed(initial, { session });
+
+            yield* Deferred.await(ready);
           }
-        }, [state]);
 
-        return null;
-      };
+          native.emit({ ...session, revision: 3 });
 
-      const root = createRoot(document.createElement("div"));
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
+          native.emit(session);
+
+          native.emit({ ...session, id: "two", revision: 4 });
+
+          yield* Deferred.await(updated);
+
+          yield* Effect.yieldNow;
+
+          assert.strictEqual(latest?.value?.id, "two");
+
+          assert.isTrue(
+            revisions.every(
+              (revision, index) =>
+                index === 0 || revision >= revisions[index - 1]
+            )
+          );
           flushSync(() => {
             root.unmount();
           });
+
+          yield* Deferred.await(native.released);
+
+          assert.deepStrictEqual(native.calls, ["getTrackingSession"]);
+
+          assert.strictEqual(native.removed(), 1);
         })
-      );
-      flushSync(() => {
-        root.render(
-          createElement(
-            RadicalProvider,
-            { layer: native.layer },
-            createElement(Probe)
-          )
+      )
+  );
+}
+
+it.effect(
+  "Plain callbacks discard reordered events and delayed retrieval",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const initial = yield* Deferred.make<{
+          session: TrackingSession | null;
+        }>();
+
+        const native = fixture(session, Deferred.await(initial));
+
+        const runtime = createEffectRuntime(native.layer);
+
+        yield* Effect.addFinalizer(() =>
+          Effect.promise(async () => {
+            await runtime.dispose();
+          })
         );
-      });
-      yield* Deferred.await(ready);
-      flushSync(() => {
-        root.unmount();
-      });
-      yield* Effect.yieldNow;
 
-      assert.deepStrictEqual(native.calls, ["getTrackingSession"]);
+        const values: (TrackingSession | null)[] = [];
 
-      assert.strictEqual(native.removed(), 1);
-    })
-  )
+        const done = yield* Deferred.make<boolean>();
+
+        const release = watchPlain(
+          (value) => {
+            values.push(value);
+
+            if (value?.revision === 4) {
+              Effect.runSync(Deferred.succeed(done, true));
+            }
+          },
+          (error) => {
+            assert.fail(String(error));
+          },
+          runtime
+        );
+
+        yield* Effect.addFinalizer(() => Effect.sync(release));
+
+        yield* Deferred.await(native.reading);
+
+        assert.deepStrictEqual(values, []);
+
+        native.emit({ ...session, revision: 3 });
+
+        native.emit(session);
+
+        yield* Deferred.succeed(initial, { session });
+
+        native.emit({ ...session, id: "two", revision: 4 });
+
+        yield* Deferred.await(done);
+        release();
+
+        yield* Deferred.await(native.released);
+
+        assert.deepStrictEqual(
+          values.map((value) => value?.revision),
+          [3, 4]
+        );
+      })
+    )
+);
+
+it.effect("watch preserves a genuine null retrieved from native", () =>
+  Effect.gen(function* () {
+    const native = fixture(null);
+
+    const values = yield* watchTrackingSession.pipe(
+      Stream.take(1),
+      Stream.runCollect,
+      Effect.provide(native.layer)
+    );
+
+    assert.deepStrictEqual([...values], [null]);
+  })
+);
+
+it.effect(
+  "retains pending ownership across delayed start, stop and restart",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const delivered = yield* Deferred.make<boolean>();
+
+        const native = fixture(
+          null,
+          undefined,
+          Deferred.await(delivered).pipe(Effect.asVoid)
+        );
+
+        yield* Effect.gen(function* () {
+          const first = yield* startTrackingSession({
+            preset: "balanced",
+          }).pipe(Effect.forkScoped);
+
+          yield* Deferred.await(native.starting);
+
+          const stop = yield* stopTrackingSession("1").pipe(Effect.forkScoped);
+
+          yield* Deferred.await(native.stopping);
+
+          const blocked = yield* startTrackingSession({
+            preset: "balanced",
+          }).pipe(Effect.flip);
+
+          assert.strictEqual(blocked._tag, "TrackingSessionAlreadyActive");
+
+          if (blocked._tag === "TrackingSessionAlreadyActive") {
+            assert.strictEqual(blocked.id, "1");
+          }
+
+          yield* Deferred.succeed(delivered, true);
+
+          const started = yield* Fiber.join(first);
+
+          const stopped = yield* Fiber.join(stop);
+
+          assert.strictEqual(started.id, "1");
+
+          assert.strictEqual(stopped.id, "1");
+
+          assert.strictEqual(stopped.status.state, "stopped");
+
+          const next = yield* startTrackingSession({ preset: "balanced" });
+
+          assert.notStrictEqual(next.id, started.id);
+        }).pipe(Effect.provide(native.layer));
+      })
+    )
 );
