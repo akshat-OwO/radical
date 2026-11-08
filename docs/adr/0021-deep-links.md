@@ -1,6 +1,6 @@
 # 0021: Deep links
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-03
 
 Shells only loaded the configured start URL, so a URL opened outside the app could not show a route. Radical supports two kinds of deep link: verified links on `origin`, and opt-in scheme links. Both open the same route the URL names, through the adapter, so offline snapshots, sections, and transitions behave as they do for in-app navigation.
