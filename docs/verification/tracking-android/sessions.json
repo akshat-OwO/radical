@@ -1,0 +1,398 @@
+{
+  "01-start-denied": {
+    "session": {
+      "id": "c139482e-33f5-4849-8c92-c95e2c1861a2",
+      "startedAt": 1793896263110,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": null,
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "approximate"
+      },
+      "notifications": {
+        "state": "denied"
+      },
+      "revision": 1
+    }
+  },
+  "02-route-a": {
+    "session": {
+      "id": "ff1126eb-32bf-4aad-bbbf-96bcbae0d505",
+      "startedAt": 1793896298157,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.421998,
+        "longitude": -122.0839992,
+        "accuracy": 3.9019999504089355,
+        "timestamp": 1793896306352,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": 124.676346,
+        "speed": 0.1572553
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 13
+    }
+  },
+  "03-locked": {
+    "session": {
+      "id": "ff1126eb-32bf-4aad-bbbf-96bcbae0d505",
+      "startedAt": 1793896298157,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.435997,
+        "longitude": -122.0699981,
+        "accuracy": 3.500999927520752,
+        "timestamp": 1793896313379,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": 89.999916,
+        "speed": 0.17984453
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 20
+    }
+  },
+  "04-other-app": {
+    "session": {
+      "id": "ff1126eb-32bf-4aad-bbbf-96bcbae0d505",
+      "startedAt": 1793896298157,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.4459973,
+        "longitude": -122.0600006,
+        "accuracy": 3.015000104904175,
+        "timestamp": 1793896325422,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": 186.14856,
+        "speed": 0.19212121
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 31
+    }
+  },
+  "05-notification-stop": {
+    "session": {
+      "id": "ff1126eb-32bf-4aad-bbbf-96bcbae0d505",
+      "startedAt": 1793896298157,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "stopped",
+        "reason": "user"
+      },
+      "latest": {
+        "latitude": 37.4559986,
+        "longitude": -122.0499997,
+        "accuracy": 3.1070001125335693,
+        "timestamp": 1793896348505,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": 219.08739,
+        "speed": 0.17366692
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 53
+    }
+  },
+  "06-before-reload": {
+    "session": {
+      "id": "61601fb3-a87d-422e-9192-11fa2987672b",
+      "startedAt": 1793896352258,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.4660013,
+        "longitude": -122.0399993,
+        "accuracy": 4.355000019073486,
+        "timestamp": 1793896361547,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": 90.00007,
+        "speed": 0.1725166
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 59
+    }
+  },
+  "07-after-reload": {
+    "session": {
+      "id": "61601fb3-a87d-422e-9192-11fa2987672b",
+      "startedAt": 1793896352258,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.4660012,
+        "longitude": -122.0399986,
+        "accuracy": 3.009999990463257,
+        "timestamp": 1793896372580,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": 34.159348,
+        "speed": 0.17281789
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 69
+    }
+  },
+  "08-force-stop": {
+    "session": {
+      "id": "61601fb3-a87d-422e-9192-11fa2987672b",
+      "options": {
+        "preset": "navigation"
+      },
+      "startedAt": 1793896352258,
+      "status": {
+        "state": "interrupted",
+        "reason": "termination"
+      },
+      "latest": null,
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 1
+    }
+  },
+  "09-services-off": {
+    "session": {
+      "id": "82384b85-a54b-4eab-a940-c7ac535ea981",
+      "startedAt": 1793896393023,
+      "options": {
+        "preset": "balanced"
+      },
+      "status": {
+        "state": "suspended",
+        "reason": "servicesOff"
+      },
+      "latest": null,
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 3
+    }
+  },
+  "10-services-on": {
+    "session": {
+      "id": "82384b85-a54b-4eab-a940-c7ac535ea981",
+      "startedAt": 1793896393023,
+      "options": {
+        "preset": "balanced"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": null,
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 4
+    }
+  },
+  "11-revoked": {
+    "session": {
+      "id": "82384b85-a54b-4eab-a940-c7ac535ea981",
+      "options": {
+        "preset": "balanced"
+      },
+      "startedAt": 1793896393023,
+      "status": {
+        "state": "stopped",
+        "reason": "permissionRevoked"
+      },
+      "latest": null,
+      "lastError": null,
+      "permission": {
+        "state": "denied",
+        "precision": "unknown"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 1
+    }
+  },
+  "12-regranted": {
+    "session": {
+      "id": "82384b85-a54b-4eab-a940-c7ac535ea981",
+      "options": {
+        "preset": "balanced"
+      },
+      "startedAt": 1793896393023,
+      "status": {
+        "state": "stopped",
+        "reason": "permissionRevoked"
+      },
+      "latest": null,
+      "lastError": null,
+      "permission": {
+        "state": "denied",
+        "precision": "unknown"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 1
+    }
+  },
+  "13-approximate": {
+    "session": {
+      "id": "0473d3d6-e76e-4436-b77b-349ee14cd00a",
+      "startedAt": 1793896514836,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.4954954954955,
+        "longitude": -121.99728595338198,
+        "accuracy": 2000,
+        "timestamp": 1793896548285,
+        "altitude": null,
+        "altitudeAccuracy": 0,
+        "heading": null,
+        "speed": null
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "approximate"
+      },
+      "notifications": {
+        "state": "granted"
+      },
+      "revision": 7
+    }
+  },
+  "14-second-start": {
+    "code": "TrackingSessionAlreadyActive",
+    "message": "Session already active",
+    "data": {
+      "id": "e313fe55-40cc-4198-866b-364ab63fa77e"
+    }
+  },
+  "15-background-start": {
+    "code": "TrackingStartRequiresForeground",
+    "message": "Activity must be visible"
+  },
+  "16-notifications-denied": {
+    "session": {
+      "id": "c5d7c034-870a-42d8-b075-54c7e52a0800",
+      "startedAt": 1793896598291,
+      "options": {
+        "preset": "navigation"
+      },
+      "status": {
+        "state": "running"
+      },
+      "latest": {
+        "latitude": 37.5260005,
+        "longitude": -121.9800016,
+        "accuracy": 5.8460001945495605,
+        "timestamp": 1793896608507,
+        "altitude": 0,
+        "altitudeAccuracy": 0.5,
+        "heading": null,
+        "speed": 0.00024821312
+      },
+      "lastError": null,
+      "permission": {
+        "state": "granted",
+        "precision": "precise"
+      },
+      "notifications": {
+        "state": "denied"
+      },
+      "revision": 7
+    }
+  }
+}
