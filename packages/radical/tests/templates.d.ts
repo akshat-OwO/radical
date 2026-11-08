@@ -32,3 +32,10 @@ declare module "*.svg?raw" {
   const source: string;
   export default source;
 }
+
+interface ImportMeta {
+  readonly glob: <T>(
+    pattern: string,
+    options: { eager: true; import: "default"; query: "?raw" }
+  ) => Record<string, T>;
+}
