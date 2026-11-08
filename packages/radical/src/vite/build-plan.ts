@@ -38,6 +38,21 @@ const optionsFor = <S extends Schema.Top>(
       entry.manifest.id === manifest.id
   )?.options;
 
+const trackingContributions = (
+  capabilities: readonly string[]
+): NativeContributions =>
+  capabilities.includes("trackingSession")
+    ? {
+        android: [
+          '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+          '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />',
+        ],
+        androidApplication: [
+          '<service android:name=".RadicalTrackingService" android:exported="false" android:foregroundServiceType="location" />',
+        ],
+      }
+    : {};
+
 export const composePlist = (entries: readonly PlistContribution[]) =>
   Effect.gen(function* () {
     const keys = new Map<string, PlistContribution[]>();
@@ -144,8 +159,13 @@ export const resolveBuildPlan = flow(
         contributions.pushNotifications = pushNotificationContributions(config);
       }
 
+      {
+        contributions.trackingSession = trackingContributions(capabilities);
+      }
+
       // Preserve declaration order independently of enablement order.
       const ordered = [
+        contributions.trackingSession,
         contributions.location,
         contributions.camera,
         contributions.videoStream,
@@ -288,6 +308,9 @@ export const resolveBuildPlan = flow(
         ),
         contributions,
         android: {
+          application: ordered.flatMap(
+            (value) => value.androidApplication ?? []
+          ),
           declarations: [
             ...new Set(ordered.flatMap((value) => value.android ?? [])),
           ],

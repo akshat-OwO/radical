@@ -15,6 +15,7 @@ export interface NativeEdit {
 }
 
 export interface NativeContributions {
+  readonly androidApplication?: readonly string[];
   readonly android?: readonly string[];
   readonly plist?: readonly PlistContribution[];
   readonly defines?: Readonly<Record<string, string>>;

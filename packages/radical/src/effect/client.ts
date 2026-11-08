@@ -251,3 +251,29 @@ export {
   RadicalFetchEnvironment,
   RadicalFetchEnvironmentLive,
 } from "../core/bundled/bundled-request.ts";
+
+export {
+  startTrackingSession,
+  getTrackingSession,
+  stopTrackingSession,
+  watchTrackingSession,
+} from "../capabilities/tracking-session/tracking-session.ts";
+
+export {
+  TrackingOptionsSchema,
+  TrackingStatusSchema,
+  TrackingAcquisitionErrorSchema,
+  TrackingSessionSchema,
+  TrackingSessionAlreadyActive,
+  TrackingSessionNotFound,
+  TrackingStartRequiresForeground,
+  InvalidTrackingOptions,
+  TrackingConfigSchema,
+} from "../capabilities/tracking-session/tracking-schema.ts";
+
+export type {
+  TrackingOptions,
+  TrackingStatus,
+  TrackingAcquisitionError,
+  TrackingSession,
+} from "../capabilities/tracking-session/tracking-schema.ts";
