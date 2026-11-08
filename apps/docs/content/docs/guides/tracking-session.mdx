@@ -3,7 +3,7 @@ title: "Track a user-started session"
 description: "Start and observe location collection that continues in the background."
 ---
 
-Tracking is Android-only for now. iOS support is planned, with no release date set. In browsers and older shells, every tracking call fails with typed `Unavailable`. Use [foreground location](/docs/guides/location) in browsers.
+Tracking runs in Android and iOS shells. In browsers and older shells, every tracking call fails with typed `Unavailable`. Use [foreground location](/docs/guides/location) in browsers.
 
 ## Enable tracking
 
@@ -97,4 +97,10 @@ Android uses a location foreground service started while the activity is visible
 
 Google Play requires foreground-service location review and a Play Console declaration. Check the store requirements before release.
 
-Presets and overrides request acquisition behavior. They never guarantee a delivery interval. The planned iOS implementation uses `interval` only to throttle delivery to the page; Core Location has no requested update interval.
+On iOS, tracking needs only When-In-Use permission. Radical never requests Always permission. Start tracking while the app is visible; iOS then shows the location indicator while the app is in the background.
+
+Tracking adds the `location` background mode. App Store review expects a clear user benefit for continuous background location, so explain it in your usage description.
+
+On iOS, the system reports permission as denied while location services are off. A session suspends in that case and only ends as `permissionRevoked` once the app can tell the two apart.
+
+Presets and overrides request acquisition behavior. They never guarantee a delivery interval. On iOS, `interval` only throttles delivery to the page; Core Location has no requested update interval.
