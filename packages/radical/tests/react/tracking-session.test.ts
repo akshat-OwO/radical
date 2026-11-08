@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 import { assert, it } from "@effect/vitest";
 import { Deferred, Effect, Layer, Fiber, Stream } from "effect";
+import { TestClock } from "effect/testing";
 import { createElement, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
+import { LocationTimeout } from "../../src/capabilities/location/location-schema.ts";
 import type { TrackingSession } from "../../src/capabilities/tracking-session/tracking-schema.ts";
 import {
   startTrackingSession,
@@ -13,6 +15,7 @@ import {
   watchTrackingSession,
 } from "../../src/capabilities/tracking-session/tracking-session.ts";
 import { Bridge, BridgeCallFailed } from "../../src/core/bridge/bridge.ts";
+import { Unavailable } from "../../src/core/errors.ts";
 import { watchTrackingSession as watchPlain } from "../../src/plain/client.ts";
 import { createEffectRuntime } from "../../src/plain/runtime.ts";
 import { RadicalProvider } from "../../src/react/react.ts";
@@ -26,6 +29,7 @@ const session: TrackingSession = {
   status: { state: "running" },
   latest: null,
   permission: { state: "granted", precision: "approximate" },
+  notifications: { state: "granted" },
   lastError: null,
 };
 
@@ -62,6 +66,7 @@ const fixture = (
 
   const calls: string[] = [];
   let removed = 0;
+  let foreground: ((value: { active: boolean }) => void) | undefined;
 
   const layer = Layer.succeed(Bridge, {
     runtime: Effect.succeed("android" as const),
@@ -69,8 +74,16 @@ const fixture = (
       Effect.succeed(() => {
         /* No shell events in this fixture. */
       }),
-    listen: (_plugin, _event, receive) =>
+    listen: (_plugin, event, receive) =>
       Effect.sync(() => {
+        if (event === "appStateChange") {
+          foreground = receive;
+
+          return Effect.sync(() => {
+            foreground = undefined;
+          });
+        }
+
         listener = receive;
 
         return Effect.sync(() => {
@@ -177,6 +190,10 @@ const fixture = (
 
   return {
     layer,
+    foreground: () => foreground?.({ active: true }),
+    reconcile: (value: TrackingSession) => {
+      current = value;
+    },
     calls,
     reading,
     starting,
@@ -979,6 +996,580 @@ for (const outcome of ["failure", "cancellation", "exception"] as const) {
             stops: 2,
           });
         }).pipe(Effect.provide(native.layer));
+      })
+  );
+}
+
+it.effect(
+  "Effect watch re-retrieves on foreground and drops stale reconciliation",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const native = fixture();
+        const ready = yield* Deferred.make<undefined>();
+        const resumed = yield* Deferred.make<undefined>();
+        const barrier = yield* Deferred.make<undefined>();
+        const values: number[] = [];
+        yield* watchTrackingSession.pipe(
+          Stream.runForEach((value) =>
+            Effect.gen(function* () {
+              if (value !== null) {
+                values.push(value.revision);
+              }
+
+              if (value?.revision === 2) {
+                yield* Deferred.succeed(ready, undefined);
+              }
+
+              if (value?.revision === 5) {
+                yield* Deferred.succeed(barrier, undefined);
+              }
+
+              if (value?.revision === 4) {
+                yield* Deferred.succeed(resumed, undefined);
+              }
+            })
+          ),
+          Effect.provide(native.layer),
+          Effect.forkScoped
+        );
+        yield* Deferred.await(ready);
+        native.reconcile({
+          ...session,
+          revision: 4,
+          status: { state: "suspended", reason: "servicesOff" },
+        });
+        native.foreground();
+        yield* Deferred.await(resumed);
+        native.emit({ ...session, revision: 3 });
+        native.emit({ ...session, revision: 5 });
+        yield* Deferred.await(barrier);
+        assert.deepStrictEqual(values, [2, 4, 5]);
+        assert.strictEqual(
+          native.calls.filter((call) => call === "getTrackingSession").length,
+          2
+        );
+      })
+    )
+);
+
+for (const snapshot of [
+  { ...session, status: { state: "interrupted", reason: "termination" } },
+  {
+    ...session,
+    status: { state: "stopped", reason: "permissionRevoked" },
+    permission: { state: "denied", precision: "unknown" },
+  },
+  { ...session, status: { state: "suspended", reason: "servicesOff" } },
+  { ...session, notifications: { state: "denied" } },
+] as const) {
+  it.effect(
+    `retrieves native ${snapshot.status.state} snapshot with notifications ${snapshot.notifications.state}`,
+    () =>
+      Effect.gen(function* () {
+        const native = fixture(snapshot);
+
+        const value = yield* getTrackingSession.pipe(
+          Effect.provide(native.layer)
+        );
+
+        assert.deepStrictEqual(value, snapshot);
+      })
+  );
+}
+
+// Lifecycle model of the native contract, not a Java execution harness.
+const interruptionModel = () => {
+  type Metadata = Pick<TrackingSession, "id" | "options" | "startedAt"> & {
+    terminalState: TrackingSession["status"] | null;
+  };
+
+  let persisted: Metadata | null = null;
+  let value: TrackingSession = { ...session };
+  let failCommit = false;
+  let granted = true;
+  let needsHydration = false;
+  const counts = { registrations: 0, removals: 0, callbacks: 0 };
+  const published: TrackingSession[] = [];
+
+  const commit = (candidate: TrackingSession) =>
+    Effect.gen(function* () {
+      if (failCommit) {
+        return yield* new Unavailable({ reason: "Metadata commit failed" });
+      }
+
+      persisted = {
+        id: candidate.id,
+        options: candidate.options,
+        startedAt: candidate.startedAt,
+        terminalState: ["stopped", "interrupted"].includes(
+          candidate.status.state
+        )
+          ? candidate.status
+          : null,
+      };
+
+      return true;
+    });
+
+  const update = (patch: Partial<TrackingSession>) => {
+    value = { ...value, ...patch, revision: value.revision + 1 };
+    published.push(value);
+  };
+
+  const stop = (reason: "user" | "permissionRevoked") =>
+    Effect.gen(function* () {
+      const candidate = {
+        ...value,
+        status: { state: "stopped", reason },
+      } as const;
+
+      yield* commit(candidate);
+      update(candidate);
+      counts.removals += 1;
+      counts.callbacks = 0;
+    });
+
+  const get = Effect.gen(function* () {
+    if (needsHydration && persisted !== null) {
+      const candidate: TrackingSession = {
+        ...session,
+        ...persisted,
+        latest: null,
+        status:
+          persisted.terminalState ??
+          (granted
+            ? { state: "interrupted", reason: "termination" }
+            : { state: "stopped", reason: "permissionRevoked" }),
+        permission: granted
+          ? session.permission
+          : { state: "denied", precision: "unknown" },
+      };
+
+      if (persisted.terminalState === null) {
+        yield* commit(candidate);
+      }
+
+      update(candidate);
+      needsHydration = false;
+    }
+
+    return value;
+  });
+
+  return {
+    counts,
+    published,
+    read: () => value,
+    metadata: () => persisted,
+    failCommit: (fail: boolean) => {
+      failCommit = fail;
+    },
+    start: Effect.gen(function* () {
+      counts.registrations += 1;
+      counts.callbacks += 1;
+      const result = yield* commit(value).pipe(Effect.result);
+
+      if (result._tag === "Failure") {
+        counts.removals += 1;
+        counts.callbacks = 0;
+
+        return yield* new Unavailable({ reason: "Metadata commit failed" });
+      }
+
+      update({});
+
+      return true;
+    }),
+    stop: stop("user"),
+    reload: () => value,
+    get,
+    loseProcess: () => {
+      counts.callbacks = 0;
+      needsHydration = true;
+    },
+    freshProcess: () =>
+      Effect.gen(function* () {
+        counts.callbacks = 0;
+        needsHydration = true;
+
+        return yield* get;
+      }),
+    permission: (allowed: boolean, running = true) =>
+      Effect.gen(function* () {
+        granted = allowed;
+
+        if (
+          !allowed &&
+          running &&
+          ["running", "suspended"].includes(value.status.state)
+        ) {
+          yield* stop("permissionRevoked");
+          update({ permission: { state: "denied", precision: "unknown" } });
+        }
+      }),
+    services: (enabled: boolean) => {
+      if (["running", "suspended"].includes(value.status.state)) {
+        update({
+          status: enabled
+            ? { state: "running" }
+            : { state: "suspended", reason: "servicesOff" },
+        });
+      }
+    },
+    timeout: Effect.sleep("60 seconds").pipe(
+      Effect.andThen(
+        Effect.sync(() => {
+          update({ lastError: new LocationTimeout({}) });
+        })
+      )
+    ),
+    fix: () => {
+      update({
+        lastError: null,
+        latest: {
+          latitude: 1,
+          longitude: 2,
+          accuracy: 3,
+          timestamp: 4,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+      });
+    },
+  };
+};
+
+it.effect(
+  "lifecycle model commits before publishing and retains acquisition on failed stop",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      model.failCommit(true);
+      assert.strictEqual(
+        (yield* model.start.pipe(Effect.flip))._tag,
+        "Unavailable"
+      );
+      assert.strictEqual(model.metadata(), null);
+      assert.deepStrictEqual(model.published, []);
+      assert.strictEqual(model.counts.callbacks, 0);
+      model.failCommit(false);
+      yield* model.start;
+      const metadata = model.metadata();
+      model.failCommit(true);
+      assert.strictEqual(
+        (yield* model.stop.pipe(Effect.flip))._tag,
+        "Unavailable"
+      );
+      assert.deepStrictEqual(model.metadata(), metadata);
+      assert.strictEqual(model.read().status.state, "running");
+      assert.strictEqual(model.counts.callbacks, 1);
+      model.failCommit(false);
+      yield* model.stop;
+      assert.strictEqual(model.metadata()?.terminalState?.state, "stopped");
+      assert.strictEqual(model.counts.callbacks, 0);
+    })
+);
+
+it.effect(
+  "lifecycle model preserves owner and latest through WebView reload",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.fix();
+      const before = model.read();
+      assert.isNotNull(before.latest);
+      assert.strictEqual(model.reload(), before);
+      assert.deepStrictEqual(model.counts, {
+        registrations: 1,
+        removals: 0,
+        callbacks: 1,
+      });
+    })
+);
+
+it.effect(
+  "lifecycle model detects revocation during hydration without registering",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      model.fix();
+      yield* model.permission(false, false);
+      yield* model.freshProcess();
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.strictEqual(model.read().latest, null);
+      assert.deepStrictEqual(
+        model.metadata()?.terminalState,
+        model.read().status
+      );
+      assert.deepStrictEqual(model.counts, {
+        registrations: 1,
+        removals: 0,
+        callbacks: 0,
+      });
+    })
+);
+
+it.effect(
+  "lifecycle model reports termination on a fresh process without restarting",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+
+      yield* model.start;
+      model.fix();
+      assert.isNotNull(model.read().latest);
+      yield* model.freshProcess();
+      assert.deepStrictEqual(model.counts, {
+        registrations: 1,
+        removals: 0,
+        callbacks: 0,
+      });
+
+      const value = yield* getTrackingSession.pipe(
+        Effect.provide(fixture(model.read()).layer)
+      );
+
+      assert.deepStrictEqual(value?.status, {
+        state: "interrupted",
+        reason: "termination",
+      });
+      assert.strictEqual(value?.latest, null);
+      assert.strictEqual(value?.id, session.id);
+      assert.deepStrictEqual(value?.options, session.options);
+    })
+);
+
+it.effect("lifecycle model hydrates finished metadata without committing", () =>
+  Effect.gen(function* () {
+    const model = interruptionModel();
+    yield* model.start;
+    yield* model.stop;
+    const metadata = model.metadata();
+    model.failCommit(true);
+    yield* model.freshProcess();
+    assert.deepStrictEqual(model.read().status, {
+      state: "stopped",
+      reason: "user",
+    });
+    assert.strictEqual(model.read().latest, null);
+    assert.deepStrictEqual(model.metadata(), metadata);
+    assert.deepStrictEqual(model.counts, {
+      registrations: 1,
+      removals: 1,
+      callbacks: 0,
+    });
+  })
+);
+
+it.effect(
+  "lifecycle model ends on revocation and does not restart after a grant",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+      yield* model.permission(false);
+      yield* model.permission(true);
+      model.services(true);
+
+      assert.deepStrictEqual(model.read().status, {
+        state: "stopped",
+        reason: "permissionRevoked",
+      });
+      assert.deepStrictEqual(model.counts, {
+        registrations: 1,
+        removals: 1,
+        callbacks: 0,
+      });
+    })
+);
+
+it.effect(
+  "lifecycle model suspends and recovers with the same id and options",
+  () =>
+    Effect.gen(function* () {
+      const model = interruptionModel();
+      yield* model.start;
+
+      model.services(false);
+
+      assert.deepStrictEqual(model.read().status, {
+        state: "suspended",
+        reason: "servicesOff",
+      });
+
+      model.services(true);
+
+      assert.deepStrictEqual(model.read().status, { state: "running" });
+      assert.strictEqual(model.read().id, session.id);
+      assert.deepStrictEqual(model.read().options, session.options);
+      assert.strictEqual(model.read().revision, session.revision + 3);
+    })
+);
+
+it.effect(
+  "lifecycle model reports timeout and recovers without ending the session",
+  () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const model = interruptionModel();
+        yield* model.start;
+        const fiber = yield* model.timeout.pipe(Effect.forkScoped);
+
+        yield* TestClock.adjust("60 seconds");
+        yield* Fiber.join(fiber);
+
+        const value = yield* getTrackingSession.pipe(
+          Effect.provide(fixture(model.read()).layer)
+        );
+
+        assert.strictEqual(value?.lastError?._tag, "LocationTimeout");
+        assert.strictEqual(value?.status.state, "running");
+
+        model.fix();
+
+        assert.strictEqual(model.read().lastError, null);
+        assert.strictEqual(model.read().id, session.id);
+        assert.strictEqual(model.read().status.state, "running");
+      })
+    )
+);
+
+it.effect("hook rehydrates after remount and reconciles on foreground", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const native = fixture();
+      const mounted = yield* Deferred.make<undefined>();
+      const resumed = yield* Deferred.make<undefined>();
+      const remounted = yield* Deferred.make<undefined>();
+      let generation = 0;
+
+      interface Observed {
+        latest: TrackingSession | null;
+      }
+
+      const observed: Observed = { latest: null };
+
+      const Probe = () => {
+        const state = useTrackingSession();
+        useLayoutEffect(() => {
+          observed.latest = state.value;
+
+          if (state.value?.revision === 2) {
+            Effect.runSync(Deferred.succeed(mounted, undefined));
+          }
+
+          if (state.value?.revision === 3) {
+            Effect.runSync(Deferred.succeed(resumed, undefined));
+          }
+
+          if (generation === 1 && state.value?.revision === 4) {
+            Effect.runSync(Deferred.succeed(remounted, undefined));
+          }
+        }, [state]);
+
+        return null;
+      };
+
+      const root = createRoot(document.createElement("div"));
+
+      const render = () => {
+        flushSync(() => {
+          root.render(
+            createElement(
+              RadicalProvider,
+              { layer: native.layer },
+              createElement(Probe, { key: generation })
+            )
+          );
+        });
+      };
+
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => {
+          flushSync(() => {
+            root.unmount();
+          });
+        })
+      );
+
+      render();
+      yield* Deferred.await(mounted);
+      yield* Effect.yieldNow;
+      native.reconcile({
+        ...session,
+        revision: 3,
+        notifications: { state: "denied" },
+      });
+      native.foreground();
+      yield* Deferred.await(resumed);
+      yield* Effect.yieldNow;
+      assert.strictEqual(observed.latest?.notifications.state, "denied");
+      native.reconcile({
+        ...session,
+        revision: 4,
+        status: { state: "interrupted", reason: "termination" },
+      });
+      generation = 1;
+      render();
+      yield* Deferred.await(remounted);
+      yield* Effect.yieldNow;
+      assert.strictEqual(observed.latest?.status.state, "interrupted");
+      assert.isFalse(native.calls.includes("startTrackingSession"));
+      assert.isFalse(native.calls.includes("stopTrackingSession"));
+    })
+  )
+);
+
+for (const granted of [true, false]) {
+  it.effect(
+    `lifecycle model retries failed hydration commit with permission ${granted}`,
+    () =>
+      Effect.gen(function* () {
+        const model = interruptionModel();
+        yield* model.start;
+        model.fix();
+        yield* model.permission(granted, false);
+        model.loseProcess();
+        const before = model.read();
+        const publications = model.published.length;
+        const metadata = model.metadata();
+        model.failCommit(true);
+        const failure = yield* model.get.pipe(Effect.flip);
+        assert.strictEqual(failure._tag, "Unavailable");
+        assert.strictEqual(model.read(), before);
+        assert.strictEqual(model.published.length, publications);
+        assert.deepStrictEqual(model.metadata(), metadata);
+        model.failCommit(false);
+        const reconstructed = yield* model.get;
+        assert.isDefined(reconstructed);
+
+        const value = yield* getTrackingSession.pipe(
+          Effect.provide(fixture(reconstructed).layer)
+        );
+
+        assert.isNotNull(value);
+        assert.deepStrictEqual(
+          value?.status,
+          granted
+            ? { state: "interrupted", reason: "termination" }
+            : { state: "stopped", reason: "permissionRevoked" }
+        );
+        assert.strictEqual(value?.latest, null);
+        assert.isAbove(value?.revision ?? 0, before.revision);
+        assert.strictEqual(model.published.length, publications + 1);
+        assert.deepStrictEqual(model.counts, {
+          registrations: 1,
+          removals: 0,
+          callbacks: 0,
+        });
       })
   );
 }

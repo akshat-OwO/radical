@@ -58,3 +58,17 @@ Services, layers, Streams, schema codecs, and `registerOfflineEffect` are export
 Fetch helpers, hooks, screens, and boundaries accept the same optional store. Omitting it uses the shared client controller. Initial state defaults to `unknown` with no store URL.
 
 The Effect API exports `fetchAppUpdate` and `radicalFetch(config, input, init?, store?)` from `@akshatowo/radical/effect/client`. `radicalFetch` requires `RadicalFetchEnvironment`; `RadicalFetchEnvironmentLive` supplies browser transport and injected shell context. Tests can supply an in-memory layer.
+
+## Tracking sessions
+
+Android shells with tracking enabled expose `startTrackingSession(options)`, `getTrackingSession()`, `stopTrackingSession(id)`, and `watchTrackingSession(receive, onError)`. The Effect API exposes the same operations, with watch returning a Stream. Options select `balanced`, `fitness`, or `navigation`, with optional `interval` and `minimumDistance`.
+
+Snapshots report `running`, `suspended: servicesOff`, `stopped: user | permissionRevoked`, or `interrupted: termination`. Permission revocation and process termination require an explicit new start.
+
+Services returning resume the same session. `lastError` is a nullable `TrackingAcquisitionError`, including `LocationTimeout`; a timeout does not end tracking. `notifications.state` reports `granted` or `denied`; denial does not prevent tracking.
+
+Grant notification permission to keep the notification and its Stop action reachable. The acquisition timeout covers waiting for a fix after start or recovery from services being off.
+
+The native owner stores only session metadata in private no-backup storage. A fresh process reports an unfinished session as interrupted with `latest: null`.
+
+Terminal sessions remain readable until the next start. Watches retrieve the snapshot on subscription and foreground return, and discard older revisions. Browser calls fail with `Unavailable`.
