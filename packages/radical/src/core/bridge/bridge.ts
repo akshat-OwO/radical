@@ -144,6 +144,7 @@ export const bridgeLayer = (
 
         if (
           !bridge?.nativeCallback ||
+          runtimeOf(bridge) === "browser" ||
           !hasShellCommand(readCommands(), plugin, "addListener")
         ) {
           return Effect.fail(

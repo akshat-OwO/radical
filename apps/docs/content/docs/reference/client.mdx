@@ -61,14 +61,35 @@ The Effect API exports `fetchAppUpdate` and `radicalFetch(config, input, init?, 
 
 ## Tracking sessions
 
-Android shells with tracking enabled expose `startTrackingSession(options)`, `getTrackingSession()`, `stopTrackingSession(id)`, and `watchTrackingSession(receive, onError)`. The Effect API exposes the same operations, with watch returning a Stream. Options select `balanced`, `fitness`, or `navigation`, with optional `interval` and `minimumDistance`.
+Tracking is Android-only for now. iOS support is planned. Browsers and shells without tracking commands fail with `Unavailable`. Imports are safe in a browser.
 
-Snapshots report `running`, `suspended: servicesOff`, `stopped: user | permissionRevoked`, or `interrupted: termination`. Permission revocation and process termination require an explicit new start.
+| Plain call | Result |
+| --- | --- |
+| `startTrackingSession({ preset, interval?, minimumDistance? }, runtime?)` | Promise of the new session. |
+| `getTrackingSession(runtime?)` | Promise of the current session or `null`. |
+| `stopTrackingSession(id, runtime?)` | Promise of the stopped session. Idempotent for the current id; rejects stale ids. |
+| `watchTrackingSession(receive, onError, runtime?)` | Unsubscribe function. Observes snapshots without starting or stopping collection. |
 
-Services returning resume the same session. `lastError` is a nullable `TrackingAcquisitionError`, including `LocationTimeout`; a timeout does not end tracking. `notifications.state` reports `granted` or `denied`; denial does not prevent tracking.
+The Effect API exports matching Effects and a `watchTrackingSession` Stream. `interval` is in milliseconds and must be positive. `minimumDistance` is in metres and must be nonnegative.
 
-Grant notification permission to keep the notification and its Stop action reachable. The acquisition timeout covers waiting for a fix after start or recovery from services being off.
+Presets are requests, not guarantees:
 
-The native owner stores only session metadata in private no-backup storage. A fresh process reports an unfinished session as interrupted with `latest: null`.
+| Preset | Android | Planned iOS |
+| --- | --- | --- |
+| `balanced` | Balanced power, 30 s, 50 m | Hundred-metre accuracy, `.other`, 50 m filter |
+| `fitness` | High accuracy, 5 s, 5 m | Best accuracy, `.fitness`, 5 m filter |
+| `navigation` | High accuracy, 1 s, 0 m | Best for navigation, `.automotiveNavigation`, no filter |
 
-Terminal sessions remain readable until the next start. Watches retrieve the snapshot on subscription and foreground return, and discard older revisions. Browser calls fail with `Unavailable`.
+On iOS, `interval` only throttles delivery. No platform guarantees delivery intervals.
+
+Typed failures include `Unavailable`, `PermissionDenied`, `LocationServicesOff`, `InvalidTrackingOptions`, `TrackingStartRequiresForeground`, `TrackingSessionAlreadyActive` with the existing `id`, and `TrackingSessionNotFound` with the stale `id`. Bridge failures retain their typed bridge error.
+
+Snapshots report `running`, `suspended: servicesOff`, `stopped: user | permissionRevoked`, or `interrupted: termination`. When services return, the same session resumes.
+
+`lastError` is a nullable `TrackingAcquisitionError`, including `LocationTimeout`. A timeout does not end tracking or fail the stream. It covers waiting for a fix after start or after services return.
+
+`notifications.state` reports `granted` or `denied`. Denial does not prevent tracking, but hides the Android notification and its Stop action.
+
+The native owner stores only session metadata, in private no-backup storage. A fresh process reports an unfinished session as `interrupted` with `latest: null`. Watches retrieve the snapshot on subscription and on return to the foreground, and discard older revisions.
+
+See [Track a user-started session](/docs/guides/tracking-session) for lifecycle states, restart rules, and platform limits.
