@@ -251,3 +251,5 @@ export {
 } from "./use-app-update.ts";
 
 export type { AppUpdateState } from "../core/update/app-update.ts";
+
+export { useKeyValue } from "../react/use-key-value.ts";

@@ -1,0 +1,175 @@
+Page: dev.radical.example.ios
+App: dev.radical.example.ios
+Snapshot: 10 nodes
+Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
+@e1 [application] "Radical iOS"
+@e2 [other] "Tab Bar"
+@e3 [webview] "Key-value verification"
+@e4 [other] "Key-value verification" [focused]
+@e5 [heading] "Native key-value checks" [focused]
+@e6 [text] "{
+  "stage": "reopen",
+  "checks": [
+    {
+      "name": "survives-relaunch",
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "corrupt-after-relaunch",
+      "actual": "InvalidStoredValue",
+      "expected": "InvalidStoredValue",
+      "pass": true
+    },
+    {
+      "name": "corrupt-still-untouched",
+      "actual": "{broken",
+      "expected": "{broken",
+      "pass": true
+    },
+    {
+      "name": "policy-conflict",
+      "actual": "StorePolicyConflict",
+      "expected": "StorePolicyConflict",
+      "pass": true
+    },
+    {
+      "name": "root-eligible",
+      "actual": "eligible",
+      "expected": "eligible",
+      "pass": true
+    },
+    {
+      "name": "wal-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "backup-flags-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-eligible",
+      "actual": {
+        "rootClass": "eligible",
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
+        "excluded": {
+          "key-value.sqlite-wal": false,
+          "key-value.sqlite-shm": false,
+          "key-value.sqlite": false
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "root-excluded",
+      "actual": "excluded",
+      "expected": "excluded",
+      "pass": true
+    },
+    {
+      "name": "wal-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "backup-flags-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-excluded",
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
+        "excluded": {
+          "key-value.sqlite": true,
+          "key-value.sqlite-shm": true,
+          "key-value.sqlite-wal": true
+        },
+        "rootClass": "excluded"
+      },
+      "pass": true
+    },
+    {
+      "name": "root-cache",
+      "actual": "cache",
+      "expected": "cache",
+      "pass": true
+    },
+    {
+      "name": "wal-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "backup-flags-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-cache",
+      "actual": {
+        "excluded": {
+          "key-value.sqlite-wal": true,
+          "key-value.sqlite-shm": true,
+          "key-value.sqlite": true
+        },
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
+        "rootClass": "cache"
+      },
+      "pass": true
+    }
+  ]
+}" [focused]
+@e7 [tab-bar] "Tab Bar"
+@e8 [other] "Home"
+@e9 [button] "Home" [selected]
+@e10 [button] "About"

@@ -1,0 +1,201 @@
+{
+  "stage": "create",
+  "checks": [
+    {
+      "name": "missing",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "pass": true
+    },
+    {
+      "name": "round-trip",
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "null",
+      "actual": {
+        "found": true,
+        "value": null
+      },
+      "expected": {
+        "found": true,
+        "value": null
+      },
+      "pass": true
+    },
+    {
+      "name": "clear-own",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "pass": true
+    },
+    {
+      "name": "namespace-isolation",
+      "actual": {
+        "found": true,
+        "value": "other"
+      },
+      "expected": {
+        "found": true,
+        "value": "other"
+      },
+      "pass": true
+    },
+    {
+      "name": "corrupt",
+      "actual": "InvalidStoredValue",
+      "expected": "InvalidStoredValue",
+      "pass": true
+    },
+    {
+      "name": "corrupt-untouched",
+      "actual": "{broken",
+      "expected": "{broken",
+      "pass": true
+    },
+    {
+      "name": "size-public",
+      "actual": "InvalidStorageInput",
+      "expected": "InvalidStorageInput",
+      "pass": true
+    },
+    {
+      "name": "size-native",
+      "actual": "InvalidStorageInput",
+      "expected": "InvalidStorageInput",
+      "pass": true
+    },
+    {
+      "name": "exact-limit",
+      "actual": 1048574,
+      "expected": 1048574,
+      "pass": true
+    },
+    {
+      "name": "remove",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "pass": true
+    },
+    {
+      "name": "policy-conflict",
+      "actual": "StorePolicyConflict",
+      "expected": "StorePolicyConflict",
+      "pass": true
+    },
+    {
+      "name": "root-eligible",
+      "actual": "eligible",
+      "expected": "eligible",
+      "pass": true
+    },
+    {
+      "name": "wal-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-eligible",
+      "actual": {
+        "rootClass": "eligible",
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-wal",
+          "key-value.sqlite-shm"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "root-excluded",
+      "actual": "excluded",
+      "expected": "excluded",
+      "pass": true
+    },
+    {
+      "name": "wal-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-excluded",
+      "actual": {
+        "rootClass": "excluded",
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-wal",
+          "key-value.sqlite-shm"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "root-cache",
+      "actual": "cache",
+      "expected": "cache",
+      "pass": true
+    },
+    {
+      "name": "wal-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-cache",
+      "actual": {
+        "rootClass": "cache",
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-wal",
+          "key-value.sqlite-shm"
+        ]
+      },
+      "pass": true
+    }
+  ]
+}

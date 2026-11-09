@@ -32,6 +32,7 @@ import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
 import appStorage from "../../../templates/ios/RadicalAppStoragePlugin.swift?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
+import keyValue from "../../../templates/ios/RadicalKeyValuePlugin.swift?raw";
 import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?raw";
 import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw";
 import notificationSource from "../../../templates/ios/RadicalNotificationTopicsPlugin.swift?raw";
@@ -63,6 +64,7 @@ const memory = (
     ["/package/templates/ios/RadicalStorageOwner.swift", storageOwner],
     ["/package/templates/ios/RadicalStorageBackup.swift", storageHelper],
     ["/package/templates/ios/RadicalAppStoragePlugin.swift", appStorage],
+    ["/package/templates/ios/RadicalKeyValuePlugin.swift", keyValue],
     [
       "/package/templates/ios/RadicalNotificationTopicsPlugin.swift",
       notificationSource,
@@ -1767,4 +1769,37 @@ it.effect(
       assert.include(source, "enum RadicalStorageOwner");
     }).pipe(Effect.provide(state.layer));
   }
+);
+
+it.effect("generates key-value with its foundation only when opted in", () =>
+  Effect.gen(function* () {
+    for (const enabled of [false, true]) {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { keyValue: enabled },
+      });
+
+      yield* generate.pipe(Effect.provide(state.layer));
+      const source = state.files.get(appDelegate) ?? "";
+      assert.strictEqual(
+        source.includes("@objc(RadicalKeyValuePlugin)"),
+        enabled
+      );
+
+      if (enabled) {
+        assert.include(source, "import SQLite3");
+        assert.include(source, "PRAGMA journal_mode=WAL");
+        assert.include(
+          source,
+          'call.reject("Invalid storage input", "InvalidStorageInput", nil, [:])'
+        );
+        assert.include(
+          source,
+          'call.reject("Store policy conflict", "StorePolicyConflict", nil, [:])'
+        );
+        assert.include(source, "enum RadicalStorageOwner");
+        assert.include(source, "RadicalKeyValuePlugin()");
+      }
+    }
+  })
 );

@@ -147,7 +147,9 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    @objc public func resolve(_ call: CAPPluginCall) {
+    @objc public func resolve(_ call: CAPPluginCall) { resolveStore(call, action: nil) }
+
+    func resolveStore(_ call: CAPPluginCall, action: ((URL) throws -> Void)?) {
         RadicalStorageOwner.enqueue {
             guard let capability = call.getString("capability"),
                   ["keyValue", "secureStorage", "sqlite", "fileSystem"].contains(capability),
@@ -157,7 +159,7 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
                   let path = call.getString("path"),
                   path.isEmpty || path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy({
                       !$0.isEmpty && $0 != "." && $0 != ".." && $0.range(of: "[\\\\:\\x00-\\x1f]", options: .regularExpression) == nil
-                  }) else { call.reject("Invalid storage input", "InvalidStorageInput"); return }
+                  }) else { call.reject("Invalid storage input", "InvalidStorageInput", nil, [:]); return }
             do {
                 let fm = FileManager.default
                 let support = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
@@ -197,15 +199,16 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
                 try self.validatePath(storeRoot, path)
                 let metadataRoot = backup == "eligible" ? eligible : excluded
                 if try self.policy(metadataRoot, identity) == nil { try self.publish(metadataRoot, identity, backup) }
+                if let action { try action(storeRoot.url); return }
                 call.resolve(["relativePath": "stores/" + identity.joined(separator: "/") + (path.isEmpty ? "" : "/" + path)])
             } catch RadicalStorageBackup.Failure.identityChanged {
-                call.reject("Invalid storage input", "InvalidStorageInput")
+                call.reject("Invalid storage input", "InvalidStorageInput", nil, [:])
             } catch StorageFailure.invalid {
-                call.reject("Invalid storage input", "InvalidStorageInput")
+                call.reject("Invalid storage input", "InvalidStorageInput", nil, [:])
             } catch StorageFailure.conflict {
-                call.reject("Store policy conflict", "StorePolicyConflict")
+                call.reject("Store policy conflict", "StorePolicyConflict", nil, [:])
             } catch {
-                call.reject("Storage operation failed", "StorageIOFailed")
+                call.reject("Storage operation failed", "StorageIOFailed", nil, [:])
             }
         }
     }

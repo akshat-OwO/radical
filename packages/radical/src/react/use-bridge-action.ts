@@ -13,12 +13,13 @@ export interface ActionState<A, E> {
 }
 
 /** One operation per hook. Ignore overlapping actions while a native UI is open. */
-export const useBridgeAction = <A, E>() => {
+export const useBridgeAction = <A, E>(identity?: string) => {
   const layer = useContext(BridgeContext);
 
   const active = useRef<{
     fiber?: Fiber.Fiber<void>;
     live: boolean;
+    identity?: string;
     layer?: Layer.Layer<Bridge | LocationWatchPool>;
   }>({
     live: false,
@@ -26,14 +27,16 @@ export const useBridgeAction = <A, E>() => {
 
   const [snapshot, setSnapshot] = useState<{
     layer: Layer.Layer<Bridge | LocationWatchPool>;
+    identity?: string;
     state: ActionState<A, E>;
   }>({
     layer,
+    identity,
     state: { loading: false, value: undefined, error: undefined },
   });
 
   useEffect(() => {
-    const owner: typeof active.current = { live: true, layer };
+    const owner: typeof active.current = { live: true, layer, identity };
     active.current = owner;
 
     return () => {
@@ -43,18 +46,24 @@ export const useBridgeAction = <A, E>() => {
         Effect.runFork(Fiber.interrupt(owner.fiber));
       }
     };
-  }, [layer]);
+  }, [layer, identity]);
 
   const run = useCallback(
     (effect: Effect.Effect<A, E, Bridge | LocationWatchPool>) => {
       const owner = active.current;
 
-      if (!owner.live || owner.layer !== layer || owner.fiber) {
+      if (
+        !owner.live ||
+        owner.layer !== layer ||
+        owner.identity !== identity ||
+        owner.fiber
+      ) {
         return;
       }
 
       setSnapshot({
         layer,
+        identity,
         state: { loading: true, value: undefined, error: undefined },
       });
 
@@ -66,6 +75,7 @@ export const useBridgeAction = <A, E>() => {
               if (owner.live) {
                 setSnapshot({
                   layer,
+                  identity,
                   state: { loading: false, value, error: undefined },
                 });
               }
@@ -74,6 +84,7 @@ export const useBridgeAction = <A, E>() => {
               if (owner.live) {
                 setSnapshot({
                   layer,
+                  identity,
                   state: { loading: false, value: undefined, error },
                 });
               }
@@ -87,13 +98,13 @@ export const useBridgeAction = <A, E>() => {
         owner.fiber = undefined;
       });
     },
-    [layer]
+    [layer, identity]
   );
 
   const cancel = useCallback(() => {
     const owner = active.current;
 
-    if (owner.layer === layer && owner.fiber) {
+    if (owner.layer === layer && owner.identity === identity && owner.fiber) {
       Effect.runFork(
         Fiber.interrupt(owner.fiber).pipe(
           Effect.tap(() =>
@@ -101,6 +112,7 @@ export const useBridgeAction = <A, E>() => {
               if (owner.live && active.current === owner) {
                 setSnapshot({
                   layer,
+                  identity,
                   state: { loading: false, value: undefined, error: undefined },
                 });
               }
@@ -109,11 +121,11 @@ export const useBridgeAction = <A, E>() => {
         )
       );
     }
-  }, [layer]);
+  }, [layer, identity]);
 
   return {
     cancel,
-    ...(snapshot.layer === layer
+    ...(snapshot.layer === layer && snapshot.identity === identity
       ? snapshot.state
       : { loading: false, value: undefined, error: undefined }),
     run,

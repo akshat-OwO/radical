@@ -134,3 +134,5 @@ export {
 export type { AppUpdateState } from "../core/update/app-update.ts";
 
 export { useTrackingSession } from "../react/use-tracking-session.ts";
+
+export { useKeyValue } from "../react/use-key-value.ts";

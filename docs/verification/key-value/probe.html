@@ -1,0 +1,176 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Key-value verification</title>
+<h1>Native key-value checks</h1>
+<pre id="result">Running</pre>
+<script type="module">
+  import { Effect } from "effect";
+  import {
+    keyValueStore,
+    KEY_VALUE_MAX_BYTES,
+    BridgeLive,
+  } from "../../../packages/radical/src/effect/client.ts";
+  const run = (effect) =>
+    Effect.runPromise(effect.pipe(Effect.provide(BridgeLive)));
+  const native = (args) =>
+    window.Capacitor.nativePromise("RadicalKeyValue", "execute", args);
+  const options = {
+    store: "verify-181",
+    namespace: "user-one",
+    backup: "eligible",
+  };
+  const request = {
+    ...options,
+    capability: "keyValue",
+    path: "",
+    operation: "get",
+    key: "persist",
+  };
+  const one = keyValueStore(options);
+  const two = keyValueStore({ ...options, namespace: "user-two" });
+  const checks = [];
+  const check = (name, actual, expected) =>
+    checks.push({
+      name,
+      actual,
+      expected,
+      pass: JSON.stringify(actual) === JSON.stringify(expected),
+    });
+  const failed = (effect) =>
+    run(
+      effect.pipe(
+        Effect.flip,
+        Effect.map((error) => error._tag)
+      )
+    );
+  const stage = await fetch("/stage.json").then((response) => response.json());
+  try {
+    await window.Capacitor.nativePromise(
+      "RadicalSplash",
+      "linksReady",
+      {}
+    ).catch(() => {});
+    await window.Capacitor.nativePromise("RadicalSplash", "hide", {}).catch(
+      () => {}
+    );
+    if (stage === "create") {
+      await run(one.clear());
+      await run(two.clear());
+      check("missing", await run(one.get("missing")), { found: false });
+      await run(one.set("persist", { count: 42 }));
+      check("round-trip", await run(one.get("persist")), {
+        found: true,
+        value: { count: 42 },
+      });
+      await run(one.set("null", null));
+      check("null", await run(one.get("null")), { found: true, value: null });
+      await run(two.set("persist", "other"));
+      await run(one.clear());
+      check("clear-own", await run(one.get("persist")), { found: false });
+      check("namespace-isolation", await run(two.get("persist")), {
+        found: true,
+        value: "other",
+      });
+      await run(one.set("persist", { count: 42 }));
+      await run(one.set("corrupt", "fixture"));
+      check("corrupt", await failed(one.get("corrupt")), "InvalidStoredValue");
+      check(
+        "corrupt-untouched",
+        (await native({ ...request, key: "corrupt" })).json,
+        "{broken"
+      );
+      check(
+        "size-public",
+        await failed(one.set("too-large", "é".repeat(KEY_VALUE_MAX_BYTES / 2))),
+        "InvalidStorageInput"
+      );
+      check(
+        "size-native",
+        await native({
+          ...request,
+          operation: "set",
+          key: "too-large",
+          json: JSON.stringify("a".repeat(KEY_VALUE_MAX_BYTES)),
+        }).then(
+          () => "success",
+          (error) => error.code
+        ),
+        "InvalidStorageInput"
+      );
+      await run(one.set("exact-limit", "a".repeat(KEY_VALUE_MAX_BYTES - 2)));
+      check(
+        "exact-limit",
+        (await run(one.get("exact-limit"))).value.length,
+        KEY_VALUE_MAX_BYTES - 2
+      );
+      await run(one.remove("exact-limit"));
+      check("remove", await run(one.get("exact-limit")), { found: false });
+    } else {
+      check("survives-relaunch", await run(one.get("persist")), {
+        found: true,
+        value: { count: 42 },
+      });
+      check(
+        "corrupt-after-relaunch",
+        await failed(one.get("corrupt")),
+        "InvalidStoredValue"
+      );
+      check(
+        "corrupt-still-untouched",
+        (await native({ ...request, key: "corrupt" })).json,
+        "{broken"
+      );
+    }
+    check(
+      "policy-conflict",
+      await failed(
+        keyValueStore({ ...options, backup: "excluded" }).get("persist")
+      ),
+      "StorePolicyConflict"
+    );
+    for (const backup of ["eligible", "excluded", "cache"]) {
+      const response = await native({
+        ...request,
+        namespace: backup,
+        backup,
+        operation: "set",
+        key: "root",
+        json: '"root-check"',
+      });
+      const proof = response.verification;
+      check("root-" + backup, proof.rootClass, backup);
+      check(
+        "wal-" + backup,
+        proof.files.includes("key-value.sqlite-wal"),
+        true
+      );
+      check(
+        "shm-" + backup,
+        proof.files.includes("key-value.sqlite-shm"),
+        true
+      );
+      if (window.Capacitor.getPlatform() === "ios") {
+        check(
+          "backup-flags-" + backup,
+          Object.values(proof.excluded).every(
+            (value) => value === (backup !== "eligible")
+          ),
+          true
+        );
+      }
+      checks.push({ name: "files-" + backup, actual: proof, pass: true });
+    }
+  } catch (error) {
+    checks.push({ name: "unexpected", actual: String(error), pass: false });
+  }
+  document.querySelector("#result").textContent = JSON.stringify(
+    { stage, checks },
+    null,
+    2
+  );
+  await fetch("/results/" + window.Capacitor.getPlatform() + "/" + stage, {
+    method: "POST",
+    body: JSON.stringify({ stage, checks }, null, 2),
+  });
+</script>

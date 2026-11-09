@@ -74,6 +74,7 @@ const config = {
   plugins: [{ manifest: "./plugins/echo.ts" }],
   internalPlugins: {
     appStorage: true,
+    keyValue: true,
     googleSignIn: true,
     network: true,
     notifications: true,
