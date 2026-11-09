@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Crash-left WAL preservation</title>
+<h1>WAL preservation investigation</h1>
+<pre id="result">Running</pre>
+<script>
+  const platform = window.Capacitor.getPlatform();
+  const cases = [];
+  const modes =
+    platform === "ios"
+      ? ["default", "readonly", "controls", "controls-exclusive"]
+      : ["default", "readonly"];
+  for (const scenario of ["nonempty", "empty", "orphan-shm"]) {
+    for (const mode of modes) {
+      for (const operation of ["get", "set", "clear"]) {
+        cases.push({
+          scenario,
+          mode,
+          operation,
+          namespace: [scenario, mode, operation].join("-"),
+        });
+      }
+    }
+  }
+  const native = (item, key, operation = "get") =>
+    window.Capacitor.nativePromise("RadicalKeyValue", "execute", {
+      store: "wal-review-203",
+      namespace: item.namespace,
+      backup: "excluded",
+      capability: "keyValue",
+      path: "",
+      operation,
+      key,
+      ...(operation === "set" ? { json: '"replacement"' } : {}),
+      walFixture: item.scenario,
+      readonlyProbe: item.mode === "readonly",
+      closeControls: item.mode.startsWith("controls"),
+      exclusiveProbe: item.mode === "controls-exclusive",
+    });
+  const canonical = (value) =>
+    value === null || typeof value !== "object"
+      ? value
+      : Array.isArray(value)
+        ? value.map(canonical)
+        : Object.fromEntries(
+            Object.keys(value)
+              .sort()
+              .map((key) => [key, canonical(value[key])])
+          );
+  const equal = (a, b) =>
+    JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+  const run = async () => {
+    await window.Capacitor.nativePromise(
+      "RadicalSplash",
+      "linksReady",
+      {}
+    ).catch(() => {});
+    await window.Capacitor.nativePromise("RadicalSplash", "hide", {}).catch(
+      () => {}
+    );
+    const stage = await fetch("/stage/" + platform).then((response) =>
+      response.json()
+    );
+    if (stage === "seed") {
+      const seeds = [];
+      for (const item of cases)
+        seeds.push({ ...item, support: await native(item, "__fixture_seed") });
+      await fetch("/seed/" + platform, {
+        method: "POST",
+        body: JSON.stringify({ seeds }),
+      });
+      document.querySelector("#result").textContent =
+        "Seeds committed. Exiting without closing SQLite.";
+      await native(cases[0], "__fixture_crash");
+    } else {
+      const results = [];
+      for (const item of cases) {
+        const before = (await native(item, "__fixture_damage")).files;
+        const error = await native(
+          item,
+          item.operation === "clear" ? "" : "key",
+          item.operation
+        ).then(
+          () => "unexpected-success",
+          (error) => error.code
+        );
+        const after = (await native(item, "__fixture_inspect")).files;
+        const changed = Object.keys(before).filter(
+          (name) => !equal(before[name], after[name])
+        );
+        results.push({
+          ...item,
+          error,
+          before,
+          after,
+          changed,
+          preserved: changed.length === 0,
+        });
+      }
+      const report = { results };
+      document.querySelector("#result").textContent = JSON.stringify(
+        report,
+        null,
+        2
+      );
+      await fetch("/results/" + platform, {
+        method: "POST",
+        body: JSON.stringify(report),
+      });
+    }
+  };
+  run().catch((error) => {
+    document.querySelector("#result").textContent =
+      "Probe error: " + String(error);
+    fetch("/failure/" + platform, {
+      method: "POST",
+      body: JSON.stringify({ error: String(error) }),
+    });
+  });
+</script>

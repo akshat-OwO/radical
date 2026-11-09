@@ -1,0 +1,17 @@
+pnpm exec ultracite fix: passed
+pnpm exec ultracite check: passed
+pnpm exec vp run ready:
+Test Files  1 passed (1)
+Tests  14 passed (14)
+Test Files  105 passed (105)
+Tests  976 passed (976)
+vp run: 1/9 cache hit (11%), 16/16 successful, 496ms saved. @radical/docs#build (and 2 more) not cached because they modified their inputs. (Run `vp run --last-details` for full details)
+
+Preservation diagnostics FAIL the requested invariant:
+Native host: 9/36 cases unchanged; probe exits 1.
+android default: 0/9 cases unchanged
+android readonly: 0/9 cases unchanged
+ios controls: 0/9 cases unchanged
+ios controls-exclusive: 6/9 cases unchanged
+ios default: 0/9 cases unchanged
+ios readonly: 3/9 cases unchanged

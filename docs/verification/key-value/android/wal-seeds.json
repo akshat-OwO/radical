@@ -1,0 +1,166 @@
+{
+  "seeds": [
+    {
+      "scenario": "nonempty",
+      "mode": "default",
+      "operation": "get",
+      "namespace": "nonempty-default-get",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "nonempty",
+      "mode": "default",
+      "operation": "set",
+      "namespace": "nonempty-default-set",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "nonempty",
+      "mode": "default",
+      "operation": "clear",
+      "namespace": "nonempty-default-clear",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "nonempty",
+      "mode": "readonly",
+      "operation": "get",
+      "namespace": "nonempty-readonly-get",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "nonempty",
+      "mode": "readonly",
+      "operation": "set",
+      "namespace": "nonempty-readonly-set",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "nonempty",
+      "mode": "readonly",
+      "operation": "clear",
+      "namespace": "nonempty-readonly-clear",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "empty",
+      "mode": "default",
+      "operation": "get",
+      "namespace": "empty-default-get",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "empty",
+      "mode": "default",
+      "operation": "set",
+      "namespace": "empty-default-set",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "empty",
+      "mode": "default",
+      "operation": "clear",
+      "namespace": "empty-default-clear",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "empty",
+      "mode": "readonly",
+      "operation": "get",
+      "namespace": "empty-readonly-get",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "empty",
+      "mode": "readonly",
+      "operation": "set",
+      "namespace": "empty-readonly-set",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "empty",
+      "mode": "readonly",
+      "operation": "clear",
+      "namespace": "empty-readonly-clear",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "orphan-shm",
+      "mode": "default",
+      "operation": "get",
+      "namespace": "orphan-shm-default-get",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "orphan-shm",
+      "mode": "default",
+      "operation": "set",
+      "namespace": "orphan-shm-default-set",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "orphan-shm",
+      "mode": "default",
+      "operation": "clear",
+      "namespace": "orphan-shm-default-clear",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "orphan-shm",
+      "mode": "readonly",
+      "operation": "get",
+      "namespace": "orphan-shm-readonly-get",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "orphan-shm",
+      "mode": "readonly",
+      "operation": "set",
+      "namespace": "orphan-shm-readonly-set",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    },
+    {
+      "scenario": "orphan-shm",
+      "mode": "readonly",
+      "operation": "clear",
+      "namespace": "orphan-shm-readonly-clear",
+      "support": {
+        "sqliteVersion": "3.44.3"
+      }
+    }
+  ]
+}

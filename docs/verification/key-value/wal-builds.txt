@@ -1,0 +1,6 @@
+Android instrumented build
+BUILD SUCCESSFUL in 21s
+489 actionable tasks: 489 executed
+
+iOS instrumented build
+** BUILD SUCCEEDED **

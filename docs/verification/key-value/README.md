@@ -1,5 +1,7 @@
 # Native key-value verification
 
+**Open P1:** crash-left WAL/SHM preservation is not established. The [latest investigation](wal-investigation.md) reproduces file changes after failed operations and supersedes the earlier main-file-only corruption claims below.
+
 The latest review pass verifies corrupt database preservation, explicit row recovery, and embedded NUL text on both platforms. See [review verification](review-corruption.md) for the additional device and native-host results. The original capability verification follows.
 
 Verified on 2026-11-09 for #181 using the Pixel_9 Android 16 emulator and iPhone 17 Pro iOS 26.5 simulator. These checks do not claim physical-device or API 24 execution.
