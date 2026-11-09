@@ -38,8 +38,9 @@ public class RadicalKeyValuePlugin extends RadicalAppStoragePlugin {
      *   quarantined: the handle stays referenced here, no statement ever runs on it
      *   again, and every later call fails with StorageIOFailed without touching the
      *   store files. The OS releases the handle at process exit without a SQLite
-     *   close, so no checkpoint runs. The next launch's preflight reports the
-     *   corruption again.
+     *   close, so no checkpoint runs. Quarantine ends with the process; the next
+     *   launch reports the corruption again when its preflight or a later statement
+     *   reads the damaged page.
      *
      * The preflight is not an integrity_check, which reads every page. A database
      * that passes it is treated as healthy, so normal maintenance applies: the
