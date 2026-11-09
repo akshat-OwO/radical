@@ -1,1 +1,2 @@
-** BUILD SUCCEEDED **
+production: ** BUILD SUCCEEDED **
+instrumented Foundation probe: ** BUILD SUCCEEDED **

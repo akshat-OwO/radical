@@ -1,2 +1,3 @@
-PASS: competing parent swap cannot run between validation and use
-PASS: replacing the parent cannot redirect either backup-attribute mutation
+PASS: Android owner regression verified at a600813; Android code unchanged
+PASS: iOS host Foundation flags and confinement: 19 checks
+PASS: iOS simulator Foundation flags and confinement: 22 checks

@@ -1,0 +1,49 @@
+Page: dev.radical.example.ios
+App: dev.radical.example.ios
+Snapshot: 9 nodes
+Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
+@e1 [application] "Radical iOS"
+@e2 [other] "Tab Bar"
+@e3 [webview] "Foundation backup verification"
+@e4 [other] [focused] [same label as parent]
+@e5 [text] "{
+  "checks": {
+    "different-inode-rejected": true,
+    "different-inode-unchanged": true,
+    "eligible-root": true,
+    "excluded-root": true,
+    "installed-cache": true,
+    "installed-eligible": true,
+    "installed-excluded": true,
+    "invalid-descriptor-typed": true,
+    "leaf-symlink-rejected": true,
+    "new-file": true,
+    "outside-unchanged": true,
+    "parent-swap-clear-rejected": true,
+    "parent-swap-set-rejected": true,
+    "replaced-file": true,
+    "replacement-content": true,
+    "replacement-is-new-inode": true,
+    "replacement-starts-unexcluded": true,
+    "serialized-outside-unchanged": true,
+    "serialized-parent-swap": true,
+    "serialized-write-completed": true,
+    "staged-file": true,
+    "unowned-access-rejected": true
+  },
+  "flags": {
+    "eligible-root": false,
+    "excluded-root": true,
+    "installed-cache": true,
+    "installed-eligible": false,
+    "installed-excluded": true,
+    "new-file": true,
+    "replaced-file": true,
+    "stage-before-replace": false,
+    "staged-file": true
+  }
+}" [focused]
+@e6 [tab-bar] "Tab Bar"
+@e7 [other] "Home"
+@e8 [button] "Home" [selected]
+@e9 [button] "About"

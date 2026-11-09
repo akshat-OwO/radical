@@ -37,6 +37,7 @@ import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw
 import notificationSource from "../../../templates/ios/RadicalNotificationTopicsPlugin.swift?raw";
 import settings from "../../../templates/ios/RadicalSettingsPlugin.swift?raw";
 import storageHelper from "../../../templates/ios/RadicalStorageBackup.swift?raw";
+import storageOwner from "../../../templates/ios/RadicalStorageOwner.swift?raw";
 import trackingSource from "../../../templates/ios/RadicalTrackingSessionPlugin.swift?raw";
 import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../../../templates/ios/RadicalViewController.swift?raw";
@@ -59,6 +60,7 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/ios/RadicalStorageOwner.swift", storageOwner],
     ["/package/templates/ios/RadicalStorageBackup.swift", storageHelper],
     ["/package/templates/ios/RadicalAppStoragePlugin.swift", appStorage],
     [
@@ -1761,6 +1763,7 @@ it.effect(
       );
       assert.include(source, "@objc(RadicalAppStoragePlugin)");
       assert.include(source, "enum RadicalStorageBackup");
+      assert.include(source, "enum RadicalStorageOwner");
     }).pipe(Effect.provide(state.layer));
   }
 );

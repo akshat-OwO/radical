@@ -1,6 +1,6 @@
 # App-storage native verification
 
-Verified the revised implementation for PR #202 on 2026-11-09. These are emulator and simulator checks, not physical-device checks.
+Verified the revised implementation for PR #202 on 2026-11-09. These are emulator and simulator checks, not physical-device checks. Android code and device results remain those verified at a600813. The current revision changes only iOS; Pixel_9 was not rerun. iOS production and instrumented builds were both rebuilt and launched.
 
 - Android: Pixel_9, Android 16, API 36, serial `emulator-5554`, app `dev.radical.example.android`.
 - iOS: iPhone 17 Pro, iOS 26.5, simulator `F69D9CE5-20E1-4388-9EBA-27B1782EEF75`, app `dev.radical.example.ios`.
@@ -31,7 +31,9 @@ xcodebuild -project apps/example/.radical/ios/ios/App/App.xcodeproj \
   -derivedDataPath apps/example/.radical/ios/build build
 ```
 
-The final build passed. [Build result](ios/build.txt). The installed bundle contains PrivacyInfo.xcprivacy with file-metadata reason C617.1: [plist output](ios/privacy.txt). Direct backup-exclusion attributes are present on excluded and cache roots, and absent on the common parent and eligible root: [attribute inspection](ios/backup-flags.txt). Host Foundation reports inherited exclusion from the simulator's host directory, so this evidence inspects the direct extended attributes instead.
+The production build and the test-only instrumented build passed. [Build results](ios/build.txt). The installed bundle contains PrivacyInfo.xcprivacy with file-metadata reason C617.1: [plist output](ios/privacy.txt).
+
+Backup semantics are now checked with Foundation resourceValues(forKeys: [.isExcludedFromBackupKey]) inside the simulator app. [Simulator results](ios/foundation.json) and [accessibility snapshot](ios/foundation.txt) show all 22 checks pass: eligible roots read false, while excluded/cache roots and new, staged, and replaced files read true. The host test passes 19 checks using the same supported readback: [host results](ios/foundation-host.json). The reader fails if Foundation does not supply a resource value; a missing value cannot pass as false. No raw extended-attribute representation is read or written by the implementation or these tests. This follows [Apple's backup guidance](https://developer.apple.com/documentation/foundation/optimizing-your-app-s-data-for-icloud-backup), including reapplying the property after saves.
 
 New in-memory Effect tests exercise full Android and iOS generation. They check the generated application element, both backup resource files, the privacy manifest file, Xcode resource references, and native plugin source inclusion. The Effect harness does not execute Java or Swift. Standalone native tests below compile the production confinement helpers, and device probes exercise the complete resolvers.
 
@@ -66,7 +68,13 @@ Android's public API 24 filesystem API cannot perform descriptor-relative mkdira
 
 StorageOwnerTest uses an in-memory parent-path model. After validation, a second thread attempts to replace the parent through the production owner. The test uses JVM monitor state and lock ownership to verify that this competing task is blocked by the validating thread, then checks the event sequence is validate, use, swap and the modeled outside directory received no creation. It uses no sleeps, timeouts, network, or real filesystem operations.
 
-StorageBackupTest opens a real directory with no-follow flags, renames its parent, and substitutes a symlink pointing at an outside directory before applying the attribute. It then calls the production RadicalStorageBackup helper to set and clear the exclusion marker. Both operations change only the verified inode; the outside target's direct attribute stays unchanged. The test also checks the typed failure for an invalid descriptor. There are no timing windows or test hooks: the parent replacement is completed before the attribute access.
+StorageBackupTest and StorageBackupChecks use Foundation's supported backup resource property and readback. A shared Swift RadicalStorageOwner serializes all iOS app-storage mutations under the same threat model as Android. File access remains descriptor-relative; the Foundation write is bound to the verified object by lstat/fstat device and inode checks before and after setResourceValues. A symlink or mismatch becomes a typed error.
+
+The checks replace a parent with an outside symlink before attempting the write and verify typed rejection with no outside change. They also queue a competing owned parent swap in the validation/use interval and check it executes only after the write. Different inodes, leaf symlinks, invalid descriptors, and unowned access are rejected. Native code that bypasses the owner is outside the contract; pre/post identity checks are not claimed to sandbox arbitrary concurrent same-uid native code.
+
+For file semantics, an eligible parent stays false while explicit exclusion on new and staged files reads true. The test then clears the staged file's flag before atomic replacement, ensuring inheritance and staging cannot mask a missing post-rename application. RadicalStorageBackup.replace replaces the destination with the new inode, reapplies exclusion, and the supported readback returns true. Policy publication also applies the property after staging and after publication.
+
+These tests use no sleeps or timing-based races. The host test uses Application Support rather than a purgeable temporary directory so the eligible false assertions are meaningful.
 
 Run from the repository root:
 
@@ -78,12 +86,25 @@ storage_test_dir="$(mktemp -d)"
   packages/radical/tests/native-behavior/StorageOwnerTest.java
 /Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home/bin/java \
   -cp "$storage_test_dir" StorageOwnerTest
-swiftc packages/radical/templates/ios/RadicalStorageBackup.swift \
+swiftc packages/radical/templates/ios/RadicalStorageOwner.swift \
+  packages/radical/templates/ios/RadicalStorageBackup.swift \
+  packages/radical/tests/native-behavior/StorageBackupChecks.swift \
   packages/radical/tests/native-behavior/StorageBackupTest.swift \
   -o "$storage_test_dir/backup-test"
 "$storage_test_dir/backup-test"
 python3 -c 'import shutil, sys; shutil.rmtree(sys.argv[1])' "$storage_test_dir"
 ```
+
+### Simulator Foundation probe
+
+The host test does not substitute for the iOS runtime. After building and launching the unmodified generated example and creating the storage roots, run:
+
+```sh
+python3 docs/verification/app-storage/ios/instrument-backup-probe.py
+# Repeat the xcodebuild command above, install the test app, and use agent-device.
+```
+
+The script changes only generated AppDelegate.swift, saving its production version beside it. It appends the shared StorageBackupChecks and a test-only branch in the example's existing Echo command. Tracked example sources and production native helpers are unchanged. Serve [backup-probe.html](ios/backup-probe.html) as index.html on the disposable loopback server, then relaunch with the pinned agent-device command. The page requests Echo text storage-backup-probe and displays only check results and property values. This runs the exact shared checks inside the installed app, plus readback of the actual eligible, excluded, and cache roots. Both the generated test app and its saved source are removed during cleanup; no test bridge command ships in the package.
 
 Cache eviction was also checked after relaunch. Only cache data was removed; its excluded policy record remained. Before the first request, the identity had no data directory in any class and its policy still read cache: [Android state](android/eviction-before.json), [iOS state](ios/eviction-before.json). Requesting eligible returned StorePolicyConflict through the policy-record lookup; reopening cache then succeeded. This cannot pass merely through directory reconciliation.
 

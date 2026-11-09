@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Foundation backup verification</title>
+<pre id="result">Running Foundation backup checks</pre>
+<script>
+  window.Capacitor.nativePromise("Echo", "echo", {
+    text: "storage-backup-probe",
+  })
+    .then(({ text }) => {
+      document.querySelector("#result").textContent = JSON.stringify(
+        JSON.parse(text),
+        null,
+        2
+      );
+      return window.Capacitor.nativePromise(
+        "RadicalSplash",
+        "linksReady",
+        {}
+      ).then(() => window.Capacitor.nativePromise("RadicalSplash", "hide", {}));
+    })
+    .catch((error) => {
+      document.querySelector("#result").textContent = JSON.stringify({
+        error: error.code,
+        message: error.message,
+      });
+    });
+</script>

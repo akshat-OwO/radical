@@ -1,6 +1,6 @@
 Page: dev.radical.example.ios
 App: dev.radical.example.ios
-Snapshot: 9 nodes
+Snapshot: 10 nodes
 Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
 @e1 [application] "Radical iOS"
 @e2 [other] "Tab Bar"
@@ -53,7 +53,8 @@ Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for thi
     "pass": true
   }
 ]" [focused]
-@e6 [tab-bar] "Tab Bar"
-@e7 [other] "Home"
-@e8 [button] "Home" [selected]
-@e9 [button] "About"
+@e6 [image] "RadicalSplasheaee5a926576bf38"
+@e7 [tab-bar] "Tab Bar"
+@e8 [other] "Home"
+@e9 [button] "Home" [selected]
+@e10 [button] "About"

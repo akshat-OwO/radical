@@ -7,24 +7,27 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "RadicalAppStoragePlugin"
     public let jsName = "RadicalAppStorage"
     public let pluginMethods: [CAPPluginMethod] = [CAPPluginMethod(name: "resolve", returnType: CAPPluginReturnPromise)]
-    private static let queue = DispatchQueue(label: "radical.app-storage")
     private let classes = ["eligible", "excluded", "cache"]
     private enum StorageFailure: Error { case invalid, io, conflict }
     private struct Directory {
         let fd: Int32
+        let url: URL
     }
 
     private func validName(_ value: String) -> Bool {
         value.range(of: "^[a-z0-9][a-z0-9_-]{0,127}$", options: .regularExpression) != nil
     }
 
-    // Every access remains anchored to an open directory. O_NOFOLLOW rejects
-    // dangling links as well as links to existing files, without a check/use gap.
+    // File access uses verified descriptors. Foundation backup-attribute writes
+    // additionally require the shared owner and matching path/descriptor identity.
     private func walk(_ base: Directory, _ components: [String], create: Bool, excluded: Bool) throws -> Directory? {
+        try RadicalStorageOwner.requireMutation()
         var fd = dup(base.fd)
         guard fd >= 0 else { throw StorageFailure.io }
+        var url = base.url
         do {
             for part in components {
+                url.appendPathComponent(part)
                 var next = openat(fd, part, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
                 if next < 0 && errno == ENOENT && create {
                     guard mkdirat(fd, part, 0o700) == 0 || errno == EEXIST else { throw StorageFailure.io }
@@ -46,10 +49,10 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
                 close(fd)
                 fd = next
                 if create {
-                    try RadicalStorageBackup.apply(to: fd, excluded: excluded)
+                    try RadicalStorageBackup.apply(to: fd, at: url, excluded: excluded)
                 }
             }
-            return Directory(fd: fd)
+            return Directory(fd: fd, url: url)
         } catch {
             close(fd)
             throw error
@@ -57,18 +60,24 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func root(_ base: URL, _ components: [String], excluded: Bool) throws -> Directory {
+        try RadicalStorageOwner.requireMutation()
         let fd = open(base.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
         guard fd >= 0 else { throw StorageFailure.io }
         defer { close(fd) }
-        guard let result = try walk(Directory(fd: fd), components, create: true, excluded: false) else {
+        guard let leaf = components.last,
+              let parent = try walk(Directory(fd: fd, url: base), Array(components.dropLast()), create: true, excluded: false) else {
             throw StorageFailure.io
         }
-        do { try RadicalStorageBackup.apply(to: result.fd, excluded: excluded) }
-        catch { close(result.fd); throw error }
+        defer { close(parent.fd) }
+        // Never clear an existing excluded root while preparing its parents.
+        guard let result = try walk(parent, [leaf], create: true, excluded: excluded) else {
+            throw StorageFailure.io
+        }
         return result
     }
 
     private func policy(_ root: Directory, _ identity: [String]) throws -> String? {
+        try RadicalStorageOwner.requireMutation()
         guard let parent = try walk(root, ["policies"] + Array(identity.dropLast()), create: false, excluded: false) else { return nil }
         defer { close(parent.fd) }
         let fd = openat(parent.fd, identity.last!, O_RDONLY | O_NOFOLLOW | O_NONBLOCK)
@@ -96,6 +105,7 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func publish(_ root: Directory, _ identity: [String], _ backup: String) throws {
+        try RadicalStorageOwner.requireMutation()
         guard let parent = try walk(root, ["policies"] + Array(identity.dropLast()), create: true, excluded: backup != "eligible") else {
             throw StorageFailure.io
         }
@@ -113,14 +123,18 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
             guard count > 0 else { throw StorageFailure.io }
             offset += count
         }
+        try RadicalStorageBackup.apply(to: fd, at: parent.url.appendingPathComponent(temporary), excluded: backup != "eligible")
         guard fsync(fd) == 0 else { throw StorageFailure.io }
         if linkat(parent.fd, temporary, parent.fd, identity.last!, 0) != 0 {
             guard errno == EEXIST, try policy(root, identity) == backup else { throw StorageFailure.io }
+        } else {
+            try RadicalStorageBackup.apply(to: fd, at: parent.url.appendingPathComponent(identity.last!), excluded: backup != "eligible")
         }
         guard fsync(parent.fd) == 0 else { throw StorageFailure.io }
     }
 
     private func validatePath(_ root: Directory, _ path: String) throws {
+        try RadicalStorageOwner.requireMutation()
         let parts = path.split(separator: "/").map(String.init)
         guard !parts.isEmpty else { return }
         guard let parent = try walk(root, Array(parts.dropLast()), create: false, excluded: false) else { return }
@@ -134,7 +148,7 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc public func resolve(_ call: CAPPluginCall) {
-        Self.queue.async {
+        RadicalStorageOwner.enqueue {
             guard let capability = call.getString("capability"),
                   ["keyValue", "secureStorage", "sqlite", "fileSystem"].contains(capability),
                   let store = call.getString("store"), self.validName(store),
@@ -184,6 +198,8 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
                 let metadataRoot = backup == "eligible" ? eligible : excluded
                 if try self.policy(metadataRoot, identity) == nil { try self.publish(metadataRoot, identity, backup) }
                 call.resolve(["relativePath": "stores/" + identity.joined(separator: "/") + (path.isEmpty ? "" : "/" + path)])
+            } catch RadicalStorageBackup.Failure.identityChanged {
+                call.reject("Invalid storage input", "InvalidStorageInput")
             } catch StorageFailure.invalid {
                 call.reject("Invalid storage input", "InvalidStorageInput")
             } catch StorageFailure.conflict {
