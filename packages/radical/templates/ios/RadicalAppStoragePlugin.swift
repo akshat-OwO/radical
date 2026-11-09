@@ -12,7 +12,6 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
     private enum StorageFailure: Error { case invalid, io, conflict }
     private struct Directory {
         let fd: Int32
-        let url: URL
     }
 
     private func validName(_ value: String) -> Bool {
@@ -24,10 +23,8 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
     private func walk(_ base: Directory, _ components: [String], create: Bool, excluded: Bool) throws -> Directory? {
         var fd = dup(base.fd)
         guard fd >= 0 else { throw StorageFailure.io }
-        var url = base.url
         do {
             for part in components {
-                url.appendPathComponent(part)
                 var next = openat(fd, part, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
                 if next < 0 && errno == ENOENT && create {
                     guard mkdirat(fd, part, 0o700) == 0 || errno == EEXIST else { throw StorageFailure.io }
@@ -49,13 +46,10 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
                 close(fd)
                 fd = next
                 if create {
-                    var target = url
-                    var values = URLResourceValues()
-                    values.isExcludedFromBackup = excluded
-                    try target.setResourceValues(values)
+                    try RadicalStorageBackup.apply(to: fd, excluded: excluded)
                 }
             }
-            return Directory(fd: fd, url: url)
+            return Directory(fd: fd)
         } catch {
             close(fd)
             throw error
@@ -66,13 +60,11 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
         let fd = open(base.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
         guard fd >= 0 else { throw StorageFailure.io }
         defer { close(fd) }
-        guard let result = try walk(Directory(fd: fd, url: base), components, create: true, excluded: false) else {
+        guard let result = try walk(Directory(fd: fd), components, create: true, excluded: false) else {
             throw StorageFailure.io
         }
-        var target = result.url
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = excluded
-        do { try target.setResourceValues(values) } catch { close(result.fd); throw error }
+        do { try RadicalStorageBackup.apply(to: result.fd, excluded: excluded) }
+        catch { close(result.fd); throw error }
         return result
     }
 

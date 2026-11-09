@@ -80,6 +80,18 @@
         "StorePolicyConflict",
       ],
     ],
+    eviction: [
+      [
+        "evicted-cache-conflict",
+        { ...base, namespace: "cache", backup: "eligible" },
+        "StorePolicyConflict",
+      ],
+      [
+        "evicted-cache-reopen",
+        { ...base, namespace: "cache", backup: "cache" },
+        "success",
+      ],
+    ],
     symlink: [
       ["dangling-leaf", { ...base, path: "dangling" }, "InvalidStorageInput"],
       [

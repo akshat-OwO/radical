@@ -11,12 +11,14 @@ import java.util.UUID;
 
 @CapacitorPlugin(name = "RadicalAppStorage")
 public class RadicalAppStoragePlugin extends Plugin {
-    private static final Object POLICY_LOCK = new Object();
     private static final String[] CLASSES = {"eligible", "excluded", "cache"};
 
     private static final class Descriptor implements AutoCloseable {
         final FileDescriptor fd;
-        Descriptor(String path, int flags, int mode) throws ErrnoException { fd = Os.open(path, flags, mode); }
+        Descriptor(String path, int flags, int mode) throws ErrnoException {
+            RadicalStorageOwner.requireMutation();
+            fd = Os.open(path, flags, mode);
+        }
         public void close() throws ErrnoException { Os.close(fd); }
     }
 
@@ -26,6 +28,7 @@ public class RadicalAppStoragePlugin extends Plugin {
 
     // lstat never follows a link, including a link whose destination is missing.
     private static StructStat inspect(File file) throws ErrnoException {
+        RadicalStorageOwner.requireMutation();
         try {
             StructStat stat = Os.lstat(file.getPath());
             if (OsConstants.S_ISLNK(stat.st_mode)) throw new SecurityException();
@@ -37,6 +40,7 @@ public class RadicalAppStoragePlugin extends Plugin {
     }
 
     private static File confined(File root, String relative) throws IOException, ErrnoException {
+        RadicalStorageOwner.requireMutation();
         File current = root;
         inspect(current);
         for (String part : relative.split("/")) {
@@ -50,6 +54,7 @@ public class RadicalAppStoragePlugin extends Plugin {
     }
 
     private static void directory(File file) throws IOException, ErrnoException {
+        RadicalStorageOwner.requireMutation();
         StructStat stat = inspect(file);
         if (stat == null) {
             File parent = file.getParentFile();
@@ -62,6 +67,7 @@ public class RadicalAppStoragePlugin extends Plugin {
     }
 
     private static void syncDirectory(File directory) throws IOException, ErrnoException {
+        RadicalStorageOwner.requireMutation();
         java.io.FileDescriptor fd = Os.open(directory.getPath(),
             OsConstants.O_RDONLY | OsConstants.O_NOFOLLOW, 0);
         try {
@@ -71,6 +77,7 @@ public class RadicalAppStoragePlugin extends Plugin {
     }
 
     private static String readPolicy(File file) throws IOException, ErrnoException {
+        RadicalStorageOwner.requireMutation();
         StructStat stat = inspect(file);
         if (stat == null) return null;
         if (OsConstants.S_ISDIR(stat.st_mode)) {
@@ -94,6 +101,7 @@ public class RadicalAppStoragePlugin extends Plugin {
     // A nonempty policy directory cannot be replaced by rename. Publication is
     // exclusive, and the shared file lock also coordinates it with store creation.
     private static void publishPolicy(File target, String backup) throws IOException, ErrnoException {
+        RadicalStorageOwner.requireMutation();
         File parent = target.getParentFile();
         directory(parent);
         File temporary = new File(parent, ".policy-" + UUID.randomUUID());
@@ -140,7 +148,7 @@ public class RadicalAppStoragePlugin extends Plugin {
                 p.isEmpty() || p.equals(".") || p.equals("..") || p.matches(".*[\\\\:\\x00-\\x1f].*")))) {
             call.reject("Invalid storage input", "InvalidStorageInput"); return;
         }
-        synchronized (POLICY_LOCK) {
+        RadicalStorageOwner.mutate(() -> {
             try {
                 File[] roots = {
                     new File(getContext().getFilesDir(), "radical-storage"),
@@ -184,6 +192,6 @@ public class RadicalAppStoragePlugin extends Plugin {
             } catch (IOException | ErrnoException | RuntimeException error) {
                 call.reject("Storage operation failed", "StorageIOFailed");
             }
-        }
+        });
     }
 }

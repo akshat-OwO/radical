@@ -1,6 +1,6 @@
 Page: dev.radical.example.ios
 App: dev.radical.example.ios
-Snapshot: 10 nodes
+Snapshot: 9 nodes
 Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
 @e1 [application] "Radical iOS"
 @e2 [other] "Tab Bar"
@@ -8,53 +8,23 @@ Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for thi
 @e4 [other] [focused] [same label as parent]
 @e5 [text] "[
   {
-    "name": "eligible",
+    "name": "persisted-policy",
+    "expected": "StorePolicyConflict",
+    "actual": "StorePolicyConflict",
+    "message": "Store policy conflict",
+    "pass": true
+  },
+  {
+    "name": "reopen-original",
     "expected": "success",
     "actual": "success",
     "value": {
       "relativePath": "stores/fileSystem/verify-202/eligible"
     },
     "pass": true
-  },
-  {
-    "name": "restore-backed",
-    "expected": "success",
-    "actual": "success",
-    "value": {
-      "relativePath": "stores/fileSystem/verify-202/restore-backed"
-    },
-    "pass": true
-  },
-  {
-    "name": "restore-data-only",
-    "expected": "success",
-    "actual": "success",
-    "value": {
-      "relativePath": "stores/fileSystem/verify-202/restore-data-only"
-    },
-    "pass": true
-  },
-  {
-    "name": "excluded",
-    "expected": "success",
-    "actual": "success",
-    "value": {
-      "relativePath": "stores/fileSystem/verify-202/excluded"
-    },
-    "pass": true
-  },
-  {
-    "name": "cache",
-    "expected": "success",
-    "actual": "success",
-    "value": {
-      "relativePath": "stores/fileSystem/verify-202/cache"
-    },
-    "pass": true
   }
 ]" [focused]
-@e6 [image] "RadicalSplasheaee5a926576bf38"
-@e7 [tab-bar] "Tab Bar"
-@e8 [other] "Home"
-@e9 [button] "Home" [selected]
-@e10 [button] "About"
+@e6 [tab-bar] "Tab Bar"
+@e7 [other] "Home"
+@e8 [button] "Home" [selected]
+@e9 [button] "About"

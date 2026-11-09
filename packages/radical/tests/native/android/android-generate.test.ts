@@ -47,6 +47,7 @@ import navigationSource from "../../../templates/android/RadicalNavigation.java?
 import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin.java?raw";
 import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
 import splashPlugin from "../../../templates/android/RadicalSplashPlugin.java?raw";
+import storageHelper from "../../../templates/android/RadicalStorageOwner.java?raw";
 import trackingServiceSource from "../../../templates/android/RadicalTrackingService.java?raw";
 import trackingSource from "../../../templates/android/RadicalTrackingSessionPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
@@ -68,6 +69,7 @@ const memory = (
   manifest: PluginManifest = echo
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/android/RadicalStorageOwner.java", storageHelper],
     ["/package/templates/android/RadicalAppStoragePlugin.java", appStorage],
     ["/package/templates/android/RadicalSettingsPlugin.java", settings],
     ["/package/templates/android/RadicalSplashPlugin.java", splashPlugin],
@@ -2041,6 +2043,12 @@ it.effect(
       assert.include(
         application,
         'android:dataExtractionRules="@xml/radical_data_extraction_rules"'
+      );
+      assert.include(
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalStorageOwner.java`
+        ) ?? "",
+        "public final class RadicalStorageOwner"
       );
       assert.include(
         application,

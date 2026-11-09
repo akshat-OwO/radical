@@ -86,6 +86,10 @@ export const appStoragePlugin = definePlugin({
         file: "RadicalAppStoragePlugin.java",
         source: "templates/android/RadicalAppStoragePlugin.java",
       },
+      {
+        file: "RadicalStorageOwner.java",
+        source: "templates/android/RadicalStorageOwner.java",
+      },
     ],
     dependencies: {},
   },
@@ -95,6 +99,10 @@ export const appStoragePlugin = definePlugin({
       {
         file: "RadicalAppStoragePlugin.swift",
         source: "templates/ios/RadicalAppStoragePlugin.swift",
+      },
+      {
+        file: "RadicalStorageBackup.swift",
+        source: "templates/ios/RadicalStorageBackup.swift",
       },
     ],
     dependencies: [],

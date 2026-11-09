@@ -1,0 +1,2 @@
+PASS: competing parent swap cannot run between validation and use
+PASS: replacing the parent cannot redirect either backup-attribute mutation

@@ -1,0 +1,8 @@
+{
+  "dataExists": {
+    "eligible": false,
+    "excluded": false,
+    "cache": false
+  },
+  "persistedPolicy": "cache"
+}

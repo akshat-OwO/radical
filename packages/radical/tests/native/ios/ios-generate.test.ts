@@ -36,6 +36,7 @@ import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?r
 import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw";
 import notificationSource from "../../../templates/ios/RadicalNotificationTopicsPlugin.swift?raw";
 import settings from "../../../templates/ios/RadicalSettingsPlugin.swift?raw";
+import storageHelper from "../../../templates/ios/RadicalStorageBackup.swift?raw";
 import trackingSource from "../../../templates/ios/RadicalTrackingSessionPlugin.swift?raw";
 import transitions from "../../../templates/ios/RadicalTransitionsPlugin.swift?raw";
 import activity from "../../../templates/ios/RadicalViewController.swift?raw";
@@ -58,6 +59,7 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/ios/RadicalStorageBackup.swift", storageHelper],
     ["/package/templates/ios/RadicalAppStoragePlugin.swift", appStorage],
     [
       "/package/templates/ios/RadicalNotificationTopicsPlugin.swift",
@@ -1758,6 +1760,7 @@ it.effect(
         "/* LaunchScreen.storyboard in Resources */,\nA18000000000000000000001,"
       );
       assert.include(source, "@objc(RadicalAppStoragePlugin)");
+      assert.include(source, "enum RadicalStorageBackup");
     }).pipe(Effect.provide(state.layer));
   }
 );
