@@ -129,6 +129,7 @@ const memory = (
   const assetCalls: AssetGeneration[] = [];
 
   const control = {
+    applicationAttributes: "",
     failAssets: false,
     existingDaemonJvm: false,
     failPreflight: false,
@@ -296,7 +297,7 @@ const memory = (
 
           files.set(
             `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
-            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Radical"><activity></activity></application></manifest>'
+            `<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application${control.applicationAttributes} android:label="Radical"><activity></activity></application></manifest>`
           );
           files.set(
             `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
@@ -686,7 +687,7 @@ describe("Android shell generation", () => {
   );
 
   it.effect(
-    "preserves topic records when web data is cleared with notifications disabled",
+    "generates topic-record cleanup even when notifications are disabled",
     () => {
       const state = memory(false, {
         ...defaultConfig,
@@ -705,7 +706,7 @@ describe("Android shell generation", () => {
             `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
           ) ?? "";
 
-        assert.notInclude(
+        assert.include(
           source,
           'getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()'
         );
@@ -2064,10 +2065,32 @@ it.effect(
             `${destination}/android/app/src/main/res/xml/${file}.xml`
           ) ?? "";
 
-        assert.include(
-          rules,
-          '<include domain="file" path="radical-storage/" />'
-        );
+        const sections =
+          file === "radical_backup_rules"
+            ? [rules]
+            : ["cloud-backup", "device-transfer"].map(
+                (tag) => rules.split(`<${tag}>`)[1]?.split(`</${tag}>`)[0] ?? ""
+              );
+
+        for (const section of sections) {
+          assert.strictEqual([...section.matchAll(/<include\b/gu)].length, 5);
+
+          for (const domain of [
+            "root",
+            "file",
+            "database",
+            "sharedpref",
+            "external",
+          ]) {
+            assert.strictEqual(
+              section.split(`<include domain="${domain}" path="." />`).length -
+                1,
+              1
+            );
+          }
+        }
+
+        assert.notInclude(rules, "<exclude");
       }
 
       assert.include(
@@ -2075,6 +2098,31 @@ it.effect(
           `${destination}/android/app/src/main/java/dev/radical/example/RadicalAppStoragePlugin.java`
         ) ?? "",
         '@CapacitorPlugin(name = "RadicalAppStorage")'
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);
+
+it.effect(
+  "fails generation before publishing over an app's existing backup rules",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { appStorage: true },
+    });
+
+    state.control.applicationAttributes =
+      ' android:fullBackupContent="@xml/app_rules"';
+    state.files.set(`${destination}/previous.txt`, "usable shell");
+
+    return Effect.gen(function* () {
+      const error = yield* generate.pipe(Effect.flip);
+
+      assert.strictEqual(error._tag, "InvalidConfig");
+      assert.include(error.message, "android:fullBackupContent");
+      assert.strictEqual(
+        state.files.get(`${destination}/previous.txt`),
+        "usable shell"
       );
     }).pipe(Effect.provide(state.layer));
   }

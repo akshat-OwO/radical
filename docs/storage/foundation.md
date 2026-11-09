@@ -8,7 +8,7 @@ Store and namespace names contain 1–128 lowercase ASCII letters, digits, under
 
 Identity contains the capability, store, and namespace. It contains no origin or build identifier. Eligible policy metadata is backed up with eligible data. Excluded and cache policy metadata belongs to excluded storage. Resolution checks all existing store roots and policy records before creating a store. A restored data directory therefore retains its class even if its policy metadata is missing. Reopening an identity with a different policy returns `StorePolicyConflict`.
 
-Android uses internal files for eligible data and policy records, `noBackupFilesDir` for excluded data and excluded/cache policy records, and the app cache directory for cache data. Generated rules include the eligible root for cloud backup and device transfer. Both old and new backup-rule attributes belong to the application element.
+Android uses internal files for eligible data and policy records, `noBackupFilesDir` for excluded data and excluded/cache policy records, and the app cache directory for cache data. Generated legacy, cloud-backup, and device-transfer rules include the complete default root, file, database, sharedpref, and external domains with path ".". A lone include would narrow Android backup and is not used. Excluded and cache roots are omitted by the platform itself; no redundant exclude entries are needed. Conflicting application-attribute contributions or existing template attributes fail with typed InvalidConfig; identical values deduplicate. Both old and new backup-rule attributes belong to the application element.
 
 iOS uses Application Support for eligible and excluded data, and Caches for cache data. Excluded directories receive `isExcludedFromBackup`. RadicalStorageBackup uses Foundation URLResourceValues.isExcludedFromBackup and setResourceValues after saves. The shared replace helper reapplies exclusion after atomic rename; policy publication applies it to staged and published records. [Apple backup guidance](https://developer.apple.com/documentation/foundation/optimizing-your-app-s-data-for-icloud-backup) requires reapplying the property after saves.
 
@@ -16,7 +16,7 @@ The build contribution API accepts `privacyAccessedApis`, a map from Apple API c
 
 Browser and SSR operations fail with `Unavailable`. An installed shell missing the command returns `BridgeUnavailable`. Storage-specific errors contain no input values or native exception descriptions.
 
-Web-data clearing preserves the app-storage cache root and notification topic membership. Sign-out does not delete app storage. Namespaces separate data but do not authorize bridge callers. Platform backup controls do not guarantee exclusion from every device transfer.
+Web-data clearing preserves the app-storage cache root. Per ADR 0012, it removes installation-local notification topic membership even when notifications are disabled; that topic record is not app storage. Sign-out does not delete app storage. Namespaces separate data but do not authorize bridge callers. Platform backup controls do not guarantee exclusion from every device transfer.
 
 Policy publication flushes a temporary record before publishing it atomically. Android publishes a nonempty policy directory by rename, which cannot replace another nonempty policy directory. iOS publishes with an exclusive hard link. An advisory lock serializes store creation and publication across callers. Abandoned temporary records do not become authoritative policy records.
 

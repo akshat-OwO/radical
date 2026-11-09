@@ -1,6 +1,6 @@
 # App-storage native verification
 
-Verified the revised implementation for PR #202 on 2026-11-09. These are emulator and simulator checks, not physical-device checks. Android code and device results remain those verified at a600813. The current revision changes only iOS; Pixel_9 was not rerun. iOS production and instrumented builds were both rebuilt and launched.
+Verified the revised implementation for PR #202 on 2026-11-09. These are emulator and simulator checks, not physical-device checks. The latest pass rebuilt both platforms for backup-default preservation and topic-record clearing: [current results](clear-web-data/README.md). The Foundation/ownership suites below record the prior verification at f392534; the latest pass does not claim those entire suites were rerun.
 
 - Android: Pixel_9, Android 16, API 36, serial `emulator-5554`, app `dev.radical.example.android`.
 - iOS: iPhone 17 Pro, iOS 26.5, simulator `F69D9CE5-20E1-4388-9EBA-27B1782EEF75`, app `dev.radical.example.ios`.
@@ -19,7 +19,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home \
 
 The final Android build passed with 489 tasks executed. [Build result](android/build.txt). Earlier compilation exposed unsupported `Files.readString` and `Files.writeString` calls. The final resolver uses API 24-compatible `android.system.Os`, `java.io`, and file locks, with no `java.nio.file` calls. The machine-default JDK 25 failure was a toolchain mismatch. Existing preflight already reports the Gradle compatibility link and recommends selecting a compatible JDK, including JDK 21. No toolchain fallback was added.
 
-Parsed the merged AndroidManifest.xml with Python ElementTree. Both backup attributes belong to the application element: [extracted attributes](android/manifest.json). The generated resource XML includes `file/radical-storage/` for legacy backup, cloud backup, and device transfer.
+Parsed the merged AndroidManifest.xml with Python ElementTree. Both backup attributes belong to the application element: [extracted attributes](android/manifest.json). The generated XML now preserves the complete root, file, database, sharedpref, and external domains with path "." for legacy backup, cloud backup, and device transfer. [Current merged manifest and domain checks](clear-web-data/android-backup.json), [legacy XML](clear-web-data/radical_backup_rules.xml), [extraction XML](clear-web-data/radical_data_extraction_rules.xml). Platform no-backup and cache roots stay excluded without redundant XML exclusions.
 
 Generated iOS and built with:
 

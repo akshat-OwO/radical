@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "reopen": {
+    "cacheRootPresent": true,
+    "cacheSurvives": true,
+    "topicRecordEmpty": true
+  }
+}

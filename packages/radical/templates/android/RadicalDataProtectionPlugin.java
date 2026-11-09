@@ -63,6 +63,9 @@ public class RadicalDataProtectionPlugin extends Plugin {
                         if (!getActivity().getPreferences(android.content.Context.MODE_PRIVATE).edit().remove(__OFFLINE_SAVED_URL_KEY__).commit()) {
                             call.reject("Cannot clear saved offline URL"); return;
                         }
+                        if (!getContext().getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()) {
+                            call.reject("Cannot clear notification topic membership"); return;
+                        }
                         deleteContents(getContext().getCacheDir());
                         deleteContents(getContext().getCodeCacheDir());
                         call.resolve();

@@ -1,6 +1,10 @@
 import type { NativeContributions } from "../../vite/native-contributions.ts";
 
-const include = '<include domain="file" path="radical-storage/" />';
+// An include switches Android from its default set to an allowlist. Preserve
+// every default domain; noBackupFilesDir and caches remain platform-excluded.
+const include = ["root", "file", "database", "sharedpref", "external"]
+  .map((domain) => `<include domain="${domain}" path="." />`)
+  .join("");
 
 export const appStorageContributions: NativeContributions = {
   privacyAccessedApis: {

@@ -332,7 +332,7 @@ describe("iOS shell generation", () => {
   );
 
   it.effect(
-    "preserves topic records when web data is cleared with notifications disabled",
+    "generates topic-record cleanup even when notifications are disabled",
     () => {
       const state = memory(false, {
         ...defaultConfig,
@@ -348,10 +348,11 @@ describe("iOS shell generation", () => {
 
         const source = state.files.get(appDelegate) ?? "";
 
-        assert.notInclude(
+        assert.include(
           source,
           'UserDefaults.standard.removeObject(forKey: "radical.notificationTopics")'
         );
+        assert.include(source, 'file.lastPathComponent == "radical-storage"');
         assert.notInclude(source, "class RadicalNotificationTopicsPlugin");
       }).pipe(Effect.provide(state.layer));
     }

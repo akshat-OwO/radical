@@ -1,0 +1,29 @@
+{
+  "application": {
+    "dataExtractionRules": "@xml/radical_data_extraction_rules",
+    "fullBackupContent": "@xml/radical_backup_rules"
+  },
+  "rules": {
+    "legacy": {
+      "root": ".",
+      "file": ".",
+      "database": ".",
+      "sharedpref": ".",
+      "external": "."
+    },
+    "cloud-backup": {
+      "root": ".",
+      "file": ".",
+      "database": ".",
+      "sharedpref": ".",
+      "external": "."
+    },
+    "device-transfer": {
+      "root": ".",
+      "file": ".",
+      "database": ".",
+      "sharedpref": ".",
+      "external": "."
+    }
+  }
+}

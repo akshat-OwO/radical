@@ -27,6 +27,7 @@ import {
   safeAreaUpdateScript,
   windowLayoutUpdateScript,
 } from "../shared/shell-events.ts";
+import { applyAndroidApplication } from "./application.ts";
 import { sectionTheme } from "./section-theme.ts";
 
 /**
@@ -295,20 +296,10 @@ export const generateAndroid = (
         // Predictive back previews leaving the app when the page declines back.
         yield* fs.writeFileString(
           manifestPath,
-          yield* replaceAnchor(
-            "AndroidManifest.xml",
-            yield* replaceAnchor(
-              "AndroidManifest.xml",
-              withDeclarations,
-              "</application>",
-              `${native.plan.android.application.join("")}</application>`
-            ),
-            "<application",
-            `<application android:enableOnBackInvokedCallback="true"${Object.entries(
-              native.plan.android.applicationAttributes
-            )
-              .map(([key, value]) => ` ${key}="${value}"`)
-              .join("")}`
+          yield* applyAndroidApplication(
+            withDeclarations,
+            native.plan.android.applicationAttributes,
+            native.plan.android.application
           )
         );
 
