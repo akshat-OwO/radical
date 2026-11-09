@@ -40,12 +40,14 @@ import daemonJvm from "../../../templates/android/gradle-daemon-jvm.properties?r
 import launch from "../../../templates/android/launch.html?raw";
 import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";
+import appStorage from "../../../templates/android/RadicalAppStoragePlugin.java?raw";
 import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
 import locationSource from "../../../templates/android/RadicalLocationPlugin.java?raw";
 import navigationSource from "../../../templates/android/RadicalNavigation.java?raw";
 import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin.java?raw";
 import settings from "../../../templates/android/RadicalSettingsPlugin.java?raw";
 import splashPlugin from "../../../templates/android/RadicalSplashPlugin.java?raw";
+import storageHelper from "../../../templates/android/RadicalStorageOwner.java?raw";
 import trackingServiceSource from "../../../templates/android/RadicalTrackingService.java?raw";
 import trackingSource from "../../../templates/android/RadicalTrackingSessionPlugin.java?raw";
 import transitions from "../../../templates/android/RadicalTransitionsPlugin.java?raw";
@@ -67,6 +69,8 @@ const memory = (
   manifest: PluginManifest = echo
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/android/RadicalStorageOwner.java", storageHelper],
+    ["/package/templates/android/RadicalAppStoragePlugin.java", appStorage],
     ["/package/templates/android/RadicalSettingsPlugin.java", settings],
     ["/package/templates/android/RadicalSplashPlugin.java", splashPlugin],
     ["/package/templates/android/RadicalLocationPlugin.java", locationSource],
@@ -125,6 +129,7 @@ const memory = (
   const assetCalls: AssetGeneration[] = [];
 
   const control = {
+    applicationAttributes: "",
     failAssets: false,
     existingDaemonJvm: false,
     failPreflight: false,
@@ -292,7 +297,7 @@ const memory = (
 
           files.set(
             `${command.options.cwd}/android/app/src/main/AndroidManifest.xml`,
-            '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Radical"><activity></activity></application></manifest>'
+            `<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application${control.applicationAttributes} android:label="Radical"><activity></activity></application></manifest>`
           );
           files.set(
             `${command.options.cwd}/android/app/src/main/res/values/styles.xml`,
@@ -705,10 +710,7 @@ describe("Android shell generation", () => {
           source,
           'getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()'
         );
-        assert.include(
-          source,
-          'call.reject("Cannot clear notification topic membership")'
-        );
+        assert.include(source, 'file.getName().equals("radical-storage")');
         assert.notInclude(source, "class RadicalNotificationTopicsPlugin");
       }).pipe(Effect.provide(state.layer));
     }
@@ -2016,6 +2018,96 @@ it.effect(
       assert.match(
         manifest,
         /<application[\s\S]*<service android:name=".RadicalTrackingService"[^>]*android:foregroundServiceType="location"[^>]*\/>[\s\S]*<\/application>/u
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);
+
+it.effect(
+  "generates app-storage backup attributes on the application element",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { appStorage: true },
+    });
+
+    return Effect.gen(function* () {
+      yield* generate;
+
+      const manifest =
+        state.files.get(
+          `${destination}/android/app/src/main/AndroidManifest.xml`
+        ) ?? "";
+
+      const application = /<application[^>]*>/u.exec(manifest)?.[0] ?? "";
+
+      assert.include(
+        application,
+        'android:dataExtractionRules="@xml/radical_data_extraction_rules"'
+      );
+      assert.include(
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalStorageOwner.java`
+        ) ?? "",
+        "public final class RadicalStorageOwner"
+      );
+      assert.include(
+        application,
+        'android:fullBackupContent="@xml/radical_backup_rules"'
+      );
+
+      for (const file of [
+        "radical_backup_rules",
+        "radical_data_extraction_rules",
+      ]) {
+        const rules =
+          state.files.get(
+            `${destination}/android/app/src/main/res/xml/${file}.xml`
+          ) ?? "";
+
+        assert.notInclude(rules, "<include");
+
+        if (file === "radical_backup_rules") {
+          assert.include(rules, "<full-backup-content/>");
+        } else {
+          assert.include(rules, "<data-extraction-rules>");
+          assert.include(rules, "<cloud-backup/>");
+          assert.include(rules, "<device-transfer/>");
+        }
+
+        assert.notInclude(rules, "<exclude");
+      }
+
+      assert.include(
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalAppStoragePlugin.java`
+        ) ?? "",
+        '@CapacitorPlugin(name = "RadicalAppStorage")'
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);
+
+it.effect(
+  "fails generation before publishing over an app's existing backup rules",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { appStorage: true },
+    });
+
+    state.control.applicationAttributes =
+      ' android:fullBackupContent="@xml/app_rules"';
+    state.files.set(`${destination}/previous.txt`, "usable shell");
+
+    return Effect.gen(function* () {
+      const error = yield* generate.pipe(Effect.flip);
+
+      assert.strictEqual(error._tag, "InvalidConfig");
+      assert.include(error.message, "android:fullBackupContent");
+      assert.strictEqual(
+        state.files.get(`${destination}/previous.txt`),
+        "usable shell"
       );
     }).pipe(Effect.provide(state.layer));
   }

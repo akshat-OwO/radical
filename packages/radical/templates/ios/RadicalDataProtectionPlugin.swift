@@ -79,6 +79,7 @@ public class RadicalDataProtectionPlugin: CAPPlugin, CAPBridgedPlugin {
                         let directories = manager.urls(for: .cachesDirectory, in: .userDomainMask) + [manager.temporaryDirectory]
                         for directory in directories {
                             for file in try manager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+                                if directory == manager.urls(for: .cachesDirectory, in: .userDomainMask).first && file.lastPathComponent == "radical-storage" { continue }
                                 try manager.removeItem(at: file)
                             }
                         }

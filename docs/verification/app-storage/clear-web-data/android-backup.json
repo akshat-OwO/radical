@@ -1,0 +1,24 @@
+{
+  "application": {
+    "dataExtractionRules": "@xml/radical_data_extraction_rules",
+    "fullBackupContent": "@xml/radical_backup_rules"
+  },
+  "rules": {
+    "legacy": {
+      "includes": [],
+      "excludes": [],
+      "empty": true
+    },
+    "cloud-backup": {
+      "includes": [],
+      "excludes": [],
+      "empty": true
+    },
+    "device-transfer": {
+      "includes": [],
+      "excludes": [],
+      "empty": true
+    }
+  },
+  "traversal": "framework default; no domain allowlist"
+}

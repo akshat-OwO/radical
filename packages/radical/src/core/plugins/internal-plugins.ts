@@ -255,3 +255,5 @@ export const settingsPlugin = definePlugin({
 });
 
 export { trackingSessionPlugin } from "../../capabilities/tracking-session/tracking-plugin.ts";
+
+export { appStoragePlugin } from "../../capabilities/app-storage/app-storage.ts";

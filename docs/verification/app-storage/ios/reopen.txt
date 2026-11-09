@@ -1,0 +1,30 @@
+Page: dev.radical.example.ios
+App: dev.radical.example.ios
+Snapshot: 9 nodes
+Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
+@e1 [application] "Radical iOS"
+@e2 [other] "Tab Bar"
+@e3 [webview] "App-storage native verification"
+@e4 [other] [focused] [same label as parent]
+@e5 [text] "[
+  {
+    "name": "persisted-policy",
+    "expected": "StorePolicyConflict",
+    "actual": "StorePolicyConflict",
+    "message": "Store policy conflict",
+    "pass": true
+  },
+  {
+    "name": "reopen-original",
+    "expected": "success",
+    "actual": "success",
+    "value": {
+      "relativePath": "stores/fileSystem/verify-202/eligible"
+    },
+    "pass": true
+  }
+]" [focused]
+@e6 [tab-bar] "Tab Bar"
+@e7 [other] "Home"
+@e8 [button] "Home" [selected]
+@e9 [button] "About"

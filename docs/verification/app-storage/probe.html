@@ -1,0 +1,156 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>App-storage native verification</title>
+<pre id="result">Running native checks</pre>
+<script>
+  const base = {
+    capability: "fileSystem",
+    store: "verify-202",
+    namespace: "eligible",
+    backup: "eligible",
+    path: "",
+  };
+  const native = (args) =>
+    window.Capacitor.nativePromise("RadicalAppStorage", "resolve", args);
+  const checks = {
+    create: [
+      ["eligible", base, "success"],
+      ["restore-backed", { ...base, namespace: "restore-backed" }, "success"],
+      [
+        "restore-data-only",
+        { ...base, namespace: "restore-data-only" },
+        "success",
+      ],
+      [
+        "excluded",
+        { ...base, namespace: "excluded", backup: "excluded" },
+        "success",
+      ],
+      ["cache", { ...base, namespace: "cache", backup: "cache" }, "success"],
+    ],
+    reopen: [
+      [
+        "persisted-policy",
+        { ...base, backup: "excluded" },
+        "StorePolicyConflict",
+      ],
+      ["reopen-original", base, "success"],
+    ],
+    restore: [
+      [
+        "restored-policy-excluded",
+        { ...base, namespace: "restore-backed", backup: "excluded" },
+        "StorePolicyConflict",
+      ],
+      [
+        "restored-policy-cache",
+        { ...base, namespace: "restore-backed", backup: "cache" },
+        "StorePolicyConflict",
+      ],
+      [
+        "restored-directory-excluded",
+        { ...base, namespace: "restore-data-only", backup: "excluded" },
+        "StorePolicyConflict",
+      ],
+      [
+        "restored-directory-cache",
+        { ...base, namespace: "restore-data-only", backup: "cache" },
+        "StorePolicyConflict",
+      ],
+      [
+        "restored-original",
+        { ...base, namespace: "restore-data-only" },
+        "success",
+      ],
+    ],
+    interrupted: [
+      [
+        "interrupted-directory-conflict",
+        { ...base, namespace: "interrupted", backup: "excluded" },
+        "StorePolicyConflict",
+      ],
+      [
+        "abandoned-temp-recovery",
+        { ...base, namespace: "interrupted" },
+        "success",
+      ],
+      [
+        "recovered-policy-conflict",
+        { ...base, namespace: "interrupted", backup: "cache" },
+        "StorePolicyConflict",
+      ],
+    ],
+    eviction: [
+      [
+        "evicted-cache-conflict",
+        { ...base, namespace: "cache", backup: "eligible" },
+        "StorePolicyConflict",
+      ],
+      [
+        "evicted-cache-reopen",
+        { ...base, namespace: "cache", backup: "cache" },
+        "success",
+      ],
+    ],
+    symlink: [
+      ["dangling-leaf", { ...base, path: "dangling" }, "InvalidStorageInput"],
+      [
+        "dangling-parent",
+        { ...base, path: "dangling/child" },
+        "InvalidStorageInput",
+      ],
+      [
+        "data-escape",
+        { ...base, path: "escape/sentinel" },
+        "InvalidStorageInput",
+      ],
+      [
+        "internal-symlink",
+        { ...base, path: "internal/sentinel" },
+        "InvalidStorageInput",
+      ],
+      ["policy-escape", { ...base, store: "linked" }, "InvalidStorageInput"],
+      ["traversal", { ...base, path: "../outside" }, "InvalidStorageInput"],
+      ["ordinary-path", { ...base, path: "ordinary/file.txt" }, "success"],
+    ],
+  };
+  const results = [];
+  fetch("/stage.json")
+    .then((response) => response.json())
+    .then(({ stage }) =>
+      checks[stage].reduce(
+        (previous, [name, args, expected]) =>
+          previous.then(() =>
+            native(args).then(
+              (value) =>
+                results.push({
+                  name,
+                  expected,
+                  actual: "success",
+                  value,
+                  pass: expected === "success",
+                }),
+              (error) =>
+                results.push({
+                  name,
+                  expected,
+                  actual: error.code,
+                  message: error.message,
+                  pass: expected === error.code,
+                })
+            )
+          ),
+        Promise.resolve()
+      )
+    )
+    .then(() => {
+      document.querySelector("#result").textContent = JSON.stringify(
+        results,
+        null,
+        2
+      );
+    })
+    .catch((error) => {
+      document.querySelector("#result").textContent = String(error);
+    });
+</script>

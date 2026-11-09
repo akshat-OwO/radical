@@ -1,0 +1,10 @@
+{
+  "NSPrivacyAccessedAPITypes" => [
+    0 => {
+      "NSPrivacyAccessedAPIType" => "NSPrivacyAccessedAPICategoryFileTimestamp"
+      "NSPrivacyAccessedAPITypeReasons" => [
+        0 => "C617.1"
+      ]
+    }
+  ]
+}

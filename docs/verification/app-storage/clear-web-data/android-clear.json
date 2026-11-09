@@ -1,0 +1,13 @@
+{
+  "after": {
+    "cacheRootPresent": true,
+    "cacheSurvives": true,
+    "topicRecordEmpty": true
+  },
+  "before": {
+    "cacheRootPresent": true,
+    "cacheSurvives": true,
+    "topicRecordEmpty": false
+  },
+  "pass": true
+}

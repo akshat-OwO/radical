@@ -1,0 +1,6 @@
+{
+  "application": {
+    "dataExtractionRules": "@xml/radical_data_extraction_rules",
+    "fullBackupContent": "@xml/radical_backup_rules"
+  }
+}

@@ -1,0 +1,2 @@
+production: BUILD SUCCESSFUL in 16s
+instrumented clear probe: BUILD SUCCESSFUL in 1s

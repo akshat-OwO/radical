@@ -1,0 +1,8 @@
+{
+  "dataExists": {
+    "files/radical-storage": false,
+    "no_backup/radical-storage": false,
+    "cache/radical-storage": false
+  },
+  "persistedPolicy": "cache"
+}

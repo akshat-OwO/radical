@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Web-data clearing verification</title>
+<pre id="result">Running native clear</pre>
+<script>
+  const results = {};
+  const inspect = (text) =>
+    window.Capacitor.nativePromise("Echo", "echo", { text }).then((reply) =>
+      JSON.parse(reply.text)
+    );
+  fetch("/stage.json")
+    .then((response) => response.json())
+    .then(({ stage }) => {
+      if (stage === "reopen")
+        return inspect("storage-clear-check").then((value) => {
+          results.reopen = value;
+        });
+      return window.Capacitor.nativePromise("RadicalAppStorage", "resolve", {
+        capability: "fileSystem",
+        store: "verify-202",
+        namespace: "cache",
+        backup: "cache",
+        path: "",
+      })
+        .then(() => inspect("storage-clear-seed"))
+        .then((value) => {
+          results.before = value;
+          return window.Capacitor.nativePromise(
+            "RadicalDataProtection",
+            "clearWebData",
+            {}
+          );
+        })
+        .then(() => inspect("storage-clear-check"))
+        .then((value) => {
+          results.after = value;
+        });
+    })
+    .then(() => {
+      const states = results.reopen ? [results.reopen] : [results.after];
+      results.pass =
+        states.every(
+          (value) =>
+            value.topicRecordEmpty &&
+            value.cacheSurvives &&
+            value.cacheRootPresent
+        ) &&
+        (!results.before ||
+          (!results.before.topicRecordEmpty && results.before.cacheSurvives));
+      document.querySelector("#result").textContent = JSON.stringify(
+        results,
+        null,
+        2
+      );
+      return window.Capacitor.nativePromise(
+        "RadicalSplash",
+        "linksReady",
+        {}
+      ).then(() => window.Capacitor.nativePromise("RadicalSplash", "hide", {}));
+    })
+    .catch((error) => {
+      document.querySelector("#result").textContent = JSON.stringify({
+        error: error.code,
+        message: error.message,
+      });
+    });
+</script>

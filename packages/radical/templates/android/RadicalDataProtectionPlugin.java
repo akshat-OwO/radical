@@ -35,6 +35,7 @@ public class RadicalDataProtectionPlugin extends Plugin {
             return;
         }
         for (File file : files) {
+            if (directory.equals(getContext().getCacheDir()) && file.getName().equals("radical-storage")) continue;
             if (file.isDirectory()) deleteContents(file);
             if (!file.delete() && file.exists()) throw new IOException("Cannot delete " + file);
         }
