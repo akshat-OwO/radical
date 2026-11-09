@@ -113,7 +113,7 @@ it.effect(
 
       assert.include(
         privacy?.contents ?? "",
-        "<key>NSPrivacyAccessedAPITypes</key><array></array>"
+        "<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>"
       );
 
       assert.strictEqual(

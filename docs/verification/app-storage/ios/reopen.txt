@@ -1,0 +1,60 @@
+Page: dev.radical.example.ios
+App: dev.radical.example.ios
+Snapshot: 10 nodes
+Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
+@e1 [application] "Radical iOS"
+@e2 [other] "Tab Bar"
+@e3 [webview] "App-storage native verification"
+@e4 [other] [focused] [same label as parent]
+@e5 [text] "[
+  {
+    "name": "eligible",
+    "expected": "success",
+    "actual": "success",
+    "value": {
+      "relativePath": "stores/fileSystem/verify-202/eligible"
+    },
+    "pass": true
+  },
+  {
+    "name": "restore-backed",
+    "expected": "success",
+    "actual": "success",
+    "value": {
+      "relativePath": "stores/fileSystem/verify-202/restore-backed"
+    },
+    "pass": true
+  },
+  {
+    "name": "restore-data-only",
+    "expected": "success",
+    "actual": "success",
+    "value": {
+      "relativePath": "stores/fileSystem/verify-202/restore-data-only"
+    },
+    "pass": true
+  },
+  {
+    "name": "excluded",
+    "expected": "success",
+    "actual": "success",
+    "value": {
+      "relativePath": "stores/fileSystem/verify-202/excluded"
+    },
+    "pass": true
+  },
+  {
+    "name": "cache",
+    "expected": "success",
+    "actual": "success",
+    "value": {
+      "relativePath": "stores/fileSystem/verify-202/cache"
+    },
+    "pass": true
+  }
+]" [focused]
+@e6 [image] "RadicalSplasheaee5a926576bf38"
+@e7 [tab-bar] "Tab Bar"
+@e8 [other] "Home"
+@e9 [button] "Home" [selected]
+@e10 [button] "About"

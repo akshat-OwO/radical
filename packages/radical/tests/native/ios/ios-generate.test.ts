@@ -30,6 +30,7 @@ import {
 } from "../../../src/native/shared/native-metadata.ts";
 import { PluginModules } from "../../../src/vite/plugins/plugin-modules.ts";
 import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
+import appStorage from "../../../templates/ios/RadicalAppStoragePlugin.swift?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
 import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?raw";
 import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw";
@@ -57,6 +58,7 @@ const memory = (
   mismatch = ""
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/ios/RadicalAppStoragePlugin.swift", appStorage],
     [
       "/package/templates/ios/RadicalNotificationTopicsPlugin.swift",
       notificationSource,
@@ -190,7 +192,7 @@ const memory = (
           const app = `${command.options.cwd}/ios/App/App`;
           files.set(
             `${command.options.cwd}/ios/App/App.xcodeproj/project.pbxproj`,
-            "CODE_SIGN_STYLE = Automatic;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;"
+            "/* Begin PBXBuildFile section */\n/* Begin PBXFileReference section */\n504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,\nCODE_SIGN_STYLE = Automatic;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nIPHONEOS_DEPLOYMENT_TARGET = 15.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;"
           );
           files.set(
             `${command.options.cwd}/ios/App/CapApp-SPM/Package.swift`,
@@ -1358,7 +1360,7 @@ describe("ios native navigation", () => {
             state.files.get(
               `${destination}/ios/App/App.xcodeproj/project.pbxproj`
             ),
-            "CODE_SIGN_STYLE = Automatic;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;"
+            "/* Begin PBXBuildFile section */\n/* Begin PBXFileReference section */\n504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,\nCODE_SIGN_STYLE = Automatic;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nIPHONEOS_DEPLOYMENT_TARGET = 18.0;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;\nCURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 2.3.4;"
           );
           assert.strictEqual(
             state.files.get(`${destination}/ios/App/CapApp-SPM/Package.swift`),
@@ -1714,4 +1716,48 @@ it.effect("types every bridged plugin's methods as CAPPluginMethod", () =>
       assert.notMatch(source, /public let pluginMethods = \[/u, name);
     }
   })
+);
+
+it.effect(
+  "bundles the app-storage privacy manifest in the generated iOS project",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { appStorage: true },
+    });
+
+    return Effect.gen(function* () {
+      yield* generate;
+
+      const project =
+        state.files.get(
+          `${destination}/ios/App/App.xcodeproj/project.pbxproj`
+        ) ?? "";
+
+      const privacy =
+        state.files.get(`${destination}/ios/App/App/PrivacyInfo.xcprivacy`) ??
+        "";
+
+      const source = state.files.get(appDelegate) ?? "";
+
+      assert.include(
+        privacy,
+        "<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>"
+      );
+      assert.include(privacy, "<string>C617.1</string>");
+      assert.include(
+        project,
+        "path = App/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT;"
+      );
+      assert.include(
+        project,
+        "isa = PBXBuildFile; fileRef = A18000000000000000000002;"
+      );
+      assert.include(
+        project,
+        "/* LaunchScreen.storyboard in Resources */,\nA18000000000000000000001,"
+      );
+      assert.include(source, "@objc(RadicalAppStoragePlugin)");
+    }).pipe(Effect.provide(state.layer));
+  }
 );

@@ -1,0 +1,9 @@
+Page: dev.radical.example.android
+App: dev.radical.example.android
+Snapshot: 5 visible nodes (6 total)
+Collapsed 1 Android helper node from the agent-facing text snapshot; use --raw or --json for the full hierarchy.
+@e1 [webview] "[ { "name": "dangling-leaf", "expected": "InvalidStorageInput", "actual": "InvalidStorageInput", "message": "Invalid storage input", "pass": true }, { "name": "dangling-parent", "expected": "InvalidStorageInput", "actual": "InvalidStorageInput", "message": "Invalid storage input", "pass": true }, { "name": "data-escape", "expected": "InvalidStorageInput", "actual": "InvalidStorageInput", "message": "Invalid storage input", "pass": true }, { "name": "internal-symlink", "expected": "InvalidStorageInput", "actual": "InvalidStorageInput", "message": "Invalid storage input", "pass": true }, { "name": "policy-escape", "expected": "InvalidStorageInput", "actual": "InvalidStorageInput", "message": "Invalid storage input", "pass": true }, { "name": "traversal", "expected": "InvalidStorageInput", "actual": "InvalidStorageInput", "message": "Invalid storage input", "pass": true }, { "name": "ordinary-path", "expected": "success", "actual": "success", "value": { "relativePath": "stores/fileSystem/verify-202/eligible/ordinary/file.txt" }, "pass": true } ]" [focused]
+@e3 [group] "Home" [selected]
+@e4 [text] "Home" [selected]
+@e5 [group] "About"
+@e6 [text] "About"

@@ -3,7 +3,9 @@ import type { NativeContributions } from "../../vite/native-contributions.ts";
 const include = '<include domain="file" path="radical-storage/" />';
 
 export const appStorageContributions: NativeContributions = {
-  privacyAccessedApis: {},
+  privacyAccessedApis: {
+    NSPrivacyAccessedAPICategoryFileTimestamp: ["C617.1"],
+  },
   androidApplicationAttributes: {
     "android:dataExtractionRules": "@xml/radical_data_extraction_rules",
     "android:fullBackupContent": "@xml/radical_backup_rules",

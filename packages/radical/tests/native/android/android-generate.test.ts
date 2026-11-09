@@ -40,6 +40,7 @@ import daemonJvm from "../../../templates/android/gradle-daemon-jvm.properties?r
 import launch from "../../../templates/android/launch.html?raw";
 import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";
+import appStorage from "../../../templates/android/RadicalAppStoragePlugin.java?raw";
 import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
 import locationSource from "../../../templates/android/RadicalLocationPlugin.java?raw";
 import navigationSource from "../../../templates/android/RadicalNavigation.java?raw";
@@ -67,6 +68,7 @@ const memory = (
   manifest: PluginManifest = echo
 ) => {
   const files = new Map<string, string>([
+    ["/package/templates/android/RadicalAppStoragePlugin.java", appStorage],
     ["/package/templates/android/RadicalSettingsPlugin.java", settings],
     ["/package/templates/android/RadicalSplashPlugin.java", splashPlugin],
     ["/package/templates/android/RadicalLocationPlugin.java", locationSource],
@@ -2013,6 +2015,58 @@ it.effect(
       assert.match(
         manifest,
         /<application[\s\S]*<service android:name=".RadicalTrackingService"[^>]*android:foregroundServiceType="location"[^>]*\/>[\s\S]*<\/application>/u
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);
+
+it.effect(
+  "generates app-storage backup attributes on the application element",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { appStorage: true },
+    });
+
+    return Effect.gen(function* () {
+      yield* generate;
+
+      const manifest =
+        state.files.get(
+          `${destination}/android/app/src/main/AndroidManifest.xml`
+        ) ?? "";
+
+      const application = /<application[^>]*>/u.exec(manifest)?.[0] ?? "";
+
+      assert.include(
+        application,
+        'android:dataExtractionRules="@xml/radical_data_extraction_rules"'
+      );
+      assert.include(
+        application,
+        'android:fullBackupContent="@xml/radical_backup_rules"'
+      );
+
+      for (const file of [
+        "radical_backup_rules",
+        "radical_data_extraction_rules",
+      ]) {
+        const rules =
+          state.files.get(
+            `${destination}/android/app/src/main/res/xml/${file}.xml`
+          ) ?? "";
+
+        assert.include(
+          rules,
+          '<include domain="file" path="radical-storage/" />'
+        );
+      }
+
+      assert.include(
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalAppStoragePlugin.java`
+        ) ?? "",
+        '@CapacitorPlugin(name = "RadicalAppStorage")'
       );
     }).pipe(Effect.provide(state.layer));
   }

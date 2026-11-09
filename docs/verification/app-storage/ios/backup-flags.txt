@@ -1,0 +1,4 @@
+parent: (no direct extended attributes)
+eligible: (no direct extended attributes)
+excluded: com.apple.metadata:com_apple_backup_excludeItem: com.apple.MobileBackup
+cache: com.apple.metadata:com_apple_backup_excludeItem: com.apple.MobileBackup

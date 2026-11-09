@@ -1,0 +1,9 @@
+Page: dev.radical.example.android
+App: dev.radical.example.android
+Snapshot: 5 visible nodes (6 total)
+Collapsed 1 Android helper node from the agent-facing text snapshot; use --raw or --json for the full hierarchy.
+@e1 [webview] "[ { "name": "restored-policy-excluded", "expected": "StorePolicyConflict", "actual": "StorePolicyConflict", "message": "Store policy conflict", "pass": true }, { "name": "restored-policy-cache", "expected": "StorePolicyConflict", "actual": "StorePolicyConflict", "message": "Store policy conflict", "pass": true }, { "name": "restored-directory-excluded", "expected": "StorePolicyConflict", "actual": "StorePolicyConflict", "message": "Store policy conflict", "pass": true }, { "name": "restored-directory-cache", "expected": "StorePolicyConflict", "actual": "StorePolicyConflict", "message": "Store policy conflict", "pass": true }, { "name": "restored-original", "expected": "success", "actual": "success", "value": { "relativePath": "stores/fileSystem/verify-202/restore-data-only" }, "pass": true } ]" [focused]
+@e3 [group] "Home" [selected]
+@e4 [text] "Home" [selected]
+@e5 [group] "About"
+@e6 [text] "About"
