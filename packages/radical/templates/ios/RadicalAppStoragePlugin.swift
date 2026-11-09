@@ -149,7 +149,7 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc public func resolve(_ call: CAPPluginCall) { resolveStore(call, action: nil) }
 
-    func resolveStore(_ call: CAPPluginCall, action: ((URL) throws -> Void)?) {
+    func resolveStore(_ call: CAPPluginCall, beforeResolve: (() throws -> Void)? = nil, action: ((URL) throws -> Void)?) {
         RadicalStorageOwner.enqueue {
             guard let capability = call.getString("capability"),
                   ["keyValue", "secureStorage", "sqlite", "fileSystem"].contains(capability),
@@ -161,6 +161,7 @@ public class RadicalAppStoragePlugin: CAPPlugin, CAPBridgedPlugin {
                       !$0.isEmpty && $0 != "." && $0 != ".." && $0.range(of: "[\\\\:\\x00-\\x1f]", options: .regularExpression) == nil
                   }) else { call.reject("Invalid storage input", "InvalidStorageInput", nil, [:]); return }
             do {
+                try beforeResolve?()
                 let fm = FileManager.default
                 let support = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
                 let caches = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)

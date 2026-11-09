@@ -1,17 +1,12 @@
+Native host regression (shipped preflight, cached writer, quarantine):
+python3 packages/radical/tests/native-behavior/key-value-wal-probe.py
+{"cases": 15, "passed": 15}
+With the empty-WAL step disabled: {"cases": 15, "passed": 9}; clean and orphan-SHM fail with SQLITE_CANTOPEN.
+
+Existing native host tests: KeyValueSQLiteTest, StorageOwnerTest, StorageBackupTest pass.
+
+Device runs of the shipped design: pending (both devices held by an earlier run's agent-device session; DEVICE_IN_USE).
+
 pnpm exec ultracite fix: passed
 pnpm exec ultracite check: passed
-pnpm exec vp run ready:
-Test Files  1 passed (1)
-Tests  14 passed (14)
-Test Files  105 passed (105)
-Tests  976 passed (976)
-vp run: 1/9 cache hit (11%), 16/16 successful, 496ms saved. @radical/docs#build (and 2 more) not cached because they modified their inputs. (Run `vp run --last-details` for full details)
-
-Preservation diagnostics FAIL the requested invariant:
-Native host: 9/36 cases unchanged; probe exits 1.
-android default: 0/9 cases unchanged
-android readonly: 0/9 cases unchanged
-ios controls: 0/9 cases unchanged
-ios controls-exclusive: 6/9 cases unchanged
-ios default: 0/9 cases unchanged
-ios readonly: 3/9 cases unchanged
+pnpm exec vp run ready: 16/16 tasks successful; 105 test files, 976 tests passed

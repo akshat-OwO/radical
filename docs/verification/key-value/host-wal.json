@@ -1,742 +1,1142 @@
 {
-  "purpose": "Observation of rejected preservation candidates, not a passing production regression",
   "results": [
     {
       "scenario": "nonempty",
-      "mode": "default",
       "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "8e41372bb4762c2162baa919b31603b120fbf4d1e46deaebec751c7cc9aca69f"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "8e41372bb4762c2162baa919b31603b120fbf4d1e46deaebec751c7cc9aca69f"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+        }
       },
       "before": {
         "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "f89413a51a662ddf9be2511a2b9b3f93949ef03a5df0753f0289058279172dfa"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+        }
+      },
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
+        "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "699a2dd43df2132b47df0f171dea1ad4a91f5ce2a89050c6878f2f9201e6b289"
+          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "9799441af97c5e05d593d90f70ce33e4dbcca5409e199f1905b839ff4caede9d"
+          "sha256": "8e41372bb4762c2162baa919b31603b120fbf4d1e46deaebec751c7cc9aca69f"
         },
         "journal": {
           "exists": false
         }
       },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "e93e99a30d71a3826dedf105a3b98412afd80156ee6903b80debe0963afeb302"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "78c0a9728b0067028e66ae6cbfdbb0c8e44eae7eeb8baf0463082ab8c8cbd95d"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["database", "wal", "shm"],
-      "preserved": false
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
       "scenario": "nonempty",
-      "mode": "default",
       "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "6198959d55e45d0acf59930bc4dcc0be67fcdfa309f674b982376b2eae7ce401"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "6198959d55e45d0acf59930bc4dcc0be67fcdfa309f674b982376b2eae7ce401"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+        }
       },
       "before": {
         "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "a39ebbdbc864fa28a10a3e965ae4f8c98af204ca0c0e437e2bb7f737a03e39b0"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+        }
+      },
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
+        "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "e575f970144e9e29b9c06c6d4dc46b07b5fe522c7b4039747cf1a853346009f6"
+          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "45f6990bc12a6a43a32a6975d3b320691755fd3270098dca01b5356154e9c4cc"
+          "sha256": "6198959d55e45d0acf59930bc4dcc0be67fcdfa309f674b982376b2eae7ce401"
         },
         "journal": {
           "exists": false
         }
       },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "e93e99a30d71a3826dedf105a3b98412afd80156ee6903b80debe0963afeb302"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "0d2e323d831e69d67941048edfccd0ad3455ccbff7b0c3da3029051ebd9eb35b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["database", "wal", "shm"],
-      "preserved": false
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
       "scenario": "nonempty",
-      "mode": "default",
       "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "52575e5a30f9a8557b4e8f97be21be3a51723dfa8e6d4cdc555bfe41bc48e7d0"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "52575e5a30f9a8557b4e8f97be21be3a51723dfa8e6d4cdc555bfe41bc48e7d0"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+        }
       },
       "before": {
         "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "0ac9b05cf70859d785e6ad3ec31e5dd4dfd6b95feeba817bfcffe1b8d0b60fc9"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+        }
+      },
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
+        "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "628a67b8ced422489b9275b509d20f597609ab5c4aba04429c0fe3261416f66d"
+          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "b0d1d9ce085ba3c8136f240dd4b280eac460ae2d2bb8ac1f2f777be9cb821096"
+          "sha256": "52575e5a30f9a8557b4e8f97be21be3a51723dfa8e6d4cdc555bfe41bc48e7d0"
         },
         "journal": {
           "exists": false
         }
       },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "e93e99a30d71a3826dedf105a3b98412afd80156ee6903b80debe0963afeb302"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "8548dae310aed27ce854b2e5247ea544c70257219a0cc65601bf06961c590450"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["database", "wal", "shm"],
-      "preserved": false
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "readonly",
+      "scenario": "empty",
       "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "dd3db11e73aa99a29fbfc257e72bbd6ca10c5e0665ab018b4cdeb1910b52b606"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "3ca3b8f8df6bd5fb3816d707ae131d474d861684caa1206ea21cab5f34be1b8b"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "bd92ae2bd598805206c3485f8723f43fa0e6661b6a04927ecef4604a4ac470ca"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         }
       },
-      "after": {
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "dd3db11e73aa99a29fbfc257e72bbd6ca10c5e0665ab018b4cdeb1910b52b606"
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "10a7c91d5e8d1b85e50866331a0c7cbef237a838a0d372fc7bbd5529f91f221a"
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "readonly",
+      "scenario": "empty",
       "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "b36f9de14f0449cc30cfe35ab82b6855b5aea7cb2206398797c24f48cbaca381"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fa2286f5e58ba17fb61472dbef3147f7ceb58f9285be57b480fd1264876fe1e1"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "eabf64b6fb8171f8b60dcb5a79b0bf24232106227ba002675f224f261b685029"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         }
       },
-      "after": {
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "b36f9de14f0449cc30cfe35ab82b6855b5aea7cb2206398797c24f48cbaca381"
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "617e5c0196fb7073e11516efdea90941633251c55641c90ecdcd985b33af3510"
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "readonly",
+      "scenario": "empty",
       "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "7ef5d20733984a18fad74428d39a04ed09235abf501ac3ee005e842c8123600f"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "4758656113d3929542b580917136f8300c80c953322c3946e06564ff22f5bfce"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "c9e28bcd2c3bd6bbcb95b0636b82b6ebd283030ac3baee00a968da529d3ae8cb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         }
       },
-      "after": {
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "7ef5d20733984a18fad74428d39a04ed09235abf501ac3ee005e842c8123600f"
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "37f2f65b094d07500d8bbb229b81ce040895592f4e0efdf0346800bba10686ff"
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "controls",
+      "scenario": "orphan-shm",
       "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "4829991fbd2ba34505eca04225fd64e4aa3e997966d52b4c308ab6e93dbbba9b"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "e1db191d3dd3acef80c871e491aa4ce8805f91b7e9e5f3164d0d770af2d0eaca"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "ea7b3dae44d5e975f97b1c676d75094b85af1ffbc0bb1bf43720ad1c4f3916ad"
+        },
+        "wal": {
+          "exists": false
         }
       },
-      "after": {
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "4829991fbd2ba34505eca04225fd64e4aa3e997966d52b4c308ab6e93dbbba9b"
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "bbc51a84c588b03f4071107157e6daf1a70726b59a11a70905cef121beea7f1a"
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "changedAfterExit": ["wal", "shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "controls",
+      "scenario": "orphan-shm",
       "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "50b8dfb077dfd35effff62ad4d0822769afeb7b87ce70a916031f6bc4407cebf"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "278ffa23761fc8ab88e3bcbc80b61a58a9a1c7c5dc37d8b0a3a81397965e1bd2"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "0b7499812ec5b139b5b513d6b3f36dd31c89fc2915dbbeda963921a19f3d6d7a"
+        },
+        "wal": {
+          "exists": false
         }
       },
-      "after": {
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "50b8dfb077dfd35effff62ad4d0822769afeb7b87ce70a916031f6bc4407cebf"
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "f0b203abbe83e2fffd14648edd7a88ab636fe4f4395c4fcbff17f9ee81153ef1"
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "changedAfterExit": ["wal", "shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "controls",
+      "scenario": "orphan-shm",
       "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "e7dd659e07a1ff492a6d0c4216ad01ddabf800966f32810ea9c18882b5a8914f"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "2558897c0e7b4c6fbbe3aa7d1344b20da3ca42c1e0a14434c96d83f3728b4896"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "3b5b595ac5affdfa4355fac384a49bd0bbf3abb9886940800bb979ed89603e6e"
+        },
+        "wal": {
+          "exists": false
         }
       },
-      "after": {
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "bf45618ab60036e2ad91f1a3a577dcbf73ad30012583ccc1c4a78856a93d29b1"
         },
         "wal": {
           "exists": true,
-          "bytes": 4152,
-          "sha256": "e7dd659e07a1ff492a6d0c4216ad01ddabf800966f32810ea9c18882b5a8914f"
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "bf3a6eeb1499ab0513e06666476072115d56b1ea6979291909670cc8b33cfc57"
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "changedAfterExit": ["wal", "shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "controls-exclusive",
+      "scenario": "mid",
       "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
+      "after": {
+        "database": {
+          "bytes": 16384,
+          "exists": true,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "ff0d3efbf8bfc3f0858e053ca18e9eb9154d3c2b0ac49b7b87f8c037f5fc8987"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 16384,
+          "exists": true,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "ff0d3efbf8bfc3f0858e053ca18e9eb9154d3c2b0ac49b7b87f8c037f5fc8987"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+        }
       },
       "before": {
         "database": {
+          "bytes": 16384,
           "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "7cf1cdd5b35a8eb16dce04958c66041a0c2e8c6a2d4502f235e79aaf9c12e080"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+        }
+      },
+      "failed": true,
+      "handleRetained": true,
+      "laterCallsRefused": true,
+      "quarantined": true,
+      "sameCachedEntry": true,
+      "settings": {
+        "synchronous": 2,
+        "wal_autocheckpoint": 1000
+      },
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 16384,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
         },
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "fd81dc675830954e5a0661ffdbffa8818bd260470e79b7dc08179b07daa20578"
+          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "07fc3c5f715fb3afeaee3dcf1ecb69c434b671bf4ed7ae10eb0e0eedf7b293f8"
+          "sha256": "ff0d3efbf8bfc3f0858e053ca18e9eb9154d3c2b0ac49b7b87f8c037f5fc8987"
         },
         "journal": {
           "exists": false
         }
       },
+      "changedAfterExit": ["shm"],
+      "passed": true
+    },
+    {
+      "scenario": "mid",
+      "operation": "set",
       "after": {
         "database": {
+          "bytes": 16384,
           "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "ca2ffeb777a387538e168db289a3e7c940128c6a462979d92f2976171b9cc959"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 16384,
+          "exists": true,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "ca2ffeb777a387538e168db289a3e7c940128c6a462979d92f2976171b9cc959"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+        }
+      },
+      "before": {
+        "database": {
+          "bytes": 16384,
+          "exists": true,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fb19d5e3d1fa800677242d49f88a9e010a90763f5bfef734d4a758132d28ed3c"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+        }
+      },
+      "failed": true,
+      "handleRetained": true,
+      "laterCallsRefused": true,
+      "quarantined": true,
+      "sameCachedEntry": true,
+      "settings": {
+        "synchronous": 2,
+        "wal_autocheckpoint": 1000
+      },
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 16384,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
         },
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "fd81dc675830954e5a0661ffdbffa8818bd260470e79b7dc08179b07daa20578"
+          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "07fc3c5f715fb3afeaee3dcf1ecb69c434b671bf4ed7ae10eb0e0eedf7b293f8"
+          "sha256": "ca2ffeb777a387538e168db289a3e7c940128c6a462979d92f2976171b9cc959"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": [],
-      "preserved": true
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "controls-exclusive",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
+      "scenario": "mid",
+      "operation": "clear",
+      "after": {
+        "database": {
+          "bytes": 16384,
+          "exists": true,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "c02d4c362d2686d89db4d7ef40e7cf5b63c658f6ead1a2bcebb0a3e6337259df"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 16384,
+          "exists": true,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "c02d4c362d2686d89db4d7ef40e7cf5b63c658f6ead1a2bcebb0a3e6337259df"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+        }
       },
       "before": {
         "database": {
+          "bytes": 16384,
           "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "7d53bc2e06ef57d36809e0ab22479715ef459790531d18601d0e5c20e3203417"
+        },
+        "wal": {
+          "bytes": 4152,
+          "exists": true,
+          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+        }
+      },
+      "failed": true,
+      "handleRetained": true,
+      "laterCallsRefused": true,
+      "quarantined": true,
+      "sameCachedEntry": true,
+      "settings": {
+        "synchronous": 2,
+        "wal_autocheckpoint": 1000
+      },
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 16384,
+          "sha256": "5abdfd4a38d5a78ec3e171aa8a090286ff971c455c3ab5da80479caaf52b0b2d"
         },
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "dcf9c1a08540309d1af156286c53758e902b4dfce431668ce50fd354d39a7b16"
+          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "a2cb44a98f473ee7c91796948f9d45cd60b213102d4137f05ab25ad5d3a42610"
+          "sha256": "c02d4c362d2686d89db4d7ef40e7cf5b63c658f6ead1a2bcebb0a3e6337259df"
         },
         "journal": {
           "exists": false
         }
       },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "dcf9c1a08540309d1af156286c53758e902b4dfce431668ce50fd354d39a7b16"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "a2cb44a98f473ee7c91796948f9d45cd60b213102d4137f05ab25ad5d3a42610"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
+      "changedAfterExit": ["shm"],
+      "passed": true
     },
     {
-      "scenario": "nonempty",
-      "mode": "controls-exclusive",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "11482537618fec0b2e764c0ea789883a5d72ca28afe4b70fca0fac76eb4d205d"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "24ff34f6b346b0d22073d02853cfffc0a08ebeec91dcee1dfce31e231ea0af0b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "11482537618fec0b2e764c0ea789883a5d72ca28afe4b70fca0fac76eb4d205d"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "24ff34f6b346b0d22073d02853cfffc0a08ebeec91dcee1dfce31e231ea0af0b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "empty",
-      "mode": "default",
+      "scenario": "clean",
       "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
+      "after": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "475af93f3c05c10927e1afef6aabc79f5884dbf73b022a14967b58fd63000520"
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         }
       },
-      "after": {
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "wal": {
+          "bytes": 0,
+          "exists": true,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "before": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "exists": false
+        },
+        "wal": {
+          "exists": false
+        }
+      },
+      "failed": false,
+      "laterCallsRefused": false,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
         },
         "wal": {
           "exists": true,
@@ -752,1312 +1152,173 @@
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "passed": true
     },
     {
-      "scenario": "empty",
-      "mode": "default",
+      "scenario": "clean",
       "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "82ec63605fc19f8af6442271233a73a0b2c530eab81d1677fc351dad5b0162ac"
+        },
+        "wal": {
+          "bytes": 8272,
+          "exists": true,
+          "sha256": "b5f2b8c1ae91e2229304987c592050d8366e6e842ecb95fdc79f5a20f63a64ec"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "82ec63605fc19f8af6442271233a73a0b2c530eab81d1677fc351dad5b0162ac"
+        },
+        "wal": {
+          "bytes": 8272,
+          "exists": true,
+          "sha256": "b5f2b8c1ae91e2229304987c592050d8366e6e842ecb95fdc79f5a20f63a64ec"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "a922c8a8148fdc5eede45499d863b84c6fd4f8f21154169732175067dd265b4a"
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "exists": false
+        },
+        "wal": {
+          "exists": false
         }
       },
-      "after": {
+      "failed": false,
+      "laterCallsRefused": false,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
         },
         "wal": {
           "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "bytes": 8272,
+          "sha256": "b5f2b8c1ae91e2229304987c592050d8366e6e842ecb95fdc79f5a20f63a64ec"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          "sha256": "82ec63605fc19f8af6442271233a73a0b2c530eab81d1677fc351dad5b0162ac"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
+      "passed": true
     },
     {
-      "scenario": "empty",
-      "mode": "default",
+      "scenario": "clean",
       "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
+      "after": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "a4e43ec3e1bae12cfdfd217fdd041db00d869d3b3e7d4079e12a35140bb6c229"
+        },
+        "wal": {
+          "bytes": 8272,
+          "exists": true,
+          "sha256": "e388e1ec4f617da87b0d7551ec13c7951e45619136f57b57a169f07493455943"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 12288,
+          "exists": true,
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "a4e43ec3e1bae12cfdfd217fdd041db00d869d3b3e7d4079e12a35140bb6c229"
+        },
+        "wal": {
+          "bytes": 8272,
+          "exists": true,
+          "sha256": "e388e1ec4f617da87b0d7551ec13c7951e45619136f57b57a169f07493455943"
+        }
       },
       "before": {
         "database": {
-          "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
           "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "b6d7f758c821b34a73fc81d7beab45037feeadac04b9f5fcf82cc3f01941371b"
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
         },
         "journal": {
           "exists": false
+        },
+        "shm": {
+          "exists": false
+        },
+        "wal": {
+          "exists": false
         }
       },
-      "after": {
+      "failed": false,
+      "laterCallsRefused": false,
+      "afterExit": {
         "database": {
           "exists": true,
           "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
+          "sha256": "e0cba629cfbaf1e86a7bb7ac10c8acb3e59a5d2b2350f47c75a2546abe98c7f2"
         },
         "wal": {
           "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "bytes": 8272,
+          "sha256": "e388e1ec4f617da87b0d7551ec13c7951e45619136f57b57a169f07493455943"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          "sha256": "a4e43ec3e1bae12cfdfd217fdd041db00d869d3b3e7d4079e12a35140bb6c229"
         },
         "journal": {
           "exists": false
         }
       },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "readonly",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "b6507988578c2c77e1d96b96d0ee5f22f5e63d173e19daeb8f856fbbfa2ac8f3"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "readonly",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "7c339acb351e700ec6ee5d93ef6c45e0869d277b32cacd349d343abb26892130"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "readonly",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "1da2d6ba3cda9d9cce34cd4ef142c6704c20840d652f43188359f21817400408"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "controls",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "0eca76a45d2d13d8be65075d4a52fb0edf741f2f37373cc2de73d5ad9b9d92a8"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "controls",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "255ef289c3153a7b095c2079a53d8b380f9423f5a7d17d034b694c744e51064b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "controls",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "cdfdf83e0317bc06d763ec8a72b80830044a0f7516d13a6d0801794ba19c6528"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "controls-exclusive",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "6d8e4e9dc8173e2938cd23535be728f8ef44a2eecd0004a0adc6a8bf92a1b5fe"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "6d8e4e9dc8173e2938cd23535be728f8ef44a2eecd0004a0adc6a8bf92a1b5fe"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "empty",
-      "mode": "controls-exclusive",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "9e97e63e7d3e2031a2bbedcad18211ecc883dfdaddabf99a3a4b574de47544dd"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "9e97e63e7d3e2031a2bbedcad18211ecc883dfdaddabf99a3a4b574de47544dd"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "empty",
-      "mode": "controls-exclusive",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "e7e02cf350a83814421983dfefb5560ae38940a8918679c899966cc44fecd66e"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "e7e02cf350a83814421983dfefb5560ae38940a8918679c899966cc44fecd66e"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "default",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "d619dc9b3b28ff4389b9eb067659ca9d40e8b718ed6d626c1f56310b1378b77b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "default",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "5e5eb27c59b0d54c07de98d81dbe9bc5e508ba016a92cb16f11039a59d37a1e3"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "default",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "f503d127cb1986435bc4d2a839e65d2713a99d31b95b62d74551baca7286ab09"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "readonly",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 14,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "f6fb46d2e54ae08f7901d0dd1b06c60dfe5c25072c6e7f2db74df36cf8702810"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "f6fb46d2e54ae08f7901d0dd1b06c60dfe5c25072c6e7f2db74df36cf8702810"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "readonly",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 14,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "43499a7df71ad68da4785bff48a88b28f3c170a321017d44020b28eecd83dd14"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "43499a7df71ad68da4785bff48a88b28f3c170a321017d44020b28eecd83dd14"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "readonly",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 14,
-        "close": 0,
-        "noCheckpointRC": -1,
-        "noCheckpoint": 0,
-        "persistRC": -1,
-        "persist": 0,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "5ef8d5212137334f95b20a94137ced8bb0bfe2e39b630fac03807e4aa6fd33c4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "5ef8d5212137334f95b20a94137ced8bb0bfe2e39b630fac03807e4aa6fd33c4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": [],
-      "preserved": true
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "controls",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "181a32a9626b5e181369c605675e75d6c6978a7b95a065ecbc8517b69c49d039"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "controls",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "8af01834bcc30edfbe8adac52a3c4692c1fb7d34aebb74d90b8a8a3136748e93"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "controls",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": -1
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "4f7aaf639052b1bdddc4707a21053f0f6e7063fec519988ce95765c7410746b2"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "controls-exclusive",
-      "operation": "get",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "78e557fc518b78820ea90c3be74aec506df6887b8a165f1aaae76c1feec0cec4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "78e557fc518b78820ea90c3be74aec506df6887b8a165f1aaae76c1feec0cec4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "controls-exclusive",
-      "operation": "set",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "c5a3f2d98df6e3cc74082f5d756181793194a465f7b058ed202c509edefd9da3"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "c5a3f2d98df6e3cc74082f5d756181793194a465f7b058ed202c509edefd9da3"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "controls-exclusive",
-      "operation": "clear",
-      "native": {
-        "sqliteVersion": "3.54.0",
-        "open": 0,
-        "query": 11,
-        "close": 0,
-        "noCheckpointRC": 0,
-        "noCheckpoint": 1,
-        "persistRC": 0,
-        "persist": 1,
-        "exclusiveRC": 0
-      },
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "a7dce1ddfb136feb8595ef71d83ab3cd9b1d2f85039bfc4c4a23af14beb82ba4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 12288,
-          "sha256": "b01a1036ae1227065a9efcfa6a1296b8dbfaab633f05fae32a2397a08e3c7b9d"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "a7dce1ddfb136feb8595ef71d83ab3cd9b1d2f85039bfc4c4a23af14beb82ba4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal"],
-      "preserved": false
+      "passed": true
     }
   ]
 }

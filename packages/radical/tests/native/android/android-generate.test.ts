@@ -2132,7 +2132,10 @@ it.effect("generates key-value with its foundation only when opted in", () =>
       assert.strictEqual(source !== undefined, enabled);
 
       if (enabled) {
-        assert.include(source ?? "", "db.enableWriteAheadLogging()");
+        assert.include(
+          source ?? "",
+          "SQLiteDatabase.ENABLE_WRITE_AHEAD_LOGGING"
+        );
         assert.include(
           source ?? "",
           'call.reject("Invalid storage input", "InvalidStorageInput", new JSObject())'
@@ -2180,11 +2183,12 @@ it.effect(
       );
       assert.include(
         source,
-        'SQLiteDatabase.openOrCreateDatabase(new File(root, "key-value.sqlite").getPath(), null, PRESERVE_CORRUPT_DATABASE)'
+        "SQLiteDatabase.OPEN_READONLY | SQLiteDatabase.NO_LOCALIZED_COLLATORS, PRESERVE_CORRUPT_DATABASE"
       );
+      assert.include(source, 'execSQL("PRAGMA synchronous=FULL")');
       assert.notMatch(
         source,
-        /deleteDatabase|DefaultDatabaseErrorHandler|\.delete\(|\.renameTo\(/u
+        /deleteDatabase|DefaultDatabaseErrorHandler|\.delete\(|\.renameTo\(|state\.database\.close\(/u
       );
     }).pipe(Effect.provide(state.layer));
   }

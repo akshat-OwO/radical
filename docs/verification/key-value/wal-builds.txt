@@ -1,6 +1,6 @@
-Android instrumented build
-BUILD SUCCESSFUL in 21s
-489 actionable tasks: 489 executed
+Android instrumented build (JDK 21), first attempt:
+RadicalKeyValuePlugin.java:83: error: unreported exception InterruptedIOException; must be caught or declared to be thrown
+Android instrumented build after declaring IOException: assembleDebug passed
 
-iOS instrumented build
+iOS instrumented build (iphonesimulator, iPhone 17 Pro iOS 26.5):
 ** BUILD SUCCEEDED **

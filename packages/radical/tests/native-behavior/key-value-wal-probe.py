@@ -1,19 +1,21 @@
-"""Record strict preservation failures; exit 1 if any observed file changes."""
+"""Run the production Swift preflight/cache/quarantine against crash-left files."""
 from pathlib import Path
 import hashlib
 import json
 import subprocess
 import tempfile
-import sys
 
 repo = Path(__file__).resolve().parents[4]
-owned = repo / "apps/example/.radical/wal-check"
+owned = repo / "apps/example/.radical/kv-final"
 owned.mkdir(parents=True, exist_ok=True)
-binary = owned / "host-wal-probe"
+binary = owned / "host-wal-test"
 subprocess.run([
-    "clang", str(repo / "packages/radical/tests/native-behavior/KeyValueWALProbe.c"),
-    str(repo / "docs/verification/key-value/wal-config.c"),
-    "-I", str(repo / "docs/verification/key-value"), "-lsqlite3", "-o", str(binary)
+    "swiftc",
+    str(repo / "packages/radical/templates/ios/RadicalStorageOwner.swift"),
+    str(repo / "packages/radical/templates/ios/RadicalKeyValueSQLite.swift"),
+    str(repo / "packages/radical/templates/ios/RadicalKeyValueConnection.swift"),
+    str(repo / "packages/radical/tests/native-behavior/KeyValueWALTest.swift"),
+    "-o", str(binary)
 ], check=True)
 
 def snapshot(database):
@@ -27,29 +29,39 @@ def snapshot(database):
         result[name] = state
     return result
 
+def preserved(before, after):
+    wal = before["wal"] == after["wal"] or (
+        not before["wal"]["exists"] and after["wal"].get("bytes") == 0
+    )
+    return before["database"] == after["database"] and wal
+
 results = []
 with tempfile.TemporaryDirectory(dir=owned) as directory:
-    for scenario in ("nonempty", "empty", "orphan-shm"):
-        for mode in ("default", "readonly", "controls", "controls-exclusive"):
-            for operation in ("get", "set", "clear"):
-                database = Path(directory) / (scenario + "-" + mode + "-" + operation + ".sqlite")
+    for scenario in ("nonempty", "empty", "orphan-shm", "mid", "clean"):
+        for operation in ("get", "set", "clear"):
+            database = Path(directory) / (scenario + "-" + operation + ".sqlite")
+            if scenario != "mid":
                 subprocess.run([str(binary), "seed", str(database), scenario], check=True)
-                if scenario == "orphan-shm":
-                    Path(str(database) + "-wal").unlink()
-                with database.open("r+b") as file:
-                    file.seek(100)
-                    file.write(bytes([255]))
-                before = snapshot(database)
-                assert before["shm"]["exists"]
-                if scenario == "nonempty": assert before["wal"]["bytes"] > 0
-                if scenario == "empty": assert before["wal"]["bytes"] == 0
-                native_mode = "ro" if mode == "readonly" else mode
-                observed = json.loads(subprocess.check_output([str(binary), native_mode, str(database), operation], text=True))
-                after = snapshot(database)
-                changes = [name for name in before if before[name] != after[name]]
-                results.append(dict(scenario=scenario, mode=mode, operation=operation, native=observed, before=before, after=after, changed=changes, preserved=not changes))
-output = {"purpose": "Observation of rejected preservation candidates, not a passing production regression", "results": results}
-destination = repo / "docs/verification/key-value/host-wal.json"
-destination.write_text(json.dumps(output, indent=2) + "\n")
-print(json.dumps({"cases": len(results), "preserved": sum(row["preserved"] for row in results)}))
-sys.exit(0 if all(row["preserved"] for row in results) else 1)
+            report = json.loads(subprocess.check_output([
+                str(binary), "mid" if scenario == "mid" else "check",
+                str(database), scenario, operation
+            ], text=True))
+            exited = snapshot(database)
+            if scenario == "clean":
+                # A healthy WAL-mode store without -wal or -shm must still open.
+                passes = not report["failed"] and not report["before"]["wal"]["exists"]
+                results.append(dict(scenario=scenario, operation=operation, **report, afterExit=exited, passed=passes))
+                continue
+            passes = report["failed"] and report["laterCallsRefused"]
+            for state in (report["after"], report["afterLaterCalls"], exited):
+                passes = passes and preserved(report["before"], state)
+            if scenario == "mid":
+                passes = passes and report["sameCachedEntry"] and report["quarantined"] and report["handleRetained"]
+                passes = passes and report["settings"]["synchronous"] == 2 and report["settings"]["wal_autocheckpoint"] > 0
+            # SHM changes and WAL creation are recorded, never asserted.
+            changed = [name for name in exited if report["before"][name] != exited[name]]
+            results.append(dict(scenario=scenario, operation=operation, **report, afterExit=exited, changedAfterExit=changed, passed=passes))
+output = {"results": results}
+(repo / "docs/verification/key-value/host-wal.json").write_text(json.dumps(output, indent=2) + "\n")
+print(json.dumps({"cases": len(results), "passed": sum(row["passed"] for row in results)}))
+assert all(row["passed"] for row in results), "Main database/WAL preservation failed"

@@ -21,7 +21,11 @@ public class RadicalKeyValuePlugin: CAPPlugin, CAPBridgedPlugin {
                   (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil
             else { call.reject("Invalid storage input", "InvalidStorageInput", nil, [:]); return }
         }
-        RadicalAppStoragePlugin().resolveStore(call) { root in
+        let identity = (call.getString("store") ?? "") + "/" + (call.getString("namespace") ?? "")
+        // Refuse a quarantined identity before the foundation resolves any path.
+        RadicalAppStoragePlugin().resolveStore(call, beforeResolve: {
+            try RadicalKeyValueConnections.requireUsable(identity)
+        }) { root in
             let database = root.appendingPathComponent("key-value.sqlite")
             let excluded = call.getString("backup") != "eligible"
             func sidecars() throws {
@@ -39,20 +43,16 @@ public class RadicalKeyValuePlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
             try sidecars()
-            // CREATE initializes an absent store only. Corrupt/not-a-database failures
-            // propagate as StorageIOFailed; never unlink, replace, or retry the file.
-            var db: OpaquePointer?
-            guard sqlite3_open_v2(database.path, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil) == SQLITE_OK else {
-                if db != nil { sqlite3_close(db) }
-                throw Failure.io
+            let entry: RadicalKeyValueConnections.Entry
+            do {
+                entry = try RadicalKeyValueConnections.connection(identity, at: database)
+            } catch {
+                // The preflight may have created an empty WAL or rebuilt SHM.
+                try? sidecars()
+                throw error
             }
-            defer { sqlite3_close(db) }
-            func sql(_ text: String) throws {
-                guard sqlite3_exec(db, text, nil, nil, nil) == SQLITE_OK else { throw Failure.io }
-            }
-            try sql("PRAGMA journal_mode=WAL")
+            let db = entry.database
             try sidecars()
-            try sql("CREATE TABLE IF NOT EXISTS radical_kv (namespace TEXT NOT NULL, key TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(namespace,key))")
             let text: String
             switch operation {
             case "get": text = "SELECT json FROM radical_kv WHERE namespace=? AND key=?"
@@ -61,7 +61,7 @@ public class RadicalKeyValuePlugin: CAPPlugin, CAPBridgedPlugin {
             default: text = "DELETE FROM radical_kv WHERE namespace=?"
             }
             var statement: OpaquePointer?
-            guard sqlite3_prepare_v2(db, text, -1, &statement, nil) == SQLITE_OK else { throw Failure.io }
+            try entry.check(sqlite3_prepare_v2(db, text, -1, &statement, nil))
             defer { sqlite3_finalize(statement) }
             var values = [call.getString("namespace")!]
             if operation != "clear" { values.append(key) }
@@ -69,11 +69,13 @@ public class RadicalKeyValuePlugin: CAPPlugin, CAPBridgedPlugin {
             for (index, value) in values.enumerated() {
                 try RadicalKeyValueSQLite.bindText(value, to: statement, at: Int32(index + 1))
             }
+            // A corrupt result quarantines the cached writer; it is never closed.
             let status = sqlite3_step(statement)
+            try entry.check(status, accepting: operation == "get" ? [SQLITE_ROW, SQLITE_DONE] : [SQLITE_DONE])
             var result: [String: Any] = [:]
-            if operation == "get", status == SQLITE_ROW {
+            if status == SQLITE_ROW {
                 result["json"] = try RadicalKeyValueSQLite.text(from: statement, at: 0)
-            } else if status != SQLITE_DONE { throw Failure.io }
+            }
             try sidecars()
             call.resolve(result)
         }

@@ -139,7 +139,9 @@ public class RadicalAppStoragePlugin extends Plugin {
 
     @PluginMethod public void resolve(PluginCall call) { resolveStore(call, null); }
 
-    protected void resolveStore(PluginCall call, StoreAction action) {
+    protected void resolveStore(PluginCall call, StoreAction action) { resolveStore(call, null, action); }
+
+    protected void resolveStore(PluginCall call, Runnable beforeResolve, StoreAction action) {
         String capability = call.getString("capability");
         String store = call.getString("store");
         String namespace = call.getString("namespace");
@@ -154,6 +156,7 @@ public class RadicalAppStoragePlugin extends Plugin {
         }
         RadicalStorageOwner.mutate(() -> {
             try {
+                if (beforeResolve != null) beforeResolve.run();
                 File[] roots = {
                     new File(getContext().getFilesDir(), "radical-storage"),
                     new File(getContext().getNoBackupFilesDir(), "radical-storage"),

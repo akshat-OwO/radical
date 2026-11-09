@@ -80,6 +80,10 @@ export const keyValuePlugin = definePlugin({
         file: "RadicalKeyValueSQLite.swift",
         source: "templates/ios/RadicalKeyValueSQLite.swift",
       },
+      {
+        file: "RadicalKeyValueConnection.swift",
+        source: "templates/ios/RadicalKeyValueConnection.swift",
+      },
     ],
     dependencies: [],
   },

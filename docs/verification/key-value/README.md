@@ -1,6 +1,6 @@
 # Native key-value verification
 
-**Open P1:** crash-left WAL/SHM preservation is not established. The [latest investigation](wal-investigation.md) reproduces file changes after failed operations and supersedes the earlier main-file-only corruption claims below.
+**Failure preservation:** the [WAL contract record](wal-investigation.md) defines what failed operations may change: never the main database or WAL, only SHM or a newly created empty WAL. It also describes the shipped preflight and quarantine design and the passing native host regression. On-device runs of that design are still pending, so the P1 stays open until they pass. The record supersedes the earlier main-file-only corruption claims below.
 
 The latest review pass verifies corrupt database preservation, explicit row recovery, and embedded NUL text on both platforms. See [review verification](review-corruption.md) for the additional device and native-host results. The original capability verification follows.
 

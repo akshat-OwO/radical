@@ -21,7 +21,15 @@ The limit is **1,048,576 bytes of UTF-8 JSON text per value**, including quotes 
 
 An optional Schema validates the JSON representation. On reads, its decoded value is returned. On writes, validation succeeds before the original JSON representation is stored. A corrupt value or failed read decode returns `InvalidStoredValue` and leaves the stored text untouched. Reads never repair or replace corrupt values. The app recovers explicitly with `set` to replace the row or `remove` to delete it. Both remain allowed when the existing row contains invalid JSON. Missing values are successful lookups, including when a Schema is provided.
 
-Corrupt database bytes are a separate failure: operations return `StorageIOFailed` because SQLite cannot access the store. Android uses a non-destructive `DatabaseErrorHandler` instead of the platform default that deletes corrupt databases. These errors contain no SQLite diagnostics or stored data. **Open P1:** after a crash leaves WAL/SHM files, SQLite opening or closing can still change those files or checkpoint into the database on failure. Full file preservation is not implemented; see the [investigation](../verification/key-value/wal-investigation.md). Explicit row recovery requires a readable database; `set` and `clear` cannot repair a corrupt database file.
+Corrupt database bytes are a separate failure: operations return `StorageIOFailed` because SQLite cannot access the store. These errors contain no SQLite diagnostics or stored data. Explicit row recovery requires a readable database; `set` and `clear` cannot repair a corrupt database file.
+
+### Corrupt databases
+
+On any failure, Radical never deletes, truncates, reinitializes, or checkpoints into the database or its WAL. The SQLite shared-memory index (`-shm`) may change, and an empty WAL may be created where none existed; neither holds data. Android uses a non-destructive `DatabaseErrorHandler` instead of the platform default that deletes corrupt databases.
+
+Each store identity has one writable connection, cached for the process lifetime and never closed, because closing the last writer of a WAL database checkpoints it. Before the first writable open in a process, a read-only preflight reads the schema and one row. A read-only connection cannot checkpoint. If the preflight finds corruption, the call fails and no writable connection opens.
+
+If the cached writer finds corruption later, Radical quarantines that identity for the rest of the process. The handle is kept but runs no further statements, and every later call fails with `StorageIOFailed` without touching the store's files. Recovery happens on the next launch, where the preflight reports the corruption again, or when the app deletes the store. Any future store deletion must run inside the mutation owner and clear the identity's cached entry. See the [contract record](../verification/key-value/wal-investigation.md).
 
 `InvalidStorageInput` covers invalid identity, keys, values, size, and write Schema validation. `StorePolicyConflict` means the identity already has another backup policy. Native I/O failures return `StorageIOFailed`. Browser and SSR operations return `Unavailable`; missing native commands return `BridgeUnavailable`. Storage errors and sanitized bridge errors contain no stored values.
 
@@ -47,9 +55,9 @@ The example app's `/key-value` route uses `useKeyValue(options, key)` from `@aks
 
 ## Storage and backup
 
-Each foundation identity resolves to `stores/keyValue/<store>/<namespace>/key-value.sqlite` under its backup-class root. The private `radical_kv` table contains namespace, key, and JSON text, with a composite primary key. All SQL parameters are bound. WAL and atomic SQLite statements or transactions protect writes. Every operation, including SQLite file creation and cleanup, runs through the foundation's shared native mutation owner.
+Each foundation identity resolves to `stores/keyValue/<store>/<namespace>/key-value.sqlite` under its backup-class root. The private `radical_kv` table contains namespace, key, and JSON text, with a composite primary key. All SQL parameters are bound. WAL with `synchronous=FULL` makes every committed `set`, `remove`, or `clear` durable, and SQLite's automatic checkpoint keeps the WAL bounded. Each mutation is one atomic SQLite statement. Every operation, including SQLite file creation and cleanup, runs through the foundation's shared native mutation owner.
 
-Database, WAL, shared-memory, and rollback-journal files stay together. Android uses the foundation's files, no-backup, or cache root with API 24-compatible platform SQLite. iOS uses Application Support or Caches and reapplies Foundation `isExcludedFromBackup` to the database and any existing sidecars after creation and mutation. Connections close after each operation.
+Database, WAL, shared-memory, and rollback-journal files stay together. Android uses the foundation's files, no-backup, or cache root with API 24-compatible platform SQLite. iOS uses Application Support or Caches and reapplies Foundation `isExcludedFromBackup` to the database and any existing sidecars after creation and mutation. Each identity keeps one cached connection for the process lifetime.
 
 The foundation persists policy per identity. A later conflicting policy fails instead of opening another empty database. Data survives web origin changes, remote/bundled switches, and app relaunches. It remains tied to the installed app identity. Cache data can be evicted by the OS.
 

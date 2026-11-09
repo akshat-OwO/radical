@@ -39,6 +39,8 @@ apps/example/.radical/kv-review/sqlite-test
 
 ## Reproduction and builds
 
+These fixtures were applied with the 6f600e1 version of instrument-corruption.py. That script now drives the [WAL contract regression](wal-investigation.md#device-verification), so check out 6f600e1 to reproduce this review pass.
+
 Generate both example shells using the [original build commands](README.md#builds), with JDK 21 for Android. Apply the test fixtures before building:
 
 ```sh
