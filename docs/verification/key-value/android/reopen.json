@@ -1,0 +1,141 @@
+{
+  "checks": [
+    {
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "name": "survives-relaunch",
+      "pass": true
+    },
+    {
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "name": "nul-after-relaunch",
+      "pass": true
+    },
+    {
+      "actual": "InvalidStoredValue",
+      "expected": "InvalidStoredValue",
+      "name": "corrupt-after-relaunch",
+      "pass": true
+    },
+    {
+      "actual": "{broken",
+      "expected": "{broken",
+      "name": "corrupt-still-untouched",
+      "pass": true
+    },
+    {
+      "actual": "StorePolicyConflict",
+      "expected": "StorePolicyConflict",
+      "name": "policy-conflict",
+      "pass": true
+    },
+    {
+      "actual": "eligible",
+      "expected": "eligible",
+      "name": "root-eligible",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "name": "wal-eligible",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "name": "shm-eligible",
+      "pass": true
+    },
+    {
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-wal",
+          "key-value.sqlite-shm"
+        ],
+        "rootClass": "eligible"
+      },
+      "name": "files-eligible",
+      "pass": true
+    },
+    {
+      "actual": "excluded",
+      "expected": "excluded",
+      "name": "root-excluded",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "name": "wal-excluded",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "name": "shm-excluded",
+      "pass": true
+    },
+    {
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-wal",
+          "key-value.sqlite-shm"
+        ],
+        "rootClass": "excluded"
+      },
+      "name": "files-excluded",
+      "pass": true
+    },
+    {
+      "actual": "cache",
+      "expected": "cache",
+      "name": "root-cache",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "name": "wal-cache",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "expected": true,
+      "name": "shm-cache",
+      "pass": true
+    },
+    {
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-wal",
+          "key-value.sqlite-shm"
+        ],
+        "rootClass": "cache"
+      },
+      "name": "files-cache",
+      "pass": true
+    }
+  ],
+  "stage": "reopen"
+}

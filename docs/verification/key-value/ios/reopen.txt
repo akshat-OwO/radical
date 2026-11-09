@@ -1,0 +1,224 @@
+Page: dev.radical.example.ios
+App: dev.radical.example.ios
+Snapshot: 20 nodes
+Simulator AX snapshot unavailable (circuit-disabled); used XCTest for this app generation.
+@e1 [application] "Radical iOS"
+  @e2 [other] "Tab Bar"
+    @e3 [other] "Vertical scroll bar, 3 pages"
+      @e4 [webview] [same label as parent]
+        @e5 [webview] "Key-value verification"
+          @e6 [other] "Key-value verification"
+            @e7 [other] "Key-value verification" [focused]
+              @e8 [other] "Native key-value checks" [focused]
+                @e9 [text] "Native key-value checks" [focused]
+              @e10 [other] "{
+  "stage": "reopen",
+  "checks": [
+    {
+      "name": "survives-relaunch",
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-after-relaunch",
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "pass": true
+    },
+    {
+      "name": "corrupt-after-relaunch",
+      "actual": "InvalidStoredValue",
+      "expected": "InvalidStoredValue",
+      "pass": true
+    },
+    {
+      "name": "corrupt-still-untouched",
+      "actual": "{broken",
+      "expected": "{broken",
+      "pass": true
+    },
+    {
+      "name": "policy-conflict",
+      "actual": "StorePolicyConflict",
+      "expected": "StorePolicyConflict",
+      "pass": true
+    },
+    {
+      "name": "root-eligible",
+      "actual": "eligible",
+      "expected": "eligible",
+      "pass": true
+    },
+    {
+      "name": "wal-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "backup-flags-eligible",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-eligible",
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
+        "excluded": {
+          "key-value.sqlite": false,
+          "key-value.sqlite-wal": false,
+          "key-value.sqlite-shm": false
+        },
+        "rootClass": "eligible"
+      },
+      "pass": true
+    },
+    {
+      "name": "root-excluded",
+      "actual": "excluded",
+      "expected": "excluded",
+      "pass": true
+    },
+    {
+      "name": "wal-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "backup-flags-excluded",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-excluded",
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
+        "excluded": {
+          "key-value.sqlite": true,
+          "key-value.sqlite-wal": true,
+          "key-value.sqlite-shm": true
+        },
+        "rootClass": "excluded"
+      },
+      "pass": true
+    },
+    {
+      "name": "root-cache",
+      "actual": "cache",
+      "expected": "cache",
+      "pass": true
+    },
+    {
+      "name": "wal-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "shm-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "backup-flags-cache",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "files-cache",
+      "actual": {
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
+        "rootClass": "cache",
+        "excluded": {
+          "key-value.sqlite-wal": true,
+          "key-value.sqlite": true,
+          "key-value.sqlite-shm": true
+        }
+      },
+      "pass": true
+    }
+  ]
+}" [focused]
+                @e11 [text] "{
+  "stage": "reopen",
+  "checks": [
+    {
+      "name": "survives-relaunch",
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-after-relaunch",
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"" [focused]
+        @e12 [other] "0%"
+        @e13 [other] "Horizontal scroll bar, 1 page" [covered]
+    @e14 [other] "Tab Bar"
+      @e15 [tab-bar] "Tab Bar"
+        @e16 [other] "Home"
+          @e17 [button] "Home" [selected]
+            @e18 [image] "home"
+          @e19 [button] "About"
+            @e20 [image] "info"

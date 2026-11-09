@@ -1,0 +1,18 @@
+Native host regression (shipped preflight, cached writer, quarantine, large WAL):
+python3 packages/radical/tests/native-behavior/key-value-wal-probe.py
+{"cases": 19, "passed": 19}
+With the empty-WAL step disabled, clean and orphan-SHM fail with SQLITE_CANTOPEN.
+
+Existing native host tests: KeyValueSQLiteTest, StorageOwnerTest, StorageBackupTest pass.
+
+Device regression (wal-probe.html, three launches):
+Pixel_9 Android 16: 19/19 passed (android/wal.json)
+iPhone 17 Pro iOS 26.5: 19/19 passed (ios/wal.json)
+
+Healthy-path device checks (probe.html):
+Pixel_9: create 26/26, relaunch 17/17
+iPhone 17 Pro: create 29/29, relaunch 20/20
+
+pnpm exec ultracite fix: passed
+pnpm exec ultracite check: passed
+pnpm exec vp run ready: 16/16 tasks successful; 990 tests passed

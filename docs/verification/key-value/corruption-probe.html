@@ -1,0 +1,161 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Database preservation verification</title>
+<h1>Database preservation checks</h1>
+<pre id="result">Running</pre>
+<script type="module">
+  import { Effect } from "effect";
+  import {
+    keyValueStore,
+    BridgeLive,
+  } from "../../../packages/radical/src/effect/client.ts";
+  const run = (effect) =>
+    Effect.runPromise(effect.pipe(Effect.provide(BridgeLive)));
+  const checks = [];
+  const canonical = (value) => {
+    if (value === null || typeof value !== "object") {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value.map(canonical);
+    }
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonical(value[key])])
+    );
+  };
+  const check = (name, actual, expected) =>
+    checks.push({
+      name,
+      actual,
+      expected,
+      pass:
+        JSON.stringify(canonical(actual)) ===
+        JSON.stringify(canonical(expected)),
+    });
+  const options = {
+    store: "verify-corruption-203-final",
+    namespace: "row",
+    backup: "excluded",
+  };
+  const native = (options, key) =>
+    window.Capacitor.nativePromise("RadicalKeyValue", "execute", {
+      ...options,
+      capability: "keyValue",
+      path: "",
+      operation: "get",
+      key,
+    });
+  const failure = (effect) =>
+    run(
+      effect.pipe(
+        Effect.match({
+          onFailure: (error) => ({
+            tag: error._tag,
+            fields: Object.keys(error),
+          }),
+          onSuccess: () => ({ tag: "unexpected success", fields: [] }),
+        })
+      )
+    );
+  try {
+    await window.Capacitor.nativePromise(
+      "RadicalSplash",
+      "linksReady",
+      {}
+    ).catch(() => {});
+    await window.Capacitor.nativePromise("RadicalSplash", "hide", {}).catch(
+      () => {}
+    );
+    const row = keyValueStore(options);
+    await run(row.set("recover", "fixture-corrupt-row"));
+    check("row-read-invalid", await failure(row.get("recover")), {
+      tag: "InvalidStoredValue",
+      fields: ["_tag"],
+    });
+    check(
+      "row-read-preserves-text",
+      (await native(options, "recover")).json,
+      "{broken"
+    );
+    await run(row.set("recover", { recovered: true }));
+    check("explicit-set-recovers", await run(row.get("recover")), {
+      found: true,
+      value: { recovered: true },
+    });
+    await run(row.set("recover", "fixture-corrupt-row"));
+    check("row-read-invalid-before-remove", await failure(row.get("recover")), {
+      tag: "InvalidStoredValue",
+      fields: ["_tag"],
+    });
+    await run(row.remove("recover"));
+    check("explicit-remove-recovers", await run(row.get("recover")), {
+      found: false,
+    });
+    const nulKey = "a" + String.fromCharCode(0) + "b🦊";
+    const nulValue = "before" + String.fromCharCode(0) + "afteré";
+    await run(row.set(nulKey, nulValue));
+    check("nul-key-and-json-value-round-trip", await run(row.get(nulKey)), {
+      found: true,
+      value: nulValue,
+    });
+    check("nul-key-prefix-is-distinct", await run(row.get("a")), {
+      found: false,
+    });
+    await run(row.remove(nulKey));
+    check("remove-nul-key", await run(row.get(nulKey)), { found: false });
+    const badNamespace = keyValueStore({
+      ...options,
+      namespace: "a" + String.fromCharCode(0) + "b",
+    });
+    check("nul-namespace-rejected", await failure(badNamespace.get("key")), {
+      tag: "InvalidStorageInput",
+      fields: ["_tag"],
+    });
+    for (const kind of ["header", "btree"]) {
+      const identity = { ...options, namespace: kind };
+      const store = keyValueStore(identity);
+      await run(store.set("key", { seed: 42 }));
+      check(kind + "-valid-before-damage", await run(store.get("key")), {
+        found: true,
+        value: { seed: 42 },
+      });
+      const valid = await native(identity, "__fixture_inspect");
+      const damaged = await native(identity, "__fixture_" + kind);
+      check(
+        kind + "-fixture-changes-bytes",
+        damaged.sha256 !== valid.sha256,
+        true
+      );
+      check(kind + "-fixture-retains-length", damaged.bytes, valid.bytes);
+      for (const [operation, effect] of [
+        ["get", store.get("key")],
+        ["set", store.set("key", "replacement")],
+        ["clear", store.clear()],
+      ]) {
+        check(kind + "-" + operation + "-fails", await failure(effect), {
+          tag: "StorageIOFailed",
+          fields: ["_tag"],
+        });
+        check(
+          kind + "-" + operation + "-bytes-unchanged",
+          await native(identity, "__fixture_inspect"),
+          damaged
+        );
+      }
+    }
+  } catch (error) {
+    checks.push({ name: "unexpected", actual: String(error), pass: false });
+  }
+  document.querySelector("#result").textContent = JSON.stringify(
+    { checks },
+    null,
+    2
+  );
+  await fetch("/results/" + window.Capacitor.getPlatform(), {
+    method: "POST",
+    body: JSON.stringify({ checks }, null, 2),
+  });
+</script>

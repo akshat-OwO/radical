@@ -44,6 +44,8 @@ import {
   hapticSelection as hapticSelectionEffect,
   hapticsLive,
 } from "../capabilities/haptics/haptics.ts";
+import { keyValueStore as effectKeyValueStore } from "../capabilities/key-value/key-value.ts";
+import type { KeyValueOptions } from "../capabilities/key-value/key-value.ts";
 import {
   watchLocationEvents as watchLocationEffect,
   locationLive,
@@ -552,3 +554,43 @@ export type {
   TrackingAcquisitionError,
   TrackingSession,
 } from "../capabilities/tracking-session/tracking-schema.ts";
+
+export {
+  InvalidStoredValue,
+  KEY_VALUE_MAX_BYTES,
+} from "../capabilities/key-value/key-value.ts";
+
+export const keyValueStore = (options: KeyValueOptions) => {
+  const store = effectKeyValueStore(options);
+
+  return {
+    get: <A = unknown>(
+      key: string,
+      decode?: { readonly schema: Schema.Codec<A, unknown> }
+    ) => getEffectRuntime(defaultRuntime).runPromise(store.get(key, decode)),
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The Effect store validates JSON at the boundary.
+    set: <A = unknown>(
+      key: string,
+      // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The Effect store validates JSON at the boundary.
+      value: unknown,
+      validate?: { readonly schema: Schema.Codec<A, unknown> }
+    ) =>
+      getEffectRuntime(defaultRuntime).runPromise(
+        store.set(key, value, validate)
+      ),
+    remove: (key: string) =>
+      getEffectRuntime(defaultRuntime).runPromise(store.remove(key)),
+    clear: () => getEffectRuntime(defaultRuntime).runPromise(store.clear()),
+  };
+};
+
+export type {
+  KeyValueOptions,
+  Lookup,
+} from "../capabilities/key-value/key-value.ts";
+
+export {
+  InvalidStorageInput,
+  StorageIOFailed,
+  StorePolicyConflict,
+} from "../capabilities/app-storage/app-storage.ts";

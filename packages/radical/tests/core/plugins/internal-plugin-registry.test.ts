@@ -64,6 +64,7 @@ const flags = [
 
 // Historical defaults must stay independent of the registry under test.
 const legacyDefaults = {
+  keyValue: false,
   appStorage: false,
   googleSignIn: false,
   dataProtection: false,
@@ -127,7 +128,10 @@ describe("internal plugin registry", () => {
       Effect.sync(() => {
         assert.deepStrictEqual(
           Record.keys(internalPluginRegistry).filter(
-            (flag) => flag !== "trackingSession" && flag !== "appStorage"
+            (flag) =>
+              flag !== "trackingSession" &&
+              flag !== "appStorage" &&
+              flag !== "keyValue"
           ),
           [...flags]
         );

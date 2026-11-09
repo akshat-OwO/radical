@@ -42,6 +42,7 @@ import activity from "../../../templates/android/MainActivity.java?raw";
 import gradle from "../../../templates/android/radical.gradle?raw";
 import appStorage from "../../../templates/android/RadicalAppStoragePlugin.java?raw";
 import dataProtection from "../../../templates/android/RadicalDataProtectionPlugin.java?raw";
+import keyValue from "../../../templates/android/RadicalKeyValuePlugin.java?raw";
 import locationSource from "../../../templates/android/RadicalLocationPlugin.java?raw";
 import navigationSource from "../../../templates/android/RadicalNavigation.java?raw";
 import navigationPlugin from "../../../templates/android/RadicalNavigationPlugin.java?raw";
@@ -71,6 +72,7 @@ const memory = (
   const files = new Map<string, string>([
     ["/package/templates/android/RadicalStorageOwner.java", storageHelper],
     ["/package/templates/android/RadicalAppStoragePlugin.java", appStorage],
+    ["/package/templates/android/RadicalKeyValuePlugin.java", keyValue],
     ["/package/templates/android/RadicalSettingsPlugin.java", settings],
     ["/package/templates/android/RadicalSplashPlugin.java", splashPlugin],
     ["/package/templates/android/RadicalLocationPlugin.java", locationSource],
@@ -2108,6 +2110,85 @@ it.effect(
       assert.strictEqual(
         state.files.get(`${destination}/previous.txt`),
         "usable shell"
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);
+
+it.effect("generates key-value with its foundation only when opted in", () =>
+  Effect.gen(function* () {
+    for (const enabled of [false, true]) {
+      const state = memory(false, {
+        ...defaultConfig,
+        internalPlugins: { keyValue: enabled },
+      });
+
+      yield* generate.pipe(Effect.provide(state.layer));
+
+      const source = state.files.get(
+        `${destination}/android/app/src/main/java/dev/radical/example/RadicalKeyValuePlugin.java`
+      );
+
+      assert.strictEqual(source !== undefined, enabled);
+
+      if (enabled) {
+        assert.include(
+          source ?? "",
+          "SQLiteDatabase.ENABLE_WRITE_AHEAD_LOGGING"
+        );
+        assert.include(
+          source ?? "",
+          'call.reject("Invalid storage input", "InvalidStorageInput", new JSObject())'
+        );
+        assert.include(
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalAppStoragePlugin.java`
+          ) ?? "",
+          'call.reject("Store policy conflict", "StorePolicyConflict", new JSObject())'
+        );
+        assert.include(
+          state.files.get(mainActivity) ?? "",
+          "registerPlugin(RadicalKeyValuePlugin.class)"
+        );
+        assert.isDefined(
+          state.files.get(
+            `${destination}/android/app/src/main/java/dev/radical/example/RadicalAppStoragePlugin.java`
+          )
+        );
+      }
+    }
+  })
+);
+
+it.effect(
+  "generates a non-destructive Android database corruption handler",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { keyValue: true },
+    });
+
+    return Effect.gen(function* () {
+      yield* generate;
+
+      const source =
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalKeyValuePlugin.java`
+        ) ?? "";
+
+      assert.include(source, "DatabaseErrorHandler PRESERVE_CORRUPT_DATABASE");
+      assert.include(
+        source,
+        'throw new SQLiteDatabaseCorruptException("Key-value database is corrupt")'
+      );
+      assert.include(
+        source,
+        "SQLiteDatabase.OPEN_READONLY | SQLiteDatabase.NO_LOCALIZED_COLLATORS, PRESERVE_CORRUPT_DATABASE"
+      );
+      assert.include(source, 'execSQL("PRAGMA synchronous=FULL")');
+      assert.notMatch(
+        source,
+        /deleteDatabase|DefaultDatabaseErrorHandler|\.delete\(|\.renameTo\(|state\.database\.close\(/u
       );
     }).pipe(Effect.provide(state.layer));
   }

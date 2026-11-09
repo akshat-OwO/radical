@@ -289,3 +289,14 @@ export {
   StorageCapability,
   StorageName,
 } from "../capabilities/app-storage/app-storage.ts";
+
+export {
+  keyValueStore,
+  InvalidStoredValue,
+  KEY_VALUE_MAX_BYTES,
+} from "../capabilities/key-value/key-value.ts";
+
+export type {
+  KeyValueOptions,
+  Lookup,
+} from "../capabilities/key-value/key-value.ts";

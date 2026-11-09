@@ -135,7 +135,13 @@ public class RadicalAppStoragePlugin extends Plugin {
         }
     }
 
-    @PluginMethod public void resolve(PluginCall call) {
+    protected interface StoreAction { void run(File root) throws Exception; }
+
+    @PluginMethod public void resolve(PluginCall call) { resolveStore(call, null); }
+
+    protected void resolveStore(PluginCall call, StoreAction action) { resolveStore(call, null, action); }
+
+    protected void resolveStore(PluginCall call, Runnable beforeResolve, StoreAction action) {
         String capability = call.getString("capability");
         String store = call.getString("store");
         String namespace = call.getString("namespace");
@@ -146,10 +152,11 @@ public class RadicalAppStoragePlugin extends Plugin {
             !java.util.Arrays.asList(CLASSES).contains(backup) || path == null ||
             (!path.isEmpty() && java.util.Arrays.stream(path.split("/", -1)).anyMatch(p ->
                 p.isEmpty() || p.equals(".") || p.equals("..") || p.matches(".*[\\\\:\\x00-\\x1f].*")))) {
-            call.reject("Invalid storage input", "InvalidStorageInput"); return;
+            call.reject("Invalid storage input", "InvalidStorageInput", new JSObject()); return;
         }
         RadicalStorageOwner.mutate(() -> {
             try {
+                if (beforeResolve != null) beforeResolve.run();
                 File[] roots = {
                     new File(getContext().getFilesDir(), "radical-storage"),
                     new File(getContext().getNoBackupFilesDir(), "radical-storage"),
@@ -166,13 +173,13 @@ public class RadicalAppStoragePlugin extends Plugin {
                     for (int i = 0; i < roots.length; i++) {
                         File existing = confined(roots[i], "stores/" + identity);
                         if (inspect(existing) != null && !CLASSES[i].equals(backup)) {
-                            call.reject("Store policy conflict", "StorePolicyConflict"); return;
+                            call.reject("Store policy conflict", "StorePolicyConflict", new JSObject()); return;
                         }
                     }
                     for (int i = 0; i < 2; i++) {
                         String recorded = readPolicy(confined(roots[i], "policies/" + identity));
                         if (recorded != null && !recorded.equals(backup)) {
-                            call.reject("Store policy conflict", "StorePolicyConflict"); return;
+                            call.reject("Store policy conflict", "StorePolicyConflict", new JSObject()); return;
                         }
                     }
                     int index = java.util.Arrays.asList(CLASSES).indexOf(backup);
@@ -183,14 +190,15 @@ public class RadicalAppStoragePlugin extends Plugin {
                     syncDirectory(storeRoot.getParentFile());
                     File policy = confined(roots[index == 0 ? 0 : 1], "policies/" + identity);
                     if (readPolicy(policy) == null) publishPolicy(policy, backup);
+                    if (action != null) { action.run(storeRoot); return; }
                     JSObject result = new JSObject();
                     result.put("relativePath", "stores/" + identity + (path.isEmpty() ? "" : "/" + path));
                     call.resolve(result);
                 }
             } catch (SecurityException error) {
-                call.reject("Invalid storage input", "InvalidStorageInput");
-            } catch (IOException | ErrnoException | RuntimeException error) {
-                call.reject("Storage operation failed", "StorageIOFailed");
+                call.reject("Invalid storage input", "InvalidStorageInput", new JSObject());
+            } catch (Exception error) {
+                call.reject("Storage operation failed", "StorageIOFailed", new JSObject());
             }
         });
     }

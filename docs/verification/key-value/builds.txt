@@ -1,0 +1,13 @@
+Android production
+BUILD SUCCESSFUL in 32s
+489 actionable tasks: 489 executed
+
+iOS production
+** BUILD SUCCEEDED **
+
+Android instrumented
+BUILD SUCCESSFUL in 2s
+489 actionable tasks: 4 executed, 485 up-to-date
+
+iOS instrumented
+** BUILD SUCCEEDED **

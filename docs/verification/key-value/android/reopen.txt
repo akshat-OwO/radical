@@ -1,0 +1,20 @@
+Page: dev.radical.example.android
+App: dev.radical.example.android
+Snapshot: 23 visible nodes (25 total)
+Collapsed 2 Android helper nodes from the agent-facing text snapshot; use --raw or --json for the full hierarchy.
+@e1 [text] "12:12"
+@e2 [image] "Android System notification:"
+@e3 [image] "Wifi signal full."
+@e4 [image] "Airplane mode."
+@e5 [group] "Battery charging, 100 percent."
+  @e6 [image]
+    @e10 [group]
+      @e11 [group]
+        @e13 [webview]
+          @e14 [webview] "Native key-value checks, { "stage": "reopen", "checks": [ { "name": "survives-relaunch", "actual": { "found": true, "value": { "count": 42 } }, "expected": { "found": true, "value": { "count": 42 } }, "pass": true }, { "name": "nul-after-relaunch", "actual": { "found": true, "value": "value\u0000tail" }, "expected": { "found": true, "value": "value\u0000tail" }, "pass": true }, { "name": "corrupt-after-relaunch", "actual": "InvalidStoredValue", "expected": "InvalidStoredValue", "pass": true }, { "name": "corrupt-still-untouched", "actual": "{broken", "expected": "{broken", "pass": true }, { "name": "policy-conflict", "actual": "StorePolicyConflict", "expected": "StorePolicyConflict", "pass": true }, { "name": "root-eligible", "actual": "eligible", "expected": "eligible", "pass": true }, { "name": "wal-eligible", "actual": true, "expected": true, "pass": true }, { "name": "shm-eligible", "actual": true, "expected": true, "pass": true }, { "name": "files-eligible", "actual": { "rootClass": "eligible", "files": [ "key-value.sqlite", "key-value.sqlite-wal", "key-value.sqlite-shm" ] }, "pass": true }, { "name": "root-excluded", "actual": "excluded", "expected": "excluded", "pass": true }, { "name": "wal-excluded", "actual": true, "expected": true, "pass": true }, { "name": "shm-excluded", "actual": true, "expected": true, "pass": true }, { "name": "files-excluded", "actual": { "rootClass": "excluded", "files": [ "key-value.sqlite", "key-value.sqlite-wal", "key-value.sqlite-shm" ] }, "pass": true }, { "name": "root-cache", "actual": "cache", "expected": "cache", "pass": true }, { "name": "wal-cache", "actual": true, "expected": true, "pass": true }, { "name": "shm-cache", "actual": true, "expected": true, "pass": true }, { "name": "files-cache", "actual": { "rootClass": "cache", "files": [ "key-value.sqlite", "key-value.sqlite-wal", "key-value.sqlite-shm" ] }, "pass": true } ] }" [focused]
+            @e20 [group] "Home" [selected]
+              @e21 [image] [selected]
+              @e22 [text] "Home" [selected]
+            @e23 [group] "About"
+              @e24 [image]
+              @e25 [text] "About"

@@ -1,0 +1,7 @@
+pnpm exec vp run ready
+
+Test Files  1 passed (1)
+Tests  14 passed (14)
+Test Files  105 passed (105)
+Tests  971 passed (971)
+vp run: 1/9 cache hit (11%), 16/16 successful, 496ms saved. @radical/docs#build (and 2 more) not cached because they modified their inputs. (Run `vp run --last-details` for full details)

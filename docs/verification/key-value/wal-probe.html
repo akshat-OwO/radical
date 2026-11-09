@@ -1,0 +1,248 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WAL preservation regression</title>
+<h1>WAL preservation regression</h1>
+<pre id="result">Running</pre>
+<script>
+  const platform = window.Capacitor.getPlatform();
+  const cases = [];
+  for (const scenario of [
+    "nonempty",
+    "empty",
+    "orphan-shm",
+    "mid",
+    "clean",
+    "large",
+    "large-healthy",
+  ]) {
+    for (const operation of scenario === "large-healthy"
+      ? ["get"]
+      : ["get", "set", "clear"]) {
+      cases.push({
+        scenario,
+        operation,
+        namespace: scenario + "-" + operation,
+      });
+    }
+  }
+  const native = (item, key, operation = "get", json) =>
+    window.Capacitor.nativePromise("RadicalKeyValue", "execute", {
+      store: "wal-contract-203",
+      namespace: item.namespace,
+      backup: "excluded",
+      capability: "keyValue",
+      path: "",
+      operation,
+      key,
+      ...(json === undefined ? {} : { json }),
+      walFixture: item.scenario,
+    });
+  const canonical = (value) =>
+    value === null || typeof value !== "object"
+      ? value
+      : Array.isArray(value)
+        ? value.map(canonical)
+        : Object.fromEntries(
+            Object.keys(value)
+              .sort()
+              .map((key) => [key, canonical(value[key])])
+          );
+  const equal = (a, b) =>
+    JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+  const preserved = (before, after) =>
+    equal(before.database, after.database) &&
+    (equal(before.wal, after.wal) ||
+      (!before.wal.exists && after.wal.exists && after.wal.bytes === 0));
+  const changed = (before, after) =>
+    Object.keys(before).filter((name) => !equal(before[name], after[name]));
+  const largeValue = JSON.stringify("b".repeat(2998));
+  const readRows = async (item) => {
+    let readable = 0;
+    for (let row = 0; row < 600; row++) {
+      const response = await native(item, "row" + row);
+      if (response.json === largeValue) readable++;
+    }
+    return readable;
+  };
+  const failOperation = (item, operation = item.operation) =>
+    native(
+      item,
+      operation === "clear" ? "" : "key",
+      operation,
+      operation === "set" ? '"replacement"' : undefined
+    ).then(
+      () => "unexpected-success",
+      (error) => error.code
+    );
+  const run = async () => {
+    await window.Capacitor.nativePromise(
+      "RadicalSplash",
+      "linksReady",
+      {}
+    ).catch(() => {});
+    await window.Capacitor.nativePromise("RadicalSplash", "hide", {}).catch(
+      () => {}
+    );
+    const stage = await fetch("/stage/" + platform).then((response) =>
+      response.json()
+    );
+    if (stage === "seed") {
+      for (const item of cases.filter((item) => item.scenario !== "mid"))
+        await native(item, "__fixture_seed");
+      await fetch("/seed/" + platform, { method: "POST", body: "{}" });
+      await native(cases[0], "__fixture_crash");
+    } else if (stage === "check") {
+      const results = [];
+      for (const item of cases) {
+        if (item.scenario === "large-healthy") {
+          // A healthy crash-left WAL above Android's 1 MiB open-time truncate size.
+          const before = await native(item, "__fixture_inspect");
+          const rowsReadable = await readRows(item);
+          const after = await native(item, "__fixture_inspect");
+          results.push({
+            ...item,
+            before,
+            rowsReadable,
+            after,
+            changed: changed(before.files, after.files),
+            passed:
+              before.files.wal.bytes >= 1048576 &&
+              rowsReadable === 600 &&
+              (platform !== "android" ||
+                after.files.wal.bytes < before.files.wal.bytes),
+          });
+          continue;
+        }
+        if (item.scenario === "clean") {
+          // Healthy WAL-mode store without -wal or -shm: every operation succeeds.
+          const before = await native(item, "__fixture_inspect");
+          const outcome = await native(
+            item,
+            item.operation === "clear" ? "" : "key",
+            item.operation,
+            item.operation === "set" ? '"replacement"' : undefined
+          ).then(
+            (value) => ({ ok: true, json: value.json }),
+            (error) => ({ ok: false, code: error.code })
+          );
+          const after = await native(item, "__fixture_inspect");
+          results.push({
+            ...item,
+            before,
+            outcome,
+            after,
+            changed: changed(before.files, after.files),
+            passed:
+              outcome.ok &&
+              (item.operation !== "get" || outcome.json === "1") &&
+              !before.files.wal.exists &&
+              !before.files.shm.exists &&
+              !after.quarantined &&
+              after.handleRetained,
+          });
+          continue;
+        }
+        if (item.scenario === "mid") {
+          await native(item, "key", "set", "1");
+          const healthy = await native(item, "key");
+          if (healthy.json !== "1")
+            throw new Error("Healthy cached lookup failed");
+        }
+        const before = await native(
+          item,
+          item.scenario === "mid" ? "__fixture_mid" : "__fixture_damage"
+        );
+        const error = await failOperation(item);
+        const after = await native(item, "__fixture_inspect");
+        const laterErrors = [];
+        for (const operation of ["get", "set", "clear"])
+          laterErrors.push(await failOperation(item, operation));
+        const afterLaterCalls = await native(item, "__fixture_inspect");
+        const passed =
+          error === "StorageIOFailed" &&
+          (item.scenario !== "large" || before.files.wal.bytes >= 1048576) &&
+          laterErrors.every((tag) => tag === "StorageIOFailed") &&
+          preserved(before.files, after.files) &&
+          preserved(before.files, afterLaterCalls.files) &&
+          after.quarantined &&
+          after.preflights === 1 &&
+          afterLaterCalls.preflights === 1 &&
+          after.operations === afterLaterCalls.operations &&
+          (item.scenario !== "mid" ||
+            (after.handleRetained &&
+              after.settings.synchronous === 2 &&
+              after.settings.wal_autocheckpoint > 0));
+        results.push({
+          ...item,
+          before,
+          error,
+          after,
+          laterErrors,
+          afterLaterCalls,
+          changed: changed(before.files, after.files),
+          passed,
+        });
+      }
+      await fetch("/before-exit/" + platform, {
+        method: "POST",
+        body: JSON.stringify({ results }),
+      });
+      await native(cases[0], "__fixture_crash");
+    } else {
+      const report = await fetch("/before-exit/" + platform).then((response) =>
+        response.json()
+      );
+      const persisted = { get: "1", set: '"replacement"', clear: undefined };
+      for (const result of report.results) {
+        if (result.scenario === "large-healthy") {
+          result.rowsAfterRelaunch = await readRows(result);
+          result.passed = result.passed && result.rowsAfterRelaunch === 600;
+          continue;
+        }
+        if (result.scenario === "clean") {
+          const value = await native(result, "key").then(
+            (response) => ({ ok: true, json: response.json }),
+            (error) => ({ ok: false, code: error.code })
+          );
+          result.afterRelaunch = value;
+          result.passed =
+            result.passed &&
+            value.ok &&
+            value.json === persisted[result.operation];
+          continue;
+        }
+        result.afterExit = await native(result, "__fixture_inspect");
+        result.nextLaunchError = await failOperation(result);
+        result.afterNextLaunchFailure = await native(
+          result,
+          "__fixture_inspect"
+        );
+        result.passed =
+          result.passed &&
+          preserved(result.before.files, result.afterExit.files) &&
+          result.nextLaunchError === "StorageIOFailed" &&
+          preserved(result.before.files, result.afterNextLaunchFailure.files) &&
+          result.afterNextLaunchFailure.quarantined &&
+          !result.afterNextLaunchFailure.handleRetained;
+      }
+      document.querySelector("#result").textContent = JSON.stringify(
+        report,
+        null,
+        2
+      );
+      await fetch("/results/" + platform, {
+        method: "POST",
+        body: JSON.stringify(report),
+      });
+    }
+  };
+  run().catch((error) => {
+    document.querySelector("#result").textContent =
+      "Probe error: " + String(error);
+    fetch("/failure/" + platform, {
+      method: "POST",
+      body: JSON.stringify({ error: String(error) }),
+    });
+  });
+</script>
