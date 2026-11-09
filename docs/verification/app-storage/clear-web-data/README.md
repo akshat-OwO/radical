@@ -4,15 +4,17 @@ Verified on 2026-11-09 on Pixel_9, Android 16, and iPhone 17 Pro simulator, iOS 
 
 ## Backup rules preserve the default domains
 
-Parsed the merged Android application element and the generated resource XML with ElementTree. The application references radical_data_extraction_rules and radical_backup_rules. Legacy backup, cloud backup, and device transfer each have exactly five include entries, all with path ".": root, file, database, sharedpref, and external. No exclude is needed for noBackupFilesDir, cache, or code cache; Android omits those platform directories.
+Parsed the merged Android application element and the generated resource XML with ElementTree. The application references radical_data_extraction_rules and radical_backup_rules. Legacy backup uses an empty full-backup-content element. Data extraction contains empty cloud-backup and device-transfer sections. None contains include or exclude entries. This retains Android's full default traversal, including device_root, device_file, device_database, device_sharedpref, and future platform domains. Enumerating only five domains was incomplete. No exclude is needed for noBackupFilesDir, cache, or code cache; Android omits those platform directories.
 
-- [Merged attributes and parsed domains](android-backup.json)
+- [Merged attributes and parsed empty-rule sections](android-backup.json)
 - [Legacy backup XML](radical_backup_rules.xml)
 - [Cloud/device-transfer XML](radical_data_extraction_rules.xml)
 
-[Android's include/exclude documentation](https://developer.android.com/identity/data/autobackup#xml-include-exclude) explains why a lone include narrows the default backup set.
+[Android's include/exclude documentation](https://developer.android.com/identity/data/autobackup#xml-include-exclude) explains why any include creates an allowlist. Leaving includes absent preserves the platform default rather than attempting to enumerate it.
 
-New Effect tests check every domain separately in each generated section. They also check the existing application contribution composer rejects different backup-attribute values with typed InvalidConfig, equal values deduplicate, and template attributes survive when app storage contributes none. A generation test starts with an app's custom fullBackupContent, verifies the typed conflict, and verifies the previously published shell is preserved. Application generation now composes with existing template attributes rather than adding duplicate attributes or overwriting them.
+Effect tests check that no include is emitted, legacy rules are empty, and both empty data-extraction sections exist. They also check the existing application contribution composer rejects different backup-attribute values with typed InvalidConfig, equal values deduplicate, and template attributes survive when app storage contributes none. A generation test starts with an app's custom fullBackupContent, verifies the typed conflict, and verifies the previously published shell is preserved. Application generation now composes with existing template attributes rather than adding duplicate attributes or overwriting them.
+
+The latest follow-up rebuilt and launched only Pixel_9, since iOS and topic-clearing code are unchanged. The [JDK 21 build](android-default-build.txt) passed with 489 tasks executed, and the [launch snapshot](android-default-launch.txt) shows all five storage-root checks passing. The XML files and Android manifest evidence above are refreshed; the topic-clearing and iOS results remain those verified at 346b3c8.
 
 ## Topic membership is cleared; app storage survives
 

@@ -5,25 +5,20 @@
   },
   "rules": {
     "legacy": {
-      "root": ".",
-      "file": ".",
-      "database": ".",
-      "sharedpref": ".",
-      "external": "."
+      "includes": [],
+      "excludes": [],
+      "empty": true
     },
     "cloud-backup": {
-      "root": ".",
-      "file": ".",
-      "database": ".",
-      "sharedpref": ".",
-      "external": "."
+      "includes": [],
+      "excludes": [],
+      "empty": true
     },
     "device-transfer": {
-      "root": ".",
-      "file": ".",
-      "database": ".",
-      "sharedpref": ".",
-      "external": "."
+      "includes": [],
+      "excludes": [],
+      "empty": true
     }
-  }
+  },
+  "traversal": "framework default; no domain allowlist"
 }

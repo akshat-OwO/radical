@@ -126,18 +126,8 @@ it.effect(
       assert.strictEqual(rules.length, 2);
 
       for (const rule of rules) {
-        for (const domain of [
-          "root",
-          "file",
-          "database",
-          "sharedpref",
-          "external",
-        ]) {
-          assert.include(
-            rule.contents,
-            `<include domain="${domain}" path="." />`
-          );
-        }
+        assert.notInclude(rule.contents, "<include");
+        assert.notInclude(rule.contents, "<exclude");
 
         assert.notInclude(rule.contents, "noBackup");
       }

@@ -1,11 +1,8 @@
 import type { NativeContributions } from "../../vite/native-contributions.ts";
 
-// An include switches Android from its default set to an allowlist. Preserve
-// every default domain; noBackupFilesDir and caches remain platform-excluded.
-const include = ["root", "file", "database", "sharedpref", "external"]
-  .map((domain) => `<include domain="${domain}" path="." />`)
-  .join("");
-
+// Any include turns Android's default traversal into an allowlist. Leave the
+// rules empty to retain credential- and device-protected data, and future
+// platform domains. Android always omits noBackupFilesDir and cache directories.
 export const appStorageContributions: NativeContributions = {
   privacyAccessedApis: {
     NSPrivacyAccessedAPICategoryFileTimestamp: ["C617.1"],
@@ -18,12 +15,13 @@ export const appStorageContributions: NativeContributions = {
     {
       platform: "android",
       file: "android/app/src/main/res/xml/radical_backup_rules.xml",
-      contents: `<?xml version="1.0" encoding="utf-8"?><full-backup-content>${include}</full-backup-content>`,
+      contents: '<?xml version="1.0" encoding="utf-8"?><full-backup-content/>',
     },
     {
       platform: "android",
       file: "android/app/src/main/res/xml/radical_data_extraction_rules.xml",
-      contents: `<?xml version="1.0" encoding="utf-8"?><data-extraction-rules><cloud-backup>${include}</cloud-backup><device-transfer>${include}</device-transfer></data-extraction-rules>`,
+      contents:
+        '<?xml version="1.0" encoding="utf-8"?><data-extraction-rules><cloud-backup/><device-transfer/></data-extraction-rules>',
     },
   ],
 };

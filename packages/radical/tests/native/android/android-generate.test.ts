@@ -2065,29 +2065,14 @@ it.effect(
             `${destination}/android/app/src/main/res/xml/${file}.xml`
           ) ?? "";
 
-        const sections =
-          file === "radical_backup_rules"
-            ? [rules]
-            : ["cloud-backup", "device-transfer"].map(
-                (tag) => rules.split(`<${tag}>`)[1]?.split(`</${tag}>`)[0] ?? ""
-              );
+        assert.notInclude(rules, "<include");
 
-        for (const section of sections) {
-          assert.strictEqual([...section.matchAll(/<include\b/gu)].length, 5);
-
-          for (const domain of [
-            "root",
-            "file",
-            "database",
-            "sharedpref",
-            "external",
-          ]) {
-            assert.strictEqual(
-              section.split(`<include domain="${domain}" path="." />`).length -
-                1,
-              1
-            );
-          }
+        if (file === "radical_backup_rules") {
+          assert.include(rules, "<full-backup-content/>");
+        } else {
+          assert.include(rules, "<data-extraction-rules>");
+          assert.include(rules, "<cloud-backup/>");
+          assert.include(rules, "<device-transfer/>");
         }
 
         assert.notInclude(rules, "<exclude");
