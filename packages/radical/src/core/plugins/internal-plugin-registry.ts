@@ -26,6 +26,14 @@ const defineRegistry = <
 
 // Keep this data browser-safe. Native generation consumes it from build code.
 export const internalPluginRegistry = defineRegistry({
+  appStorage: {
+    default: false,
+    plugins: [
+      { manifest: manifests.appStoragePlugin, selector: "appStoragePlugin" },
+    ],
+    implies: [],
+    sourceRoot: ".",
+  },
   googleSignIn: {
     default: false,
     plugins: [

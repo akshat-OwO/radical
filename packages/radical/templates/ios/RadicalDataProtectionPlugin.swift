@@ -69,7 +69,6 @@ public class RadicalDataProtectionPlugin: CAPPlugin, CAPBridgedPlugin {
                 if transitions.responds(to: clearData) { transitions.perform(clearData) }
             }
             UserDefaults.standard.removeObject(forKey: __OFFLINE_SAVED_URL_KEY__)
-            UserDefaults.standard.removeObject(forKey: "radical.notificationTopics")
             URLCache.shared.removeAllCachedResponses()
             HTTPCookieStorage.shared.removeCookies(since: .distantPast)
             webView.configuration.websiteDataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {
@@ -79,6 +78,7 @@ public class RadicalDataProtectionPlugin: CAPPlugin, CAPBridgedPlugin {
                         let directories = manager.urls(for: .cachesDirectory, in: .userDomainMask) + [manager.temporaryDirectory]
                         for directory in directories {
                             for file in try manager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+                                if directory == manager.urls(for: .cachesDirectory, in: .userDomainMask).first && file.lastPathComponent == "radical-storage" { continue }
                                 try manager.removeItem(at: file)
                             }
                         }

@@ -682,7 +682,7 @@ describe("Android shell generation", () => {
   );
 
   it.effect(
-    "generates topic-record cleanup even when notifications are disabled",
+    "preserves topic records when web data is cleared with notifications disabled",
     () => {
       const state = memory(false, {
         ...defaultConfig,
@@ -701,14 +701,11 @@ describe("Android shell generation", () => {
             `${destination}/android/app/src/main/java/dev/radical/example/RadicalDataProtectionPlugin.java`
           ) ?? "";
 
-        assert.include(
+        assert.notInclude(
           source,
           'getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()'
         );
-        assert.include(
-          source,
-          'call.reject("Cannot clear notification topic membership")'
-        );
+        assert.include(source, 'file.getName().equals("radical-storage")');
         assert.notInclude(source, "class RadicalNotificationTopicsPlugin");
       }).pipe(Effect.provide(state.layer));
     }

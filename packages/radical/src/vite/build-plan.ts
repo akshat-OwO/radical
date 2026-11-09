@@ -1,6 +1,7 @@
 import { Effect, flow } from "effect";
 import type { Schema } from "effect";
 
+import { appStorageContributions } from "../capabilities/app-storage/app-storage-build.ts";
 import { cameraContributions } from "../capabilities/camera/camera-build.ts";
 import {
   googleSignInContributions,
@@ -27,6 +28,16 @@ import type {
 } from "./native-contributions.ts";
 import { resolvePlugins } from "./plugins/plugin-plan.ts";
 import type { EnabledPlugin } from "./plugins/plugin-plan.ts";
+import {
+  privacyManifestEdits,
+  privacyManifestFiles,
+} from "./privacy-manifest.ts";
+
+const storageContributions = (capabilities: readonly string[]) =>
+  capabilities.includes("appStorage") ? appStorageContributions : {};
+
+const applicationAttributes = (value: NativeContributions) =>
+  value.androidApplicationAttributes ?? {};
 
 /** Recover the concrete schema type after the single heterogeneous decoding pass. */
 const optionsFor = <S extends Schema.Top>(
@@ -195,8 +206,11 @@ export const resolveBuildPlan = flow(
         contributions.trackingSession = trackingContributions(capabilities);
       }
 
+      contributions.appStorage = storageContributions(capabilities);
+
       // Preserve declaration order independently of enablement order.
       const ordered = [
+        contributions.appStorage,
         contributions.trackingSession,
         contributions.location,
         contributions.camera,
@@ -291,6 +305,9 @@ export const resolveBuildPlan = flow(
       const edits: NativeEdit[] = ordered.flatMap((value) => value.edits ?? []);
       const files = ordered.flatMap((value) => value.files ?? []);
 
+      files.push(...privacyManifestFiles(ordered));
+      edits.push(...privacyManifestEdits(ordered));
+
       if (appDelegateHooks.length > 0) {
         edits.push({
           platform: "ios",
@@ -340,6 +357,10 @@ export const resolveBuildPlan = flow(
         ),
         contributions,
         android: {
+          applicationAttributes: yield* composeSettings(
+            "Android application attribute",
+            ordered.map(applicationAttributes)
+          ),
           application: ordered.flatMap(
             (value) => value.androidApplication ?? []
           ),

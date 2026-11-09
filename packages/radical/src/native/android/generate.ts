@@ -304,7 +304,11 @@ export const generateAndroid = (
               `${native.plan.android.application.join("")}</application>`
             ),
             "<application",
-            '<application android:enableOnBackInvokedCallback="true"'
+            `<application android:enableOnBackInvokedCallback="true"${Object.entries(
+              native.plan.android.applicationAttributes
+            )
+              .map(([key, value]) => ` ${key}="${value}"`)
+              .join("")}`
           )
         );
 

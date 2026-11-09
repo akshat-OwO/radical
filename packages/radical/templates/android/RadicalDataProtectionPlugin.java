@@ -35,6 +35,7 @@ public class RadicalDataProtectionPlugin extends Plugin {
             return;
         }
         for (File file : files) {
+            if (directory.equals(getContext().getCacheDir()) && file.getName().equals("radical-storage")) continue;
             if (file.isDirectory()) deleteContents(file);
             if (!file.delete() && file.exists()) throw new IOException("Cannot delete " + file);
         }
@@ -61,9 +62,6 @@ public class RadicalDataProtectionPlugin extends Plugin {
                     try {
                         if (!getActivity().getPreferences(android.content.Context.MODE_PRIVATE).edit().remove(__OFFLINE_SAVED_URL_KEY__).commit()) {
                             call.reject("Cannot clear saved offline URL"); return;
-                        }
-                        if (!getContext().getSharedPreferences("radical.notificationTopics", android.content.Context.MODE_PRIVATE).edit().clear().commit()) {
-                            call.reject("Cannot clear notification topic membership"); return;
                         }
                         deleteContents(getContext().getCacheDir());
                         deleteContents(getContext().getCodeCacheDir());

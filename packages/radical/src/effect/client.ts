@@ -277,3 +277,15 @@ export type {
   TrackingAcquisitionError,
   TrackingSession,
 } from "../capabilities/tracking-session/tracking-schema.ts";
+
+export {
+  resolveAppStorage,
+  InvalidStorageInput,
+  StorePolicyConflict,
+  StorageIOFailed,
+  StoreIdentity,
+  StoreRequest,
+  BackupClass,
+  StorageCapability,
+  StorageName,
+} from "../capabilities/app-storage/app-storage.ts";

@@ -73,6 +73,7 @@ const config = {
   splash: { dismiss: "manual" },
   plugins: [{ manifest: "./plugins/echo.ts" }],
   internalPlugins: {
+    appStorage: true,
     googleSignIn: true,
     network: true,
     notifications: true,
