@@ -39,6 +39,8 @@ public class RadicalKeyValuePlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
             try sidecars()
+            // CREATE initializes an absent store only. Corrupt/not-a-database failures
+            // propagate as StorageIOFailed; never unlink, replace, or retry the file.
             var db: OpaquePointer?
             guard sqlite3_open_v2(database.path, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil) == SQLITE_OK else {
                 if db != nil { sqlite3_close(db) }
@@ -61,20 +63,16 @@ public class RadicalKeyValuePlugin: CAPPlugin, CAPBridgedPlugin {
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(db, text, -1, &statement, nil) == SQLITE_OK else { throw Failure.io }
             defer { sqlite3_finalize(statement) }
-            let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
             var values = [call.getString("namespace")!]
             if operation != "clear" { values.append(key) }
             if operation == "set" { values.append(call.getString("json")!) }
             for (index, value) in values.enumerated() {
-                let status = value.withCString { sqlite3_bind_text(statement, Int32(index + 1), $0, Int32(value.utf8.count), transient) }
-                guard status == SQLITE_OK else { throw Failure.io }
+                try RadicalKeyValueSQLite.bindText(value, to: statement, at: Int32(index + 1))
             }
             let status = sqlite3_step(statement)
             var result: [String: Any] = [:]
             if operation == "get", status == SQLITE_ROW {
-                let count = Int(sqlite3_column_bytes(statement, 0))
-                guard let bytes = sqlite3_column_text(statement, 0), let json = String(bytes: UnsafeBufferPointer(start: bytes, count: count), encoding: .utf8) else { throw Failure.io }
-                result["json"] = json
+                result["json"] = try RadicalKeyValueSQLite.text(from: statement, at: 0)
             } else if status != SQLITE_DONE { throw Failure.io }
             try sidecars()
             call.resolve(result)

@@ -319,3 +319,153 @@ it.effect("decodes Capacitor storage rejections with explicit empty data", () =>
     }
   })
 );
+
+it.effect(
+  "preserves corrupt JSON on reads and permits explicit set and remove recovery",
+  () =>
+    Effect.gen(function* () {
+      let json: string | undefined = "{broken";
+
+      const layer = bridgeTestLayer("android", (_plugin, _method, args) =>
+        Effect.gen(function* () {
+          const request = yield* Schema.decodeUnknownEffect(
+            Schema.Struct({
+              operation: Schema.String,
+              json: Schema.optional(Schema.String),
+            })
+          )(args).pipe(Effect.orDie);
+
+          return yield* Effect.sync(() => {
+            if (request.operation === "set") {
+              ({ json } = request);
+            }
+
+            if (request.operation === "remove") {
+              json = undefined;
+            }
+
+            return json === undefined ? {} : { json };
+          });
+        })
+      );
+
+      const store = keyValueStore(options);
+      yield* Effect.gen(function* () {
+        assert.strictEqual(
+          (yield* store.get("key").pipe(Effect.flip))._tag,
+          "InvalidStoredValue"
+        );
+        assert.strictEqual(json, "{broken");
+        yield* store.set("key", { recovered: true });
+        assert.deepStrictEqual(yield* store.get("key"), {
+          found: true,
+          value: { recovered: true },
+        });
+        json = "{broken";
+        assert.strictEqual(
+          (yield* store.get("key").pipe(Effect.flip))._tag,
+          "InvalidStoredValue"
+        );
+        assert.strictEqual(json, "{broken");
+        yield* store.remove("key");
+        assert.deepStrictEqual(yield* store.get("key"), { found: false });
+      }).pipe(Effect.provide(layer));
+    })
+);
+
+it.effect("reports sanitized database failures for get, set and clear", () =>
+  Effect.gen(function* () {
+    const operations: string[] = [];
+
+    const layer = bridgeTestLayer("ios", (plugin, method, args) => {
+      operations.push(String(args?.operation));
+
+      return Effect.fail(
+        new BridgeCallFailed({
+          plugin,
+          method,
+          cause: {
+            code: "StorageIOFailed",
+            data: {},
+            message: "private native SQLite diagnostics",
+          },
+        })
+      );
+    });
+
+    const store = keyValueStore(options);
+
+    for (const operation of [
+      store.get("key"),
+      store.set("key", "replacement"),
+      store.clear(),
+    ]) {
+      const error = yield* operation.pipe(Effect.provide(layer), Effect.flip);
+      assert.strictEqual(error._tag, "StorageIOFailed");
+      assert.deepStrictEqual(Object.keys(error), ["_tag"]);
+    }
+
+    assert.deepStrictEqual(operations, ["get", "set", "clear"]);
+  })
+);
+
+it.effect(
+  "preserves embedded NUL in keys and JSON strings across set, get and remove",
+  () =>
+    Effect.gen(function* () {
+      const key = "a\0b";
+      const value = "before\0after";
+      let json: string | undefined;
+
+      const layer = bridgeTestLayer("android", (_plugin, _method, args) =>
+        Effect.gen(function* () {
+          const request = yield* Schema.decodeUnknownEffect(
+            Schema.Struct({
+              operation: Schema.String,
+              key: Schema.String,
+              json: Schema.optional(Schema.String),
+            })
+          )(args).pipe(Effect.orDie);
+
+          assert.strictEqual(request.key, key);
+
+          if (request.operation === "set") {
+            ({ json } = request);
+          }
+
+          if (request.operation === "remove") {
+            json = undefined;
+          }
+
+          return json === undefined ? {} : { json };
+        })
+      );
+
+      const store = keyValueStore(options);
+      yield* Effect.gen(function* () {
+        yield* store.set(key, value);
+        assert.strictEqual(json, JSON.stringify(value));
+        assert.deepStrictEqual(yield* store.get(key), { found: true, value });
+        yield* store.remove(key);
+        assert.deepStrictEqual(yield* store.get(key), { found: false });
+      }).pipe(Effect.provide(layer));
+    })
+);
+
+it.effect(
+  "rejects embedded NUL in namespace identities before the bridge",
+  () =>
+    Effect.gen(function* () {
+      const error = yield* keyValueStore({ ...options, namespace: "a\0b" })
+        .get("key")
+        .pipe(Effect.flip);
+
+      assert.strictEqual(error._tag, "InvalidStorageInput");
+    }).pipe(
+      Effect.provide(
+        bridgeTestLayer("ios", () =>
+          Effect.sync(() => assert.fail("Native called"))
+        )
+      )
+    )
+);

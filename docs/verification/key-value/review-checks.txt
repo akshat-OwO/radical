@@ -1,0 +1,11 @@
+pnpm exec vp run ready
+
+Test Files  1 passed (1)
+Tests  14 passed (14)
+Test Files  105 passed (105)
+Tests  976 passed (976)
+vp run: 1/9 cache hit (11%), 16/16 successful, 496ms saved. @radical/docs#build (and 2 more) not cached because they modified their inputs. (Run `vp run --last-details` for full details)
+
+Native host regression: 9 passing checks
+Pixel_9 device probe: 27 passing checks
+iPhone 17 Pro device probe: 27 passing checks

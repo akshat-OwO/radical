@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "bound-count-is-utf8-count": true,
+    "empty-text-is-not-null": true,
+    "json-nul-round-trip": true,
+    "nul-key-and-text-round-trip": true,
+    "nul-key-prefix-is-distinct": true,
+    "nul-key-suffix-is-distinct": true,
+    "read-full-key-by-byte-length": true,
+    "remove-full-nul-key": true,
+    "remove-preserves-other-rows": true
+  }
+}

@@ -33,6 +33,7 @@ import launchScreen from "../../../templates/ios/LaunchScreen.storyboard?raw";
 import appStorage from "../../../templates/ios/RadicalAppStoragePlugin.swift?raw";
 import dataProtection from "../../../templates/ios/RadicalDataProtectionPlugin.swift?raw";
 import keyValue from "../../../templates/ios/RadicalKeyValuePlugin.swift?raw";
+import keyValueSQLite from "../../../templates/ios/RadicalKeyValueSQLite.swift?raw";
 import locationSource from "../../../templates/ios/RadicalLocationPlugin.swift?raw";
 import navigationSource from "../../../templates/ios/RadicalNavigation.swift?raw";
 import notificationSource from "../../../templates/ios/RadicalNotificationTopicsPlugin.swift?raw";
@@ -65,6 +66,7 @@ const memory = (
     ["/package/templates/ios/RadicalStorageBackup.swift", storageHelper],
     ["/package/templates/ios/RadicalAppStoragePlugin.swift", appStorage],
     ["/package/templates/ios/RadicalKeyValuePlugin.swift", keyValue],
+    ["/package/templates/ios/RadicalKeyValueSQLite.swift", keyValueSQLite],
     [
       "/package/templates/ios/RadicalNotificationTopicsPlugin.swift",
       notificationSource,
@@ -1788,6 +1790,11 @@ it.effect("generates key-value with its foundation only when opted in", () =>
 
       if (enabled) {
         assert.include(source, "import SQLite3");
+        assert.include(source, "enum RadicalKeyValueSQLite");
+        assert.include(source, "try RadicalKeyValueSQLite.bindText(value");
+        assert.include(source, "buffer.count");
+        assert.notInclude(keyValue, "withCString");
+        assert.notMatch(keyValue, /(?:unlink|removeItem|deleteDatabase)\s*\(/u);
         assert.include(source, "PRAGMA journal_mode=WAL");
         assert.include(
           source,

@@ -2156,3 +2156,36 @@ it.effect("generates key-value with its foundation only when opted in", () =>
     }
   })
 );
+
+it.effect(
+  "generates a non-destructive Android database corruption handler",
+  () => {
+    const state = memory(false, {
+      ...defaultConfig,
+      internalPlugins: { keyValue: true },
+    });
+
+    return Effect.gen(function* () {
+      yield* generate;
+
+      const source =
+        state.files.get(
+          `${destination}/android/app/src/main/java/dev/radical/example/RadicalKeyValuePlugin.java`
+        ) ?? "";
+
+      assert.include(source, "DatabaseErrorHandler PRESERVE_CORRUPT_DATABASE");
+      assert.include(
+        source,
+        'throw new SQLiteDatabaseCorruptException("Key-value database is corrupt")'
+      );
+      assert.include(
+        source,
+        'SQLiteDatabase.openOrCreateDatabase(new File(root, "key-value.sqlite").getPath(), null, PRESERVE_CORRUPT_DATABASE)'
+      );
+      assert.notMatch(
+        source,
+        /deleteDatabase|DefaultDatabaseErrorHandler|\.delete\(|\.renameTo\(/u
+      );
+    }).pipe(Effect.provide(state.layer));
+  }
+);

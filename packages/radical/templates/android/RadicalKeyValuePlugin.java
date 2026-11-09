@@ -1,5 +1,7 @@
 import android.database.Cursor;
+import android.database.DatabaseErrorHandler;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDatabaseCorruptException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.JsonReader;
@@ -12,6 +14,12 @@ import java.nio.charset.StandardCharsets;
 
 @CapacitorPlugin(name = "RadicalKeyValue")
 public class RadicalKeyValuePlugin extends RadicalAppStoragePlugin {
+    // Android's default handler deletes corrupt databases. Abort instead, including
+    // during open, so the framework cannot retry by silently creating an empty store.
+    private static final DatabaseErrorHandler PRESERVE_CORRUPT_DATABASE = database -> {
+        throw new SQLiteDatabaseCorruptException("Key-value database is corrupt");
+    };
+
     @PluginMethod public void execute(PluginCall call) {
         if (!"keyValue".equals(call.getString("capability")) || !"".equals(call.getString("path"))) {
             call.reject("Invalid storage input", "InvalidStorageInput", new JSObject()); return;
@@ -43,7 +51,7 @@ public class RadicalKeyValuePlugin extends RadicalAppStoragePlugin {
                 try { if (!OsConstants.S_ISREG(Os.lstat(file.getPath()).st_mode)) throw new SecurityException(); }
                 catch (android.system.ErrnoException error) { if (error.errno != OsConstants.ENOENT) throw error; }
             }
-            try (SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(new File(root, "key-value.sqlite"), null)) {
+            try (SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(new File(root, "key-value.sqlite").getPath(), null, PRESERVE_CORRUPT_DATABASE)) {
                 db.enableWriteAheadLogging();
                 db.execSQL("CREATE TABLE IF NOT EXISTS radical_kv (namespace TEXT NOT NULL, key TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(namespace, key))");
                 String namespace = call.getString("namespace");

@@ -1,0 +1,6 @@
+Android final instrumented shell
+BUILD SUCCESSFUL in 3s
+489 actionable tasks: 15 executed, 474 up-to-date
+
+iOS final instrumented shell
+** BUILD SUCCEEDED **

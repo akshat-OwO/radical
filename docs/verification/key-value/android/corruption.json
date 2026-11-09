@@ -1,0 +1,304 @@
+{
+  "checks": [
+    {
+      "name": "row-read-invalid",
+      "actual": {
+        "tag": "InvalidStoredValue",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "InvalidStoredValue",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "row-read-preserves-text",
+      "actual": "{broken",
+      "expected": "{broken",
+      "pass": true
+    },
+    {
+      "name": "explicit-set-recovers",
+      "actual": {
+        "found": true,
+        "value": {
+          "recovered": true
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "recovered": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "row-read-invalid-before-remove",
+      "actual": {
+        "tag": "InvalidStoredValue",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "InvalidStoredValue",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "explicit-remove-recovers",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-key-and-json-value-round-trip",
+      "actual": {
+        "found": true,
+        "value": "before\u0000after\u00e9"
+      },
+      "expected": {
+        "found": true,
+        "value": "before\u0000after\u00e9"
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-key-prefix-is-distinct",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "pass": true
+    },
+    {
+      "name": "remove-nul-key",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-namespace-rejected",
+      "actual": {
+        "tag": "InvalidStorageInput",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "InvalidStorageInput",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "header-valid-before-damage",
+      "actual": {
+        "found": true,
+        "value": {
+          "seed": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "seed": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "header-fixture-changes-bytes",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "header-fixture-retains-length",
+      "actual": 20480,
+      "expected": 20480,
+      "pass": true
+    },
+    {
+      "name": "header-get-fails",
+      "actual": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "header-get-bytes-unchanged",
+      "actual": {
+        "sha256": "002073631d5c6fb718640a1170854218a53a1e06bc472a7c3f991203cb98a873",
+        "bytes": 20480
+      },
+      "expected": {
+        "sha256": "002073631d5c6fb718640a1170854218a53a1e06bc472a7c3f991203cb98a873",
+        "bytes": 20480
+      },
+      "pass": true
+    },
+    {
+      "name": "header-set-fails",
+      "actual": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "header-set-bytes-unchanged",
+      "actual": {
+        "sha256": "002073631d5c6fb718640a1170854218a53a1e06bc472a7c3f991203cb98a873",
+        "bytes": 20480
+      },
+      "expected": {
+        "sha256": "002073631d5c6fb718640a1170854218a53a1e06bc472a7c3f991203cb98a873",
+        "bytes": 20480
+      },
+      "pass": true
+    },
+    {
+      "name": "header-clear-fails",
+      "actual": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "header-clear-bytes-unchanged",
+      "actual": {
+        "sha256": "002073631d5c6fb718640a1170854218a53a1e06bc472a7c3f991203cb98a873",
+        "bytes": 20480
+      },
+      "expected": {
+        "sha256": "002073631d5c6fb718640a1170854218a53a1e06bc472a7c3f991203cb98a873",
+        "bytes": 20480
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-valid-before-damage",
+      "actual": {
+        "found": true,
+        "value": {
+          "seed": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "seed": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-fixture-changes-bytes",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "name": "btree-fixture-retains-length",
+      "actual": 20480,
+      "expected": 20480,
+      "pass": true
+    },
+    {
+      "name": "btree-get-fails",
+      "actual": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-get-bytes-unchanged",
+      "actual": {
+        "sha256": "10cae0e5497ca0760015300cfeb452ce100ebe88c2a22c49f4e3fc6dc6bb3d47",
+        "bytes": 20480
+      },
+      "expected": {
+        "sha256": "10cae0e5497ca0760015300cfeb452ce100ebe88c2a22c49f4e3fc6dc6bb3d47",
+        "bytes": 20480
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-set-fails",
+      "actual": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-set-bytes-unchanged",
+      "actual": {
+        "sha256": "10cae0e5497ca0760015300cfeb452ce100ebe88c2a22c49f4e3fc6dc6bb3d47",
+        "bytes": 20480
+      },
+      "expected": {
+        "sha256": "10cae0e5497ca0760015300cfeb452ce100ebe88c2a22c49f4e3fc6dc6bb3d47",
+        "bytes": 20480
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-clear-fails",
+      "actual": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "expected": {
+        "tag": "StorageIOFailed",
+        "fields": ["_tag"]
+      },
+      "pass": true
+    },
+    {
+      "name": "btree-clear-bytes-unchanged",
+      "actual": {
+        "sha256": "10cae0e5497ca0760015300cfeb452ce100ebe88c2a22c49f4e3fc6dc6bb3d47",
+        "bytes": 20480
+      },
+      "expected": {
+        "sha256": "10cae0e5497ca0760015300cfeb452ce100ebe88c2a22c49f4e3fc6dc6bb3d47",
+        "bytes": 20480
+      },
+      "pass": true
+    }
+  ]
+}
