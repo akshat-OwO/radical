@@ -104,12 +104,24 @@
         (await run(one.get("exact-limit"))).value.length,
         KEY_VALUE_MAX_BYTES - 2
       );
+      await run(one.set("nul\u0000key", "value\u0000tail"));
+      check("nul-round-trip", await run(one.get("nul\u0000key")), {
+        found: true,
+        value: "value\u0000tail",
+      });
+      check("nul-prefix-distinct", await run(one.get("nul")), {
+        found: false,
+      });
       await run(one.remove("exact-limit"));
       check("remove", await run(one.get("exact-limit")), { found: false });
     } else {
       check("survives-relaunch", await run(one.get("persist")), {
         found: true,
         value: { count: 42 },
+      });
+      check("nul-after-relaunch", await run(one.get("nul\u0000key")), {
+        found: true,
+        value: "value\u0000tail",
       });
       check(
         "corrupt-after-relaunch",

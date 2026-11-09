@@ -1,23 +1,23 @@
 # Native key-value verification
 
-**Failure preservation:** the [WAL contract record](wal-investigation.md) defines what failed operations may change: never the main database or WAL, only SHM or a newly created empty WAL. It also describes the shipped preflight and quarantine design and the passing native host regression. On-device runs of that design are still pending, so the P1 stays open until they pass. The record supersedes the earlier main-file-only corruption claims below.
+**Failure preservation:** the [WAL contract record](wal-investigation.md) defines what Radical may change after it detects corruption: never the main database or WAL, only SHM or a newly created empty WAL. It also covers the normal maintenance that still runs on a database that passes the preflight, including Android's open-time truncate of a WAL of at least 1 MiB. The record shows device fingerprints from both platforms and supersedes the earlier main-file-only corruption claims below.
 
 The latest review pass verifies corrupt database preservation, explicit row recovery, and embedded NUL text on both platforms. See [review verification](review-corruption.md) for the additional device and native-host results. The original capability verification follows.
 
-Verified on 2026-11-09 for #181 using the Pixel_9 Android 16 emulator and iPhone 17 Pro iOS 26.5 simulator. These checks do not claim physical-device or API 24 execution.
+Verified on 2026-11-09 for #181, and rerun against the cached-writer design, using the Pixel_9 Android 16 emulator and iPhone 17 Pro iOS 26.5 simulator. These checks do not claim physical-device or API 24 execution.
 
-The probe imports the public Effect client and supplies BridgeLive. All launches, relaunches, and accessibility snapshots used the commands returned by T3 device_open. Both device_screenshot calls also showed the running probe. adb and simctl were used for installation; adb supplied one task-owned port reverse.
+The probe imports the public Effect client and supplies BridgeLive. All launches, relaunches, and accessibility snapshots used the commands returned by T3 device_open. adb and simctl were used for installation; adb supplied one task-owned port reverse.
 
 ## Results
 
 | Stage | Android | iOS |
 | --- | --- | --- |
-| Create | [24 passing checks](android/create.json) | [27 passing checks](ios/create.json) |
-| Process relaunch | [16 passing checks](android/reopen.json) | [19 passing checks](ios/reopen.json) |
+| Create | [26 passing checks](android/create.json) | [29 passing checks](ios/create.json) |
+| Process relaunch | [17 passing checks](android/reopen.json) | [20 passing checks](ios/reopen.json) |
 
-The corresponding accessibility snapshots are [Android create](android/create.txt), [Android relaunch](android/reopen.txt), [iOS create](ios/create.txt), and [iOS relaunch](ios/reopen.txt).
+Accessibility snapshots of the relaunch stage: [Android](android/reopen.txt) and [iOS](ios/reopen.txt).
 
-Create checks JSON round-trips, missing versus null, namespace isolation, namespace clear, remove, corrupt JSON, byte limits, backup roots, and conflicting policies. The exact 1,048,576-byte JSON limit succeeds. Larger values fail both through the public API and through a direct native command.
+Create checks JSON round-trips, missing versus null, namespace isolation, namespace clear, remove, corrupt JSON, U+0000 in keys and values, byte limits, backup roots, and conflicting policies. The exact 1,048,576-byte JSON limit succeeds. Larger values fail both through the public API and through a direct native command.
 
 A disposable native fixture writes the literal text `{broken` into the corrupt key. The public get reports InvalidStoredValue; a direct native read returns the same text. The same assertions pass after process relaunch. Persistence checks also recover the original object after relaunch.
 

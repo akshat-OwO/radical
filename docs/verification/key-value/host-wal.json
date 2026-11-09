@@ -15,12 +15,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "8e41372bb4762c2162baa919b31603b120fbf4d1e46deaebec751c7cc9aca69f"
+          "sha256": "f8b3422a3d845a308df6363cc9310f744f55aa0ac71ab9405cffcea1e0590cef"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+          "sha256": "a19a7f85d02fdcd3aa57979842ddcb33c734bdd2cb1f34e0c7361d454e83a151"
         }
       },
       "afterLaterCalls": {
@@ -35,12 +35,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "8e41372bb4762c2162baa919b31603b120fbf4d1e46deaebec751c7cc9aca69f"
+          "sha256": "f8b3422a3d845a308df6363cc9310f744f55aa0ac71ab9405cffcea1e0590cef"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+          "sha256": "a19a7f85d02fdcd3aa57979842ddcb33c734bdd2cb1f34e0c7361d454e83a151"
         }
       },
       "before": {
@@ -55,12 +55,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "f89413a51a662ddf9be2511a2b9b3f93949ef03a5df0753f0289058279172dfa"
+          "sha256": "982b0879f5216ac7df38b9dcabef12134d982da25773b75361226ff197abe268"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+          "sha256": "a19a7f85d02fdcd3aa57979842ddcb33c734bdd2cb1f34e0c7361d454e83a151"
         }
       },
       "failed": true,
@@ -74,12 +74,12 @@
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "233b9c8d1baa53620c176bd9977c04ef523cb6f1920b117c3cee46cb96542b92"
+          "sha256": "a19a7f85d02fdcd3aa57979842ddcb33c734bdd2cb1f34e0c7361d454e83a151"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "8e41372bb4762c2162baa919b31603b120fbf4d1e46deaebec751c7cc9aca69f"
+          "sha256": "f8b3422a3d845a308df6363cc9310f744f55aa0ac71ab9405cffcea1e0590cef"
         },
         "journal": {
           "exists": false
@@ -103,12 +103,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "6198959d55e45d0acf59930bc4dcc0be67fcdfa309f674b982376b2eae7ce401"
+          "sha256": "3df25c60ea037667b686303350404e97198476f4d0f7db2d18caa730c12997d0"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+          "sha256": "ffceaed39b51e3bfdabded11aae4a71f28c66733bc311eb61f9e45413a47e608"
         }
       },
       "afterLaterCalls": {
@@ -123,12 +123,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "6198959d55e45d0acf59930bc4dcc0be67fcdfa309f674b982376b2eae7ce401"
+          "sha256": "3df25c60ea037667b686303350404e97198476f4d0f7db2d18caa730c12997d0"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+          "sha256": "ffceaed39b51e3bfdabded11aae4a71f28c66733bc311eb61f9e45413a47e608"
         }
       },
       "before": {
@@ -143,12 +143,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "a39ebbdbc864fa28a10a3e965ae4f8c98af204ca0c0e437e2bb7f737a03e39b0"
+          "sha256": "1d6eff79351553c14a3ff93c58445c5e15fb64d0c562966a47013f8966a72c9c"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+          "sha256": "ffceaed39b51e3bfdabded11aae4a71f28c66733bc311eb61f9e45413a47e608"
         }
       },
       "failed": true,
@@ -162,12 +162,12 @@
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "2d9990a5e04e9fa4d252521c356cdf53444825fdd63cbb5503d43c2b2ac01617"
+          "sha256": "ffceaed39b51e3bfdabded11aae4a71f28c66733bc311eb61f9e45413a47e608"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "6198959d55e45d0acf59930bc4dcc0be67fcdfa309f674b982376b2eae7ce401"
+          "sha256": "3df25c60ea037667b686303350404e97198476f4d0f7db2d18caa730c12997d0"
         },
         "journal": {
           "exists": false
@@ -191,12 +191,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "52575e5a30f9a8557b4e8f97be21be3a51723dfa8e6d4cdc555bfe41bc48e7d0"
+          "sha256": "63d1549471a0c495caa4d1f45138fdcd1ecfc57989723fa578b0d3ad742aef6b"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+          "sha256": "14bcceed6539a81ccc89af867e75604ab9de1333ef00a19269c67e01a404d278"
         }
       },
       "afterLaterCalls": {
@@ -211,12 +211,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "52575e5a30f9a8557b4e8f97be21be3a51723dfa8e6d4cdc555bfe41bc48e7d0"
+          "sha256": "63d1549471a0c495caa4d1f45138fdcd1ecfc57989723fa578b0d3ad742aef6b"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+          "sha256": "14bcceed6539a81ccc89af867e75604ab9de1333ef00a19269c67e01a404d278"
         }
       },
       "before": {
@@ -231,12 +231,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "0ac9b05cf70859d785e6ad3ec31e5dd4dfd6b95feeba817bfcffe1b8d0b60fc9"
+          "sha256": "9c27752214e6a55e802b7464989b47cc1cdc6ff727ccddd53535931b6c5010f7"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+          "sha256": "14bcceed6539a81ccc89af867e75604ab9de1333ef00a19269c67e01a404d278"
         }
       },
       "failed": true,
@@ -250,12 +250,12 @@
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "1aa5e23ffefb0cf4e42bc02d8baace9d2dcea39ddcf50359df602fc17fbaaa78"
+          "sha256": "14bcceed6539a81ccc89af867e75604ab9de1333ef00a19269c67e01a404d278"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "52575e5a30f9a8557b4e8f97be21be3a51723dfa8e6d4cdc555bfe41bc48e7d0"
+          "sha256": "63d1549471a0c495caa4d1f45138fdcd1ecfc57989723fa578b0d3ad742aef6b"
         },
         "journal": {
           "exists": false
@@ -319,7 +319,7 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "bd92ae2bd598805206c3485f8723f43fa0e6661b6a04927ecef4604a4ac470ca"
+          "sha256": "17f6b0348bf6c1db9fad7f04463d32e83d55926d412b8d3761b698933d02b082"
         },
         "wal": {
           "bytes": 0,
@@ -407,7 +407,7 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "eabf64b6fb8171f8b60dcb5a79b0bf24232106227ba002675f224f261b685029"
+          "sha256": "c843851a89e484d50fbfab90894bb63712f1de512d826bde1951966ab8c2c650"
         },
         "wal": {
           "bytes": 0,
@@ -495,7 +495,7 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "c9e28bcd2c3bd6bbcb95b0636b82b6ebd283030ac3baee00a968da529d3ae8cb"
+          "sha256": "17edc7707e25befb9c5c02c0e27f85889d5a3950bf8d81cef4cf564d298b07d1"
         },
         "wal": {
           "bytes": 0,
@@ -583,7 +583,7 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "ea7b3dae44d5e975f97b1c676d75094b85af1ffbc0bb1bf43720ad1c4f3916ad"
+          "sha256": "72ad965fe083a6cd2b863177d6cf38deaf5a9c7274589e5d215ac281172efc74"
         },
         "wal": {
           "exists": false
@@ -669,7 +669,7 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "0b7499812ec5b139b5b513d6b3f36dd31c89fc2915dbbeda963921a19f3d6d7a"
+          "sha256": "174878a454b65624050d97f085bf45660e44b72ff8ef1a92c9a7238f8abfad14"
         },
         "wal": {
           "exists": false
@@ -755,7 +755,7 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "3b5b595ac5affdfa4355fac384a49bd0bbf3abb9886940800bb979ed89603e6e"
+          "sha256": "e45ff1beb75718f9fd03a0f710af450e868240cad3787340b62864acd354ce92"
         },
         "wal": {
           "exists": false
@@ -801,12 +801,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "ff0d3efbf8bfc3f0858e053ca18e9eb9154d3c2b0ac49b7b87f8c037f5fc8987"
+          "sha256": "6183f2d0ed0b96f2fdeed73a06688141b4725af79869aa35a8d71bd93bb76863"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+          "sha256": "0cdebf50b72e6bc802fdf2fcf4cadc835d831122a2a9d6d1d082eee0531721ec"
         }
       },
       "afterLaterCalls": {
@@ -821,12 +821,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "ff0d3efbf8bfc3f0858e053ca18e9eb9154d3c2b0ac49b7b87f8c037f5fc8987"
+          "sha256": "6183f2d0ed0b96f2fdeed73a06688141b4725af79869aa35a8d71bd93bb76863"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+          "sha256": "0cdebf50b72e6bc802fdf2fcf4cadc835d831122a2a9d6d1d082eee0531721ec"
         }
       },
       "before": {
@@ -841,12 +841,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "7cf1cdd5b35a8eb16dce04958c66041a0c2e8c6a2d4502f235e79aaf9c12e080"
+          "sha256": "2c03daeac75d067264ecb82837ad58f67e8a064b7f5623e60d134417329188a7"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+          "sha256": "0cdebf50b72e6bc802fdf2fcf4cadc835d831122a2a9d6d1d082eee0531721ec"
         }
       },
       "failed": true,
@@ -867,12 +867,12 @@
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "bb4d34c2ee5a06f2139a83f027e666194239f870b1ef956f737c2255c41ff4b3"
+          "sha256": "0cdebf50b72e6bc802fdf2fcf4cadc835d831122a2a9d6d1d082eee0531721ec"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "ff0d3efbf8bfc3f0858e053ca18e9eb9154d3c2b0ac49b7b87f8c037f5fc8987"
+          "sha256": "6183f2d0ed0b96f2fdeed73a06688141b4725af79869aa35a8d71bd93bb76863"
         },
         "journal": {
           "exists": false
@@ -896,12 +896,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "ca2ffeb777a387538e168db289a3e7c940128c6a462979d92f2976171b9cc959"
+          "sha256": "01aa906ff5ee630332a39e329e2729261684a747280227b9d9d3ce720f3054d8"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+          "sha256": "ca64bb39f6faabe074a2fe64be13503601e7313225bc4d02ca8c7b48ec3f5ab5"
         }
       },
       "afterLaterCalls": {
@@ -916,12 +916,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "ca2ffeb777a387538e168db289a3e7c940128c6a462979d92f2976171b9cc959"
+          "sha256": "01aa906ff5ee630332a39e329e2729261684a747280227b9d9d3ce720f3054d8"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+          "sha256": "ca64bb39f6faabe074a2fe64be13503601e7313225bc4d02ca8c7b48ec3f5ab5"
         }
       },
       "before": {
@@ -936,12 +936,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "fb19d5e3d1fa800677242d49f88a9e010a90763f5bfef734d4a758132d28ed3c"
+          "sha256": "c5bdf1ddd3fa2f9b2340542a81682aa3471b1c0fae6bf106a3e3fbff747118ae"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+          "sha256": "ca64bb39f6faabe074a2fe64be13503601e7313225bc4d02ca8c7b48ec3f5ab5"
         }
       },
       "failed": true,
@@ -962,12 +962,12 @@
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "fcf6ff44cf59095624c4731d108f7f9c8b3f3f6fe20ecf9b55ab22e20bc44e52"
+          "sha256": "ca64bb39f6faabe074a2fe64be13503601e7313225bc4d02ca8c7b48ec3f5ab5"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "ca2ffeb777a387538e168db289a3e7c940128c6a462979d92f2976171b9cc959"
+          "sha256": "01aa906ff5ee630332a39e329e2729261684a747280227b9d9d3ce720f3054d8"
         },
         "journal": {
           "exists": false
@@ -991,12 +991,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "c02d4c362d2686d89db4d7ef40e7cf5b63c658f6ead1a2bcebb0a3e6337259df"
+          "sha256": "4e73accdd26fa2c7f62ffd7101dd8a94de08f4e720ae700c19c5aaf26178d00d"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+          "sha256": "566efabbfcea2366d74b9d8e8c1ae7386d02a51177495bb6290af1534c4eaa7f"
         }
       },
       "afterLaterCalls": {
@@ -1011,12 +1011,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "c02d4c362d2686d89db4d7ef40e7cf5b63c658f6ead1a2bcebb0a3e6337259df"
+          "sha256": "4e73accdd26fa2c7f62ffd7101dd8a94de08f4e720ae700c19c5aaf26178d00d"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+          "sha256": "566efabbfcea2366d74b9d8e8c1ae7386d02a51177495bb6290af1534c4eaa7f"
         }
       },
       "before": {
@@ -1031,12 +1031,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "7d53bc2e06ef57d36809e0ab22479715ef459790531d18601d0e5c20e3203417"
+          "sha256": "512be4384c99743a22329527d11ca191269b29716f6d26d88c83fbb5046be928"
         },
         "wal": {
           "bytes": 4152,
           "exists": true,
-          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+          "sha256": "566efabbfcea2366d74b9d8e8c1ae7386d02a51177495bb6290af1534c4eaa7f"
         }
       },
       "failed": true,
@@ -1057,12 +1057,12 @@
         "wal": {
           "exists": true,
           "bytes": 4152,
-          "sha256": "4e397556f23a24af53c1075c8d8d0efb3302fe696fe29d453b3fa1c396a34ff2"
+          "sha256": "566efabbfcea2366d74b9d8e8c1ae7386d02a51177495bb6290af1534c4eaa7f"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "c02d4c362d2686d89db4d7ef40e7cf5b63c658f6ead1a2bcebb0a3e6337259df"
+          "sha256": "4e73accdd26fa2c7f62ffd7101dd8a94de08f4e720ae700c19c5aaf26178d00d"
         },
         "journal": {
           "exists": false
@@ -1169,12 +1169,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "82ec63605fc19f8af6442271233a73a0b2c530eab81d1677fc351dad5b0162ac"
+          "sha256": "402d55c71dc142de9446d9ce427063f3d7a9dc2c1085684546789184aa4aa4a8"
         },
         "wal": {
           "bytes": 8272,
           "exists": true,
-          "sha256": "b5f2b8c1ae91e2229304987c592050d8366e6e842ecb95fdc79f5a20f63a64ec"
+          "sha256": "bfcfb3d293d43e59acc5079046fa69999cdded0203d650183a0b74a6f0bd5878"
         }
       },
       "afterLaterCalls": {
@@ -1189,12 +1189,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "82ec63605fc19f8af6442271233a73a0b2c530eab81d1677fc351dad5b0162ac"
+          "sha256": "402d55c71dc142de9446d9ce427063f3d7a9dc2c1085684546789184aa4aa4a8"
         },
         "wal": {
           "bytes": 8272,
           "exists": true,
-          "sha256": "b5f2b8c1ae91e2229304987c592050d8366e6e842ecb95fdc79f5a20f63a64ec"
+          "sha256": "bfcfb3d293d43e59acc5079046fa69999cdded0203d650183a0b74a6f0bd5878"
         }
       },
       "before": {
@@ -1224,12 +1224,12 @@
         "wal": {
           "exists": true,
           "bytes": 8272,
-          "sha256": "b5f2b8c1ae91e2229304987c592050d8366e6e842ecb95fdc79f5a20f63a64ec"
+          "sha256": "bfcfb3d293d43e59acc5079046fa69999cdded0203d650183a0b74a6f0bd5878"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "82ec63605fc19f8af6442271233a73a0b2c530eab81d1677fc351dad5b0162ac"
+          "sha256": "402d55c71dc142de9446d9ce427063f3d7a9dc2c1085684546789184aa4aa4a8"
         },
         "journal": {
           "exists": false
@@ -1252,12 +1252,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "a4e43ec3e1bae12cfdfd217fdd041db00d869d3b3e7d4079e12a35140bb6c229"
+          "sha256": "424227ed49baf41b66b4425698a121faede97ac960e09a663b5a32af0741d63e"
         },
         "wal": {
           "bytes": 8272,
           "exists": true,
-          "sha256": "e388e1ec4f617da87b0d7551ec13c7951e45619136f57b57a169f07493455943"
+          "sha256": "0d4650707612d9006f3a142cec2ab55184cd73f87449645233b6f3d7b80f6e8a"
         }
       },
       "afterLaterCalls": {
@@ -1272,12 +1272,12 @@
         "shm": {
           "bytes": 32768,
           "exists": true,
-          "sha256": "a4e43ec3e1bae12cfdfd217fdd041db00d869d3b3e7d4079e12a35140bb6c229"
+          "sha256": "424227ed49baf41b66b4425698a121faede97ac960e09a663b5a32af0741d63e"
         },
         "wal": {
           "bytes": 8272,
           "exists": true,
-          "sha256": "e388e1ec4f617da87b0d7551ec13c7951e45619136f57b57a169f07493455943"
+          "sha256": "0d4650707612d9006f3a142cec2ab55184cd73f87449645233b6f3d7b80f6e8a"
         }
       },
       "before": {
@@ -1307,12 +1307,364 @@
         "wal": {
           "exists": true,
           "bytes": 8272,
-          "sha256": "e388e1ec4f617da87b0d7551ec13c7951e45619136f57b57a169f07493455943"
+          "sha256": "0d4650707612d9006f3a142cec2ab55184cd73f87449645233b6f3d7b80f6e8a"
         },
         "shm": {
           "exists": true,
           "bytes": 32768,
-          "sha256": "a4e43ec3e1bae12cfdfd217fdd041db00d869d3b3e7d4079e12a35140bb6c229"
+          "sha256": "424227ed49baf41b66b4425698a121faede97ac960e09a663b5a32af0741d63e"
+        },
+        "journal": {
+          "exists": false
+        }
+      },
+      "passed": true
+    },
+    {
+      "scenario": "large",
+      "operation": "get",
+      "after": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "13927949aac5d8d4ff093fd890b3c06a2a52842ba55e7995119fa03f2e91c2b7"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "4126fd5fe28afe9a7affc09daa3509ca4b48eceeb4e441ae86c3cc7674f18dd4"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "13927949aac5d8d4ff093fd890b3c06a2a52842ba55e7995119fa03f2e91c2b7"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "4126fd5fe28afe9a7affc09daa3509ca4b48eceeb4e441ae86c3cc7674f18dd4"
+        }
+      },
+      "before": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "f8f4be0c4ed334b827142a66c7a4eef656507ee5460bc8801e1bd26384cd7fd2"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "4126fd5fe28afe9a7affc09daa3509ca4b48eceeb4e441ae86c3cc7674f18dd4"
+        }
+      },
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 2490368,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "wal": {
+          "exists": true,
+          "bytes": 2472032,
+          "sha256": "4126fd5fe28afe9a7affc09daa3509ca4b48eceeb4e441ae86c3cc7674f18dd4"
+        },
+        "shm": {
+          "exists": true,
+          "bytes": 32768,
+          "sha256": "13927949aac5d8d4ff093fd890b3c06a2a52842ba55e7995119fa03f2e91c2b7"
+        },
+        "journal": {
+          "exists": false
+        }
+      },
+      "changedAfterExit": ["shm"],
+      "passed": true
+    },
+    {
+      "scenario": "large",
+      "operation": "set",
+      "after": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "61d17f2a22010a7a98eab7b3ae5ed33cb2ad09439a2f39cb00c038b5d38b5717"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "55e250675a2b8a40c59cdd921fc44485a0cd7741b3ac8f21fc894048e7675b5b"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "61d17f2a22010a7a98eab7b3ae5ed33cb2ad09439a2f39cb00c038b5d38b5717"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "55e250675a2b8a40c59cdd921fc44485a0cd7741b3ac8f21fc894048e7675b5b"
+        }
+      },
+      "before": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "5858a110132d324233406589ca58f64ead8c8a9dc2746524b7e041b6637faa7d"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "55e250675a2b8a40c59cdd921fc44485a0cd7741b3ac8f21fc894048e7675b5b"
+        }
+      },
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 2490368,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "wal": {
+          "exists": true,
+          "bytes": 2472032,
+          "sha256": "55e250675a2b8a40c59cdd921fc44485a0cd7741b3ac8f21fc894048e7675b5b"
+        },
+        "shm": {
+          "exists": true,
+          "bytes": 32768,
+          "sha256": "61d17f2a22010a7a98eab7b3ae5ed33cb2ad09439a2f39cb00c038b5d38b5717"
+        },
+        "journal": {
+          "exists": false
+        }
+      },
+      "changedAfterExit": ["shm"],
+      "passed": true
+    },
+    {
+      "scenario": "large",
+      "operation": "clear",
+      "after": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "5280edfb172c885c85c8a91fecc40c80a7ed2fb6dd683d5c29d1b942fe6e46e0"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "fad57d288f805e87b85a2a0ac32893824f18a7ef9778c6e1df0f04dbaf4d677a"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "5280edfb172c885c85c8a91fecc40c80a7ed2fb6dd683d5c29d1b942fe6e46e0"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "fad57d288f805e87b85a2a0ac32893824f18a7ef9778c6e1df0f04dbaf4d677a"
+        }
+      },
+      "before": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "7af273dda52e524f44f3e2bb84423573474ba3f5eba67730db4f9829b087a3d3"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "fad57d288f805e87b85a2a0ac32893824f18a7ef9778c6e1df0f04dbaf4d677a"
+        }
+      },
+      "failed": true,
+      "laterCallsRefused": true,
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 2490368,
+          "sha256": "93652893e922818655fc866f9cd4bc114933e7a1ac544aa4c532bad6b3547e4b"
+        },
+        "wal": {
+          "exists": true,
+          "bytes": 2472032,
+          "sha256": "fad57d288f805e87b85a2a0ac32893824f18a7ef9778c6e1df0f04dbaf4d677a"
+        },
+        "shm": {
+          "exists": true,
+          "bytes": 32768,
+          "sha256": "5280edfb172c885c85c8a91fecc40c80a7ed2fb6dd683d5c29d1b942fe6e46e0"
+        },
+        "journal": {
+          "exists": false
+        }
+      },
+      "changedAfterExit": ["shm"],
+      "passed": true
+    },
+    {
+      "scenario": "large-healthy",
+      "operation": "get",
+      "after": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "9ad8013c763e60fd676f1ec77316693edbe844814ae7f7a89336f08bc14d1b4e"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "c8cb3f44fd3fecc9006467e96d597ffc00c59a33dd3838b4ab467c720fb992d7"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "85b9f14cb3135612bc83edec1def271b43ba6f1bdabdaeef4ec42c6d8bffa570"
+        }
+      },
+      "afterLaterCalls": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "9ad8013c763e60fd676f1ec77316693edbe844814ae7f7a89336f08bc14d1b4e"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "c8cb3f44fd3fecc9006467e96d597ffc00c59a33dd3838b4ab467c720fb992d7"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "85b9f14cb3135612bc83edec1def271b43ba6f1bdabdaeef4ec42c6d8bffa570"
+        }
+      },
+      "before": {
+        "database": {
+          "bytes": 2490368,
+          "exists": true,
+          "sha256": "9ad8013c763e60fd676f1ec77316693edbe844814ae7f7a89336f08bc14d1b4e"
+        },
+        "journal": {
+          "exists": false
+        },
+        "shm": {
+          "bytes": 32768,
+          "exists": true,
+          "sha256": "c181b348a27a48156f24e3e39f0e70bbe78b13a8c0cdd9d3b51e6b793c3d008a"
+        },
+        "wal": {
+          "bytes": 2472032,
+          "exists": true,
+          "sha256": "85b9f14cb3135612bc83edec1def271b43ba6f1bdabdaeef4ec42c6d8bffa570"
+        }
+      },
+      "committedRows": 600,
+      "failed": false,
+      "laterCallsRefused": false,
+      "afterExit": {
+        "database": {
+          "exists": true,
+          "bytes": 2490368,
+          "sha256": "9ad8013c763e60fd676f1ec77316693edbe844814ae7f7a89336f08bc14d1b4e"
+        },
+        "wal": {
+          "exists": true,
+          "bytes": 2472032,
+          "sha256": "85b9f14cb3135612bc83edec1def271b43ba6f1bdabdaeef4ec42c6d8bffa570"
+        },
+        "shm": {
+          "exists": true,
+          "bytes": 32768,
+          "sha256": "c8cb3f44fd3fecc9006467e96d597ffc00c59a33dd3838b4ab467c720fb992d7"
         },
         "journal": {
           "exists": false

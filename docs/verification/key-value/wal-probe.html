@@ -7,8 +7,18 @@
 <script>
   const platform = window.Capacitor.getPlatform();
   const cases = [];
-  for (const scenario of ["nonempty", "empty", "orphan-shm", "mid"]) {
-    for (const operation of ["get", "set", "clear"]) {
+  for (const scenario of [
+    "nonempty",
+    "empty",
+    "orphan-shm",
+    "mid",
+    "clean",
+    "large",
+    "large-healthy",
+  ]) {
+    for (const operation of scenario === "large-healthy"
+      ? ["get"]
+      : ["get", "set", "clear"]) {
       cases.push({
         scenario,
         operation,
@@ -46,6 +56,15 @@
       (!before.wal.exists && after.wal.exists && after.wal.bytes === 0));
   const changed = (before, after) =>
     Object.keys(before).filter((name) => !equal(before[name], after[name]));
+  const largeValue = JSON.stringify("b".repeat(2998));
+  const readRows = async (item) => {
+    let readable = 0;
+    for (let row = 0; row < 600; row++) {
+      const response = await native(item, "row" + row);
+      if (response.json === largeValue) readable++;
+    }
+    return readable;
+  };
   const failOperation = (item, operation = item.operation) =>
     native(
       item,
@@ -76,6 +95,54 @@
     } else if (stage === "check") {
       const results = [];
       for (const item of cases) {
+        if (item.scenario === "large-healthy") {
+          // A healthy crash-left WAL above Android's 1 MiB open-time truncate size.
+          const before = await native(item, "__fixture_inspect");
+          const rowsReadable = await readRows(item);
+          const after = await native(item, "__fixture_inspect");
+          results.push({
+            ...item,
+            before,
+            rowsReadable,
+            after,
+            changed: changed(before.files, after.files),
+            passed:
+              before.files.wal.bytes >= 1048576 &&
+              rowsReadable === 600 &&
+              (platform !== "android" ||
+                after.files.wal.bytes < before.files.wal.bytes),
+          });
+          continue;
+        }
+        if (item.scenario === "clean") {
+          // Healthy WAL-mode store without -wal or -shm: every operation succeeds.
+          const before = await native(item, "__fixture_inspect");
+          const outcome = await native(
+            item,
+            item.operation === "clear" ? "" : "key",
+            item.operation,
+            item.operation === "set" ? '"replacement"' : undefined
+          ).then(
+            (value) => ({ ok: true, json: value.json }),
+            (error) => ({ ok: false, code: error.code })
+          );
+          const after = await native(item, "__fixture_inspect");
+          results.push({
+            ...item,
+            before,
+            outcome,
+            after,
+            changed: changed(before.files, after.files),
+            passed:
+              outcome.ok &&
+              (item.operation !== "get" || outcome.json === "1") &&
+              !before.files.wal.exists &&
+              !before.files.shm.exists &&
+              !after.quarantined &&
+              after.handleRetained,
+          });
+          continue;
+        }
         if (item.scenario === "mid") {
           await native(item, "key", "set", "1");
           const healthy = await native(item, "key");
@@ -94,6 +161,7 @@
         const afterLaterCalls = await native(item, "__fixture_inspect");
         const passed =
           error === "StorageIOFailed" &&
+          (item.scenario !== "large" || before.files.wal.bytes >= 1048576) &&
           laterErrors.every((tag) => tag === "StorageIOFailed") &&
           preserved(before.files, after.files) &&
           preserved(before.files, afterLaterCalls.files) &&
@@ -125,7 +193,25 @@
       const report = await fetch("/before-exit/" + platform).then((response) =>
         response.json()
       );
+      const persisted = { get: "1", set: '"replacement"', clear: undefined };
       for (const result of report.results) {
+        if (result.scenario === "large-healthy") {
+          result.rowsAfterRelaunch = await readRows(result);
+          result.passed = result.passed && result.rowsAfterRelaunch === 600;
+          continue;
+        }
+        if (result.scenario === "clean") {
+          const value = await native(result, "key").then(
+            (response) => ({ ok: true, json: response.json }),
+            (error) => ({ ok: false, code: error.code })
+          );
+          result.afterRelaunch = value;
+          result.passed =
+            result.passed &&
+            value.ok &&
+            value.json === persisted[result.operation];
+          continue;
+        }
         result.afterExit = await native(result, "__fixture_inspect");
         result.nextLaunchError = await failOperation(result);
         result.afterNextLaunchFailure = await native(

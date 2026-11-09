@@ -20,6 +20,10 @@ import SQLite3
 ///   store files. The OS releases the handle at process exit without a SQLite close,
 ///   so no checkpoint runs. The next launch's preflight reports the corruption again.
 ///
+/// The preflight is not an integrity_check, which reads every page. A database that
+/// passes it is treated as healthy, and automatic checkpoints on commit apply; they
+/// move committed frames into the database and lose no data.
+///
 /// All access is serialized by RadicalStorageOwner.
 enum RadicalKeyValueConnections {
     enum Failure: Error { case io, corrupt }

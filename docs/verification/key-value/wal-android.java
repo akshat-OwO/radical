@@ -8,8 +8,31 @@
                     seed.execSQL("PRAGMA synchronous=FULL");
                     seed.execSQL("CREATE TABLE radical_kv(namespace TEXT,key TEXT,json TEXT,PRIMARY KEY(namespace,key))");
                     seed.execSQL("INSERT INTO radical_kv VALUES(?,?,?)", new Object[]{call.getString("namespace"),"key","1"});
+                    // Large fixtures: 600 single-page rows. Same-size updates after the
+                    // checkpoint put about 2.5 MB in the WAL without rewriting page 1.
+                    if (call.getString("walFixture").startsWith("large")) {
+                        seed.beginTransaction();
+                        try {
+                            for (int row = 0; row < 600; row++) seed.execSQL("INSERT INTO radical_kv VALUES(?,?,?)", new Object[]{call.getString("namespace"), "row" + row, "\"" + new String(new char[2998]).replace('\0', 'a') + "\""});
+                            seed.setTransactionSuccessful();
+                        } finally { seed.endTransaction(); }
+                    }
                     try (Cursor checkpoint = seed.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null)) { while (checkpoint.moveToNext()) {} }
+                    if (call.getString("walFixture").startsWith("large")) {
+                        try (Cursor off = seed.rawQuery("PRAGMA wal_autocheckpoint=0", null)) { off.moveToFirst(); }
+                        seed.execSQL("UPDATE radical_kv SET json=? WHERE key LIKE 'row%'", new Object[]{"\"" + new String(new char[2998]).replace('\0', 'b') + "\""});
+                    }
                     if ("nonempty".equals(call.getString("walFixture"))) seed.execSQL("UPDATE radical_kv SET json=? WHERE key=?", new Object[]{"2","key"});
+                    if ("clean".equals(call.getString("walFixture"))) {
+                        // Healthy store without sidecars, as after a clean close or a restore.
+                        seed.close();
+                        for (String suffix : new String[]{"-wal", "-shm"}) {
+                            File sidecar = new File(database.getPath() + suffix);
+                            if (sidecar.exists() && !sidecar.delete()) throw new java.io.IOException();
+                        }
+                        call.resolve(new JSObject());
+                        return;
+                    }
                     WAL_SEEDS.add(seed);
                     call.resolve(new JSObject());
                     return;

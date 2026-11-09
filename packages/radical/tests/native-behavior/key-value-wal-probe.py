@@ -37,8 +37,8 @@ def preserved(before, after):
 
 results = []
 with tempfile.TemporaryDirectory(dir=owned) as directory:
-    for scenario in ("nonempty", "empty", "orphan-shm", "mid", "clean"):
-        for operation in ("get", "set", "clear"):
+    for scenario in ("nonempty", "empty", "orphan-shm", "mid", "clean", "large", "large-healthy"):
+        for operation in (("get",) if scenario == "large-healthy" else ("get", "set", "clear")):
             database = Path(directory) / (scenario + "-" + operation + ".sqlite")
             if scenario != "mid":
                 subprocess.run([str(binary), "seed", str(database), scenario], check=True)
@@ -47,6 +47,13 @@ with tempfile.TemporaryDirectory(dir=owned) as directory:
                 str(database), scenario, operation
             ], text=True))
             exited = snapshot(database)
+            if scenario == "large-healthy":
+                # Healthy maintenance: every committed row stays readable.
+                passes = not report["failed"] and report["committedRows"] == 600 and report["before"]["wal"]["bytes"] >= 1048576
+                results.append(dict(scenario=scenario, operation=operation, **report, afterExit=exited, passed=passes))
+                continue
+            if scenario == "large":
+                assert report["before"]["wal"]["bytes"] >= 1048576
             if scenario == "clean":
                 # A healthy WAL-mode store without -wal or -shm must still open.
                 passes = not report["failed"] and not report["before"]["wal"]["exists"]

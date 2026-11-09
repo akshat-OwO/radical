@@ -1,181 +1,200 @@
 {
-  "stage": "create",
   "checks": [
     {
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
       "name": "missing",
-      "actual": {
-        "found": false
-      },
-      "expected": {
-        "found": false
-      },
       "pass": true
     },
     {
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
       "name": "round-trip",
-      "actual": {
-        "found": true,
-        "value": {
-          "count": 42
-        }
-      },
-      "expected": {
-        "found": true,
-        "value": {
-          "count": 42
-        }
-      },
       "pass": true
     },
     {
+      "actual": {
+        "found": true,
+        "value": null
+      },
+      "expected": {
+        "found": true,
+        "value": null
+      },
       "name": "null",
-      "actual": {
-        "found": true,
-        "value": null
-      },
-      "expected": {
-        "found": true,
-        "value": null
-      },
       "pass": true
     },
     {
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
       "name": "clear-own",
-      "actual": {
-        "found": false
-      },
-      "expected": {
-        "found": false
-      },
       "pass": true
     },
     {
+      "actual": {
+        "found": true,
+        "value": "other"
+      },
+      "expected": {
+        "found": true,
+        "value": "other"
+      },
       "name": "namespace-isolation",
-      "actual": {
-        "found": true,
-        "value": "other"
-      },
-      "expected": {
-        "found": true,
-        "value": "other"
-      },
       "pass": true
     },
     {
-      "name": "corrupt",
       "actual": "InvalidStoredValue",
       "expected": "InvalidStoredValue",
+      "name": "corrupt",
       "pass": true
     },
     {
-      "name": "corrupt-untouched",
       "actual": "{broken",
       "expected": "{broken",
+      "name": "corrupt-untouched",
       "pass": true
     },
     {
+      "actual": "InvalidStorageInput",
+      "expected": "InvalidStorageInput",
       "name": "size-public",
-      "actual": "InvalidStorageInput",
-      "expected": "InvalidStorageInput",
       "pass": true
     },
     {
+      "actual": "InvalidStorageInput",
+      "expected": "InvalidStorageInput",
       "name": "size-native",
-      "actual": "InvalidStorageInput",
-      "expected": "InvalidStorageInput",
       "pass": true
     },
     {
-      "name": "exact-limit",
       "actual": 1048574,
       "expected": 1048574,
+      "name": "exact-limit",
       "pass": true
     },
     {
-      "name": "remove",
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "name": "nul-round-trip",
+      "pass": true
+    },
+    {
       "actual": {
         "found": false
       },
       "expected": {
         "found": false
       },
+      "name": "nul-prefix-distinct",
       "pass": true
     },
     {
-      "name": "policy-conflict",
+      "actual": {
+        "found": false
+      },
+      "expected": {
+        "found": false
+      },
+      "name": "remove",
+      "pass": true
+    },
+    {
       "actual": "StorePolicyConflict",
       "expected": "StorePolicyConflict",
+      "name": "policy-conflict",
       "pass": true
     },
     {
-      "name": "root-eligible",
       "actual": "eligible",
       "expected": "eligible",
+      "name": "root-eligible",
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "wal-eligible",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "shm-eligible",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "backup-flags-eligible",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
-      "name": "files-eligible",
       "actual": {
+        "excluded": {
+          "key-value.sqlite": false,
+          "key-value.sqlite-shm": false,
+          "key-value.sqlite-wal": false
+        },
         "files": [
           "key-value.sqlite",
           "key-value.sqlite-shm",
           "key-value.sqlite-wal"
         ],
-        "rootClass": "eligible",
-        "excluded": {
-          "key-value.sqlite": false,
-          "key-value.sqlite-shm": false,
-          "key-value.sqlite-wal": false
-        }
+        "rootClass": "eligible"
       },
+      "name": "files-eligible",
       "pass": true
     },
     {
-      "name": "root-excluded",
       "actual": "excluded",
       "expected": "excluded",
+      "name": "root-excluded",
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "wal-excluded",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "shm-excluded",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "backup-flags-excluded",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
-      "name": "files-excluded",
       "actual": {
-        "rootClass": "excluded",
         "excluded": {
           "key-value.sqlite": true,
           "key-value.sqlite-shm": true,
@@ -185,41 +204,42 @@
           "key-value.sqlite",
           "key-value.sqlite-shm",
           "key-value.sqlite-wal"
-        ]
+        ],
+        "rootClass": "excluded"
       },
+      "name": "files-excluded",
       "pass": true
     },
     {
-      "name": "root-cache",
       "actual": "cache",
       "expected": "cache",
+      "name": "root-cache",
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "wal-cache",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "shm-cache",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "backup-flags-cache",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
-      "name": "files-cache",
       "actual": {
         "excluded": {
           "key-value.sqlite": true,
-          "key-value.sqlite-wal": true,
-          "key-value.sqlite-shm": true
+          "key-value.sqlite-shm": true,
+          "key-value.sqlite-wal": true
         },
         "files": [
           "key-value.sqlite",
@@ -228,7 +248,9 @@
         ],
         "rootClass": "cache"
       },
+      "name": "files-cache",
       "pass": true
     }
-  ]
+  ],
+  "stage": "create"
 }

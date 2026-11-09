@@ -41,6 +41,12 @@ public class RadicalKeyValuePlugin extends RadicalAppStoragePlugin {
      *   close, so no checkpoint runs. The next launch's preflight reports the
      *   corruption again.
      *
+     * The preflight is not an integrity_check, which reads every page. A database
+     * that passes it is treated as healthy, so normal maintenance applies: the
+     * platform's writable open checkpoints and truncates a WAL at or above
+     * db_wal_truncate_size (1 MiB on AOSP), and commits run automatic checkpoints.
+     * Both move committed frames into the database and lose no data.
+     *
      * Every access to this map runs inside RadicalStorageOwner.
      */
     private static final class StoreConnection {

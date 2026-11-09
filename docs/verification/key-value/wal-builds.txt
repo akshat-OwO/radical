@@ -1,6 +1,6 @@
 Android instrumented build (JDK 21), first attempt:
 RadicalKeyValuePlugin.java:83: error: unreported exception InterruptedIOException; must be caught or declared to be thrown
-Android instrumented build after declaring IOException: assembleDebug passed
+After declaring IOException, assembleDebug passed for both the WAL harness and the healthy-path probe.
 
-iOS instrumented build (iphonesimulator, iPhone 17 Pro iOS 26.5):
+iOS instrumented builds (iphonesimulator, iPhone 17 Pro iOS 26.5), WAL harness and healthy-path probe:
 ** BUILD SUCCEEDED **

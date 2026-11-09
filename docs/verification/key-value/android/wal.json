@@ -1,838 +1,2381 @@
 {
   "results": [
     {
-      "scenario": "nonempty",
-      "mode": "default",
-      "operation": "get",
-      "namespace": "nonempty-default-get",
-      "error": "StorageIOFailed",
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "6f217d0cd5e3ed22e4689894c4d80e0201fad355faccf8fefa32ce3e2b6538da"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "022d8255b79d1c9e4b1280b80711eb4cb5c2f1fbc253d0e4e7d5c6bc0f97ff5a"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c2000d6e1583d0a633bd0134e44421223b730774dc5de22ceb2e612ca76b8a73"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "6f217d0cd5e3ed22e4689894c4d80e0201fad355faccf8fefa32ce3e2b6538da"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "022d8255b79d1c9e4b1280b80711eb4cb5c2f1fbc253d0e4e7d5c6bc0f97ff5a"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c2000d6e1583d0a633bd0134e44421223b730774dc5de22ceb2e612ca76b8a73"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "6f217d0cd5e3ed22e4689894c4d80e0201fad355faccf8fefa32ce3e2b6538da"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "022d8255b79d1c9e4b1280b80711eb4cb5c2f1fbc253d0e4e7d5c6bc0f97ff5a"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c2000d6e1583d0a633bd0134e44421223b730774dc5de22ceb2e612ca76b8a73"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "6f217d0cd5e3ed22e4689894c4d80e0201fad355faccf8fefa32ce3e2b6538da"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "022d8255b79d1c9e4b1280b80711eb4cb5c2f1fbc253d0e4e7d5c6bc0f97ff5a"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c2000d6e1583d0a633bd0134e44421223b730774dc5de22ceb2e612ca76b8a73"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
       "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "f85dabb163f99164b418fb247f9fd8c1d27abc379b88625c3f0c1af6e9c60d81"
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "6f217d0cd5e3ed22e4689894c4d80e0201fad355faccf8fefa32ce3e2b6538da"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "48ba1be2f26dea75f2dd9443181fc56ee008db648ddd68d561622c70d00f1c3f"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c2000d6e1583d0a633bd0134e44421223b730774dc5de22ceb2e612ca76b8a73"
+          }
         },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "4a3cf5b561cb5ea9500d97c853b08dfd1248e7028133fd5dc2b4265faa2ec430"
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "nonempty-get",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "get",
+      "passed": true,
+      "scenario": "nonempty"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "af38bd693b09de6881b0a341a427e870351cd4209e5e8f878ec8907f105665f8"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "f1b5b3692ed5c7860967a9b8fd2258d19fef569167f37d852394f61ef83fa3da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "adb06bd70fc52e5bbaf7eeab7b25b320a2c15375f9797c2310bf86aef3b42c70"
+          }
         },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "da2a27672469461b5545fd135c1682cd56930a2d78fa577a137f52ed8e1cfb7a"
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "af38bd693b09de6881b0a341a427e870351cd4209e5e8f878ec8907f105665f8"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "f1b5b3692ed5c7860967a9b8fd2258d19fef569167f37d852394f61ef83fa3da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "adb06bd70fc52e5bbaf7eeab7b25b320a2c15375f9797c2310bf86aef3b42c70"
+          }
         },
-        "journal": {
-          "exists": false
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "af38bd693b09de6881b0a341a427e870351cd4209e5e8f878ec8907f105665f8"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "f1b5b3692ed5c7860967a9b8fd2258d19fef569167f37d852394f61ef83fa3da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "adb06bd70fc52e5bbaf7eeab7b25b320a2c15375f9797c2310bf86aef3b42c70"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "af38bd693b09de6881b0a341a427e870351cd4209e5e8f878ec8907f105665f8"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "f1b5b3692ed5c7860967a9b8fd2258d19fef569167f37d852394f61ef83fa3da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "adb06bd70fc52e5bbaf7eeab7b25b320a2c15375f9797c2310bf86aef3b42c70"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "af38bd693b09de6881b0a341a427e870351cd4209e5e8f878ec8907f105665f8"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "6ff16acd0bb0ce16ad5d0c3cf946ce400ab91f2ae7f63bba1292eeeffdfb5388"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "adb06bd70fc52e5bbaf7eeab7b25b320a2c15375f9797c2310bf86aef3b42c70"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "nonempty-set",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "set",
+      "passed": true,
+      "scenario": "nonempty"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "5660ea3141b449a6affe05b1a5e6dccd97e5f063568c76cd658e8df1f5ef4f2b"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "eef9f38926161e32faee827354f3990ade1fa526803f3a885b622652a5653c70"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "d5ccdc2dab597a49e31708e67df63e5d87701827c5310114040979e8505e9018"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "5660ea3141b449a6affe05b1a5e6dccd97e5f063568c76cd658e8df1f5ef4f2b"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "eef9f38926161e32faee827354f3990ade1fa526803f3a885b622652a5653c70"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "d5ccdc2dab597a49e31708e67df63e5d87701827c5310114040979e8505e9018"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "5660ea3141b449a6affe05b1a5e6dccd97e5f063568c76cd658e8df1f5ef4f2b"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "eef9f38926161e32faee827354f3990ade1fa526803f3a885b622652a5653c70"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "d5ccdc2dab597a49e31708e67df63e5d87701827c5310114040979e8505e9018"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "5660ea3141b449a6affe05b1a5e6dccd97e5f063568c76cd658e8df1f5ef4f2b"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "eef9f38926161e32faee827354f3990ade1fa526803f3a885b622652a5653c70"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "d5ccdc2dab597a49e31708e67df63e5d87701827c5310114040979e8505e9018"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "5660ea3141b449a6affe05b1a5e6dccd97e5f063568c76cd658e8df1f5ef4f2b"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "f654b8317a8a21ec2efaa4d42bd6eb725afe761f4795ecd22d72a23fa4ec9b37"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "d5ccdc2dab597a49e31708e67df63e5d87701827c5310114040979e8505e9018"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "nonempty-clear",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "clear",
+      "passed": true,
+      "scenario": "nonempty"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "536c5f4d32d76f77be8c7717e2e842855a1b54a1644c14314aacdf5ee6dc0304"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "536c5f4d32d76f77be8c7717e2e842855a1b54a1644c14314aacdf5ee6dc0304"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "536c5f4d32d76f77be8c7717e2e842855a1b54a1644c14314aacdf5ee6dc0304"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "536c5f4d32d76f77be8c7717e2e842855a1b54a1644c14314aacdf5ee6dc0304"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "536c5f4d32d76f77be8c7717e2e842855a1b54a1644c14314aacdf5ee6dc0304"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "2150c546febbf7ee0b24fbddf4c97d98b9010a20262aabbf40f1fbf8c5702a63"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "empty-get",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "get",
+      "passed": true,
+      "scenario": "empty"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e2ad4d4c5c345eb6be0994c41001b5898b6aff2edf192ef03c70a58eb2f7cc07"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e2ad4d4c5c345eb6be0994c41001b5898b6aff2edf192ef03c70a58eb2f7cc07"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e2ad4d4c5c345eb6be0994c41001b5898b6aff2edf192ef03c70a58eb2f7cc07"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e2ad4d4c5c345eb6be0994c41001b5898b6aff2edf192ef03c70a58eb2f7cc07"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e2ad4d4c5c345eb6be0994c41001b5898b6aff2edf192ef03c70a58eb2f7cc07"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "88d019ce4d3a1d920c7329e060d809e4d89ac2b20abc362fc7e820f7839ee9b3"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "empty-set",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "set",
+      "passed": true,
+      "scenario": "empty"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "de779349b38a78865c95ca250e4e43743b9e99be173a50ff0bad518cd8bee14a"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "de779349b38a78865c95ca250e4e43743b9e99be173a50ff0bad518cd8bee14a"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "de779349b38a78865c95ca250e4e43743b9e99be173a50ff0bad518cd8bee14a"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "de779349b38a78865c95ca250e4e43743b9e99be173a50ff0bad518cd8bee14a"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "de779349b38a78865c95ca250e4e43743b9e99be173a50ff0bad518cd8bee14a"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "108ef794e74c61e98914663120eff994fc7ed1ba94d9161597a2980a18006762"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "empty-clear",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "clear",
+      "passed": true,
+      "scenario": "empty"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "9278f45480b94d350453809faa6bde6cb0947c06b99189c3477e75c6b3ec2dba"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "9278f45480b94d350453809faa6bde6cb0947c06b99189c3477e75c6b3ec2dba"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "9278f45480b94d350453809faa6bde6cb0947c06b99189c3477e75c6b3ec2dba"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "9278f45480b94d350453809faa6bde6cb0947c06b99189c3477e75c6b3ec2dba"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "9278f45480b94d350453809faa6bde6cb0947c06b99189c3477e75c6b3ec2dba"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "65d24016fdf9df42864932b69b905268e9795f7c8292f9164a8e2f2cf33b3122"
+          },
+          "wal": {
+            "exists": false
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["wal", "shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "orphan-shm-get",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "get",
+      "passed": true,
+      "scenario": "orphan-shm"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "2146f4abc5a45e7ebd0602025be198ba609f18a257c00771996503a4d6c35ddf"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "2146f4abc5a45e7ebd0602025be198ba609f18a257c00771996503a4d6c35ddf"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "2146f4abc5a45e7ebd0602025be198ba609f18a257c00771996503a4d6c35ddf"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "2146f4abc5a45e7ebd0602025be198ba609f18a257c00771996503a4d6c35ddf"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "2146f4abc5a45e7ebd0602025be198ba609f18a257c00771996503a4d6c35ddf"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "f6885f989db2cc712b9fe39d3b83469fe28e2ffce0a08f6923326a3ce52d5b9c"
+          },
+          "wal": {
+            "exists": false
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["wal", "shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "orphan-shm-set",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "set",
+      "passed": true,
+      "scenario": "orphan-shm"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "a9aada5a9c14bc9a7452b4a45c9db07719989e49ddc75f0b38df957c46267318"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "a9aada5a9c14bc9a7452b4a45c9db07719989e49ddc75f0b38df957c46267318"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "a9aada5a9c14bc9a7452b4a45c9db07719989e49ddc75f0b38df957c46267318"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "a9aada5a9c14bc9a7452b4a45c9db07719989e49ddc75f0b38df957c46267318"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "a9aada5a9c14bc9a7452b4a45c9db07719989e49ddc75f0b38df957c46267318"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "7fa70964fb3ee8cfb6445287fae8356bb2d6d0606ad79bd6e9a431aa07c9eeed"
+          },
+          "wal": {
+            "exists": false
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["wal", "shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "orphan-shm-clear",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "clear",
+      "passed": true,
+      "scenario": "orphan-shm"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "94210ea77b540fa0976206ee178230e995ffaea7172464a20eab65a93e7a5fff"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "ba49cae3115db7c835b208e1ce9527b356546b60a61ffbeb46d0cd4b61a254cf"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "3c6a6213e8114e96cf2ff43f3433c80b8fb137700b6c6721e42615bebc93b065"
+          }
+        },
+        "handleRetained": true,
+        "operations": 3,
+        "preflights": 1,
+        "quarantined": true,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
         }
       },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "62b5ebdba458a02ef4f71561a27682fc52c50dbbd6509650c3d1404dd167d969"
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "94210ea77b540fa0976206ee178230e995ffaea7172464a20eab65a93e7a5fff"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "ba49cae3115db7c835b208e1ce9527b356546b60a61ffbeb46d0cd4b61a254cf"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "3c6a6213e8114e96cf2ff43f3433c80b8fb137700b6c6721e42615bebc93b065"
+          }
         },
-        "wal": {
-          "exists": false
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "94210ea77b540fa0976206ee178230e995ffaea7172464a20eab65a93e7a5fff"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "ba49cae3115db7c835b208e1ce9527b356546b60a61ffbeb46d0cd4b61a254cf"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "3c6a6213e8114e96cf2ff43f3433c80b8fb137700b6c6721e42615bebc93b065"
+          }
         },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
+        "handleRetained": true,
+        "operations": 3,
+        "preflights": 1,
+        "quarantined": true,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
         }
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "94210ea77b540fa0976206ee178230e995ffaea7172464a20eab65a93e7a5fff"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "d912b64ef15dab7ca8b6311ff054acd437c0a66203453325888bc32e03530993"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "3c6a6213e8114e96cf2ff43f3433c80b8fb137700b6c6721e42615bebc93b065"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "94210ea77b540fa0976206ee178230e995ffaea7172464a20eab65a93e7a5fff"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "6139c589af80499ba27dd5b9dfcd9b6dc4ed882650823ce8b33e175fb2766442"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "3c6a6213e8114e96cf2ff43f3433c80b8fb137700b6c6721e42615bebc93b065"
+          }
+        },
+        "handleRetained": true,
+        "operations": 2,
+        "preflights": 1,
+        "quarantined": false,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "mid-get",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "get",
+      "passed": true,
+      "scenario": "mid"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ea2c12522ca5928337431400c59f4fcc0cffafdddf058a2f5272e327a6a8a4fa"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "4fa3dfaf1cc35670cf6f271ca526eb491935c59ad197dbd390a417bc1b9dc8da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c633788ef0835e192874bc90adce6b8df6cb328385d72f1201eac048d4accee1"
+          }
+        },
+        "handleRetained": true,
+        "operations": 3,
+        "preflights": 1,
+        "quarantined": true,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ea2c12522ca5928337431400c59f4fcc0cffafdddf058a2f5272e327a6a8a4fa"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "4fa3dfaf1cc35670cf6f271ca526eb491935c59ad197dbd390a417bc1b9dc8da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c633788ef0835e192874bc90adce6b8df6cb328385d72f1201eac048d4accee1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ea2c12522ca5928337431400c59f4fcc0cffafdddf058a2f5272e327a6a8a4fa"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "4fa3dfaf1cc35670cf6f271ca526eb491935c59ad197dbd390a417bc1b9dc8da"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c633788ef0835e192874bc90adce6b8df6cb328385d72f1201eac048d4accee1"
+          }
+        },
+        "handleRetained": true,
+        "operations": 3,
+        "preflights": 1,
+        "quarantined": true,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ea2c12522ca5928337431400c59f4fcc0cffafdddf058a2f5272e327a6a8a4fa"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "a73f2d5f04287dc269f897467d60a9addfd3474736bc0d56f02ce25d632a1bc0"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c633788ef0835e192874bc90adce6b8df6cb328385d72f1201eac048d4accee1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ea2c12522ca5928337431400c59f4fcc0cffafdddf058a2f5272e327a6a8a4fa"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "366744a362d5c2cd2026b70759e3cd608497f32c30bf9057c73182aff30153d0"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "c633788ef0835e192874bc90adce6b8df6cb328385d72f1201eac048d4accee1"
+          }
+        },
+        "handleRetained": true,
+        "operations": 2,
+        "preflights": 1,
+        "quarantined": false,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "mid-set",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "set",
+      "passed": true,
+      "scenario": "mid"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ce0e6a7a23d42145a4dadd2fa822a75a53330ad84314e1174e78a217338079dc"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "2583a87ac59cafe0ae346376658dd6ef81585b4d192d4f0b172259509514524e"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "ff20b0ead720c65ff7aa2c05e31a696de42a12949838de92ef7eb8e9aebc8a03"
+          }
+        },
+        "handleRetained": true,
+        "operations": 3,
+        "preflights": 1,
+        "quarantined": true,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ce0e6a7a23d42145a4dadd2fa822a75a53330ad84314e1174e78a217338079dc"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "2583a87ac59cafe0ae346376658dd6ef81585b4d192d4f0b172259509514524e"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "ff20b0ead720c65ff7aa2c05e31a696de42a12949838de92ef7eb8e9aebc8a03"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ce0e6a7a23d42145a4dadd2fa822a75a53330ad84314e1174e78a217338079dc"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "2583a87ac59cafe0ae346376658dd6ef81585b4d192d4f0b172259509514524e"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "ff20b0ead720c65ff7aa2c05e31a696de42a12949838de92ef7eb8e9aebc8a03"
+          }
+        },
+        "handleRetained": true,
+        "operations": 3,
+        "preflights": 1,
+        "quarantined": true,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ce0e6a7a23d42145a4dadd2fa822a75a53330ad84314e1174e78a217338079dc"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "5c6db35b6db11ee639f65a86720dee0184f3903b47cbc2e94edd7399787e4211"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "ff20b0ead720c65ff7aa2c05e31a696de42a12949838de92ef7eb8e9aebc8a03"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 20480,
+            "exists": true,
+            "sha256": "ce0e6a7a23d42145a4dadd2fa822a75a53330ad84314e1174e78a217338079dc"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "8a98d7dab0fe92707b5999cc7b6033a3e39ef690c2e4e364fc5a3019b768872d"
+          },
+          "wal": {
+            "bytes": 4152,
+            "exists": true,
+            "sha256": "ff20b0ead720c65ff7aa2c05e31a696de42a12949838de92ef7eb8e9aebc8a03"
+          }
+        },
+        "handleRetained": true,
+        "operations": 2,
+        "preflights": 1,
+        "quarantined": false,
+        "settings": {
+          "synchronous": 2,
+          "wal_autocheckpoint": 100
+        }
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "mid-clear",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "clear",
+      "passed": true,
+      "scenario": "mid"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "b667c3b411b366398fea5cf79d9d6dd006a8833159ed84225ed36bd9cc593cb4"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": true,
+        "operations": 1,
+        "preflights": 1,
+        "quarantined": false
+      },
+      "afterRelaunch": {
+        "json": "1",
+        "ok": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "b667c3b411b366398fea5cf79d9d6dd006a8833159ed84225ed36bd9cc593cb4"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "exists": false
+          },
+          "wal": {
+            "exists": false
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["wal", "shm"],
+      "namespace": "clean-get",
+      "operation": "get",
+      "outcome": {
+        "json": "1",
+        "ok": true
+      },
+      "passed": true,
+      "scenario": "clean"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e57f2487fff88bc545fb6ef7dbc0a4e5578907228d1cce5dc29a00d9fbf6f02d"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "0a03fb114d7948543eee8e129c7780f18009f6ec1b46bc857c3c6000cec54cd0"
+          },
+          "wal": {
+            "bytes": 8272,
+            "exists": true,
+            "sha256": "6e326615a3cd331250c47069795abcce5436c54e9ea9e41c5d78322c450c5a8c"
+          }
+        },
+        "handleRetained": true,
+        "operations": 1,
+        "preflights": 1,
+        "quarantined": false
+      },
+      "afterRelaunch": {
+        "json": "\"replacement\"",
+        "ok": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "e57f2487fff88bc545fb6ef7dbc0a4e5578907228d1cce5dc29a00d9fbf6f02d"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "exists": false
+          },
+          "wal": {
+            "exists": false
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["wal", "shm"],
+      "namespace": "clean-set",
+      "operation": "set",
+      "outcome": {
+        "ok": true
+      },
+      "passed": true,
+      "scenario": "clean"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "7b52ff033a3388ab2fe762d23a0d0f50522e9b0fbda3c462f0368c66aed77340"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "cef0141f4e985c7573900700d6cfe43ee33185670f41e9b5dbefca2168297d17"
+          },
+          "wal": {
+            "bytes": 8272,
+            "exists": true,
+            "sha256": "bf205fd89d96068a010766d57c67096ee467d822589e1e7ab0f20ebaceb1db42"
+          }
+        },
+        "handleRetained": true,
+        "operations": 1,
+        "preflights": 1,
+        "quarantined": false
+      },
+      "afterRelaunch": {
+        "ok": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 16384,
+            "exists": true,
+            "sha256": "7b52ff033a3388ab2fe762d23a0d0f50522e9b0fbda3c462f0368c66aed77340"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "exists": false
+          },
+          "wal": {
+            "exists": false
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["wal", "shm"],
+      "namespace": "clean-clear",
+      "operation": "clear",
+      "outcome": {
+        "ok": true
+      },
+      "passed": true,
+      "scenario": "clean"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "759f8a18ec0b272b2973b293613dd1e3ddc0fedab221a610bee2e193f6b317a3"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "72e3602c4d418a2f418e7070691009fa0edc56bbd334df457d7500ad123d403c"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "93a2bbd3a25ee4605a81bd47a2fe6fd4b6b48fbeefe3e1932836d16d61e6d63a"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "759f8a18ec0b272b2973b293613dd1e3ddc0fedab221a610bee2e193f6b317a3"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "72e3602c4d418a2f418e7070691009fa0edc56bbd334df457d7500ad123d403c"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "93a2bbd3a25ee4605a81bd47a2fe6fd4b6b48fbeefe3e1932836d16d61e6d63a"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "759f8a18ec0b272b2973b293613dd1e3ddc0fedab221a610bee2e193f6b317a3"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "72e3602c4d418a2f418e7070691009fa0edc56bbd334df457d7500ad123d403c"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "93a2bbd3a25ee4605a81bd47a2fe6fd4b6b48fbeefe3e1932836d16d61e6d63a"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "759f8a18ec0b272b2973b293613dd1e3ddc0fedab221a610bee2e193f6b317a3"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "72e3602c4d418a2f418e7070691009fa0edc56bbd334df457d7500ad123d403c"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "93a2bbd3a25ee4605a81bd47a2fe6fd4b6b48fbeefe3e1932836d16d61e6d63a"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "759f8a18ec0b272b2973b293613dd1e3ddc0fedab221a610bee2e193f6b317a3"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "bcef6ccb8165ec70d11f2fcffb900677fbc86481bc73f493784981d842bfa966"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "93a2bbd3a25ee4605a81bd47a2fe6fd4b6b48fbeefe3e1932836d16d61e6d63a"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "large-get",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "get",
+      "passed": true,
+      "scenario": "large"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "33c40a622cb8f6224404720b4228aeab530fcca01f2e114d2fd9678e5f7776ab"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "6289e9d5fc92a4813095e0f6c1bc656c4a660a73e01742bfd2cc859f1edb90b9"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "1e19e5f47a501f3f8b322cb512d0cef69e16b65413c21b4fc114e6fb4993461b"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "33c40a622cb8f6224404720b4228aeab530fcca01f2e114d2fd9678e5f7776ab"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "6289e9d5fc92a4813095e0f6c1bc656c4a660a73e01742bfd2cc859f1edb90b9"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "1e19e5f47a501f3f8b322cb512d0cef69e16b65413c21b4fc114e6fb4993461b"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "33c40a622cb8f6224404720b4228aeab530fcca01f2e114d2fd9678e5f7776ab"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "6289e9d5fc92a4813095e0f6c1bc656c4a660a73e01742bfd2cc859f1edb90b9"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "1e19e5f47a501f3f8b322cb512d0cef69e16b65413c21b4fc114e6fb4993461b"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "33c40a622cb8f6224404720b4228aeab530fcca01f2e114d2fd9678e5f7776ab"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "6289e9d5fc92a4813095e0f6c1bc656c4a660a73e01742bfd2cc859f1edb90b9"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "1e19e5f47a501f3f8b322cb512d0cef69e16b65413c21b4fc114e6fb4993461b"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "33c40a622cb8f6224404720b4228aeab530fcca01f2e114d2fd9678e5f7776ab"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "80fc4e01595434ef4572703f9bf58846f6a9c14fb65c9df0466bb94fe70d01fd"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "1e19e5f47a501f3f8b322cb512d0cef69e16b65413c21b4fc114e6fb4993461b"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "large-set",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "set",
+      "passed": true,
+      "scenario": "large"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "fff61a41048b46033a85f6aa86d9f3beba179850b6a06a3b4a4d1f1dd3adc867"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "d658188f14034d4828f154dd8717c24670f0129b8282d1404b69f6844268a77f"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "f01577b42962b07d9528ce0a89ae39676c68d477cf5de9dc46b543828a0db3a1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterExit": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "fff61a41048b46033a85f6aa86d9f3beba179850b6a06a3b4a4d1f1dd3adc867"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "d658188f14034d4828f154dd8717c24670f0129b8282d1404b69f6844268a77f"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "f01577b42962b07d9528ce0a89ae39676c68d477cf5de9dc46b543828a0db3a1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "afterLaterCalls": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "fff61a41048b46033a85f6aa86d9f3beba179850b6a06a3b4a4d1f1dd3adc867"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "d658188f14034d4828f154dd8717c24670f0129b8282d1404b69f6844268a77f"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "f01577b42962b07d9528ce0a89ae39676c68d477cf5de9dc46b543828a0db3a1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "afterNextLaunchFailure": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "fff61a41048b46033a85f6aa86d9f3beba179850b6a06a3b4a4d1f1dd3adc867"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "d658188f14034d4828f154dd8717c24670f0129b8282d1404b69f6844268a77f"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "f01577b42962b07d9528ce0a89ae39676c68d477cf5de9dc46b543828a0db3a1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 1,
+        "quarantined": true
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 2498560,
+            "exists": true,
+            "sha256": "fff61a41048b46033a85f6aa86d9f3beba179850b6a06a3b4a4d1f1dd3adc867"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "dd6c59eb4ec2759b718f8029db722209f2dde02613b7ecd46aa3832ac974d18f"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "f01577b42962b07d9528ce0a89ae39676c68d477cf5de9dc46b543828a0db3a1"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
+      },
+      "changed": ["shm"],
+      "error": "StorageIOFailed",
+      "laterErrors": ["StorageIOFailed", "StorageIOFailed", "StorageIOFailed"],
+      "namespace": "large-clear",
+      "nextLaunchError": "StorageIOFailed",
+      "operation": "clear",
+      "passed": true,
+      "scenario": "large"
+    },
+    {
+      "after": {
+        "files": {
+          "database": {
+            "bytes": 2502656,
+            "exists": true,
+            "sha256": "0346f3d5682bc8bd58cfb505fc6a9f202e713f93caf7a35c283cce2e733f69fa"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "8619c874fd920c0a5a231ce9c3dc9a1e858e7991aea04cf0bd59d0cf10f39826"
+          },
+          "wal": {
+            "bytes": 0,
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "handleRetained": true,
+        "operations": 600,
+        "preflights": 1,
+        "quarantined": false
+      },
+      "before": {
+        "files": {
+          "database": {
+            "bytes": 2502656,
+            "exists": true,
+            "sha256": "46c189ab5c01830da7bc79522e5285de0742a47947ec61841568f231a13a8af1"
+          },
+          "journal": {
+            "exists": false
+          },
+          "shm": {
+            "bytes": 32768,
+            "exists": true,
+            "sha256": "bf077d37719520f2c25f8271e856f0b01e573baa119615f29ffd45c557143886"
+          },
+          "wal": {
+            "bytes": 2472032,
+            "exists": true,
+            "sha256": "84113749abd520555fc4c44a1d34a6cffb9e706dfd2f07a8436964cbe19ee6d2"
+          }
+        },
+        "handleRetained": false,
+        "operations": 0,
+        "preflights": 0,
+        "quarantined": false
       },
       "changed": ["database", "wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "nonempty",
-      "mode": "default",
-      "operation": "set",
-      "namespace": "nonempty-default-set",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "14fa9135b4b98f9874d53d9e9257204e4a3726cc6609d061c68952a2dbcf3227"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "4156d1a27e151d17f8ee2926ab01e08ce19ef98c84a4db78f93333a233f9bfa9"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "072a04de1a81912f8b06d8183a51d9c4652206354fc8a2ae4be09d1eaab0c789"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "62d1e3be2b7021c67974b60a2f086ae9c8a55e93f92ec4669cc92bd580a73dcc"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["database", "wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "nonempty",
-      "mode": "default",
-      "operation": "clear",
-      "namespace": "nonempty-default-clear",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "a887bda1aee0b11d1f4c93021134df1d01e4f62d5455d83a1d21cb9c469e30ce"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "24652d23f73e98b842bd11698645302cfc84fc182feb4703529553e893a510c7"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "ab271c1991e914b7457f93f908494427e266a6208a92f668525cb25f08f819df"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "7e1b7c572a06183a81bd3eab74e23917dc5887ca95607c9fc8741ab449aa2e70"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["database", "wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "nonempty",
-      "mode": "readonly",
+      "namespace": "large-healthy-get",
       "operation": "get",
-      "namespace": "nonempty-readonly-get",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "53560b3465b306f2c50669262cb30abd2c61b7cc6e4d8596820ecd81da582fc8"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "f1b864ca5c580564fc615f7fff870357c1aeecd92822975709294cc41cbd393e"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "6b4de745be2ef831102baac3b66a45bcc2c42d12d5485c6acf4561a2fb899307"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "53560b3465b306f2c50669262cb30abd2c61b7cc6e4d8596820ecd81da582fc8"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "f1b864ca5c580564fc615f7fff870357c1aeecd92822975709294cc41cbd393e"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "48f19b7f20ed8279b70852de2c8790207c0a5e30091b3a2dd4d91c2233feda5b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "nonempty",
-      "mode": "readonly",
-      "operation": "set",
-      "namespace": "nonempty-readonly-set",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "55d9d379817d364ecef51fa6b05c5fef1cb69bae30d78bee97e30e9cbdfb0971"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "266837cb1c03244c119c8f58538b8835e21040f05330eece66c3844455fe7fcc"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "73aabd38c7522ac4fec94d8140f407afe960a8c2e144f045626daf0beebfb63b"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "55d9d379817d364ecef51fa6b05c5fef1cb69bae30d78bee97e30e9cbdfb0971"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "266837cb1c03244c119c8f58538b8835e21040f05330eece66c3844455fe7fcc"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "7aac91cacdddd0f6ece07041e51c01c3d27cb0bc1743428725de0df6d1235d66"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "nonempty",
-      "mode": "readonly",
-      "operation": "clear",
-      "namespace": "nonempty-readonly-clear",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "a886d34459a56d50a66d306b565da49a8ac4f90fe6b708885e9956783c67db23"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "f7004145f36c46a99f8e011073c228db031952513f6be3c19bfbf83d42380eaf"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "99e0ce38b61f0f3d3f284261639cdf38417245fd06a11e5cf9f8004489eae4f5"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "a886d34459a56d50a66d306b565da49a8ac4f90fe6b708885e9956783c67db23"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 4152,
-          "sha256": "f7004145f36c46a99f8e011073c228db031952513f6be3c19bfbf83d42380eaf"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "dbac66a4be755318392eb23e10796a2bdc86a78f4bedf70a47d45dea0a746264"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "default",
-      "operation": "get",
-      "namespace": "empty-default-get",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "ed44c97a090b17ac07fda63ad9a0d9e47d237670e78e612ba3fa19d3df10a4cd"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "e2e0f9c3775d4f2428b41f795730dd486baab44fbf26f71ddd4c33991aef7e57"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "ed44c97a090b17ac07fda63ad9a0d9e47d237670e78e612ba3fa19d3df10a4cd"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "default",
-      "operation": "set",
-      "namespace": "empty-default-set",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "a6f0cd92ee64822734773a5d3d52c5639da2f3a4657b504a6991541adcc49904"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "cbee9fea32f6832fdf2d76bfd6c001d1b949266d50f6d44230e5c05d8cf869c8"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "a6f0cd92ee64822734773a5d3d52c5639da2f3a4657b504a6991541adcc49904"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "default",
-      "operation": "clear",
-      "namespace": "empty-default-clear",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "16394c19f3b96a5d48f924e1c8fc71edc5f81d33dda0a254387cd89d7975679e"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "0187db9161a6d79f0112b190da7693855f29de9763ce6a59e8bfba3f01bb6eb5"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "16394c19f3b96a5d48f924e1c8fc71edc5f81d33dda0a254387cd89d7975679e"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "readonly",
-      "operation": "get",
-      "namespace": "empty-readonly-get",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "1277daa177b63096be1fe49c88268e4275d882580672ccb22acaf02b4060fdc8"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "13257963cef49a380b4134810cde81d376c6c49f5b3d5ad74d2ddd5f2a471403"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "1277daa177b63096be1fe49c88268e4275d882580672ccb22acaf02b4060fdc8"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "readonly",
-      "operation": "set",
-      "namespace": "empty-readonly-set",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "4ea8990a9531b278aa378da74aed5ccd7413a480f6410674a75da24de7859691"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "b4a69ce5f477d798ba1464cf6f5ba230bbb85df39c18555d947a2c83dbb99c14"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "4ea8990a9531b278aa378da74aed5ccd7413a480f6410674a75da24de7859691"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "empty",
-      "mode": "readonly",
-      "operation": "clear",
-      "namespace": "empty-readonly-clear",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "d161fc20233b8da4b5cadca1a08125e64234759a8ab91da7a63dee219644a215"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "3af55198e4362892130e608b7002aee023328878d16557461fbf613a3f0d1a10"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "d161fc20233b8da4b5cadca1a08125e64234759a8ab91da7a63dee219644a215"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "default",
-      "operation": "get",
-      "namespace": "orphan-shm-default-get",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "6cc6f6f71671c42b5b6d96b5588513a40d324b4feeb74899d848bc0cb5ddc822"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "d22145c36f594c3ae37e2ed81205c3e3744e738aed625bd4d4a4ddb975d7b99c"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "6cc6f6f71671c42b5b6d96b5588513a40d324b4feeb74899d848bc0cb5ddc822"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "default",
-      "operation": "set",
-      "namespace": "orphan-shm-default-set",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "3febc0d6812f987816433be5a7665dd97f179cf52d8a46bcfe272b57bbba663e"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "4c042172936a087da9a61e03309f6c9948180239746d420bafefd14b8f4a653c"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "3febc0d6812f987816433be5a7665dd97f179cf52d8a46bcfe272b57bbba663e"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "default",
-      "operation": "clear",
-      "namespace": "orphan-shm-default-clear",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "57d54d43c3ce5cafabf499e5a64062a7649b32886e2cf4530406d3f311324134"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "aa0f58f502207ce200f6802e1ab1f5bd6afbe8e10c63b389871e6887a96314e4"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "57d54d43c3ce5cafabf499e5a64062a7649b32886e2cf4530406d3f311324134"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": false
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "readonly",
-      "operation": "get",
-      "namespace": "orphan-shm-readonly-get",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "fd602eaf4da7bd8671f0a173b1994e4425a820b5f2a9f039bd336db8e3df293e"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "85261a3c7509d10c09fecee2ffd5cc9e04a3b87ca3a0c387312dbc39b970d110"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "fd602eaf4da7bd8671f0a173b1994e4425a820b5f2a9f039bd336db8e3df293e"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "readonly",
-      "operation": "set",
-      "namespace": "orphan-shm-readonly-set",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "bffeda5f6733fa7244f7c6125fc8ecf292b6e59ee510d505a83df83f0de2b01f"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "686d51de8e000b8c73499619c68fbc1ed06d37bfcee381bfed3a37856ba911a7"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "bffeda5f6733fa7244f7c6125fc8ecf292b6e59ee510d505a83df83f0de2b01f"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
-    },
-    {
-      "scenario": "orphan-shm",
-      "mode": "readonly",
-      "operation": "clear",
-      "namespace": "orphan-shm-readonly-clear",
-      "error": "StorageIOFailed",
-      "before": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "2e76b6298adc5a9e2915f5f9425feba0dc1b2198fa1b2de1c63a82f8bea45580"
-        },
-        "wal": {
-          "exists": false
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "c082aea0be3a385c3b7862f70788d34f1aaa53212d87f446a4ca48465077d44c"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "after": {
-        "database": {
-          "exists": true,
-          "bytes": 20480,
-          "sha256": "2e76b6298adc5a9e2915f5f9425feba0dc1b2198fa1b2de1c63a82f8bea45580"
-        },
-        "wal": {
-          "exists": true,
-          "bytes": 0,
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        "shm": {
-          "exists": true,
-          "bytes": 32768,
-          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
-        },
-        "journal": {
-          "exists": false
-        }
-      },
-      "changed": ["wal", "shm"],
-      "preserved": false
+      "passed": true,
+      "rowsAfterRelaunch": 600,
+      "rowsReadable": 600,
+      "scenario": "large-healthy"
     }
   ]
 }

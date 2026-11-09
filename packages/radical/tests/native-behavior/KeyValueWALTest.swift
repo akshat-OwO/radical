@@ -11,7 +11,14 @@ struct KeyValueWALTest {
     static func seed(_ path: String, _ scenario: String) {
         var db: OpaquePointer?
         precondition(sqlite3_open(path, &db) == SQLITE_OK)
-        sql(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE radical_kv(namespace TEXT,key TEXT,json TEXT,PRIMARY KEY(namespace,key)); INSERT INTO radical_kv VALUES('user','key','1'); PRAGMA wal_checkpoint(TRUNCATE)")
+        sql(db, "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE radical_kv(namespace TEXT,key TEXT,json TEXT,PRIMARY KEY(namespace,key)); INSERT INTO radical_kv VALUES('user','key','1')")
+        let large = scenario.hasPrefix("large")
+        // Large fixtures: 600 single-page rows. Same-size updates after the checkpoint
+        // put about 2.5 MB in the WAL, above Android's 1 MiB open-time truncate size,
+        // without rewriting page 1.
+        if large { sql(db, "WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i+1 FROM n WHERE i<599) INSERT INTO radical_kv SELECT 'user', 'row' || i, '\"' || printf('%.2998c', 'a') || '\"' FROM n") }
+        sql(db, "PRAGMA wal_checkpoint(TRUNCATE)")
+        if large { sql(db, "PRAGMA wal_autocheckpoint=0; UPDATE radical_kv SET json='\"' || printf('%.2998c', 'b') || '\"' WHERE key LIKE 'row%'") }
         if scenario == "nonempty" { sql(db, "UPDATE radical_kv SET json='2'") }
         if scenario == "clean" {
             // A healthy WAL-mode database without sidecars, as after a clean close
@@ -94,7 +101,7 @@ struct KeyValueWALTest {
                 try mutate(path, offsets)
             } else {
                 if args[3] == "orphan-shm" { try FileManager.default.removeItem(atPath: path + "-wal") }
-                if args[3] != "clean" { try mutate(path, [100]) }
+                if args[3] != "clean" && args[3] != "large-healthy" { try mutate(path, [100]) }
             }
             report["before"] = try snapshot(path)
             do {
@@ -102,6 +109,13 @@ struct KeyValueWALTest {
                 if let entry { report["sameCachedEntry"] = entry === connection }
                 try operate(connection, args[4])
                 report["failed"] = false
+                if args[3] == "large-healthy" {
+                    var count: OpaquePointer?
+                    try connection.check(sqlite3_prepare_v2(connection.database, "SELECT count(*) FROM radical_kv WHERE key LIKE 'row%' AND json='\"' || printf('%.2998c', 'b') || '\"'", -1, &count, nil))
+                    try connection.check(sqlite3_step(count), accepting: [SQLITE_ROW])
+                    report["committedRows"] = Int(sqlite3_column_int(count, 0))
+                    sqlite3_finalize(count)
+                }
             } catch {
                 report["failed"] = true
             }

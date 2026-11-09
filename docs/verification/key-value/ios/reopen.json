@@ -1,8 +1,6 @@
 {
-  "stage": "reopen",
   "checks": [
     {
-      "name": "survives-relaunch",
       "actual": {
         "found": true,
         "value": {
@@ -15,139 +13,151 @@
           "count": 42
         }
       },
+      "name": "survives-relaunch",
       "pass": true
     },
     {
-      "name": "corrupt-after-relaunch",
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "name": "nul-after-relaunch",
+      "pass": true
+    },
+    {
       "actual": "InvalidStoredValue",
       "expected": "InvalidStoredValue",
+      "name": "corrupt-after-relaunch",
       "pass": true
     },
     {
-      "name": "corrupt-still-untouched",
       "actual": "{broken",
       "expected": "{broken",
+      "name": "corrupt-still-untouched",
       "pass": true
     },
     {
-      "name": "policy-conflict",
       "actual": "StorePolicyConflict",
       "expected": "StorePolicyConflict",
+      "name": "policy-conflict",
       "pass": true
     },
     {
-      "name": "root-eligible",
       "actual": "eligible",
       "expected": "eligible",
+      "name": "root-eligible",
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "wal-eligible",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "shm-eligible",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "backup-flags-eligible",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
-      "name": "files-eligible",
       "actual": {
-        "rootClass": "eligible",
+        "excluded": {
+          "key-value.sqlite": false,
+          "key-value.sqlite-shm": false,
+          "key-value.sqlite-wal": false
+        },
         "files": [
           "key-value.sqlite",
           "key-value.sqlite-shm",
           "key-value.sqlite-wal"
         ],
-        "excluded": {
-          "key-value.sqlite-wal": false,
-          "key-value.sqlite-shm": false,
-          "key-value.sqlite": false
-        }
+        "rootClass": "eligible"
       },
+      "name": "files-eligible",
       "pass": true
     },
     {
-      "name": "root-excluded",
       "actual": "excluded",
       "expected": "excluded",
+      "name": "root-excluded",
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "wal-excluded",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "shm-excluded",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "backup-flags-excluded",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
-      "name": "files-excluded",
       "actual": {
-        "files": [
-          "key-value.sqlite",
-          "key-value.sqlite-shm",
-          "key-value.sqlite-wal"
-        ],
         "excluded": {
           "key-value.sqlite": true,
           "key-value.sqlite-shm": true,
           "key-value.sqlite-wal": true
         },
+        "files": [
+          "key-value.sqlite",
+          "key-value.sqlite-shm",
+          "key-value.sqlite-wal"
+        ],
         "rootClass": "excluded"
       },
+      "name": "files-excluded",
       "pass": true
     },
     {
-      "name": "root-cache",
       "actual": "cache",
       "expected": "cache",
+      "name": "root-cache",
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "wal-cache",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "shm-cache",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
+      "actual": true,
+      "expected": true,
       "name": "backup-flags-cache",
-      "actual": true,
-      "expected": true,
       "pass": true
     },
     {
-      "name": "files-cache",
       "actual": {
         "excluded": {
-          "key-value.sqlite-wal": true,
+          "key-value.sqlite": true,
           "key-value.sqlite-shm": true,
-          "key-value.sqlite": true
+          "key-value.sqlite-wal": true
         },
         "files": [
           "key-value.sqlite",
@@ -156,7 +166,9 @@
         ],
         "rootClass": "cache"
       },
+      "name": "files-cache",
       "pass": true
     }
-  ]
+  ],
+  "stage": "reopen"
 }

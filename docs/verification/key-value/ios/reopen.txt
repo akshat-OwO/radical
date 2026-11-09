@@ -1,13 +1,17 @@
 Page: dev.radical.example.ios
 App: dev.radical.example.ios
-Snapshot: 10 nodes
-Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for this app generation.
+Snapshot: 20 nodes
+Simulator AX snapshot unavailable (circuit-disabled); used XCTest for this app generation.
 @e1 [application] "Radical iOS"
-@e2 [other] "Tab Bar"
-@e3 [webview] "Key-value verification"
-@e4 [other] "Key-value verification" [focused]
-@e5 [heading] "Native key-value checks" [focused]
-@e6 [text] "{
+  @e2 [other] "Tab Bar"
+    @e3 [other] "Vertical scroll bar, 3 pages"
+      @e4 [webview] [same label as parent]
+        @e5 [webview] "Key-value verification"
+          @e6 [other] "Key-value verification"
+            @e7 [other] "Key-value verification" [focused]
+              @e8 [other] "Native key-value checks" [focused]
+                @e9 [text] "Native key-value checks" [focused]
+              @e10 [other] "{
   "stage": "reopen",
   "checks": [
     {
@@ -23,6 +27,18 @@ Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for thi
         "value": {
           "count": 42
         }
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-after-relaunch",
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"
       },
       "pass": true
     },
@@ -71,17 +87,17 @@ Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for thi
     {
       "name": "files-eligible",
       "actual": {
-        "rootClass": "eligible",
         "files": [
           "key-value.sqlite",
           "key-value.sqlite-shm",
           "key-value.sqlite-wal"
         ],
         "excluded": {
+          "key-value.sqlite": false,
           "key-value.sqlite-wal": false,
-          "key-value.sqlite-shm": false,
-          "key-value.sqlite": false
-        }
+          "key-value.sqlite-shm": false
+        },
+        "rootClass": "eligible"
       },
       "pass": true
     },
@@ -119,8 +135,8 @@ Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for thi
         ],
         "excluded": {
           "key-value.sqlite": true,
-          "key-value.sqlite-shm": true,
-          "key-value.sqlite-wal": true
+          "key-value.sqlite-wal": true,
+          "key-value.sqlite-shm": true
         },
         "rootClass": "excluded"
       },
@@ -153,23 +169,56 @@ Simulator AX snapshot unavailable (remote-content-boundary); used XCTest for thi
     {
       "name": "files-cache",
       "actual": {
-        "excluded": {
-          "key-value.sqlite-wal": true,
-          "key-value.sqlite-shm": true,
-          "key-value.sqlite": true
-        },
         "files": [
           "key-value.sqlite",
           "key-value.sqlite-shm",
           "key-value.sqlite-wal"
         ],
-        "rootClass": "cache"
+        "rootClass": "cache",
+        "excluded": {
+          "key-value.sqlite-wal": true,
+          "key-value.sqlite": true,
+          "key-value.sqlite-shm": true
+        }
       },
       "pass": true
     }
   ]
 }" [focused]
-@e7 [tab-bar] "Tab Bar"
-@e8 [other] "Home"
-@e9 [button] "Home" [selected]
-@e10 [button] "About"
+                @e11 [text] "{
+  "stage": "reopen",
+  "checks": [
+    {
+      "name": "survives-relaunch",
+      "actual": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "expected": {
+        "found": true,
+        "value": {
+          "count": 42
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "nul-after-relaunch",
+      "actual": {
+        "found": true,
+        "value": "value\u0000tail"
+      },
+      "expected": {
+        "found": true,
+        "value": "value\u0000tail"" [focused]
+        @e12 [other] "0%"
+        @e13 [other] "Horizontal scroll bar, 1 page" [covered]
+    @e14 [other] "Tab Bar"
+      @e15 [tab-bar] "Tab Bar"
+        @e16 [other] "Home"
+          @e17 [button] "Home" [selected]
+            @e18 [image] "home"
+          @e19 [button] "About"
+            @e20 [image] "info"

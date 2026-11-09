@@ -14,8 +14,27 @@
                     }
                     guard sqlite3_step(insert) == SQLITE_DONE else { throw Failure.io }
                     sqlite3_finalize(insert)
+                    let large = call.getString("walFixture")?.hasPrefix("large") == true
+                    // Large fixtures: 600 single-page rows. Same-size updates after the
+                    // checkpoint put about 2.5 MB in the WAL without rewriting page 1.
+                    if large {
+                        let namespace = call.getString("namespace")!.replacingOccurrences(of: "'", with: "''")
+                        try fixtureSQL(seed, "WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i+1 FROM n WHERE i<599) INSERT INTO radical_kv SELECT '" + namespace + "', 'row' || i, '\"' || printf('%.2998c', 'a') || '\"' FROM n")
+                    }
                     try fixtureSQL(seed, "PRAGMA wal_checkpoint(TRUNCATE)")
+                    if large {
+                        try fixtureSQL(seed, "PRAGMA wal_autocheckpoint=0; UPDATE radical_kv SET json='\"' || printf('%.2998c', 'b') || '\"' WHERE key LIKE 'row%'")
+                    }
                     if call.getString("walFixture") == "nonempty" { try fixtureSQL(seed, "UPDATE radical_kv SET json=2") }
+                    if call.getString("walFixture") == "clean" {
+                        // Healthy store without sidecars, as after a clean close or a restore.
+                        guard sqlite3_close(seed) == SQLITE_OK else { throw Failure.io }
+                        for suffix in ["-wal", "-shm"] where FileManager.default.fileExists(atPath: database.path + suffix) {
+                            try FileManager.default.removeItem(atPath: database.path + suffix)
+                        }
+                        call.resolve([:])
+                        return
+                    }
                     radicalWalSeeds.append(seed)
                     call.resolve([:])
                     return
